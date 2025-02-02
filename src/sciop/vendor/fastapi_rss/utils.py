@@ -1,6 +1,7 @@
 """
 Utility functions for the fastapi_rss package
 """
+
 import locale
 import subprocess
 from typing import Optional
@@ -18,11 +19,11 @@ def git_config(key: str, _global=True) -> str:
     :return: The value of the git config key
     :rtype: str
     """
-    cmd = ['git', 'config']
+    cmd = ["git", "config"]
     if _global:
-        cmd.append('--global')
+        cmd.append("--global")
     cmd.append(key)
-    return subprocess.check_output(cmd).decode('utf8').strip('\n')
+    return subprocess.check_output(cmd).decode("utf8").strip("\n")
 
 
 def get_locale_code() -> Optional[str]:
@@ -48,9 +49,9 @@ def to_camelcase(string: str) -> str:
     :return: the camelcased string
     :rtype: str
     """
-    string = string.split('_')
+    string = string.split("_")
     for i, el in enumerate(string):
         if i == 0:
             continue
         string[i] = el.capitalize()
-    return ''.join(string)
+    return "".join(string)

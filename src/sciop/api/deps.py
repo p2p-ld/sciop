@@ -1,8 +1,7 @@
-from collections.abc import Generator
 from typing import Annotated, Optional
 
 import jwt
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
@@ -16,10 +15,10 @@ from sciop.models import Account, TokenPayload
 
 class OAuth2PasswordBearerCookie(OAuth2PasswordBearer):
     """Password bearer that can also get a jwt from a cookie"""
+
     def __init__(self, cookie_key="access_token", **kwargs):
         self.cookie_key = cookie_key
         super().__init__(**kwargs)
-
 
     async def __call__(self, request: Request) -> Optional[str]:
         authorization = request.cookies.get(self.cookie_key)
@@ -28,22 +27,20 @@ class OAuth2PasswordBearerCookie(OAuth2PasswordBearer):
         else:
             return authorization
 
+
 reusable_oauth2 = OAuth2PasswordBearerCookie(
-    cookie_key="access_token",
-    tokenUrl=f"{config.api_prefix}/login",
-    auto_error=False
+    cookie_key="access_token", tokenUrl=f"{config.api_prefix}/login", auto_error=False
 )
 
 
 SessionDep = Annotated[Session, Depends(get_session)]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
+
 def require_current_account(session: SessionDep, token: TokenDep) -> Account:
 
     try:
-        payload = jwt.decode(
-            token, config.secret_key, algorithms=[ALGORITHM]
-        )
+        payload = jwt.decode(token, config.secret_key, algorithms=[ALGORITHM])
         token_data = TokenPayload(**payload)
     except (InvalidTokenError, ValidationError):
         raise HTTPException(
@@ -54,6 +51,7 @@ def require_current_account(session: SessionDep, token: TokenDep) -> Account:
     if not account:
         raise HTTPException(status_code=404, detail="User not found")
     return account
+
 
 def get_current_account(session: SessionDep, token: TokenDep) -> Optional[Account]:
     try:
@@ -67,8 +65,6 @@ CurrentAccount = Annotated[Optional[Account], Depends(get_current_account)]
 
 
 def get_current_active_admin(current_account: CurrentAccount) -> Account:
-    if 'admin' not in current_account.scopes:
-        raise HTTPException(
-            status_code=403, detail="The user doesn't have enough privileges"
-        )
+    if "admin" not in current_account.scopes:
+        raise HTTPException(status_code=403, detail="The user doesn't have enough privileges")
     return current_account

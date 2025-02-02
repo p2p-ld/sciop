@@ -1,7 +1,7 @@
 from enum import Enum
-from typing import Optional
-from sqlmodel import SQLModel, Field, Relationship
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+
+from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from sciop.models import DatasetInstance
@@ -10,11 +10,13 @@ if TYPE_CHECKING:
 class AccountBase(SQLModel):
     username: str
 
+
 class Account(AccountBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     hashed_password: str
     scopes: list["Scope"] = Relationship(back_populates="account")
     submissions: list["DatasetInstance"] = Relationship(back_populates="account")
+
 
 class AccountCreate(AccountBase):
     password: str = Field(min_length=8, max_length=64)
@@ -46,8 +48,3 @@ class TokenPayload(SQLModel):
 class NewPassword(SQLModel):
     token: str
     new_password: str = Field(min_length=8, max_length=64)
-
-
-
-
-

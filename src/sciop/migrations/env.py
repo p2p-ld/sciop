@@ -1,20 +1,18 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
-
+from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
+
 from sciop.config import config as sciop_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-url = config.get_main_option('sqlalchemy.url')
+url = config.get_main_option("sqlalchemy.url")
 if url is None:
     # don't override if it's already been given to use explicitly
-    config.set_main_option('sqlalchemy.url', sciop_config.sqlite_path)
+    config.set_main_option("sqlalchemy.url", sciop_config.sqlite_path)
 
 
 # Interpret the config file for Python logging.
@@ -77,9 +75,7 @@ def run_migrations_online() -> None:
         )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata, compare_type=True
-        )
+        context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
 
         with context.begin_transaction():
             context.run_migrations()

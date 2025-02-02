@@ -1,15 +1,17 @@
 import importlib.resources
 from typing import Optional
-from alembic.config import Config as AlembicConfig
+
 from alembic import command
+from alembic.config import Config as AlembicConfig
 from alembic.util.exc import CommandError
-from sqlmodel import Session, create_engine, select, SQLModel
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
+from sqlalchemy.orm import sessionmaker
+from sqlmodel import Session, SQLModel, create_engine
 
 from sciop.config import config
 
 engine = create_engine(str(config.sqlite_path))
+
 
 def get_session():
     maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
@@ -19,6 +21,7 @@ def get_session():
         yield db
     finally:
         db.close()
+
 
 def create_tables():
     """
@@ -55,17 +58,18 @@ def ensure_alembic_version(engine):
     if version is None:
         # haven't been stamped yet, but we know we are
         # at the head since we just made the db.
-        command.stamp(alembic_config, 'head')
+        command.stamp(alembic_config, "head")
     else:
         try:
             command.check(alembic_config)
         except CommandError as e:
             # don't automatically migrate since it could be destructive
-            raise RuntimeError('Database needs to be migrated! Run sciop migrate') from e
+            raise RuntimeError("Database needs to be migrated! Run sciop migrate") from e
 
 
 def get_alembic_config() -> AlembicConfig:
-    return AlembicConfig(str(importlib.resources.files('sciop') / 'migrations' / 'alembic.ini'))
+    return AlembicConfig(str(importlib.resources.files("sciop") / "migrations" / "alembic.ini"))
+
 
 def alembic_version() -> Optional[str]:
     """

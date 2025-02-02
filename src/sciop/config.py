@@ -1,8 +1,13 @@
-from typing import Optional, Literal
 from pathlib import Path
+from typing import Literal, Optional
+
 from platformdirs import PlatformDirs
+from pydantic import (
+    BaseModel,
+    computed_field,
+    field_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import BaseModel, Field, DirectoryPath, computed_field, field_validator, model_validator, FieldValidationInfo
 
 _default_userdir = Path().home() / ".config" / "mio"
 _dirs = PlatformDirs("sciop", "sciop")
@@ -52,8 +57,8 @@ class LogConfig(BaseModel):
 
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file='.env',
-        env_file_encoding='utf-8',
+        env_file=".env",
+        env_file_encoding="utf-8",
         env_prefix="sciop_",
         env_nested_delimiter="__",
         extra="ignore",
@@ -61,18 +66,17 @@ class Config(BaseSettings):
     )
 
     secret_key: str
-    db: Optional[Path] = Path('./db.sqlite')
+    db: Optional[Path] = Path("./db.sqlite")
     """
     Optional, if set to ``None`` , use the in-memory sqlite DB
     """
     logs: LogConfig = LogConfig()
     host: str = "localhost"
     port: int = 8000
-    env: Literal['dev', 'prod'] = 'dev'
+    env: Literal["dev", "prod"] = "dev"
     public_url: str = "http://localhost"
     token_expire_minutes: int = 30
     api_prefix: str = "/api/v1"
-
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -85,14 +89,14 @@ class Config(BaseSettings):
     @property
     def sqlite_path(self) -> str:
         if self.db is None:
-            return 'sqlite://'
+            return "sqlite://"
         else:
-            return f'sqlite:///{str(self.db.resolve())}'
+            return f"sqlite:///{str(self.db.resolve())}"
 
     @property
     def reload(self) -> bool:
         """whether to reload the wsgi server ie. when in dev mode"""
-        if self.env == 'dev':
+        if self.env == "dev":
             return True
         else:
             return False
@@ -100,5 +104,6 @@ class Config(BaseSettings):
     def __post_init__(self):
         self.db.parent.mkdir(exist_ok=True, parents=True)
         self.logs.dir.mkdir(exist_ok=True, parents=True)
+
 
 config = Config()

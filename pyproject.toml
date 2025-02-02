@@ -27,6 +27,11 @@ license = {text = "EUPL-1.2"}
 [project.scripts]
 sciop = "sciop.main:main"
 
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.9.4",
+    "black>=25.1.0",
+]
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
@@ -50,8 +55,8 @@ format.composite = [
 
 [tool.ruff]
 target-version = "py311"
-include = ["sciop/**/*.py", "pyproject.toml"]
-exclude = ["docs", "tests"]
+include = ["src/sciop/**/*.py", "pyproject.toml"]
+exclude = ["docs", "tests", "src/sciop/vendor/**/*"]
 line-length = 100
 
 [tool.ruff.lint]
@@ -74,8 +79,6 @@ select = [
     "T10",
     ## ----------
     # pydocstyle
-    # undocumented public objects
-    "D100", "D101", "D102", "D103", "D104", "D106", "D107",
     # indentation
     "D207", "D208",
     # whitespace
@@ -86,7 +89,7 @@ select = [
     "N802"
 ]
 ignore = [
-    "ANN101", "ANN102", "ANN401", "ANN204",
+    "ANN401", "ANN204",
     # explicit strict arg for zip
     "B905",
     # builtin type annotations
