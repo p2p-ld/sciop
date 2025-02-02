@@ -1,0 +1,104 @@
+[project]
+name = "sciop"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "sneakers-the-rat", email = "sneakers-the-rat@protonmail.com"},
+]
+dependencies = [
+    "fastapi>=0.115.8",
+    "sqlmodel>=0.0.22",
+    "pydantic-settings>=2.7.1",
+    "uvicorn>=0.34.0",
+    "jinja2>=3.1.5",
+    "alembic>=1.14.1",
+    "lxml>=5.3.0",
+    "pydantic>=2.10.6",
+    "rich>=13.9.4",
+    "platformdirs>=4.3.6",
+    "pyjwt>=2.10.1",
+    "passlib>=1.7.4"
+]
+requires-python = ">=3.11"
+readme = "README.md"
+license = {text = "EUPL-1.2"}
+
+[project.scripts]
+sciop = "sciop.main:main"
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.scripts]
+start = { call = "sciop.main:main" }
+test = "pytest"
+lint.composite = [
+    "ruff check",
+    "black sciop --diff"
+]
+format.composite = [
+    "ruff check --fix",
+    "black sciop"
+]
+
+
+[tool.ruff]
+target-version = "py311"
+include = ["sciop/**/*.py", "pyproject.toml"]
+exclude = ["docs", "tests"]
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # annotations
+    "ANN",
+    # no debugger
+    "T10",
+    ## ----------
+    # pydocstyle
+    # undocumented public objects
+    "D100", "D101", "D102", "D103", "D104", "D106", "D107",
+    # indentation
+    "D207", "D208",
+    # whitespace
+    "D210", "D211",
+    # emptiness
+    "D419",
+    # snake case function name
+    "N802"
+]
+ignore = [
+    "ANN101", "ANN102", "ANN401", "ANN204",
+    # explicit strict arg for zip
+    "B905",
+    # builtin type annotations
+    "UP006", "UP035",
+    # | for Union types (only supported >=3.10
+    "UP007", "UP038",
+    # docstrings for __init__
+    "D107",
+]
+
+fixable = ["ALL"]
+
+[tool.black]
+target-version = ['py311', 'py312', 'py313']
+include = "sciop/.*\\.py$"
+line-length = 100
