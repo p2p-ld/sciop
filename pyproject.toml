@@ -17,7 +17,8 @@ dependencies = [
     "rich>=13.9.4",
     "platformdirs>=4.3.6",
     "pyjwt>=2.10.1",
-    "passlib>=1.7.4"
+    "python-multipart>=0.0.20",
+    "bcrypt>=4.2.1"
 ]
 requires-python = ">=3.11"
 readme = "README.md"

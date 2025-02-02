@@ -1,0 +1,9 @@
+<nav class="navbar">
+    <h2 class="site-title">SciOp</h2>
+    <div class="spacer"></div>
+    {% if current_user %}
+
+    {% else %}
+    <a href="/login" class="nav-button">Login</a>
+    {% endif %}
+</nav>

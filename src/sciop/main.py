@@ -2,9 +2,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
+from sciop.const import STATIC_DIR
 from sciop.api.main import api_router
 from sciop.frontend.main import frontend_router
 from sciop.config import config
@@ -37,6 +39,12 @@ if config.all_cors_origins:
 
 app.include_router(api_router)
 app.include_router(frontend_router)
+
+app.mount(
+    '/static',
+    StaticFiles(directory=STATIC_DIR),
+    name="static"
+)
 
 def main():
     uvicorn.run(

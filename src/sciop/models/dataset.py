@@ -41,17 +41,19 @@ class DatasetBase(SQLModel):
 class Dataset(DatasetBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     instances: list["DatasetInstance"] = Relationship(back_populates="dataset")
-    url: list["DatasetURL"] = Relationship(back_populates="dataset")
+    urls: list["DatasetURL"] = Relationship(back_populates="dataset")
     tags: list["DatasetTag"] = Relationship(back_populates="dataset")
 
 class DatasetURL(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    dataset: Dataset = Relationship(back_populates="url")
+    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
+    dataset: Dataset = Relationship(back_populates="urls")
     url: str
 
 class DatasetTag(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    dataset: Dataset = Relationship(back_populates="url")
+    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
+    dataset: Dataset = Relationship(back_populates="tags")
     tag: str
 
 
@@ -70,8 +72,10 @@ class DatasetInstanceBase(SQLModel):
 class DatasetInstance(DatasetInstanceBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 
+    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
     dataset: Dataset = Relationship(back_populates="instances")
-    submitted_by: Account = Relationship(back_populates="submissions")
+    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
+    account: Account = Relationship(back_populates="submissions")
 
 
 

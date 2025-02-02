@@ -1,0 +1,29 @@
+{% extends "layouts/default.html" %}
+{% block content %}
+<form hx-post="{{ config.api_prefix }}/login" class="form login-form" id="login-form">
+    <div class="form-row">
+        <span class="form-label">Username</span>
+        <input id="username" name="username" type="text">
+    </div>
+    <div class="form-row">
+        <span class="form-label">Password</span>
+        <input id="password" name="password" type="password">
+    </div>
+</form>
+<div class="form-row">
+    <button
+        class="form-button"
+        type="submit"
+        name="account"
+        hx-post="{{ config.api_prefix }}/register"
+        hx-include="#login-form"
+    >Register</button>
+    <button
+        class="form-button"
+        type="submit"
+        name="account"
+        hx-post="{{ config.api_prefix }}/login"
+        hx-include="#login-form"
+    >Login</button>
+</div>
+{% endblock %}

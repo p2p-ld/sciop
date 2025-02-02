@@ -12,7 +12,7 @@ from sciop.config import config
 engine = create_engine(str(config.sqlite_path))
 
 def get_session():
-    maker = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
 
     try:
         db = maker()
@@ -59,9 +59,9 @@ def ensure_alembic_version(engine):
     else:
         try:
             command.check(alembic_config)
-        except CommandError:
+        except CommandError as e:
             # don't automatically migrate since it could be destructive
-            raise RuntimeError('Database needs to be migrated! Run paper-feeds migrate')
+            raise RuntimeError('Database needs to be migrated! Run sciop migrate') from e
 
 
 def get_alembic_config() -> AlembicConfig:

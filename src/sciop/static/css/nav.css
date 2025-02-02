@@ -1,0 +1,23 @@
+nav.navbar {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    top: 0;
+    align-items: center;
+    border: 1px solid var(--color-primary);
+    padding: 0.5em 1em;
+    box-sizing: border-box;
+
+    .spacer {
+        flex-grow: 2;
+    }
+
+    .nav-button {
+        background-color: var(--color-primary);
+        padding: 1em;
+        border-radius: 5px;
+        color: var(--color-text);
+        text-decoration: unset;
+    }
+}
+
