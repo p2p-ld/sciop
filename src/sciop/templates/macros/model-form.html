@@ -1,0 +1,28 @@
+{% macro inner_model_form(id, model) %}
+{% for field_name, field in model.model_fields.items() %}
+<div class="form-item">
+    <label for="{{ id }}-{{ field_name }}" class="form-label">
+        {% if field.title %}
+            {{ field.title }}
+        {% else %}
+            {{ field_name }}
+        {% endif %}
+    </label>
+    {% if field.json_schema_extra and field.json_schema_extra.get('input_type', None) == 'textarea' %}
+        <textarea id="{{ id }}-{{ field_name }}" name="{{ field_name }}" class="form-textarea"></textarea>
+    {% elif field.json_schema_extra and field.json_schema_extra.get('input_type', None) == 'textarea' %}
+    {% else %}
+        <input id="{{ id }}-{{ field_name }}" name="{{ field_name }}" class="form-input">
+    {% endif %}
+    {% if field.description %}
+    <p class="form-item-description">{{ field.description }}</p>
+    {% endif %}
+</div>
+{% endfor %}
+{% endmacro %}
+
+{% macro model_form(id, model) %}
+<form class="form" id="{{ id }}">
+  {{ inner_model_form(id, model) }}
+</form>
+{% endmacro %}

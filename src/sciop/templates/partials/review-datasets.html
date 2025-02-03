@@ -1,0 +1,12 @@
+{% from 'macros/dataset.html' import dataset_collapsible %}
+<div id="dataset-review-panel" class="review-panel">
+    {% if datasets | length == 0 %}
+    <span>No datasets to review :)</span>
+    {% else %}
+    <table>
+        {% for dataset in datasets %}
+        {{ dataset_collapsible(dataset, review=True, config=config) }}
+        {% endfor %}
+    </table>
+    {% endif %}
+</div>

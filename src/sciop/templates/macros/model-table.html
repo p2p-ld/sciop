@@ -1,0 +1,10 @@
+{% macro model_table(id, model, exclude={}) %}
+<table id="{{ id }}" class="model-table">
+    {% for key, value in model.model_dump(exclude=exclude).items() %}
+    <tr>
+        <th id="{{ id }}-{{ key }}-key" class="model-table-key">{{ key }}</th>
+        <th id="{{ id }}-{{ key }}-value" class="model-table-value">{{ value }}</th>
+    </tr>
+    {% endfor %}
+</table>
+{% endmacro %}

@@ -47,7 +47,7 @@ def init_logger(
     """
     config = Config()
     if log_dir is None:
-        log_dir = config.log_dir
+        log_dir = config.logs.dir
     if level is None:
         level: LOG_LEVELS = (
             config.logs.level_stdout if config.logs.level_stdout is not None else config.logs.level
@@ -65,7 +65,7 @@ def init_logger(
     # even if one or the other handlers might not.
     min_level = min([getattr(logging, level), getattr(logging, file_level)])
 
-    if not name.startswith("mio"):
+    if not name.startswith("sciop"):
         name = "sciop." + name
 
     _init_root(

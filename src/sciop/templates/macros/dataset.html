@@ -1,0 +1,21 @@
+{% macro dataset_row(dataset) %}
+
+{% endmacro %}
+
+{% macro dataset_collapsible(dataset, review = False, config = None) %}
+<details class="collapsible dataset-collapsible" id="dataset-collapsible-{{ dataset.slug }}">
+    <summary class="collapsible-summary">
+        <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
+        <span class="dataset-timestamp">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}</span>
+        <span class="dataset-title">{{ dataset.title }}</span>
+        <span class="spacer"></span>
+        {% if review %}
+        <button class="button approve-button success-button"
+                hx-post="{{ config.api_prefix }}/review/datasets/{{ dataset.slug }}/approve">Approve
+        </button>
+        {% endif %}
+    </summary>
+
+    {{ dataset_row(dataset) }}
+</details>
+{% endmacro %}

@@ -2,11 +2,11 @@
 {% block content %}
 <form hx-post="{{ config.api_prefix }}/login" class="form login-form" id="login-form">
     <div class="form-row">
-        <span class="form-label">Username</span>
+        <label for="username" class="form-label">Username</label>
         <input id="username" name="username" type="text">
     </div>
     <div class="form-row">
-        <span class="form-label">Password</span>
+        <label for="password" class="form-label">Password</label>
         <input id="password" name="password" type="password">
     </div>
 </form>

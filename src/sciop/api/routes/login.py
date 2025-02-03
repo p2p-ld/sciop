@@ -8,7 +8,7 @@ from sciop.api.auth import create_access_token
 from sciop.api.deps import SessionDep
 from sciop.config import config
 from sciop.crud import create_account, get_account
-from sciop.models import Account, AccountCreate, Token
+from sciop.models import Account, AccountCreate, Token, SuccessResponse
 
 login_router = APIRouter()
 
@@ -26,8 +26,15 @@ def login(
     access_token_expires = timedelta(minutes=config.token_expire_minutes)
     token = create_access_token(account.id, expires_delta=access_token_expires)
     response.set_cookie(key="access_token", value=token, httponly=True)
-    response.headers["HX-Location"] = "/account"
+    response.headers["HX-Location"] = "/profile"
     return Token(access_token=token)
+
+
+@login_router.post("/logout")
+def logout(response: Response) -> SuccessResponse:
+    response.delete_cookie(key="access_token")
+    response.headers["HX-Location"] = "/"
+    return SuccessResponse(success=True)
 
 
 @login_router.post("/register", response_model_exclude={"hashed_password"})
@@ -44,5 +51,5 @@ def register(
     access_token_expires = timedelta(minutes=config.token_expire_minutes)
     token = create_access_token(created_account.id, access_token_expires)
     response.set_cookie(key="access_token", value=token)
-    response.headers["HX-Location"] = "/account"
+    response.headers["HX-Location"] = "/profile"
     return created_account

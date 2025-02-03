@@ -1,0 +1,18 @@
+.form {
+    display: grid;
+    grid-template-columns: minmax(10px, auto) 3fr;
+    gap: 0.5em 1em;
+
+    .form-item {
+        display: grid;
+        grid-column-start: 1;
+        grid-column-end: 3;
+        grid-template-columns: subgrid;
+    }
+
+    .form-item-description {
+        grid-column-start: 2;
+    }
+
+
+}

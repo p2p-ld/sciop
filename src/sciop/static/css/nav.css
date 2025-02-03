@@ -7,6 +7,7 @@ nav.navbar {
     border: 1px solid var(--color-primary);
     padding: 0.5em 1em;
     box-sizing: border-box;
+    gap: 0.5em;
 
     .spacer {
         flex-grow: 2;
@@ -17,6 +18,13 @@ nav.navbar {
         padding: 1em;
         border-radius: 5px;
         color: var(--color-text);
+        text-decoration: unset;
+    }
+
+    .nav-link {
+        border: 1px solid var(--color-primary);
+        padding: 1em;
+        border-radius: 5px;
         text-decoration: unset;
     }
 }

@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:4430ec23a837a414e3c7530d2b6722cbd30f5d2d684e0fa793f08323430d21f7"
+content_hash = "sha256:e6314807afa9b3147189efdaaf681f4fcb5674a83eb92f543e0edbd96734d9a8"
 
 [[metadata.targets]]
 requires_python = ">=3.11"
@@ -164,6 +164,21 @@ dependencies = [
 files = [
     {file = "fastapi-0.115.8-py3-none-any.whl", hash = "sha256:753a96dd7e036b34eeef8babdfcfe3f28ff79648f86551eb36bfc1b0bf4a8cbf"},
     {file = "fastapi-0.115.8.tar.gz", hash = "sha256:0ce9111231720190473e222cdf0f07f7206ad7e53ea02beb1d2dc36e2f0741e9"},
+]
+
+[[package]]
+name = "fastapi-pagination"
+version = "0.12.34"
+requires_python = "<4.0,>=3.8"
+summary = "FastAPI pagination"
+groups = ["default"]
+dependencies = [
+    "pydantic>=1.9.1",
+    "typing-extensions<5.0.0,>=4.8.0",
+]
+files = [
+    {file = "fastapi_pagination-0.12.34-py3-none-any.whl", hash = "sha256:089d1078aae1784395b4dbd923d0c8246641ddcc291c5ec6d92a30edb92ecbdd"},
+    {file = "fastapi_pagination-0.12.34.tar.gz", hash = "sha256:05ee8c0bc572072160f7f30900bfd87869e1880c87bc5797922fec2e49e65f11"},
 ]
 
 [[package]]

@@ -1,7 +1,17 @@
+from typing import Optional
+
 from sqlmodel import Session, select
 
 from sciop.api.auth import get_password_hash, verify_password
-from sciop.models import Account, AccountCreate
+from sciop.models import (
+    Account,
+    AccountCreate,
+    Dataset,
+    DatasetCreate,
+    DatasetInstance,
+    DatasetTag,
+    DatasetURL,
+)
 
 
 def create_account(*, session: Session, account_create: AccountCreate) -> Account:
@@ -27,3 +37,32 @@ def authenticate(*, session: Session, username: str, password: str) -> Account |
     if not verify_password(password, db_user.hashed_password):
         return None
     return db_user
+
+def create_dataset(*, session: Session, dataset_create: DatasetCreate, current_account: Optional[Account] = None) ->Dataset:
+    enabled = current_account is not None and any([scope.name == "submit" for scope in current_account.scopes])
+    urls = [DatasetURL(url=url) for url in dataset_create.urls]
+    tags = [DatasetTag(tag=tag) for tag in dataset_create.tags]
+
+    db_obj = Dataset.model_validate(dataset_create,
+        update={"enabled": enabled, "account": current_account, "urls": urls, "tags": tags}
+    )
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+def get_dataset(*, session: Session, dataset_slug: str) -> Dataset | None:
+    """Get a dataset by its slug"""
+    statement = select(Dataset).where(Dataset.slug == dataset_slug)
+    session_dataset = session.exec(statement).first()
+    return session_dataset
+
+def get_review_datasets(*, session: Session) -> list[Dataset]:
+    statement = select(Dataset).where(Dataset.enabled == False)
+    datasets = session.exec(statement).all()
+    return datasets
+
+def get_review_instances(*, session: Session) -> list[DatasetInstance]:
+    statement = select(DatasetInstance).where(DatasetInstance.enabled == False)
+    instances = session.exec(statement).all()
+    return instances

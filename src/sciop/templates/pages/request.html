@@ -1,0 +1,29 @@
+{% extends "layouts/default.html" %}
+{% from "macros/model-form.html" import model_form %}
+{% block content %}
+<h2>Request/Add a Dataset</h2>
+
+<p>
+Dataset requests can be submitted anonymously, but please create an account and log in
+for this dataset to be associated with you and allow you to make edits and updates.
+</p>
+
+<p>
+Datasets can be submitted whether you have a copy of the data or if you want
+someone else to scrape it. If you have a copy of the dataset and have permission
+to upload, you will be able to do so after submitting the dataset.
+</p>
+
+{{ model_form(id="request-form", model=model) }}
+
+<div class="button-row">
+    <button
+        class="form-button"
+        type="submit"
+        name="dataset"
+        hx-post="{{ config.api_prefix }}/datasets/form"
+        hx-include="#request-form"
+    >Submit</button>
+</div>
+
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "layouts/default.html" %}
+{% block content %}
+<h2>Hello {{ current_account.username }}</h2>
+
+Scopes:
+{% for scope in current_account.scopes %}
+<span class="token">{{ scope.name.value }}</span>
+{% endfor %}
+
+<h2>Uploads:</h2>
+
+{% if current_account.has_scope('review') %}
+<h2>Review</h2>
+<h3>Datasets</h3>
+
+<div id="dataset-review-container" class="review-container">
+    <div
+        hx-get="/review/datasets"
+        hx-trigger="load"
+    >
+        <span class="htmx-indicator search-indicator" id="review-datasets-indicator">
+            <span>Loading datasets...</span>
+            <img src="/static/img/rings.svg"/>
+        </span>
+    </div>
+</div>
+
+<h3>Instances</h3>
+
+<div id="instance-review-container"  class="review-container">
+    <div
+        hx-get="/review/instances"
+        hx-trigger="load"
+    >
+        <span class="htmx-indicator search-indicator" id="review-instances-indicator">
+            <span>Loading instances...</span>
+            <img src="/static/img/rings.svg"/>
+        </span>
+    </div>
+</div>
+
+
+{% endif %}
+
+<button class="button" id="logout-button" hx-post="{{ config.api_prefix }}/logout">Logout</button>
+
+{% endblock %}

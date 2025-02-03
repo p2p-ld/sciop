@@ -3,19 +3,25 @@ from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 
+from sciop.models.mixin import TableMixin, TableReadMixin
+
 if TYPE_CHECKING:
-    from sciop.models import DatasetInstance
+    from sciop.models import Dataset, DatasetInstance, ExternalInstance
 
 
 class AccountBase(SQLModel):
     username: str
 
 
-class Account(AccountBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+class Account(AccountBase, TableMixin, table=True):
     hashed_password: str
     scopes: list["Scope"] = Relationship(back_populates="account")
+    datasets: list["Dataset"] = Relationship(back_populates="account")
     submissions: list["DatasetInstance"] = Relationship(back_populates="account")
+    external_submissions: list["ExternalInstance"] = Relationship(back_populates="account")
+
+    def has_scope(self, scope: str) -> bool:
+        return scope in [scope.name.value for scope in self.scopes]
 
 
 class AccountCreate(AccountBase):
@@ -24,11 +30,12 @@ class AccountCreate(AccountBase):
 
 class Scopes(str, Enum):
     submit = "submit"
+    upload = "upload"
+    review = "review"
     admin = "admin"
 
 
-class Scope(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+class Scope(TableMixin, table=True):
     account_id: Optional[int] = Field(default=None, foreign_key="account.id")
     account: Account = Relationship(back_populates="scopes")
     name: Scopes

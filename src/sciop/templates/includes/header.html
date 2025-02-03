@@ -1,8 +1,11 @@
 <nav class="navbar">
-    <h2 class="site-title">SciOp</h2>
+    <h2 class="site-title"><a href="/">SciOp</a></h2>
     <div class="spacer"></div>
-    {% if current_user %}
+    <a class="nav-link" href="/request">Request/Add Dataset</a>
+    <a class="nav-link" href="/upload">Upload Torrent</a>
 
+    {% if current_account %}
+    <a href="/profile" class="nav-button">{{ current_account.username }}</a>
     {% else %}
     <a href="/login" class="nav-button">Login</a>
     {% endif %}

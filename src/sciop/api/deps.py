@@ -1,16 +1,18 @@
-from typing import Annotated, Optional
+from typing import Annotated, Optional, TypeVar
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlmodel import Session
 
 from sciop.api.auth import ALGORITHM
 from sciop.config import config
 from sciop.db import get_session
 from sciop.models import Account, TokenPayload
+
+_TModel = TypeVar("_TModel", bound=BaseModel)
 
 
 class OAuth2PasswordBearerCookie(OAuth2PasswordBearer):
@@ -64,7 +66,17 @@ RequireCurrentAccount = Annotated[Account, Depends(require_current_account)]
 CurrentAccount = Annotated[Optional[Account], Depends(get_current_account)]
 
 
-def get_current_active_admin(current_account: CurrentAccount) -> Account:
-    if "admin" not in current_account.scopes:
-        raise HTTPException(status_code=403, detail="The user doesn't have enough privileges")
+def require_current_active_admin(current_account: RequireCurrentAccount) -> Account:
+    if "admin" not in [scope.name for scope in current_account.scopes]:
+        raise HTTPException(status_code=403, detail="Account must be admin")
     return current_account
+
+
+def require_current_active_reviewer(current_account: RequireCurrentAccount) -> Account:
+    if "review" not in [scope.name for scope in current_account.scopes]:
+        raise HTTPException(status_code=403, detail="Account must be reviewer")
+    return current_account
+
+
+RequireAdmin = Annotated[Account, Depends(require_current_active_admin)]
+RequireReviewer = Annotated[Account, Depends(require_current_active_reviewer)]

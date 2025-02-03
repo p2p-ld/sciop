@@ -54,6 +54,10 @@ class LogConfig(BaseModel):
             value = value.upper()
         return value
 
+    @field_validator("dir", mode="after")
+    def create_dir(cls, value: Path) -> Path:
+        value.mkdir(parents=True, exist_ok=True)
+        return value
 
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
@@ -73,7 +77,7 @@ class Config(BaseSettings):
     logs: LogConfig = LogConfig()
     host: str = "localhost"
     port: int = 8000
-    env: Literal["dev", "prod"] = "dev"
+    env: Literal["dev", "prod", "test"] = "dev"
     public_url: str = "http://localhost"
     token_expire_minutes: int = 30
     api_prefix: str = "/api/v1"
@@ -104,6 +108,8 @@ class Config(BaseSettings):
     def __post_init__(self):
         self.db.parent.mkdir(exist_ok=True, parents=True)
         self.logs.dir.mkdir(exist_ok=True, parents=True)
+
+
 
 
 config = Config()
