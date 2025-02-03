@@ -9,6 +9,7 @@ from sciop.models.dataset import (
     ExternalInstance,
 )
 from sciop.models.api import SuccessResponse
+from sciop.models.torrent import TorrentFile, TorrentFileCreate
 
 __all__ = [
     "Account",
@@ -23,4 +24,6 @@ __all__ = [
     "SuccessResponse",
     "Token",
     "TokenPayload",
+    "TorrentFile",
+    "TorrentFileCreate",
 ]

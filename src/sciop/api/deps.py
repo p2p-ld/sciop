@@ -78,5 +78,12 @@ def require_current_active_reviewer(current_account: RequireCurrentAccount) -> A
     return current_account
 
 
+def require_current_active_uploader(current_account: RequireCurrentAccount) -> Account:
+    if "upload" not in [scope.name for scope in current_account.scopes]:
+        raise HTTPException(status_code=403, detail="Account must be reviewer")
+    return current_account
+
+
 RequireAdmin = Annotated[Account, Depends(require_current_active_admin)]
 RequireReviewer = Annotated[Account, Depends(require_current_active_reviewer)]
+RequireUploader = Annotated[Account, Depends(require_current_active_uploader)]

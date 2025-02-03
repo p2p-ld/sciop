@@ -1,13 +1,16 @@
 import re
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from pydantic import field_validator
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.account import Account
 from sciop.models.mixin import TableMixin, TableReadMixin
+
+if TYPE_CHECKING:
+    from sciop.models import TorrentFile
 
 
 class Priority(str, Enum):
@@ -182,10 +185,9 @@ class DatasetInstanceBase(SQLModel):
     A copy of a dataset
     """
 
-    time_submitted: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    method: str
-    """Description of how the dataset was acquired"""
-    enabled: bool = False
+    method: Optional[str] = Field(
+        None, description="""Description of how the dataset was acquired"""
+    )
 
 
 class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
@@ -195,10 +197,16 @@ class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
     dataset: Dataset = Relationship(back_populates="instances")
     account_id: Optional[int] = Field(default=None, foreign_key="account.id")
     account: Account = Relationship(back_populates="submissions")
+    torrent: Optional["TorrentFile"] = Relationship(back_populates="instance")
+    enabled: bool = False
 
 
 class DatasetInstanceRead(DatasetInstanceBase, TableReadMixin):
     """ """
+
+
+class DatasetInstanceCreate(DatasetInstanceBase):
+    """Dataset instance for creation, excludes the enabled param"""
 
 
 class ExternalInstanceBase(SQLModel):

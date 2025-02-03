@@ -17,7 +17,7 @@
     <span>Dataset must be reviewed before uploads can be added</span>
     {% endif %}
 {% elif current_account and  current_account.has_scope("upload") %}
-    <button class="button" id="upload-button">Upload</button>
+    <button class="button" id="upload-button" hx-get="/datasets/{{dataset.slug}}/upload/start">Upload</button>
 {% else %}
     <button class="button" id="request-upload-button">Request Upload Permissions</button>
 {% endif %}

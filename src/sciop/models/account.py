@@ -6,7 +6,7 @@ from sqlmodel import Field, Relationship, SQLModel
 from sciop.models.mixin import TableMixin, TableReadMixin
 
 if TYPE_CHECKING:
-    from sciop.models import Dataset, DatasetInstance, ExternalInstance
+    from sciop.models import Dataset, DatasetInstance, ExternalInstance, TorrentFile
 
 
 class AccountBase(SQLModel):
@@ -19,6 +19,7 @@ class Account(AccountBase, TableMixin, table=True):
     datasets: list["Dataset"] = Relationship(back_populates="account")
     submissions: list["DatasetInstance"] = Relationship(back_populates="account")
     external_submissions: list["ExternalInstance"] = Relationship(back_populates="account")
+    torrents: list["TorrentFile"] = Relationship(back_populates="account")
 
     def has_scope(self, scope: str) -> bool:
         return scope in [scope.name.value for scope in self.scopes]

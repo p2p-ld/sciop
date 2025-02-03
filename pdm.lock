@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:e6314807afa9b3147189efdaaf681f4fcb5674a83eb92f543e0edbd96734d9a8"
+content_hash = "sha256:a2241a593a0f0368d4861674917dfbdcf94bea8a2404f982ac7c44e323fb1dd6"
 
 [[metadata.targets]]
 requires_python = ">=3.11"
@@ -179,6 +179,15 @@ dependencies = [
 files = [
     {file = "fastapi_pagination-0.12.34-py3-none-any.whl", hash = "sha256:089d1078aae1784395b4dbd923d0c8246641ddcc291c5ec6d92a30edb92ecbdd"},
     {file = "fastapi_pagination-0.12.34.tar.gz", hash = "sha256:05ee8c0bc572072160f7f30900bfd87869e1880c87bc5797922fec2e49e65f11"},
+]
+
+[[package]]
+name = "flatbencode"
+version = "0.2.1"
+summary = "Fast, safe and non-recursive implementation of Bittorrent bencoding for Python 3"
+groups = ["default"]
+files = [
+    {file = "flatbencode-0.2.1.tar.gz", hash = "sha256:77397d5d0108835404f6f7cad640d403c7025a11812afc7e1df4b0f92589ba77"},
 ]
 
 [[package]]
@@ -711,6 +720,20 @@ dependencies = [
 files = [
     {file = "starlette-0.45.3-py3-none-any.whl", hash = "sha256:dfb6d332576f136ec740296c7e8bb8c8a7125044e7c6da30744718880cdd059d"},
     {file = "starlette-0.45.3.tar.gz", hash = "sha256:2cbcba2a75806f8a41c722141486f37c28e30a0921c5f6fe4346cb0dcee1302f"},
+]
+
+[[package]]
+name = "torf"
+version = "4.2.7"
+requires_python = ">=3.7"
+summary = "Python 3 module for creating and parsing torrent files and magnet URIs"
+groups = ["default"]
+dependencies = [
+    "flatbencode==0.2.*",
+]
+files = [
+    {file = "torf-4.2.7-py3-none-any.whl", hash = "sha256:a15e31ee7f9c04104bf6253bf383f69ad9b42b8207faeb791d096212af460ccf"},
+    {file = "torf-4.2.7.tar.gz", hash = "sha256:c2e1e2171ce03ffc9303ddbc50d7f73e419d9a1af22a07edb029b7c0cf7293d9"},
 ]
 
 [[package]]
