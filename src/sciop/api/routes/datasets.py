@@ -1,26 +1,19 @@
-from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, Response
-from fastapi_pagination import Page, paginate
+from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlmodel import select
 
 from sciop import crud
-from sciop.api.auth import create_access_token
-from sciop.api.deps import SessionDep, CurrentAccount, RequireUploader, RequireEnabledDataset
-from sciop.config import config
-from sciop import crud
+from sciop.api.deps import CurrentAccount, RequireEnabledDataset, RequireUploader, SessionDep
 from sciop.models import (
-    Account,
-    AccountCreate,
-    Token,
     Dataset,
-    DatasetRead,
     DatasetCreate,
-    DatasetInstanceCreate,
     DatasetInstance,
+    DatasetInstanceCreate,
+    DatasetRead,
 )
-from sqlmodel import select
 
 datasets_router = APIRouter(prefix="/datasets")
 

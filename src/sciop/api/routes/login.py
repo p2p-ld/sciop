@@ -8,7 +8,7 @@ from sciop.api.auth import create_access_token
 from sciop.api.deps import SessionDep
 from sciop.config import config
 from sciop.crud import create_account, get_account
-from sciop.models import Account, AccountCreate, Token, SuccessResponse
+from sciop.models import Account, AccountCreate, SuccessResponse, Token
 
 login_router = APIRouter()
 

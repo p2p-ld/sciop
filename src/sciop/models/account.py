@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 
-from sciop.models.mixin import TableMixin, TableReadMixin
+from sciop.models.mixin import TableMixin
 
 if TYPE_CHECKING:
     from sciop.models import Dataset, DatasetInstance, ExternalInstance, TorrentFile

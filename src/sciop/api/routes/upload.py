@@ -1,27 +1,16 @@
-from datetime import timedelta
-from typing import Annotated
 from hashlib import blake2b
 from pathlib import Path
 
-from fastapi import APIRouter, Form, HTTPException, Response, UploadFile
+from fastapi import APIRouter, UploadFile
 from torf import Torrent
 
 from sciop import crud
-from sciop.api.auth import create_access_token
-from sciop.api.deps import SessionDep, RequireReviewer, RequireUploader
-from sciop.config import config
+from sciop.api.deps import RequireUploader, SessionDep
 from sciop.models import (
-    Account,
-    AccountCreate,
-    Token,
-    Dataset,
-    SuccessResponse,
-    TorrentFileCreate,
     FileInTorrentCreate,
-    TorrentFile,
+    TorrentFileCreate,
     TorrentFileRead,
 )
-from sciop.logging import init_logger
 
 upload_router = APIRouter(prefix="/upload")
 

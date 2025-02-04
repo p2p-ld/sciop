@@ -1,9 +1,8 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-from pydantic import computed_field
-from sqlmodel import Field, Relationship, SQLModel
 import humanize
+from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.config import config
 from sciop.models.mixin import TableMixin

@@ -1,7 +1,7 @@
-from typing import Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from sciop.logging import init_logger
 from sciop.exceptions import UploadSizeExceeded
+from sciop.logging import init_logger
 
 if TYPE_CHECKING:
     from fastapi import FastAPI

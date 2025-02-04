@@ -51,8 +51,8 @@ lint.composite = [
     "black sciop --diff"
 ]
 format.composite = [
+    "black src/sciop",
     "ruff check --fix",
-    "black sciop"
 ]
 
 

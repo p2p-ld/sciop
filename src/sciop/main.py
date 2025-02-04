@@ -11,7 +11,6 @@ from sciop.config import config
 from sciop.const import STATIC_DIR
 from sciop.db import create_tables
 from sciop.frontend.main import frontend_router
-from sciop.middleware import ContentSizeLimitMiddleware
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"
@@ -51,6 +50,7 @@ add_pagination(app)
 #     ContentSizeLimitMiddleware,
 #     max_content_size = config.upload_limit
 # )
+
 
 def main():
     uvicorn.run("sciop.main:app", host=config.host, port=config.port, reload=config.reload)

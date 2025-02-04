@@ -1,11 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from sciop import crud
-from sciop.api.deps import CurrentAccount, SessionDep, RequireUploader, RequireDataset
+from sciop.api.deps import CurrentAccount, RequireDataset, RequireUploader, SessionDep
 from sciop.api.routes.upload import upload_torrent
 from sciop.config import config
 from sciop.const import TEMPLATE_DIR

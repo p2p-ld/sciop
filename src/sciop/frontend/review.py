@@ -1,13 +1,11 @@
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from sciop import crud
-from sciop.api.deps import CurrentAccount, SessionDep, RequireReviewer
+from sciop.api.deps import RequireReviewer, SessionDep
 from sciop.config import config
 from sciop.const import TEMPLATE_DIR
-from sciop.models import DatasetCreate, Dataset, DatasetInstance
-
 
 review_router = APIRouter(prefix="/review")
 templates = Jinja2Templates(directory=TEMPLATE_DIR)

@@ -59,6 +59,7 @@ class LogConfig(BaseModel):
         value.mkdir(parents=True, exist_ok=True)
         return value
 
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -85,7 +86,7 @@ class Config(BaseSettings):
     api_prefix: str = "/api/v1"
     upload_limit: int = 2**20
     """in bytes"""
-    torrent_dir: Path = Path(_dirs.user_data_dir) / 'torrents'
+    torrent_dir: Path = Path(_dirs.user_data_dir) / "torrents"
     """Directory to store uploaded torrents"""
 
     @computed_field  # type: ignore[prop-decorator]
@@ -122,8 +123,6 @@ class Config(BaseSettings):
         """Ensure parent directory exists"""
         value.parent.mkdir(exist_ok=True, parents=True)
         return value
-
-
 
 
 config = Config()

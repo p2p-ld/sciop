@@ -98,16 +98,21 @@ def alembic_version() -> Optional[str]:
 
     return version
 
+
 def create_seed_data(engine):
     if config.env not in ("dev", "test"):
         return
     from sciop import crud
     from sciop.models import AccountCreate, DatasetCreate, Scope, Scopes
+
     with maker() as session:
         # session = get_session()
         admin = crud.get_account(username="admin", session=session)
         if not admin:
-            admin = crud.create_account(account_create=AccountCreate(username="admin", password="adminadmin"), session=session)
+            admin = crud.create_account(
+                account_create=AccountCreate(username="admin", password="adminadmin"),
+                session=session,
+            )
 
         scopes = [Scope(name=a_scope) for a_scope in Scopes.__members__.values()]
         admin.scopes = scopes
@@ -115,13 +120,22 @@ def create_seed_data(engine):
         session.commit()
         session.refresh(admin)
 
-        unapproved_dataset = crud.get_dataset(dataset_slug='unapproved', session=session)
+        unapproved_dataset = crud.get_dataset(dataset_slug="unapproved", session=session)
         if not unapproved_dataset:
-            unapproved_dataset = crud.create_dataset(session=session, dataset_create=DatasetCreate(
-                slug="unapproved", title="Unapproved Dataset", agency="An Agency", homepage="example.com",
-                description="An unapproved dataset", priority = "low", source="web", urls=["example.com/1", "example.com/2"],
-                tags=["unapproved","test", "aaa", "bbb"]
-            ))
+            unapproved_dataset = crud.create_dataset(
+                session=session,
+                dataset_create=DatasetCreate(
+                    slug="unapproved",
+                    title="Unapproved Dataset",
+                    agency="An Agency",
+                    homepage="example.com",
+                    description="An unapproved dataset",
+                    priority="low",
+                    source="web",
+                    urls=["example.com/1", "example.com/2"],
+                    tags=["unapproved", "test", "aaa", "bbb"],
+                ),
+            )
         unapproved_dataset.enabled = False
         session.add(unapproved_dataset)
         session.commit()

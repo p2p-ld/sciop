@@ -1,14 +1,12 @@
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from urllib.parse import urljoin
 
+from fastapi import APIRouter, HTTPException
+
 from sciop import crud
-from sciop.api.deps import CurrentAccount, SessionDep, RequireReviewer
+from sciop.api.deps import SessionDep
 from sciop.config import config
-from sciop.const import TEMPLATE_DIR
-from sciop.models import DatasetCreate, Dataset, DatasetInstance, TorrentFeed
-from sciop.vendor.fastapi_rss.rss_response import RSSResponse, RSSFeed
+from sciop.models import TorrentFeed
+from sciop.vendor.fastapi_rss.rss_response import RSSResponse
 
 rss_router = APIRouter(prefix="/rss")
 

@@ -1,7 +1,7 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Optional
 
-from sqlmodel import SQLModel, Field
+from sqlmodel import Field, SQLModel
 
 
 class TableMixin(SQLModel):

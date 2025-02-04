@@ -1,7 +1,6 @@
 import re
-from datetime import UTC, datetime
 from enum import Enum
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from urllib.parse import urljoin
 
 from pydantic import field_validator

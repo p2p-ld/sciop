@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from sciop.frontend.index import index_router
 from sciop.frontend.datasets import datasets_router
+from sciop.frontend.index import index_router
 from sciop.frontend.review import review_router
 from sciop.frontend.rss import rss_router
 

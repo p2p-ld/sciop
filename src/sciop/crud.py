@@ -9,13 +9,13 @@ from sciop.models import (
     Dataset,
     DatasetCreate,
     DatasetInstance,
+    DatasetInstanceCreate,
     DatasetTag,
     DatasetURL,
+    FileInTorrent,
     TorrentFile,
-TorrentFileCreate,
-FileInTorrent,
-TrackerInTorrent,
-DatasetInstanceCreate
+    TorrentFileCreate,
+    TrackerInTorrent,
 )
 
 
@@ -43,18 +43,25 @@ def authenticate(*, session: Session, username: str, password: str) -> Account |
         return None
     return db_user
 
-def create_dataset(*, session: Session, dataset_create: DatasetCreate, current_account: Optional[Account] = None) ->Dataset:
-    enabled = current_account is not None and any([scope.name == "submit" for scope in current_account.scopes])
+
+def create_dataset(
+    *, session: Session, dataset_create: DatasetCreate, current_account: Optional[Account] = None
+) -> Dataset:
+    enabled = current_account is not None and any(
+        [scope.name == "submit" for scope in current_account.scopes]
+    )
     urls = [DatasetURL(url=url) for url in dataset_create.urls]
     tags = [DatasetTag(tag=tag) for tag in dataset_create.tags]
 
-    db_obj = Dataset.model_validate(dataset_create,
-        update={"enabled": enabled, "account": current_account, "urls": urls, "tags": tags}
+    db_obj = Dataset.model_validate(
+        dataset_create,
+        update={"enabled": enabled, "account": current_account, "urls": urls, "tags": tags},
     )
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     return db_obj
+
 
 def get_dataset(*, session: Session, dataset_slug: str) -> Dataset | None:
     """Get a dataset by its slug"""
@@ -62,62 +69,67 @@ def get_dataset(*, session: Session, dataset_slug: str) -> Dataset | None:
     session_dataset = session.exec(statement).first()
     return session_dataset
 
+
 def get_review_datasets(*, session: Session) -> list[Dataset]:
     statement = select(Dataset).where(Dataset.enabled == False)
     datasets = session.exec(statement).all()
     return datasets
+
 
 def get_review_instances(*, session: Session) -> list[DatasetInstance]:
     statement = select(DatasetInstance).where(DatasetInstance.enabled == False)
     instances = session.exec(statement).all()
     return instances
 
+
 def get_torrent_from_hash(*, hash: str, session: Session) -> Optional[TorrentFile]:
     statement = select(TorrentFile).where(TorrentFile.hash == hash)
     value = session.exec(statement).first()
     return value
+
 
 def get_torrent_from_short_hash(*, short_hash: str, session: Session) -> Optional[TorrentFile]:
     statement = select(TorrentFile).where(TorrentFile.short_hash == short_hash)
     value = session.exec(statement).first()
     return value
 
-def create_torrent(*, session: Session, created_torrent: TorrentFileCreate, account: Account) -> TorrentFile:
+
+def create_torrent(
+    *, session: Session, created_torrent: TorrentFileCreate, account: Account
+) -> TorrentFile:
     trackers = [TrackerInTorrent(url=url) for url in created_torrent.trackers]
     files = [FileInTorrent(path=file.path, size=file.size) for file in created_torrent.files]
-    db_obj = TorrentFile.model_validate(created_torrent, update={"trackers": trackers, "files": files, "account":
-        account})
+    db_obj = TorrentFile.model_validate(
+        created_torrent, update={"trackers": trackers, "files": files, "account": account}
+    )
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     return db_obj
 
-def create_instance(*, session: Session, created_instance: DatasetInstanceCreate, account: Account, dataset: Dataset
-                    ) -> DatasetInstance:
-    torrent = get_torrent_from_short_hash(session=session, short_hash=created_instance.torrent_short_hash)
-    db_obj = DatasetInstance.model_validate(created_instance,
-                                                      update={"torrent": torrent,
-                                                      "account": account,
-                                                      "dataset": dataset})
+
+def create_instance(
+    *, session: Session, created_instance: DatasetInstanceCreate, account: Account, dataset: Dataset
+) -> DatasetInstance:
+    torrent = get_torrent_from_short_hash(
+        session=session, short_hash=created_instance.torrent_short_hash
+    )
+    db_obj = DatasetInstance.model_validate(
+        created_instance, update={"torrent": torrent, "account": account, "dataset": dataset}
+    )
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     return db_obj
+
 
 def get_instances(*, dataset: Dataset, session: Session) -> list[DatasetInstance]:
     statement = select(DatasetInstance).where(DatasetInstance.dataset == dataset)
     instances = session.exec(statement).all()
     return instances
 
+
 def get_instances_from_tag(*, session: Session, tag: str) -> list[DatasetInstance]:
-    statement = select(
-            DatasetInstance
-        ).join(
-            Dataset
-        ).join(
-            DatasetTag
-        ).filter(
-            DatasetTag.tag == tag
-        )
+    statement = select(DatasetInstance).join(Dataset).join(DatasetTag).filter(DatasetTag.tag == tag)
     instances = session.exec(statement).all()
     return instances
