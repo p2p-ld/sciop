@@ -1,0 +1,22 @@
+{% macro instance_row(dataset) %}
+
+{% endmacro %}
+
+{% macro instance_collapsible(instance, dataset, config = None) %}
+<details class="collapsible instance-collapsible" id="instance-collapsible-{{ instance.id }}">
+    <summary class="collapsible-summary">
+        <span class="instance-hash token">
+            <a href="/datasets/{{dataset.slug}}/instances/{{ instance.short_hash }}">
+                {{ instance.short_hash }}
+            </a>
+        </span>
+        <span class="instance-timestamp timestamp">{{ instance.created_at.strftime("%y-%m-%d %H:%M") }}</span>
+        <span class="instance-title title">{{ instance.file_name }}</span>
+        <span class="instance-size size">{{ instance.human_size }}</span>
+        <span class="spacer"></span>
+        <a class="icon-link download-link" href="{{ instance.download_path }}">⬇️</a>
+    </summary>
+
+    {{ instance_row(instance) }}
+</details>
+{% endmacro %}

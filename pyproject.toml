@@ -20,7 +20,8 @@ dependencies = [
     "python-multipart>=0.0.20",
     "bcrypt>=4.2.1",
     "fastapi-pagination>=0.12.34",
-    "torf>=4.2.7"
+    "torf>=4.2.7",
+    "humanize>=4.11.0"
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -91,7 +92,7 @@ select = [
     "N802"
 ]
 ignore = [
-    "ANN401", "ANN204",
+    "ANN101", "ANN102", "ANN401", "ANN204",
     # explicit strict arg for zip
     "B905",
     # builtin type annotations

@@ -3,14 +3,15 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
+from starlette.middleware.cors import CORSMiddleware
 
 from sciop.api.main import api_router
 from sciop.config import config
 from sciop.const import STATIC_DIR
 from sciop.db import create_tables
 from sciop.frontend.main import frontend_router
+from sciop.middleware import ContentSizeLimitMiddleware
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"
@@ -43,7 +44,13 @@ app.include_router(api_router)
 app.include_router(frontend_router)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/torrents", StaticFiles(directory=config.torrent_dir), name="torrents")
 add_pagination(app)
+
+# app.add_middleware(
+#     ContentSizeLimitMiddleware,
+#     max_content_size = config.upload_limit
+# )
 
 def main():
     uvicorn.run("sciop.main:app", host=config.host, port=config.port, reload=config.reload)

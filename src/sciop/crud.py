@@ -11,6 +11,11 @@ from sciop.models import (
     DatasetInstance,
     DatasetTag,
     DatasetURL,
+    TorrentFile,
+TorrentFileCreate,
+FileInTorrent,
+TrackerInTorrent,
+DatasetInstanceCreate
 )
 
 
@@ -64,5 +69,42 @@ def get_review_datasets(*, session: Session) -> list[Dataset]:
 
 def get_review_instances(*, session: Session) -> list[DatasetInstance]:
     statement = select(DatasetInstance).where(DatasetInstance.enabled == False)
+    instances = session.exec(statement).all()
+    return instances
+
+def get_torrent_from_hash(*, hash: str, session: Session) -> Optional[TorrentFile]:
+    statement = select(TorrentFile).where(TorrentFile.hash == hash)
+    value = session.exec(statement).first()
+    return value
+
+def get_torrent_from_short_hash(*, short_hash: str, session: Session) -> Optional[TorrentFile]:
+    statement = select(TorrentFile).where(TorrentFile.short_hash == short_hash)
+    value = session.exec(statement).first()
+    return value
+
+def create_torrent(*, session: Session, created_torrent: TorrentFileCreate, account: Account) -> TorrentFile:
+    trackers = [TrackerInTorrent(url=url) for url in created_torrent.trackers]
+    files = [FileInTorrent(path=file.path, size=file.size) for file in created_torrent.files]
+    db_obj = TorrentFile.model_validate(created_torrent, update={"trackers": trackers, "files": files, "account":
+        account})
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+def create_instance(*, session: Session, created_instance: DatasetInstanceCreate, account: Account, dataset: Dataset
+                    ) -> DatasetInstance:
+    torrent = get_torrent_from_short_hash(session=session, short_hash=created_instance.torrent_short_hash)
+    db_obj = DatasetInstance.model_validate(created_instance,
+                                                      update={"torrent": torrent,
+                                                      "account": account,
+                                                      "dataset": dataset})
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+def get_instances(*, dataset: Dataset, session: Session) -> list[DatasetInstance]:
+    statement = select(DatasetInstance).where(DatasetInstance.dataset == dataset)
     instances = session.exec(statement).all()
     return instances

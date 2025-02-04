@@ -186,7 +186,14 @@ class DatasetInstanceBase(SQLModel):
     """
 
     method: Optional[str] = Field(
-        None, description="""Description of how the dataset was acquired"""
+        None,
+        description="""Description of how the dataset was acquired""",
+        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+    )
+    description: Optional[str] = Field(
+        None,
+        description="Any additional information about this dataset instance",
+        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
     )
 
 
@@ -200,6 +207,20 @@ class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
     torrent: Optional["TorrentFile"] = Relationship(back_populates="instance")
     enabled: bool = False
 
+    @property
+    def human_size(self) -> str:
+        """Human-sized string representation of the torrent size"""
+        return self.torrent.human_size
+
+    @property
+    def download_path(self) -> str:
+        """Location where the torrent can be downloaded relative to site root"""
+        return self.torrent.download_path
+
+    @property
+    def file_name(self) -> str:
+        return self.torrent.file_name
+
 
 class DatasetInstanceRead(DatasetInstanceBase, TableReadMixin):
     """ """
@@ -207,6 +228,10 @@ class DatasetInstanceRead(DatasetInstanceBase, TableReadMixin):
 
 class DatasetInstanceCreate(DatasetInstanceBase):
     """Dataset instance for creation, excludes the enabled param"""
+
+    torrent_short_hash: str = Field(
+        max_length=8, min_length=8, description="Short hash of the torrent file"
+    )
 
 
 class ExternalInstanceBase(SQLModel):

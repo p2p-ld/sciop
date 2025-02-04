@@ -7,10 +7,19 @@ from fastapi_pagination.ext.sqlalchemy import paginate
 
 from sciop import crud
 from sciop.api.auth import create_access_token
-from sciop.api.deps import SessionDep, CurrentAccount
+from sciop.api.deps import SessionDep, CurrentAccount, RequireUploader, RequireEnabledDataset
 from sciop.config import config
 from sciop import crud
-from sciop.models import Account, AccountCreate, Token, Dataset, DatasetRead, DatasetCreate
+from sciop.models import (
+    Account,
+    AccountCreate,
+    Token,
+    Dataset,
+    DatasetRead,
+    DatasetCreate,
+    DatasetInstanceCreate,
+    DatasetInstance,
+)
 from sqlmodel import select
 
 datasets_router = APIRouter(prefix="/datasets")
@@ -52,6 +61,50 @@ def datasets_create_form(
     )
     response.headers["HX-Location"] = f"/datasets/{created_dataset.slug}"
     return created_dataset
+
+
+@datasets_router.post("/{dataset_slug}/instances")
+def datasets_create_instance(
+    instance: DatasetInstanceCreate,
+    dataset_slug: str,
+    dataset: RequireEnabledDataset,
+    account: RequireUploader,
+    session: SessionDep,
+) -> DatasetInstance:
+    """Create an instance of a dataset"""
+    torrent = crud.get_torrent_from_short_hash(
+        session=session, short_hash=instance.torrent_short_hash
+    )
+    if not torrent:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No torrent with short hash {instance.torrent_short_hash} exists, upload it first!",
+        )
+    created_instance = crud.create_instance(
+        session=session, created_instance=instance, dataset=dataset, account=account
+    )
+    return created_instance
+
+
+@datasets_router.post("/{dataset_slug}/instances/form")
+def datasets_create_instance_form(
+    instance: Annotated[DatasetInstanceCreate, Form()],
+    dataset_slug: str,
+    dataset: RequireEnabledDataset,
+    account: RequireUploader,
+    session: SessionDep,
+    response: Response,
+) -> DatasetInstance:
+    """Create an instance of a dataset"""
+    created_instance = datasets_create_instance(
+        instance=instance,
+        dataset_slug=dataset_slug,
+        dataset=dataset,
+        account=account,
+        session=session,
+    )
+    response.headers["HX-Refresh"] = "true"
+    return created_instance
 
 
 # @datasets_router.post("/form")

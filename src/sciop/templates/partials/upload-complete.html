@@ -1,0 +1,27 @@
+{% from "macros/model-form.html" import inner_model_form %}
+{% from "macros/model-table.html" import model_table %}
+<p class="label">Torrent details:</p>
+{{ model_table(id="torrent-table", model=torrent) }}
+
+<form id='upload-form' class="form">
+    {{ inner_model_form(id="upload-form", model=model, exclude=["torrent_short_hash"]) }}
+    <div class="form-item">
+        <label for="upload-form-torrent_short_hash" class="form-label">Torrent Short Hash</label>
+        <input id="upload-form-torrent_short_hash"
+               class="form-input"
+               type="text"
+               name="torrent_short_hash"
+               value="{{ torrent.short_hash }}"
+               readonly="readonly">
+    </div>
+
+</form>
+
+<button
+    class="form-button"
+    type="submit"
+    name="instance"
+    hx-post='{{ config.api_prefix }}/datasets/{{ dataset.slug }}/instances/form'
+    hx-include="#upload-form"
+>Submit</button>
+

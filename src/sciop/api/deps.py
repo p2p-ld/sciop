@@ -7,10 +7,11 @@ from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, ValidationError
 from sqlmodel import Session
 
+from sciop import crud
 from sciop.api.auth import ALGORITHM
 from sciop.config import config
 from sciop.db import get_session
-from sciop.models import Account, TokenPayload
+from sciop.models import Account, Dataset, TokenPayload
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 
@@ -87,3 +88,30 @@ def require_current_active_uploader(current_account: RequireCurrentAccount) -> A
 RequireAdmin = Annotated[Account, Depends(require_current_active_admin)]
 RequireReviewer = Annotated[Account, Depends(require_current_active_reviewer)]
 RequireUploader = Annotated[Account, Depends(require_current_active_uploader)]
+
+
+def require_dataset(dataset_slug: str, session: SessionDep) -> Dataset:
+    dataset = crud.get_dataset(session=session, dataset_slug=dataset_slug)
+    if not dataset:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such dataset {dataset_slug} exists!",
+        )
+    return dataset
+
+
+def require_enabled_dataset(dataset_slug: str, session: SessionDep) -> Dataset:
+    """
+    Require that a dataset exists and is enabled
+    """
+    dataset = require_dataset(dataset_slug, session)
+    if not dataset.enabled:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Dataset {dataset_slug} not enabled for uploads",
+        )
+    return dataset
+
+
+RequireDataset = Annotated[Dataset, Depends(require_dataset)]
+RequireEnabledDataset = Annotated[Dataset, Depends(require_enabled_dataset)]

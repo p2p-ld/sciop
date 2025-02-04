@@ -81,6 +81,10 @@ class Config(BaseSettings):
     public_url: str = "http://localhost"
     token_expire_minutes: int = 30
     api_prefix: str = "/api/v1"
+    upload_limit: int = 2**20
+    """in bytes"""
+    torrent_dir: Path = Path(_dirs.user_data_dir) / 'torrents'
+    """Directory to store uploaded torrents"""
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -105,9 +109,17 @@ class Config(BaseSettings):
         else:
             return False
 
-    def __post_init__(self):
-        self.db.parent.mkdir(exist_ok=True, parents=True)
-        self.logs.dir.mkdir(exist_ok=True, parents=True)
+    @field_validator("torrent_dir", mode="after")
+    def create_dir(cls, value: Path) -> Path:
+        """Ensure directories exist"""
+        value.mkdir(parents=True, exist_ok=True)
+        return value
+
+    @field_validator("db", mode="after")
+    def create_parent_dir(cls, value: Path) -> Path:
+        """Ensure parent directory exists"""
+        value.parent.mkdir(exist_ok=True, parents=True)
+        return value
 
 
 

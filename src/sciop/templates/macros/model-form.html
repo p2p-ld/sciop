@@ -1,5 +1,5 @@
-{% macro inner_model_form(id, model) %}
-{% for field_name, field in model.model_fields.items() %}
+{% macro inner_model_form(id, model, exclude = []) %}
+{% for field_name, field in model.model_fields.items() if field_name not in exclude %}
 <div class="form-item">
     <label for="{{ id }}-{{ field_name }}" class="form-label">
         {% if field.title %}
@@ -21,8 +21,8 @@
 {% endfor %}
 {% endmacro %}
 
-{% macro model_form(id, model) %}
+{% macro model_form(id, model, exclude = []) %}
 <form class="form" id="{{ id }}">
-  {{ inner_model_form(id, model) }}
+  {{ inner_model_form(id, model, exclude) }}
 </form>
 {% endmacro %}

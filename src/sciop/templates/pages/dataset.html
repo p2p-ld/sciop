@@ -9,15 +9,31 @@
 
 <h3>Uploads</h3>
 
+{% if dataset.enabled %}
+<div id="dataset-instances-container" class="instances-container container">
+    <div
+        hx-get="/datasets/{{ dataset.slug }}/instances"
+        hx-trigger="load"
+    >
+        <span class="htmx-indicator search-indicator" id="instances-indicator">
+            <span>Loading dataset instances...</span>
+            <img src="/static/img/rings.svg"/>
+        </span>
+    </div>
+</div>
+{% endif %}
+
 <div class="upload-button">
 {% if not dataset.enabled %}
     {% if current_account and current_account.has_scope("review") %}
-    <button class="button success-button" id="approve-button">Approve this dataset</button>
+    <button class="button success-button" id="approve-button"
+            hx-post="{{ config.api_prefix }}/review/datasets/{{ dataset.slug }}/approve">Approve this dataset</button>
     {% else %}
     <span>Dataset must be reviewed before uploads can be added</span>
     {% endif %}
 {% elif current_account and  current_account.has_scope("upload") %}
-    <button class="button" id="upload-button" hx-get="/datasets/{{dataset.slug}}/upload/start">Upload</button>
+    <button class="button" id="upload-button" hx-get="/datasets/{{dataset.slug}}/upload/start" hx-swap="outerHTML">Upload
+    </button>
 {% else %}
     <button class="button" id="request-upload-button">Request Upload Permissions</button>
 {% endif %}
