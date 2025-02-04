@@ -69,6 +69,8 @@ class Config(BaseSettings):
         nested_model_default_partial_update=True,
     )
 
+    base_url: str = "http://localhost:8000"
+    """Root URL where the site is hosted"""
     secret_key: str
     db: Optional[Path] = Path("./db.sqlite")
     """

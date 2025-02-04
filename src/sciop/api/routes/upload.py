@@ -1,6 +1,7 @@
 from datetime import timedelta
 from typing import Annotated
 from hashlib import blake2b
+from pathlib import Path
 
 from fastapi import APIRouter, Form, HTTPException, Response, UploadFile
 from torf import Torrent
@@ -50,6 +51,7 @@ async def upload_torrent(
         #     detail="An identical torrent file already exists!",
         # )
         pass
+
     created_torrent = TorrentFileCreate(
         file_name=file.filename,
         hash=hash,
@@ -59,11 +61,14 @@ async def upload_torrent(
         files=[FileInTorrentCreate(path=str(_file), size=_file.size) for _file in torrent.files],
         trackers=[tracker for tier in torrent.trackers for tracker in tier],
     )
+
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
     await file.seek(0)
     with open(created_torrent.filesystem_path, "wb") as f:
         data = await file.read()
         f.write(data)
+
+    created_torrent.torrent_size = Path(created_torrent.filesystem_path).stat().st_size
 
     created_torrent = crud.create_torrent(
         session=session, created_torrent=created_torrent, account=account

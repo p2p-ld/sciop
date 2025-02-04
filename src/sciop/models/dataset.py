@@ -2,10 +2,12 @@ import re
 from datetime import UTC, datetime
 from enum import Enum
 from typing import Optional, TYPE_CHECKING
+from urllib.parse import urljoin
 
 from pydantic import field_validator
 from sqlmodel import Field, Relationship, SQLModel
 
+from sciop.config import config
 from sciop.models.account import Account
 from sciop.models.mixin import TableMixin, TableReadMixin
 
@@ -140,19 +142,28 @@ class DatasetCreate(DatasetBase):
     @field_validator("urls", "tags", mode="before")
     def split_strings(cls, value: str | list[str]) -> list[str]:
         """Split lists of strings given as one entry per line"""
+        print("split")
+        print(value)
         if isinstance(value, str):
             value = value.splitlines()
+        elif isinstance(value, list) and len(value) == 1 and "\n" in value[0]:
+            value = value[0].splitlines()
         return value
 
     @field_validator("tags", mode="after")
     def tokenize_tags(cls, value: list[str]) -> list[str]:
         """Transform tags to lowercase alphanumeric characters, replacing anything else with -"""
-        return [_tokenize(v) for v in value]
+        print("tokenize")
+        print(value)
+        res = [_tokenize(v) for v in value]
+        print("after")
+        print(res)
+        return res
 
 
 def _tokenize(v: str) -> str:
     v = v.lower()
-    v = re.sub(r"^[0-9a-z\s\-_]", "", v)
+    v = re.sub(r"[^0-9a-z\s\-_]", "", v)
     v = re.sub(r"[\s_]", "-", v)
     return v
 
@@ -218,8 +229,18 @@ class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
         return self.torrent.download_path
 
     @property
+    def absolute_download_path(self) -> str:
+        """Download path including the site root"""
+        return urljoin(config.base_url, self.download_path)
+
+    @property
     def file_name(self) -> str:
         return self.torrent.file_name
+
+    @property
+    def rss_description(self) -> str:
+        """String to be used in the RSS description for this instance"""
+        return f"Description: {self.description}\n\nMethod: {self.method}"
 
 
 class DatasetInstanceRead(DatasetInstanceBase, TableReadMixin):

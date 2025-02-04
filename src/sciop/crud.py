@@ -108,3 +108,16 @@ def get_instances(*, dataset: Dataset, session: Session) -> list[DatasetInstance
     statement = select(DatasetInstance).where(DatasetInstance.dataset == dataset)
     instances = session.exec(statement).all()
     return instances
+
+def get_instances_from_tag(*, session: Session, tag: str) -> list[DatasetInstance]:
+    statement = select(
+            DatasetInstance
+        ).join(
+            Dataset
+        ).join(
+            DatasetTag
+        ).filter(
+            DatasetTag.tag == tag
+        )
+    instances = session.exec(statement).all()
+    return instances

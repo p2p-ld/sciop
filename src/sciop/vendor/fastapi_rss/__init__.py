@@ -2,5 +2,5 @@
 
 __version__ = "0.2.1"
 
-from fastapi_rss.models import *
-from fastapi_rss.rss_response import RSSResponse
+from sciop.vendor.fastapi_rss.models import *
+from sciop.vendor.fastapi_rss.rss_response import RSSResponse

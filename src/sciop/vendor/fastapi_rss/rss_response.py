@@ -1,7 +1,7 @@
 import hashlib
 from typing import Mapping
 
-from fastapi_rss.models import RSSFeed
+from sciop.vendor.fastapi_rss.models import RSSFeed
 from starlette.responses import Response
 
 

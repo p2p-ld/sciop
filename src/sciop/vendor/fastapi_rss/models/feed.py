@@ -3,13 +3,13 @@ from email.utils import format_datetime
 from typing import Any, Dict, List, Optional, Union
 
 from fastapi import __version__ as faversion
-from fastapi_rss import __version__ as farssversion
-from fastapi_rss.models.category import Category
-from fastapi_rss.models.cloud import Cloud
-from fastapi_rss.models.image import Image
-from fastapi_rss.models.item import Item
-from fastapi_rss.models.textinput import TextInput
-from fastapi_rss.utils import get_locale_code, to_camelcase
+from sciop.vendor.fastapi_rss import __version__ as farssversion
+from sciop.vendor.fastapi_rss.models.category import Category
+from sciop.vendor.fastapi_rss.models.cloud import Cloud
+from sciop.vendor.fastapi_rss.models.image import Image
+from sciop.vendor.fastapi_rss.models.item import Item
+from sciop.vendor.fastapi_rss.models.textinput import TextInput
+from sciop.vendor.fastapi_rss.utils import get_locale_code, to_camelcase
 from lxml import etree
 from pydantic import BaseModel, Field
 

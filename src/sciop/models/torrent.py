@@ -52,6 +52,9 @@ class TorrentFileBase(SQLModel):
     )
     total_size: int = Field(description="Total torrent size in bytes")
     piece_size: int = Field(description="Piece size in bytes")
+    torrent_size: Optional[int] = Field(
+        None, description="Size of the torrent file itself, in bytes"
+    )
 
     @property
     def download_path(self) -> str:

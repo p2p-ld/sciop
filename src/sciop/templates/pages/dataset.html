@@ -7,6 +7,19 @@
 
 {{ model_table(id="dataset-table", model=dataset, exclude=["title"]) }}
 
+<h4>Tags</h4>
+
+<div class="tag-group">
+{% for tag in dataset.tags %}
+<span class="tag-item">
+    <span class="tag token">{{ tag.tag }}</span>
+    <a class="rss-link" href="/rss/tag/{{ tag.tag }}.rss">
+        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+    </a>
+</span>
+{% endfor %}
+</div>
+
 <h3>Uploads</h3>
 
 {% if dataset.enabled %}

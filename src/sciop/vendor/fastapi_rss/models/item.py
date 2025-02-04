@@ -1,11 +1,11 @@
 import datetime
 from typing import Optional
 
-from fastapi_rss.models.category import Category
-from fastapi_rss.models.enclosure import Enclosure
-from fastapi_rss.models.guid import GUID
-from fastapi_rss.models.itunes import Itunes
-from fastapi_rss.models.source import Source
+from sciop.vendor.fastapi_rss.models.category import Category
+from sciop.vendor.fastapi_rss.models.enclosure import Enclosure
+from sciop.vendor.fastapi_rss.models.guid import GUID
+from sciop.vendor.fastapi_rss.models.itunes import Itunes
+from sciop.vendor.fastapi_rss.models.source import Source
 from pydantic import BaseModel
 
 

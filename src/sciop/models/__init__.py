@@ -10,13 +10,14 @@ from sciop.models.dataset import (
     DatasetURL,
     ExternalInstance,
 )
+from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.torrent import (
     FileInTorrent,
     FileInTorrentCreate,
     TorrentFile,
     TorrentFileCreate,
-    TrackerInTorrent,
     TorrentFileRead,
+    TrackerInTorrent,
 )
 
 __all__ = [
@@ -34,7 +35,10 @@ __all__ = [
     "SuccessResponse",
     "Token",
     "TokenPayload",
+    "TorrentFeed",
     "TorrentFile",
     "TorrentFileCreate",
     "TorrentFileRead",
+    "TorrentItem",
+    "TrackerInTorrent",
 ]
