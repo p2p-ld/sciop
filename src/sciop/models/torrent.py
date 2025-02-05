@@ -47,7 +47,11 @@ class TorrentFileBase(SQLModel):
     file_name: str
     hash: str
     short_hash: Optional[str] = Field(
-        None, min_length=8, max_length=8, description="length-8 truncated version of hash"
+        None,
+        min_length=8,
+        max_length=8,
+        description="length-8 truncated version of hash",
+        index=True,
     )
     total_size: int = Field(description="Total torrent size in bytes")
     piece_size: int = Field(description="Piece size in bytes")

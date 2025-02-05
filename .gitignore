@@ -163,3 +163,4 @@ cython_debug/
 #.idea/
 
 db.sqlite
+__tmp__
