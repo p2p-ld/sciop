@@ -35,6 +35,9 @@ dev = [
     "ruff>=0.9.4",
     "black>=25.1.0",
 ]
+test = [
+    "pytest>=8.3.4",
+]
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"

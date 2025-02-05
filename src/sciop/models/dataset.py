@@ -8,7 +8,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.config import config
 from sciop.models.account import Account
-from sciop.models.mixin import TableMixin, TableReadMixin
+from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
 
 if TYPE_CHECKING:
     from sciop.models import TorrentFile
@@ -104,7 +104,8 @@ class DatasetBase(SQLModel):
     )
 
 
-class Dataset(DatasetBase, TableMixin, table=True):
+class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
+    __searchable__ = ["title", "slug", "agency", "homepage", "description"]
     instances: list["DatasetInstance"] = Relationship(back_populates="dataset")
     external_instances: list["ExternalInstance"] = Relationship(back_populates="dataset")
     urls: list["DatasetURL"] = Relationship(back_populates="dataset")

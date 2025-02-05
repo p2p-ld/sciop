@@ -37,6 +37,8 @@ def create_tables():
     References:
         - https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-an-up-to-date-database-from-scratch
     """
+    from sciop import models
+    models.Dataset.register_events()
 
     SQLModel.metadata.create_all(engine)
     # check version here since creating the table is the same action as
