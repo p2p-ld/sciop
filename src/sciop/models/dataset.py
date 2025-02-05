@@ -1,5 +1,5 @@
 import re
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Optional
 from urllib.parse import urljoin
 
@@ -14,14 +14,14 @@ if TYPE_CHECKING:
     from sciop.models import TorrentFile
 
 
-class Priority(str, Enum):
+class Priority(StrEnum):
     unknown = "unknown"
     low = "low"
     medium = "medium"
     high = "high"
 
 
-class SourceType(str, Enum):
+class SourceType(StrEnum):
     unknown = "unknown"
     web = "web"
     http = "http"
@@ -29,13 +29,13 @@ class SourceType(str, Enum):
     s3 = "s3"
 
 
-class Status(str, Enum):
+class Status(StrEnum):
     todo = "todo"
     claimed = "claimed"
     completed = "completed"
 
 
-class InputType(str, Enum):
+class InputType(StrEnum):
     text = "text"
     textarea = "textarea"
 
