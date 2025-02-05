@@ -1,0 +1,40 @@
+.redacted {
+    color: var(--color-primary-contrast);
+    position: relative;
+
+    &>* {
+        color: var(--color-primary-contrast);
+    }
+
+    &:before {
+        background: var(--color-primary);
+        border-radius: 0.2em 0.1em;
+        box-shadow: 0 0 2px rgba(255,255,255,0.25);
+        content: " ";
+        width: 150%;
+        height: 0.8em;
+        left: -25%;
+        bottom: 0.1em;
+        position: absolute;
+        transform: skewY(-10deg) rotate(8deg);
+        z-index: -1;
+    }
+}
+
+.site-index {
+    text-align: center;
+
+
+    .site-title {
+        display: inline-block;
+        font-size: 5em;
+    }
+
+    .site-subtitle {
+        font-style: italic;
+        font-weight: normal;
+        font-size: 2em;
+    }
+
+
+}

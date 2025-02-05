@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+import sciop
 from sciop.api.deps import CurrentAccount, SessionDep
 from sciop.config import config
 from sciop.const import TEMPLATE_DIR
@@ -15,11 +16,20 @@ templates = Jinja2Templates(directory=TEMPLATE_DIR)
 
 
 @index_router.get("/", response_class=HTMLResponse)
-async def index(request: Request, account: CurrentAccount, session: SessionDep):
-    datasets = crud.get_approved_datasets(session=session)
+async def index(request: Request, account: CurrentAccount):
+    try:
+        short_hash = sciop.__version__.split("+")[1]
+    except IndexError:
+        short_hash = ""
     return templates.TemplateResponse(
         "pages/index.html",
-        {"request": request, "config": config, "current_account": account, "datasets": datasets},
+        {
+            "request": request,
+            "config": config,
+            "current_account": account,
+            "version": sciop.__version__,
+            "short_hash": short_hash,
+        },
     )
 
 

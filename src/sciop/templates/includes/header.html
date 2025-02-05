@@ -1,9 +1,18 @@
 <nav class="navbar">
-    <h2 class="site-title"><a href="/">SciOp</a></h2>
-    <div class="spacer"></div>
-    <a class="nav-link" href="/request">Request/Add Dataset</a>
-    <a class="nav-link" href="/upload">Upload Torrent</a>
+    <h2 class="site-title redacted"><a href="/">SciOp</a></h2>
+    <a href="/datasets" class="nav-link">Datasets</a>
+    <a href="/feeds" class="nav-link">Feeds</a>
+    <a href="/docs" class="nav-link">Docs</a>
 
+    <div class="spacer"></div>
+    <span id="option-darkmode" class="toggle-switch">
+        <label class="toggle-container">
+            <label class="aria" for="option-darkmode-input">Toggle Light/Dark Mode</label>
+            <input id="option-darkmode-input" type="checkbox">
+            <span id="option-darkmode-slider" class="slider preload"></span>
+        </label>
+    </span>
+    <a class="nav-button outline" href="/request">Request/Add Dataset</a>
     {% if current_account %}
     <a href="/profile" class="nav-button">{{ current_account.username }}</a>
     {% else %}

@@ -15,6 +15,15 @@ datasets_router = APIRouter(prefix="/datasets")
 templates = Jinja2Templates(directory=TEMPLATE_DIR)
 
 
+@datasets_router.get("/", response_class=HTMLResponse)
+async def datasets(request: Request, account: CurrentAccount, session: SessionDep):
+    datasets = crud.get_approved_datasets(session=session)
+    return templates.TemplateResponse(
+        "pages/datasets.html",
+        {"request": request, "config": config, "current_account": account, "datasets": datasets},
+    )
+
+
 @datasets_router.get("/{dataset_slug}", response_class=HTMLResponse)
 async def dataset_show(
     dataset_slug: str, account: CurrentAccount, session: SessionDep, request: Request

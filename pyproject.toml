@@ -1,10 +1,10 @@
 [project]
 name = "sciop"
-version = "0.1.0"
 description = "Default template for PDM package"
 authors = [
     {name = "sneakers-the-rat", email = "sneakers-the-rat@protonmail.com"},
 ]
+dynamic=["version"]
 dependencies = [
     "fastapi>=0.115.8",
     "sqlmodel>=0.0.22",
@@ -42,6 +42,12 @@ build-backend = "pdm.backend"
 
 [tool.pdm]
 distribution = true
+
+[tool.pdm.version]
+source = "call"
+getter = "scripts.version:get_version"
+write_to = "sciop/_version.py"
+write_template = '__version__ = "{}"'
 
 [tool.pdm.scripts]
 start = { call = "sciop.main:main" }

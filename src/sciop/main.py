@@ -27,6 +27,12 @@ app = FastAPI(
     openapi_url=f"{config.api_prefix}/openapi.json",
     # generate_unique_id_function=custom_generate_unique_id,
     lifespan=lifespan,
+    license_info={
+        "name": "European Union Public License - 1.2",
+        "identifier": "EUPL-1.2"
+    },
+    docs_url="/docs/api",
+    redoc_url="/docs/redoc"
 )
 
 # Set all CORS enabled origins
