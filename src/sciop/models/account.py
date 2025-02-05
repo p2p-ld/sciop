@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
@@ -29,7 +29,7 @@ class AccountCreate(AccountBase):
     password: str = Field(min_length=8, max_length=64)
 
 
-class Scopes(str, Enum):
+class Scopes(StrEnum):
     submit = "submit"
     upload = "upload"
     review = "review"
