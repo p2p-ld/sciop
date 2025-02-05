@@ -1,0 +1,12 @@
+.page-container {
+  margin: 0 auto;
+  display: block;
+  width: 80%;
+  max-width: 750px;
+}
+
+.center-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

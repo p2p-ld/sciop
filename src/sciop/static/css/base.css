@@ -1,4 +1,19 @@
 body {
     background-color: var(--color-background);
     color: var(--color-text);
+    font-family: var(--font-sans);
+    transition: background-color 300ms;
+}
+
+a {
+    color: var(--color-link);
+    text-decoration: unset;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.preload {
+  transition: none !important;
 }

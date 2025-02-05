@@ -1,10 +1,30 @@
 {% extends "layouts/default.html" %}
 {% from 'macros/dataset.html' import dataset_collapsible %}
 {% block content %}
-<h1>sup</h1>
+<div class="page-container site-index">
+    <div class="center-column">
+        <h2 class="site-title redacted">SciOp</h2>
+        <p class="version-tag">
+            Version: <a
+                class="token version"
+                href="https://codeberg.org/sneakers-the-rat/sciop/commit/{{ short_hash }}">
+            {{ version }}
+            </a>
+        </p>
+        <h3 class="site-subtitle">
+            "Preserving public data with RSS feeds full of torrents since the fascists made it
+            necessary to do that"
+        </h3>
 
-{% for dataset in datasets %}
-{{ dataset_collapsible(dataset, review=False, config=config) }}
-{% endfor %}
+        <p>
+            Very rough, early stages project.
+            More information will show up here as we get it on its feet.
+            Please raise bugs and feature requests in <a
+            href="https://codeberg.org/sneakers-the-rat/sciop/issues">the repo
+        </a>
+        </p>
+    </div>
+</div>
+
 
 {% endblock %}

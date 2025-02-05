@@ -1,4 +1,8 @@
 @import 'vars.css';
 @import 'base.css';
+@import 'typography.css';
+
 @import 'nav.css';
 @import 'form.css';
+@import 'components.css';
+@import 'layout.css';

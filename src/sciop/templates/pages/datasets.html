@@ -1,0 +1,7 @@
+{% extends "layouts/default.html" %}
+{% from 'macros/dataset.html' import dataset_collapsible %}
+{% block content %}
+{% for dataset in datasets %}
+{{ dataset_collapsible(dataset, review=False, config=config) }}
+{% endfor %}
+{% endblock %}
