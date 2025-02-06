@@ -1,4 +1,4 @@
-from typing import Annotated, Optional, TypeVar
+from typing import Annotated, Any, Optional, TypeVar
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
@@ -19,7 +19,7 @@ _TModel = TypeVar("_TModel", bound=BaseModel)
 class OAuth2PasswordBearerCookie(OAuth2PasswordBearer):
     """Password bearer that can also get a jwt from a cookie"""
 
-    def __init__(self, cookie_key="access_token", **kwargs):
+    def __init__(self, cookie_key: str = "access_token", **kwargs: Any):
         self.cookie_key = cookie_key
         super().__init__(**kwargs)
 
@@ -45,11 +45,11 @@ def require_current_account(session: SessionDep, token: TokenDep) -> Account:
     try:
         payload = jwt.decode(token, config.secret_key, algorithms=[ALGORITHM])
         token_data = TokenPayload(**payload)
-    except (InvalidTokenError, ValidationError):
+    except (InvalidTokenError, ValidationError) as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
-        )
+        ) from e
     account = session.get(Account, token_data.sub)
     if not account:
         raise HTTPException(status_code=404, detail="User not found")

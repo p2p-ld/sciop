@@ -3,11 +3,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 import sciop
-from sciop.api.deps import CurrentAccount, SessionDep
+from sciop.api.deps import CurrentAccount
 from sciop.config import config
 from sciop.const import TEMPLATE_DIR
 from sciop.models import DatasetCreate
-from sciop import crud
 
 index_router = APIRouter()
 

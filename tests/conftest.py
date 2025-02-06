@@ -1,12 +1,17 @@
-import pytest
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+import pytest
+
+if TYPE_CHECKING:
+    from _pytest.monkeypatch import Monkeypatch
 
 TMP_DIR = Path(__file__).parent / "__tmp__"
 TMP_DIR.mkdir(exist_ok=True)
 
 
 @pytest.fixture(autouse=True)
-def monkeypatch_config(monkeypatch, tmp_path):
+def monkeypatch_config(monkeypatch: "Monkeypatch", tmp_path: Path) -> None:
     from sciop import config
 
     # do this once we write a way to figure out where the hell the db went

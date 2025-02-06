@@ -1,6 +1,7 @@
+from sqlmodel import Session, SQLModel, create_engine
+
 from sciop.models import Dataset
 
-from sqlmodel import SQLModel, create_engine, Session
 from .conftest import TMP_DIR
 
 

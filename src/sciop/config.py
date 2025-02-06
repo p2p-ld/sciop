@@ -107,10 +107,7 @@ class Config(BaseSettings):
     @property
     def reload(self) -> bool:
         """whether to reload the wsgi server ie. when in dev mode"""
-        if self.env == "dev":
-            return True
-        else:
-            return False
+        return self.env == "dev"
 
     @field_validator("torrent_dir", mode="after")
     def create_dir(cls, value: Path) -> Path:

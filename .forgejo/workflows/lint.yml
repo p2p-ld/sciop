@@ -1,0 +1,21 @@
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: codeberg-tiny
+    steps:
+      - name: Checkout repo
+        uses: https://code.forgejo.org/actions/checkout@v4
+      - name: Install python
+        uses: https://code.forgejo.org/actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install ruff and black
+        run: pip install ruff black
+      - name: Black formatting
+        run: black --check .
+      - name: Ruff linting
+        run: ruff check

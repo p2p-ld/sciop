@@ -1,10 +1,12 @@
 from datetime import UTC, datetime
-from typing import Optional, Self, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional, Self
 
-from sqlmodel import Field, SQLModel, text, Session, select
 from sqlalchemy import event
+from sqlmodel import Field, Session, SQLModel, select, text
 
 if TYPE_CHECKING:
+    from sqlalchemy import Table
+    from sqlalchemy.engine import Connection
     from sqlalchemy.sql.expression import Select
 
 
@@ -56,19 +58,19 @@ class SearchableMixin(SQLModel):
     def search_statement(cls, query: str) -> "Select":
         """Construct a select statement to do a full text search without executing"""
         text_stmt = text(
-            f"SELECT rowid as id, * FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :query ORDER BY rank;"
+            f"SELECT rowid as id, * FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :query ORDER BY rank;"  # noqa: E501
         ).bindparams(query=query)
         return select(cls).from_statement(text_stmt)
 
     @classmethod
-    def register_events(cls):
+    def register_events(cls) -> None:
         """
         # FIXME: make this happen on class declaration with a decorator
         """
         event.listen(cls.__table__, "after_create", cls.after_create)
 
     @classmethod
-    def after_create(cls, target, connection, **kwargs):
+    def after_create(cls, target: "Table", connection: Connection, **kwargs: Any) -> None:
         """Create a matching full text search table with triggers to keep it updates"""
         if not cls.__searchable__:
             return
@@ -78,6 +80,7 @@ class SearchableMixin(SQLModel):
         col_names = ", ".join(cls.__searchable__)
         new_names = ", ".join([f"new.{cname}" for cname in cls.__searchable__])
         old_names = ", ".join([f"old.{cname}" for cname in cls.__searchable__])
+        # ruff: noqa: E501
         create_stmt = text(
             f"""
             CREATE VIRTUAL TABLE {table_name} USING fts5({col_names}, content={target.name}, content_rowid=id);

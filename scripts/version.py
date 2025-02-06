@@ -27,14 +27,14 @@ def get_version() -> str:
         return "000000.00.00+0000000"
 
 
-def _last_commit_timestamp(branch="main") -> datetime:
+def _last_commit_timestamp(branch: str = "main") -> datetime:
     out = subprocess.run(["git", "log", branch, "-1", "--format=%at"], capture_output=True)
     unix_timestamp = out.stdout.decode("utf-8").strip()
     timestamp = datetime.fromtimestamp(float(unix_timestamp))
     return timestamp
 
 
-def _n_commits_between_timestamps(start: datetime, end: datetime, branch="main") -> int:
+def _n_commits_between_timestamps(start: datetime, end: datetime, branch: str = "main") -> int:
     """start is exclusive, end is inclusive - only sensitive to dates not times"""
     out = subprocess.run(
         [
