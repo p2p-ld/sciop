@@ -2,10 +2,11 @@ from datetime import UTC, datetime
 from typing import Optional, Self, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, text, Session, select
-from sqlalchemy import event
+from sqlalchemy import event, func
+from sqlalchemy.sql.expression import bindparam
 
 if TYPE_CHECKING:
-    from sqlalchemy.sql.expression import Select
+    from sqlalchemy.sql.expression import Select, TextClause
 
 
 class TableMixin(SQLModel):
@@ -53,12 +54,30 @@ class SearchableMixin(SQLModel):
         return session.exec(cls.search_statement(query)).all()
 
     @classmethod
+    def search_statement_raw(cls, query: str) -> "TextClause":
+        """
+        Search query statement on the full text search table without being cast
+        to a sqlalchemy selectable to mimic the ORM model
+        """
+        text_stmt = text(
+            f"SELECT rowid as id, * FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q ORDER BY rank;"
+        ).bindparams(q=query)
+        return text_stmt
+
+    @classmethod
     def search_statement(cls, query: str) -> "Select":
         """Construct a select statement to do a full text search without executing"""
-        text_stmt = text(
-            f"SELECT rowid as id, * FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :query ORDER BY rank;"
-        ).bindparams(query=query)
+        text_stmt = cls.search_statement_raw(query=query)
+        print("POST BIND")
+        print(query)
         return select(cls).from_statement(text_stmt)
+
+    @classmethod
+    def count_statement(cls, query: str) -> "TextClause":
+        """Select statement to count number of search results"""
+        return text(
+            f"SELECT count(*) FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q ORDER BY rank;"
+        ).bindparams(q=query)
 
     @classmethod
     def register_events(cls):

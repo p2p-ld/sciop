@@ -5,7 +5,7 @@
 groups = ["default", "dev", "pytest", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:25cfb442be0b0c6cb579cb5f795eca7d409a5bf441f2a560096282a3c0f79503"
+content_hash = "sha256:f7014ad56428b1d1b3a1b47a303a68ed0fc69e33df56b6714ec9b2d08f0e4272"
 
 [[metadata.targets]]
 requires_python = ">=3.11"
@@ -179,6 +179,20 @@ dependencies = [
 files = [
     {file = "fastapi_pagination-0.12.34-py3-none-any.whl", hash = "sha256:089d1078aae1784395b4dbd923d0c8246641ddcc291c5ec6d92a30edb92ecbdd"},
     {file = "fastapi_pagination-0.12.34.tar.gz", hash = "sha256:05ee8c0bc572072160f7f30900bfd87869e1880c87bc5797922fec2e49e65f11"},
+]
+
+[[package]]
+name = "fasthx"
+version = "2.1.1"
+requires_python = "<4.0,>=3.10"
+summary = "FastAPI server-side rendering with built-in HTMX support."
+groups = ["default"]
+dependencies = [
+    "fastapi>=0.100.0",
+]
+files = [
+    {file = "fasthx-2.1.1-py3-none-any.whl", hash = "sha256:f1370a77e6ba12323b16b36cb8ad95a28e0fa127c905807a61cc474759e8c76d"},
+    {file = "fasthx-2.1.1.tar.gz", hash = "sha256:7595ac9239188df975278f3a17cc71f851b23b49365bdcce39b6092b6d76c9b8"},
 ]
 
 [[package]]

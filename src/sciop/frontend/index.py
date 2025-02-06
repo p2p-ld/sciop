@@ -8,11 +8,9 @@ from sciop.config import config
 from sciop.const import TEMPLATE_DIR
 from sciop.models import DatasetCreate
 from sciop import crud
+from sciop.frontend.templates import templates
 
 index_router = APIRouter()
-
-
-templates = Jinja2Templates(directory=TEMPLATE_DIR)
 
 
 @index_router.get("/", response_class=HTMLResponse)

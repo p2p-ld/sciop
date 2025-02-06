@@ -6,9 +6,9 @@ from sciop import crud
 from sciop.api.deps import RequireReviewer, SessionDep
 from sciop.config import config
 from sciop.const import TEMPLATE_DIR
+from sciop.frontend.templates import templates
 
 review_router = APIRouter(prefix="/review")
-templates = Jinja2Templates(directory=TEMPLATE_DIR)
 
 
 @review_router.get("/datasets", response_class=HTMLResponse)

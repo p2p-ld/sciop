@@ -1,5 +1,5 @@
 import importlib.resources
-from typing import Optional
+from typing import Optional, Generator
 
 from alembic import command
 from alembic.config import Config as AlembicConfig
@@ -14,7 +14,7 @@ engine = create_engine(str(config.sqlite_path))
 maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
 
 
-def get_session() -> Session:
+def get_session() -> Generator[Session, None, None]:
     with maker() as session:
         yield session
     #     session = Session(engine)

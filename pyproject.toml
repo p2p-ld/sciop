@@ -21,7 +21,8 @@ dependencies = [
     "bcrypt>=4.2.1",
     "fastapi-pagination>=0.12.34",
     "torf>=4.2.7",
-    "humanize>=4.11.0"
+    "humanize>=4.11.0",
+    "fasthx>=2.1.1"
 ]
 requires-python = ">=3.11"
 readme = "README.md"
