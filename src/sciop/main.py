@@ -4,6 +4,9 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
+from sqlalchemy.orm import scoped_session
 from starlette.middleware.cors import CORSMiddleware
 
 from sciop.api.main import api_router
@@ -11,6 +14,7 @@ from sciop.config import config
 from sciop.const import STATIC_DIR
 from sciop.db import create_tables
 from sciop.frontend.main import frontend_router
+from sciop.limiter import sciop_limiter
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"
@@ -34,6 +38,10 @@ app = FastAPI(
     docs_url="/docs/api",
     redoc_url="/docs/redoc"
 )
+
+app.state.limiter = sciop_limiter
+app.add_middleware(SlowAPIMiddleware)
+app.add_exception_handler(429, _rate_limit_exceeded_handler)
 
 # Set all CORS enabled origins
 if config.all_cors_origins:
