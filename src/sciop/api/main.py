@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from sciop.api.routes import login_router
 from sciop.api.routes.datasets import datasets_router
+from sciop.api.routes.login import login_router
 from sciop.api.routes.review import review_router
 from sciop.config import config
 

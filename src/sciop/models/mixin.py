@@ -70,7 +70,7 @@ class SearchableMixin(SQLModel):
         event.listen(cls.__table__, "after_create", cls.after_create)
 
     @classmethod
-    def after_create(cls, target: "Table", connection: Connection, **kwargs: Any) -> None:
+    def after_create(cls, target: "Table", connection: "Connection", **kwargs: Any) -> None:
         """Create a matching full text search table with triggers to keep it updates"""
         if not cls.__searchable__:
             return
