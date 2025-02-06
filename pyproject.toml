@@ -22,7 +22,7 @@ dependencies = [
     "fastapi-pagination>=0.12.34",
     "torf>=4.2.7",
     "humanize>=4.11.0",
-    "slowapi"
+    "slowapi>=0.1.9",
 ]
 requires-python = ">=3.11"
 readme = "README.md"

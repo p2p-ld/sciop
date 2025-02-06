@@ -14,7 +14,8 @@ from sciop.config import config
 from sciop.const import STATIC_DIR
 from sciop.db import create_tables
 from sciop.frontend.main import frontend_router
-from sciop.limiter import sciop_limiter
+from sciop.middleware import limiter
+
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"
@@ -39,7 +40,7 @@ app = FastAPI(
     redoc_url="/docs/redoc"
 )
 
-app.state.limiter = sciop_limiter
+app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(429, _rate_limit_exceeded_handler)
 
