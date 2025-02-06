@@ -71,7 +71,8 @@ def datasets_create_instance(
     if not torrent:
         raise HTTPException(
             status_code=404,
-            detail=f"No torrent with short hash {instance.torrent_short_hash} exists, upload it first!",
+            detail=f"No torrent with short hash {instance.torrent_short_hash} exists, "
+            "upload it first!",
         )
     created_instance = crud.create_instance(
         session=session, created_instance=instance, dataset=dataset, account=account

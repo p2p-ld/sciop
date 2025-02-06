@@ -1,5 +1,5 @@
 import re
-from enum import Enum, StrEnum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 from urllib.parse import urljoin
 
@@ -130,7 +130,8 @@ class DatasetCreate(DatasetBase):
     tags: list[str] = Field(
         title="Tags",
         description="""
-        Tags for this dataset. One tag per line. Only lowercase alphanumeric characters and `-` are allowed.
+        Tags for this dataset. One tag per line. 
+        Only lowercase alphanumeric characters and `-` are allowed.
         Include as many tags as are applicable: topic, data type/file type,
         if this dataset is part of a collection (e.g. each dataset in NOAA's
         Fundamental Climate Data Records should be tagged with `fcdr`), etc.
@@ -244,7 +245,7 @@ class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
 
 
 class DatasetInstanceRead(DatasetInstanceBase, TableReadMixin):
-    """ """
+    """Version of datasaet instance returned when reading"""
 
 
 class DatasetInstanceCreate(DatasetInstanceBase):

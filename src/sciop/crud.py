@@ -69,9 +69,11 @@ def get_dataset(*, session: Session, dataset_slug: str) -> Dataset | None:
     session_dataset = session.exec(statement).first()
     return session_dataset
 
+
 def get_approved_datasets(*, session: Session) -> list[Dataset]:
     statement = select(Dataset).where(Dataset.enabled == True)
     return session.exec(statement).all()
+
 
 def get_review_datasets(*, session: Session) -> list[Dataset]:
     statement = select(Dataset).where(Dataset.enabled == False)

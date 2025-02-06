@@ -32,12 +32,13 @@ license = {text = "EUPL-1.2"}
 sciop = "sciop.main:main"
 
 [project.optional-dependencies]
-dev = [
-    "ruff>=0.9.4",
-    "black>=25.1.0",
-]
 test = [
     "pytest>=8.3.4",
+]
+dev = [
+    "sciop[test]",
+    "ruff>=0.9.4",
+    "black>=25.1.0",
 ]
 [build-system]
 requires = ["pdm-backend"]
@@ -68,8 +69,8 @@ format.composite = [
 
 [tool.ruff]
 target-version = "py311"
-include = ["src/sciop/**/*.py", "pyproject.toml"]
-exclude = ["docs", "tests", "src/sciop/vendor/**/*"]
+include = ["src/sciop/**/*.py", "scripts/**/*.py", "tests/**/*.py", "pyproject.toml"]
+exclude = ["docs", "src/sciop/vendor/**/*"]
 line-length = 100
 
 [tool.ruff.lint]
@@ -111,14 +112,17 @@ ignore = [
     "UP007", "UP038",
     # docstrings for __init__
     "D107",
+    # Equality comparisons to ``True``, which are valid in sqlalchemy
+    "E712",
 ]
 
 fixable = ["ALL"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/{api,frontend}/*" = ["ANN201"]
+"tests/**/test_*" = ["ANN201"]
 
 [tool.black]
 target-version = ['py311', 'py312', 'py313']
-include = "sciop/.*\\.py$"
+include = "(?:tests|sciop|scripts)/.*\\.py$"
 line-length = 100
