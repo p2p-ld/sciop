@@ -2,27 +2,36 @@
 :root {
     --color-dark-background: rgba(23, 23, 26, 1);
     --color-light-background: #eee;
+    --color-priority-low: lch(56.05% 49.39 256.63);
+    --color-priority-medium: lch(58.97% 76.96 59.37);
+    --color-priority-high: lch(47.26% 75.67 14.74);
 
     --font-sans: "Work Sans", "Helvetica Neue", "Segoe UI", "Helvetica", "Roboto", sans-serif;
     --font-mono: "Anonymous Pro", "Fira Code", "Courier New", "Courier", monospace;
+
 }
 /* Put all themed vars in body so that we can switch vars on dark mode */
 body {
 
   --color-primary: lch(44% 132 317);
   --color-text: #eee;
+  --color-text-deemphasized: color-mix(in srgb, var(--color-text) 85%, var(--color-background));
   --color-background: var(--color-dark-background);
+  --color-background-shade: color-mix(in lch, var(--color-background) 90%, var(--color-light-background));
   --color-link: lch(72% 90 309);
   --color-primary-contrast: #eee;
   --color-primary-shade-1: color-mix(in lch, var(--color-primary) 75%, white);
-
-    /*--color-primary: orange;*/
+  --color-primary-shade-2: color-mix(in lch, var(--color-primary) 65%, white);
+  --color-primary-shade-3: color-mix(in lch, var(--color-primary) 50%, white);
+  --color-primary-darker-1: color-mix(in lch, var(--color-primary) 80%, var(--color-dark-background));
+  --color-border-deemphasized: #333;
 
 
   &.light-theme {
     --color-primary: lch(59.5% 85.81 315.18);
     --color-text: #000;
     --color-background: var(--color-light-background);
+    --color-background-shade: color-mix(in lch, var(--color-background) 90%, var(--color-dark-background));
 
     --color-link: lch(55.05% 102.93 317.74);
     --color-primary-contrast: #000;

@@ -3,6 +3,7 @@ from typing import Generator
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 from slowapi import _rate_limit_exceeded_handler
@@ -61,6 +62,7 @@ add_pagination(app)
 #     ContentSizeLimitMiddleware,
 #     max_content_size = config.upload_limit
 # )
+app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
 
 
 def main() -> None:

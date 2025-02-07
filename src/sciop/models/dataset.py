@@ -143,12 +143,13 @@ class DatasetCreate(DatasetBase):
     @field_validator("urls", "tags", mode="before")
     def split_strings(cls, value: str | list[str]) -> list[str]:
         """Split lists of strings given as one entry per line"""
-        print("split")
-        print(value)
         if isinstance(value, str):
+            if not value or value == "":
+                return []
             value = value.splitlines()
         elif isinstance(value, list) and len(value) == 1 and "\n" in value[0]:
             value = value[0].splitlines()
+
         return value
 
     @field_validator("tags", mode="after")

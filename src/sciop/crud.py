@@ -138,3 +138,11 @@ def get_instances_from_tag(*, session: Session, tag: str) -> list[DatasetInstanc
     statement = select(DatasetInstance).join(Dataset).join(DatasetTag).filter(DatasetTag.tag == tag)
     instances = session.exec(statement).all()
     return instances
+
+
+def get_instance_from_short_hash(*, session: Session, short_hash: str) -> Optional[DatasetInstance]:
+    statement = (
+        select(DatasetInstance).join(TorrentFile).filter(TorrentFile.short_hash == short_hash)
+    )
+    instance = session.exec(statement).first()
+    return instance

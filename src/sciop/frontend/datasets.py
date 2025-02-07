@@ -2,17 +2,18 @@ from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlmodel import select
 
 from sciop import crud
 from sciop.api.deps import CurrentAccount, RequireDataset, RequireUploader, SessionDep
 from sciop.api.routes.upload import upload_torrent
 from sciop.config import config
-from sciop.const import TEMPLATE_DIR
-from sciop.models import DatasetInstanceCreate
+from sciop.frontend.templates import jinja, templates
+from sciop.models import Dataset, DatasetInstanceCreate, DatasetRead
 
 datasets_router = APIRouter(prefix="/datasets")
-templates = Jinja2Templates(directory=TEMPLATE_DIR)
 
 
 @datasets_router.get("/", response_class=HTMLResponse)
@@ -22,6 +23,20 @@ async def datasets(request: Request, account: CurrentAccount, session: SessionDe
         "pages/datasets.html",
         {"request": request, "config": config, "current_account": account, "datasets": datasets},
     )
+
+
+@datasets_router.get("/search")
+@jinja.hx("partials/datasets.html")
+async def datasets_search(query: str = None, session: SessionDep = None) -> Page[DatasetRead]:
+    if not query or len(query) < 3:
+        stmt = select(Dataset).where(Dataset.enabled == True).order_by(Dataset.created_at)
+    else:
+        stmt = (
+            select(Dataset)
+            .where(Dataset.enabled == True)
+            .filter(Dataset.id.in_(Dataset.search_statement(query)))
+        )
+    return paginate(conn=session, query=stmt)
 
 
 @datasets_router.get("/{dataset_slug}", response_class=HTMLResponse)
@@ -37,6 +52,13 @@ async def dataset_show(
     return templates.TemplateResponse(
         "pages/dataset.html",
         {"request": request, "config": config, "current_account": account, "dataset": dataset},
+    )
+
+
+@datasets_router.get("/{dataset_slug}/partial", response_class=HTMLResponse)
+async def dataset_partial(request: Request, dataset: RequireDataset):
+    return templates.TemplateResponse(
+        "partials/dataset.html", {"dataset": dataset, "request": request}
     )
 
 
