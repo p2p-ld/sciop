@@ -30,7 +30,7 @@ def get_session() -> Generator[Session, None, None]:
     #     session.close()
 
 
-def create_tables():
+def create_tables() -> None:
     """
     Create tables and stamps with an alembic version
 
@@ -42,16 +42,17 @@ def create_tables():
         - https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-an-up-to-date-database-from-scratch
     """
     from sciop import models
+
     models.Dataset.register_events()
 
     SQLModel.metadata.create_all(engine)
     # check version here since creating the table is the same action as
     # ensuring our migration metadata is correct!
-    ensure_alembic_version(engine)
-    create_seed_data(engine)
+    ensure_alembic_version()
+    create_seed_data()
 
 
-def ensure_alembic_version(engine):
+def ensure_alembic_version() -> None:
     """
     Make sure that our database is correctly stamped and migrations are applied.
 
@@ -105,7 +106,7 @@ def alembic_version() -> Optional[str]:
     return version
 
 
-def create_seed_data(engine):
+def create_seed_data() -> None:
     if config.env not in ("dev", "test"):
         return
     from sciop import crud

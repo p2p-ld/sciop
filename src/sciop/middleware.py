@@ -1,4 +1,8 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, MutableMapping, Optional
+
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from starlette.types import Receive, Scope, Send
 
 from sciop.exceptions import UploadSizeExceeded
 from sciop.logging import init_logger
@@ -25,10 +29,12 @@ class ContentSizeLimitMiddleware:
 
         self.logger = init_logger("middleware.content-size-limit")
 
-    def receive_wrapper(self, receive):
+    def receive_wrapper(
+        self, receive: Receive
+    ) -> Callable[[], Coroutine[Any, Any, MutableMapping[str, Any]]]:
         received = 0
 
-        async def inner():
+        async def inner() -> MutableMapping[str, Any]:
             nonlocal received
             message = await receive()
             if message["type"] != "http.request" or self.max_content_size is None:
@@ -37,16 +43,24 @@ class ContentSizeLimitMiddleware:
             received += body_len
             if received > self.max_content_size:
                 raise UploadSizeExceeded(
-                    f"Maximum content size limit ({self.max_content_size}) exceeded ({received} bytes read)"
+                    f"Maximum content size limit ({self.max_content_size}) "
+                    f"exceeded ({received} bytes read)"
                 )
             return message
 
         return inner
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
 
         wrapper = self.receive_wrapper(receive)
         await self.app(scope, wrapper, send)
+
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    headers_enabled=True,
+    default_limits=["100 per minute", "1000 per hour", "10000 per day"],
+)

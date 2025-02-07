@@ -1,5 +1,5 @@
 import re
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Optional, Self
 from urllib.parse import urljoin
 
@@ -14,14 +14,14 @@ if TYPE_CHECKING:
     from sciop.models import TorrentFile
 
 
-class Priority(str, Enum):
+class Priority(StrEnum):
     unknown = "unknown"
     low = "low"
     medium = "medium"
     high = "high"
 
 
-class SourceType(str, Enum):
+class SourceType(StrEnum):
     unknown = "unknown"
     web = "web"
     http = "http"
@@ -29,13 +29,13 @@ class SourceType(str, Enum):
     s3 = "s3"
 
 
-class Status(str, Enum):
+class Status(StrEnum):
     todo = "todo"
     claimed = "claimed"
     completed = "completed"
 
 
-class InputType(str, Enum):
+class InputType(StrEnum):
     text = "text"
     textarea = "textarea"
 
@@ -130,7 +130,8 @@ class DatasetCreate(DatasetBase):
     tags: list[str] = Field(
         title="Tags",
         description="""
-        Tags for this dataset. One tag per line. Only lowercase alphanumeric characters and `-` are allowed.
+        Tags for this dataset. One tag per line. 
+        Only lowercase alphanumeric characters and `-` are allowed.
         Include as many tags as are applicable: topic, data type/file type,
         if this dataset is part of a collection (e.g. each dataset in NOAA's
         Fundamental Climate Data Records should be tagged with `fcdr`), etc.
@@ -245,7 +246,7 @@ class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
 
 
 class DatasetInstanceRead(DatasetInstanceBase, TableReadMixin):
-    """ """
+    """Version of datasaet instance returned when reading"""
 
 
 class DatasetInstanceCreate(DatasetInstanceBase):

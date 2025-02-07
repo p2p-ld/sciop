@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 
 import sciop
-from sciop.api.deps import CurrentAccount, SessionDep
+from sciop.api.deps import CurrentAccount
 from sciop.config import config
 from sciop.const import TEMPLATE_DIR, STATIC_DIR
 from sciop.models import DatasetCreate

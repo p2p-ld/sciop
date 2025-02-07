@@ -1,12 +1,13 @@
 from datetime import UTC, datetime
-from typing import Optional, Self, TYPE_CHECKING, ClassVar
+from typing import Any, ClassVar, Optional, Self, TYPE_CHECKING
 
 from sqlmodel import Field, SQLModel, text, Session, select
 from sqlalchemy import event, func, literal, Table, MetaData, Column
 from sqlalchemy.sql.expression import bindparam
 
 if TYPE_CHECKING:
-    from sqlalchemy.sql.expression import Select, TextClause
+    from sqlalchemy import Connection, Table, TextClause
+    from sqlalchemy.sql.expression import Select
 
 
 class TableMixin(SQLModel):
@@ -99,14 +100,14 @@ class SearchableMixin(SQLModel):
         ).bindparams(q=query)
 
     @classmethod
-    def register_events(cls):
+    def register_events(cls) -> None:
         """
         # FIXME: make this happen on class declaration with a decorator
         """
         event.listen(cls.__table__, "after_create", cls.after_create)
 
     @classmethod
-    def after_create(cls, target, connection, **kwargs):
+    def after_create(cls, target: "Table", connection: "Connection", **kwargs: Any) -> None:
         """
         Create a matching full text search table with triggers to keep it updated
 
@@ -121,6 +122,7 @@ class SearchableMixin(SQLModel):
         col_names = ", ".join(cls.__searchable__)
         new_names = ", ".join([f"new.{cname}" for cname in cls.__searchable__])
         old_names = ", ".join([f"old.{cname}" for cname in cls.__searchable__])
+        # ruff: noqa: E501
         create_stmt = text(
             f"""
             CREATE VIRTUAL TABLE {table_name} USING fts5({col_names}, content={target.name}, content_rowid=id, tokenize='trigram');
