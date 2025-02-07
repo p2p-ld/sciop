@@ -4,15 +4,16 @@ from typing import TYPE_CHECKING, Generator, Optional
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from alembic.util.exc import CommandError
-from sqlalchemy import text, select, func
+from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine
 
 from sciop.config import config
 
 if TYPE_CHECKING:
-    from sciop.models import Account, Dataset, DatasetInstance
     from faker import Faker
+
+    from sciop.models import Account, Dataset, DatasetInstance
 
 engine = create_engine(str(config.sqlite_path))
 maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
@@ -109,9 +110,11 @@ def alembic_version() -> Optional[str]:
 def create_seed_data() -> None:
     if config.env not in ("dev", "test"):
         return
-    from sciop import crud
-    from sciop.models import AccountCreate, DatasetCreate, Scope, Scopes, Dataset
     from faker import Faker
+
+    from sciop import crud
+    from sciop.models import AccountCreate, Dataset, DatasetCreate, Scope, Scopes
+
     fake = Faker()
 
     with maker() as session:
@@ -133,7 +136,7 @@ def create_seed_data() -> None:
         if not uploader:
             uploader = crud.create_account(
                 account_create=AccountCreate(username="uploader", password="uploaderuploader"),
-                session=session
+                session=session,
             )
         uploader.scopes = [Scope(name=Scopes.upload)]
         session.add(uploader)
@@ -195,17 +198,17 @@ def create_seed_data() -> None:
             session.commit()
 
 
-
-def _generate_instance(uploader: "Account", dataset: "Dataset", session: Session) -> "DatasetInstance":
+def _generate_instance(
+    uploader: "Account", dataset: "Dataset", session: Session
+) -> "DatasetInstance":
     from torf import Torrent
 
     from sciop import crud
     from sciop.models import DatasetInstanceCreate, FileInTorrentCreate, TorrentFileCreate
 
-    torrent_path = config.torrent_dir / "__example__.torrent"
     torrent_file = config.torrent_dir / "__example__"
-    with open(torrent_file, 'wb') as tfile:
-        tfile.write(b'0' * 16384 * 4)
+    with open(torrent_file, "wb") as tfile:
+        tfile.write(b"0" * 16384 * 4)
 
     torrent = Torrent(
         path=torrent_file,
@@ -223,11 +226,13 @@ def _generate_instance(uploader: "Account", dataset: "Dataset", session: Session
         piece_size=16384,
         torrent_size=64,
         files=[FileInTorrentCreate(path=str(torrent_file), size=2048)],
-        trackers=["http://example.com/announce"]
+        trackers=["http://example.com/announce"],
     )
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
     torrent.write(created_torrent.filesystem_path, overwrite=True)
-    created_torrent = crud.create_torrent(session=session, created_torrent=created_torrent, account=uploader)
+    created_torrent = crud.create_torrent(
+        session=session, created_torrent=created_torrent, account=uploader
+    )
 
     instance = DatasetInstanceCreate(
         method="I downloaded it",
@@ -240,8 +245,10 @@ def _generate_instance(uploader: "Account", dataset: "Dataset", session: Session
     )
     return created_instance
 
+
 def _generate_dataset(fake: "Faker") -> "Dataset":
-    from sciop.models import Dataset, DatasetURL, DatasetTag
+    from sciop.models import Dataset, DatasetTag, DatasetURL
+
     title = fake.unique.bs()
     slug = title.lower().replace(" ", "-")
 
@@ -255,5 +262,5 @@ def _generate_dataset(fake: "Faker") -> "Dataset":
         source="web",
         urls=[DatasetURL(url=fake.url()) for _ in range(3)],
         tags=[DatasetTag(tag=fake.word().lower()) for _ in range(3)],
-        enabled=True
+        enabled=True,
     )

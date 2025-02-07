@@ -1,9 +1,8 @@
 from datetime import UTC, datetime
-from typing import Any, ClassVar, Optional, Self, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
-from sqlmodel import Field, SQLModel, text, Session, select
-from sqlalchemy import event, func, literal, Table, MetaData, Column
-from sqlalchemy.sql.expression import bindparam
+from sqlalchemy import Column, Table, event
+from sqlmodel import Field, SQLModel, select, text
 
 if TYPE_CHECKING:
     from sqlalchemy import Connection, Table, TextClause

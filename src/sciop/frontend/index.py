@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 import sciop
 from sciop.api.deps import CurrentAccount
 from sciop.config import config
-from sciop.const import TEMPLATE_DIR, STATIC_DIR
-from sciop.models import DatasetCreate
-from sciop import crud
+from sciop.const import STATIC_DIR
 from sciop.frontend.templates import templates
+from sciop.models import DatasetCreate
 
 index_router = APIRouter()
 

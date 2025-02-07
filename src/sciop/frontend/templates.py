@@ -2,16 +2,17 @@
 Common source for template environments and decorators
 """
 
-from typing import Literal as L, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+from typing import Literal as L
 
-from fasthx import Jinja
-from fastapi.templating import Jinja2Templates
 from fastapi import Request
+from fastapi.templating import Jinja2Templates
+from fasthx import Jinja
 
 from sciop.api import deps
-from sciop.db import get_session
-from sciop.config import config, Config
+from sciop.config import Config, config
 from sciop.const import TEMPLATE_DIR
+from sciop.db import get_session
 
 if TYPE_CHECKING:
     from sciop.models import Account

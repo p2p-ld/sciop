@@ -1,8 +1,8 @@
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
-from fastapi_pagination import Page, Params
+from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import select
 

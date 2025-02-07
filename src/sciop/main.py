@@ -62,9 +62,7 @@ add_pagination(app)
 #     ContentSizeLimitMiddleware,
 #     max_content_size = config.upload_limit
 # )
-app.add_middleware(
-    GZipMiddleware, minimum_size=500, compresslevel=5
-)
+app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
 
 
 def main() -> None:

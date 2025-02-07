@@ -1,11 +1,9 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 
 from sciop import crud
 from sciop.api.deps import RequireReviewer, SessionDep
 from sciop.config import config
-from sciop.const import TEMPLATE_DIR
 from sciop.frontend.templates import templates
 
 review_router = APIRouter(prefix="/review")

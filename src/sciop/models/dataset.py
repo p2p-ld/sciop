@@ -1,10 +1,10 @@
 import re
 from enum import StrEnum
-from typing import TYPE_CHECKING, Optional, Self
+from typing import TYPE_CHECKING, Optional
 from urllib.parse import urljoin
 
 from pydantic import field_validator
-from sqlmodel import Field, Relationship, SQLModel, Session, select
+from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.config import config
 from sciop.models.account import Account
