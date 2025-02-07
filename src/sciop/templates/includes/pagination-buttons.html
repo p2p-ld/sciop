@@ -27,7 +27,7 @@
   &lt;
 </button>
 {% if pages > 7 and page > 4 %}
-  <span class="pagination-ellipses">...</span>
+  <span class="pagination-ellipses">···</span>
 {% endif %}
 {% for page_num in link_pages %}
   <button hx-get="{{ request.url.include_query_params(page=page_num) }}"
@@ -37,7 +37,7 @@
 </button>
 {% endfor %}
 {% if pages > 7 and page < pages-4 %}
-  <span class="pagination-ellipses">...</span>
+  <span class="pagination-ellipses">···</span>
 {% endif %}
 
 <button hx-get="{{ request.url.include_query_params(page=page+1) }}"

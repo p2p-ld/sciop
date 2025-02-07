@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 
 import sciop
 from sciop.api.deps import CurrentAccount, SessionDep
 from sciop.config import config
-from sciop.const import TEMPLATE_DIR
+from sciop.const import TEMPLATE_DIR, STATIC_DIR
 from sciop.models import DatasetCreate
 from sciop import crud
 from sciop.frontend.templates import templates
@@ -62,3 +62,8 @@ async def upload(request: Request, account: CurrentAccount):
     return templates.TemplateResponse(
         "pages/upload.html", {"request": request, "config": config, "current_account": account}
     )
+
+
+@index_router.get("/favicon.ico", response_class=FileResponse, include_in_schema=False)
+def favicon():
+    return FileResponse(STATIC_DIR / "img" / "favicon.ico")

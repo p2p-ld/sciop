@@ -1,13 +1,106 @@
+{% from "macros/model-table.html" import model_table %}
 {% macro dataset_row(dataset) %}
+<div class="dataset">
+    <div class="dataset-topmatter">
+        <div class="dataset-header">
+            <h2 class="dataset-title">{{ dataset.title }} </h2>
+            <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
+            <p class="dataset-agency">{{ dataset.agency }}</p>
+            <a class="dataset-homepage" href="{{ dataset.homepage }}">{{ dataset.homepage }}</a>
+            {% if dataset.tags %}
+            <div class="tag-group">
+                {% for tag in dataset.tags %}
+                <span class="tag-item">
+                    <span class="tag token">{{ tag.tag }}</span>
+                    <a class="rss-link" href="/rss/tag/{{ tag.tag }}.rss">
+                        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+                    </a>
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="dataset-infobox">
+            <p class="dataset-priority priority-{{ dataset.priority.value }}">{{dataset.priority.value}}</p>
+            <table class="infobox-table">
+                {% if dataset.priority_comment %}
+                <tr>
+                    <td class="infobox-priority-comment">{{ dataset.priority_comment }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td class="infobox-key">Status</td>
+                    <td class="infobox-value">{{ dataset.status.value }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Created</td>
+                    <td class="infobox-value">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Updated</td>
+                    <td class="infobox-value">{{ dataset.updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                </tr>
+            </table>
+        </div>
+    </div>
 
+    <p class="dataset-description">
+    {{ dataset.description }}
+    </p>
+
+    {% if dataset.urls %}
+    <h3>URLs</h3>
+
+    <ul class="url-list">
+        {% for url in dataset.urls %}
+        <li>
+            <a href="{{ url.url }}">{{ url.url }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <h3>Uploads</h3>
+
+    {% if dataset.enabled %}
+    <div id="dataset-instances-container" class="instances-container container">
+        <div
+            hx-get="/datasets/{{ dataset.slug }}/instances"
+            hx-trigger="load"
+        >
+            <span class="htmx-indicator search-indicator" id="instances-indicator">
+                <span>Loading dataset instances...</span>
+                <img src="/static/img/rings.svg"/>
+            </span>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="upload-button">
+    {% if not dataset.enabled %}
+        {% if current_account and current_account.has_scope("review") %}
+        <button class="button success-button" id="approve-button"
+                hx-post="{{ config.api_prefix }}/review/datasets/{{ dataset.slug }}/approve">Approve this dataset</button>
+        {% else %}
+        <span>Dataset must be reviewed before uploads can be added</span>
+        {% endif %}
+    {% elif current_account and  current_account.has_scope("upload") %}
+        <button class="button" id="upload-button" hx-get="/datasets/{{dataset.slug}}/upload/start" hx-swap="outerHTML">Upload
+        </button>
+    {% else %}
+        <button class="button" id="request-upload-button">Request Upload Permissions</button>
+    {% endif %}
+    </div>
+</div>
 {% endmacro %}
 
 {% macro dataset_collapsible(dataset, review = False, config = None) %}
 <details class="collapsible dataset-collapsible" id="dataset-collapsible-{{ dataset.slug }}">
     <summary class="collapsible-summary">
-        <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
-        <span class="dataset-timestamp">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}</span>
+        <span class="collapsible-marker"></span>
+        <span class="dataset-slug"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
         <span class="dataset-title">{{ dataset.title }}</span>
+        <span class="dataset-timestamp">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}</span>
         <span class="spacer"></span>
         {% if review %}
         <button class="button approve-button success-button"
@@ -15,7 +108,6 @@
         </button>
         {% endif %}
     </summary>
-
     {{ dataset_row(dataset) }}
 </details>
 {% endmacro %}

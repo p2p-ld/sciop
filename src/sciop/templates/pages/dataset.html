@@ -1,55 +1,8 @@
 {% extends "layouts/default.html" %}
-{% from "macros/model-table.html" import model_table %}
+{% from "macros/dataset.html" import dataset_row %}
 {% block content %}
 <h2>{{ dataset.title }}</h2>
 
-<h3>Metadata</h3>
-
-{{ model_table(id="dataset-table", model=dataset, exclude=["title"]) }}
-
-<h4>Tags</h4>
-
-<div class="tag-group">
-{% for tag in dataset.tags %}
-<span class="tag-item">
-    <span class="tag token">{{ tag.tag }}</span>
-    <a class="rss-link" href="/rss/tag/{{ tag.tag }}.rss">
-        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
-    </a>
-</span>
-{% endfor %}
-</div>
-
-<h3>Uploads</h3>
-
-{% if dataset.enabled %}
-<div id="dataset-instances-container" class="instances-container container">
-    <div
-        hx-get="/datasets/{{ dataset.slug }}/instances"
-        hx-trigger="load"
-    >
-        <span class="htmx-indicator search-indicator" id="instances-indicator">
-            <span>Loading dataset instances...</span>
-            <img src="/static/img/rings.svg"/>
-        </span>
-    </div>
-</div>
-{% endif %}
-
-<div class="upload-button">
-{% if not dataset.enabled %}
-    {% if current_account and current_account.has_scope("review") %}
-    <button class="button success-button" id="approve-button"
-            hx-post="{{ config.api_prefix }}/review/datasets/{{ dataset.slug }}/approve">Approve this dataset</button>
-    {% else %}
-    <span>Dataset must be reviewed before uploads can be added</span>
-    {% endif %}
-{% elif current_account and  current_account.has_scope("upload") %}
-    <button class="button" id="upload-button" hx-get="/datasets/{{dataset.slug}}/upload/start" hx-swap="outerHTML">Upload
-    </button>
-{% else %}
-    <button class="button" id="request-upload-button">Request Upload Permissions</button>
-{% endif %}
-</div>
+{{ dataset_row(dataset) }}
 
 {% endblock %}

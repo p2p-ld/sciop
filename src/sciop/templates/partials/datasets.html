@@ -3,9 +3,23 @@
   {% with swap_target="#dataset-page" %}
     {% include 'includes/pagination-buttons.html' %}
   {% endwith %}
-  <div class="dataset-table">
-    {% for dataset in items %}
-    {{ dataset_collapsible(dataset, review=False, config=config) }}
-    {% endfor %}
+  <div id="datasets-table-inner" class="collapsible-table datasets-table">
+    <div id="datasets-table-head" class="table-head">
+      <span class="marker"></span>
+      <span class="col-slug">
+          slug
+      </span>
+      <span class="col-title">
+          title
+      </span>
+      <span class="col-created">
+          created
+      </span>
+    </div>
+    <div class="dataset-items">
+      {% for dataset in items %}
+      {{ dataset_collapsible(dataset, review=False, config=config) }}
+      {% endfor %}
+    </div>
   </div>
 </div>

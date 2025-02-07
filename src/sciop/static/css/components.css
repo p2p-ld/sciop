@@ -1,2 +1,115 @@
 /* As in specific page elements like buttons, etc. */
 
+input {
+  background-color: var(--color-background-shade);
+  padding: 1em;
+  color: var(--color-text);
+  border: 1px solid var(--color-primary);
+  border-radius: 5px;
+
+}
+
+button {
+  border: 1px solid var(--color-primary);
+  background-color: rgba(0,0,0,0);
+  color: var(--color-primary-shade-1);
+  border-radius: 4px 2px;
+  box-shadow: 2px 2px 0 var(--color-primary-darker-1);
+  transition: all .2s;
+  padding: 0.1em 0.5em;
+
+
+  &:hover {
+    background-color: var(--color-primary);
+    color: var(--color-primary-contrast);
+  }
+}
+
+.search-container {
+  max-height: 2.5em;
+  display: flex;
+  flex-direction: row;
+  column-gap: 0.5em;
+
+  input {
+    flex-grow: 1;
+  }
+
+}
+
+.pagination-links {
+  margin-bottom: 1em;
+  display: flex;
+  flex-direction: row;
+  gap: 0.5em;
+  width: 100%;
+  align-items: center;
+  font-family: var(--font-mono);
+
+  button {
+    border: unset;
+    color: var(--color-primary-shade-1);
+    background-color: unset;
+    box-shadow: unset;
+    border: 1px solid transparent;
+
+    &:hover {
+      border: 1px solid var(--color-primary);
+    }
+
+    &.current {
+      background-color: var(--color-primary);
+      color: var(--color-primary-contrast);
+    }
+
+  }
+
+  span {
+    color: var(--color-text-deemphasized);
+    font-size: 0.85em;
+  }
+
+  .pagination-ellipses {
+    margin: 0 0.5em;
+  }
+
+  .pagination-total {
+    margin-left: auto;
+  }
+}
+
+.loading-indicator {
+  max-height: 30px;
+  margin-left: auto;
+
+  img {
+    object-fit: contain;
+    height: 100%;
+    max-height: 30px;
+  }
+}
+
+.collapsible {
+  padding: 0.25em 0.5em;
+  border: 1px solid var(--color-border-deemphasized);
+}
+
+.collapsible:not([open]) {
+  .collapsible-marker::before {
+    content: "+";
+  }
+}
+
+.collapsible[open] {
+  padding-bottom: 1em;
+
+  .collapsible-marker::before {
+    content: "-";
+  }
+
+  summary {
+    margin-bottom: 0.5em;
+  }
+}
+
+
