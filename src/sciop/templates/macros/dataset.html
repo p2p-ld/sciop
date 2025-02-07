@@ -1,6 +1,6 @@
 {% from "macros/model-table.html" import model_table %}
 {% macro dataset_row(dataset) %}
-<div class="dataset">
+<div class="dataset" id="dataset-{{ dataset.slug }}">
     <div class="dataset-topmatter">
         <div class="dataset-header">
             <h2 class="dataset-title">{{ dataset.title }} </h2>
@@ -48,7 +48,7 @@
     {{ dataset.description }}
     </p>
 
-    {% if dataset.urls %}
+    {% if dataset.urls | length > 0 %}
     <h3>URLs</h3>
 
     <ul class="url-list">
@@ -96,7 +96,10 @@
 
 {% macro dataset_collapsible(dataset, review = False, config = None) %}
 <details class="collapsible dataset-collapsible" id="dataset-collapsible-{{ dataset.slug }}">
-    <summary class="collapsible-summary">
+    <summary class="collapsible-summary"
+             hx-get="/datasets/{{ dataset.slug }}/partial"
+             hx-trigger="click once"
+             hx-target="#dataset-{{ dataset.slug }}">
         <span class="collapsible-marker"></span>
         <span class="dataset-slug"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
         <span class="dataset-title">{{ dataset.title }}</span>
@@ -108,6 +111,7 @@
         </button>
         {% endif %}
     </summary>
-    {{ dataset_row(dataset) }}
+
+    <div class="dataset" id="dataset-{{ dataset.slug }}"></div>
 </details>
 {% endmacro %}

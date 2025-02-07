@@ -55,6 +55,13 @@ async def dataset_show(
     )
 
 
+@datasets_router.get("/{dataset_slug}/partial", response_class=HTMLResponse)
+async def dataset_partial(request: Request, dataset: RequireDataset):
+    return templates.TemplateResponse(
+        "partials/dataset.html", {"dataset": dataset, "request": request}
+    )
+
+
 @datasets_router.get("/{dataset_slug}/instances", response_class=HTMLResponse)
 async def dataset_instances(
     dataset_slug: str,
