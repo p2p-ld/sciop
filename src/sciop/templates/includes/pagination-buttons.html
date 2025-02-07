@@ -1,0 +1,57 @@
+{% if pages < 7 %}
+  {% set link_pages = range(1, pages+1) %}
+{% else %}
+  {% if page < 4 %}
+    {% set start_page = 1 %}
+    {% set end_page = 7 %}
+  {% elif page < pages-4 %}
+    {% set start_page = page-3 %}
+    {% set end_page = page+3 %}
+  {% else %}
+    {% set start_page = pages-7 %}
+    {% set end_page = pages %}
+  {% endif %}
+  {% set link_pages = range(start_page, end_page+1) %}
+{% endif %}
+
+{% if pages > 1 %}
+<div class="pagination-links">
+<button hx-get="{{ request.url.include_query_params(page=1) }}"
+        hx-target="{{ swap_target }}"
+   class="pagination-link first-link {% if page == 1 %}disabled{% endif %}" >
+  &lt;&lt;
+</button>
+<button hx-get="{{ request.url.include_query_params(page=page-1) }}"
+        hx-target="{{ swap_target }}"
+   class="pagination-link back-link {% if page == 1 %}disabled{% endif %}" >
+  &lt;
+</button>
+{% if pages > 7 and page > 4 %}
+  <span class="pagination-ellipses">...</span>
+{% endif %}
+{% for page_num in link_pages %}
+  <button hx-get="{{ request.url.include_query_params(page=page_num) }}"
+                  hx-target="{{ swap_target }}"
+   class="pagination-link page-link {% if page == page_num %}current{% endif %}" >
+    {{ page_num }}
+</button>
+{% endfor %}
+{% if pages > 7 and page < pages-4 %}
+  <span class="pagination-ellipses">...</span>
+{% endif %}
+
+<button hx-get="{{ request.url.include_query_params(page=page+1) }}"
+        hx-target="{{ swap_target }}"
+ class="pagination-link forward-link {% if page == pages %}disabled{% endif %}" >
+&gt;
+</button>
+<button hx-get="{{ request.url.include_query_params(page=pages) }}"
+        hx-target="{{ swap_target }}"
+ class="pagination-link end-link {% if page == pages %}disabled{% endif %}" >
+&gt;&gt;
+</button>
+<span class="pagination-total">
+{{ ((page-1) * size) + 1 }}-{{ [page * size, total] | min }} of {{ total }}
+</span>
+</div>
+{% endif %}

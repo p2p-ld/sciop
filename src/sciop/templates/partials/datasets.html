@@ -1,0 +1,11 @@
+{% from 'macros/dataset.html' import dataset_collapsible %}
+<div id="dataset-page" class="dataset-page">
+  {% with swap_target="#dataset-page" %}
+    {% include 'includes/pagination-buttons.html' %}
+  {% endwith %}
+  <div class="dataset-table">
+    {% for dataset in items %}
+    {{ dataset_collapsible(dataset, review=False, config=config) }}
+    {% endfor %}
+  </div>
+</div>

@@ -1,7 +1,22 @@
 {% extends "layouts/default.html" %}
-{% from 'macros/dataset.html' import dataset_collapsible %}
+
 {% block content %}
-{% for dataset in datasets %}
-{{ dataset_collapsible(dataset, review=False, config=config) }}
-{% endfor %}
+<h2>Datasets</h2>
+<input class="form-control" type="search"
+       name="query" placeholder="Begin Typing To Search Users..."
+       hx-get="/datasets/search"
+       hx-trigger="input changed delay:250ms, keyup[key=='Enter'], load"
+       hx-target="#datasets-table"
+       hx-indicator="#datasets-loading-indicator"
+       hx-swap="innerHTML"
+>
+
+<span class="htmx-indicator loading-indicator" id="datasets-loading-indicator">
+    <span>Loading datasets...</span>
+    <img src="/static/img/rings.svg"/>
+</span>
+
+<div id="datasets-table" class="collapsible-table">
+</div>
+
 {% endblock %}

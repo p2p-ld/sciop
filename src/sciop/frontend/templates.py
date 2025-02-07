@@ -22,10 +22,17 @@ def template_account(request: Request) -> dict[L["current_account"], Optional["A
     Context processor to automatically feed the current account into templates
 
     (can only use sync functions in context processors, so can't use deps directly
+
+    We are only concerned with cookie-based auth here since this is for frontend templating,
+    not the API.
     """
     session = next(get_session())
-    account = deps.get_current_account(session, deps.reusable_oauth2(request))
-    return {"current_account": account}
+    token = request.cookies.get("access_token", None)
+    if token is None:
+        return {"current_account": None}
+    else:
+        account = deps.get_current_account(session, token)
+        return {"current_account": account}
 
 
 def template_config(request: Request) -> dict[L["config"], Config]:

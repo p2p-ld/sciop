@@ -1,8 +1,8 @@
 from datetime import UTC, datetime
-from typing import Optional, Self, TYPE_CHECKING
+from typing import Optional, Self, TYPE_CHECKING, ClassVar
 
 from sqlmodel import Field, SQLModel, text, Session, select
-from sqlalchemy import event, func
+from sqlalchemy import event, func, literal, Table, MetaData, Column
 from sqlalchemy.sql.expression import bindparam
 
 if TYPE_CHECKING:
@@ -44,39 +44,58 @@ class SearchableMixin(SQLModel):
     List of columns that should be added to the full text search table 
     """
 
+    _fts_table: ClassVar[Table] = None
+
+    @classmethod
+    def fts_table(cls) -> Table:
+        """Virtual table for full text search"""
+        if cls._fts_table is None:
+            cols = [Column(colname) for colname in cls.__searchable__]
+            cls._fts_table = Table(
+                cls.__fts_table_name__(),
+                cls.metadata,
+                Column("rowid"),
+                *cols,
+            )
+        return cls._fts_table
+
     @classmethod
     def __fts_table_name__(cls) -> str:
         return "__".join([cls.__tablename__, "search"])
 
     @classmethod
-    def search(cls, query: str, session: Session) -> list[Self]:
-        """Do a full text search!"""
-        return session.exec(cls.search_statement(query)).all()
-
-    @classmethod
-    def search_statement_raw(cls, query: str) -> "TextClause":
-        """
-        Search query statement on the full text search table without being cast
-        to a sqlalchemy selectable to mimic the ORM model
-        """
-        text_stmt = text(
-            f"SELECT rowid as id, * FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q ORDER BY rank;"
-        ).bindparams(q=query)
-        return text_stmt
-
-    @classmethod
     def search_statement(cls, query: str) -> "Select":
-        """Construct a select statement to do a full text search without executing"""
-        text_stmt = cls.search_statement_raw(query=query)
-        print("POST BIND")
-        print(query)
-        return select(cls).from_statement(text_stmt)
+        """
+        Search query statement on the full text search table that selects
+        only the row IDs, so that the full object can be retrieved in a subsequent query,
+        probably as a subquery.
+
+        Examples:
+
+            .. code-block:: python
+
+                query = select(Example
+                    ).where(
+                        Example.some_column == True
+                    ).filter(
+                        Example.id.in_(Example.search_statement(query))
+                    )
+
+        """
+        table = cls.fts_table()
+        if len(query) < 3:
+            query = query + "*"
+            where_clause = text(f"{cls.__fts_table_name__()} = :query").bindparams(query=query)
+        else:
+            where_clause = text(f"{cls.__fts_table_name__()} = :query").bindparams(query=query)
+
+        return select(table.c.rowid.label("id")).where(where_clause).order_by(text("rank"))
 
     @classmethod
     def count_statement(cls, query: str) -> "TextClause":
         """Select statement to count number of search results"""
         return text(
-            f"SELECT count(*) FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q ORDER BY rank;"
+            f"SELECT count(*) FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q;"
         ).bindparams(q=query)
 
     @classmethod
@@ -88,7 +107,12 @@ class SearchableMixin(SQLModel):
 
     @classmethod
     def after_create(cls, target, connection, **kwargs):
-        """Create a matching full text search table with triggers to keep it updates"""
+        """
+        Create a matching full text search table with triggers to keep it updated
+
+        Uses an external content table - https://sqlite.org/fts5.html#external_content_and_contentless_tables
+        and the ``trigram`` tokenizer to support subtoken queries
+        """
         if not cls.__searchable__:
             return
 
@@ -99,7 +123,7 @@ class SearchableMixin(SQLModel):
         old_names = ", ".join([f"old.{cname}" for cname in cls.__searchable__])
         create_stmt = text(
             f"""
-            CREATE VIRTUAL TABLE {table_name} USING fts5({col_names}, content={target.name}, content_rowid=id);
+            CREATE VIRTUAL TABLE {table_name} USING fts5({col_names}, content={target.name}, content_rowid=id, tokenize='trigram');
             """
         )
         trigger_insert = text(
@@ -134,6 +158,3 @@ class TestSearchability(SearchableMixin, TableMixin, table=True):
     __searchable__ = ["title", "description"]
     title: str
     description: str
-
-
-#

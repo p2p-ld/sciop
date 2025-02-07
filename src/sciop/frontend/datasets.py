@@ -4,7 +4,6 @@ from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy import func
 from sqlmodel import select
 
 from sciop import crud
@@ -26,23 +25,18 @@ async def datasets(request: Request, account: CurrentAccount, session: SessionDe
     )
 
 
-@datasets_router.post("/search")
-@jinja.hx("partials/dataset-page.html")
-async def search(query: Optional[str] = None, session: SessionDep = None) -> list[DatasetRead]:
-    print("SEARCH")
-    print(query)
-    if query is None:
-        return session.exec(
-            select(Dataset).where(Dataset.enabled == True).order_by(Dataset.created_at)
+@datasets_router.get("/search")
+@jinja.hx("partials/datasets.html")
+async def datasets_search(query: str = None, session: SessionDep = None) -> Page[DatasetRead]:
+    if not query or len(query) < 3:
+        stmt = select(Dataset).where(Dataset.enabled == True).order_by(Dataset.created_at)
+    else:
+        stmt = (
+            select(Dataset)
+            .where(Dataset.enabled == True)
+            .filter(Dataset.id.in_(Dataset.search_statement(query)))
         )
-
-    return Dataset.search(query, session)
-
-    # return paginate(
-    #     conn=session,
-    #     query=Dataset.search_statement(query=query),
-    #     count_query=Dataset.count_statement(query=query),
-    # )
+    return paginate(conn=session, query=stmt)
 
 
 @datasets_router.get("/{dataset_slug}", response_class=HTMLResponse)

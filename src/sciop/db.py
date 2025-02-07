@@ -1,14 +1,18 @@
 import importlib.resources
-from typing import Optional, Generator
+from typing import TYPE_CHECKING, Generator, Optional
 
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from alembic.util.exc import CommandError
-from sqlalchemy import text
+from sqlalchemy import text, select, func
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine
 
 from sciop.config import config
+
+if TYPE_CHECKING:
+    from sciop.models import Account, Dataset, DatasetInstance
+    from faker import Faker
 
 engine = create_engine(str(config.sqlite_path))
 maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
@@ -105,7 +109,9 @@ def create_seed_data(engine):
     if config.env not in ("dev", "test"):
         return
     from sciop import crud
-    from sciop.models import AccountCreate, DatasetCreate, Scope, Scopes
+    from sciop.models import AccountCreate, DatasetCreate, Scope, Scopes, Dataset
+    from faker import Faker
+    fake = Faker()
 
     with maker() as session:
         # session = get_session()
@@ -121,6 +127,16 @@ def create_seed_data(engine):
         session.add(admin)
         session.commit()
         session.refresh(admin)
+
+        uploader = crud.get_account(username="uploader", session=session)
+        if not uploader:
+            uploader = crud.create_account(
+                account_create=AccountCreate(username="uploader", password="uploaderuploader"),
+                session=session
+            )
+        uploader.scopes = [Scope(name=Scopes.upload)]
+        session.add(uploader)
+        session.refresh(uploader)
 
         unapproved_dataset = crud.get_dataset(dataset_slug="unapproved", session=session)
         if not unapproved_dataset:
@@ -140,5 +156,103 @@ def create_seed_data(engine):
             )
         unapproved_dataset.enabled = False
         session.add(unapproved_dataset)
+
+        approved_dataset = crud.get_dataset(dataset_slug="approved", session=session)
+        if not approved_dataset:
+            approved_dataset = crud.create_dataset(
+                session=session,
+                dataset_create=DatasetCreate(
+                    slug="approved",
+                    title="Example Approved Dataset with Upload",
+                    agency="Another Agency",
+                    homepage="example.com",
+                    description="An unapproved dataset",
+                    priority="low",
+                    source="web",
+                    urls=["example.com/3", "example.com/4"],
+                    tags=["approved", "test", "aaa", "bbb", "ccc"],
+                ),
+            )
+        approved_dataset.enabled = True
+        session.add(approved_dataset)
         session.commit()
-        session.refresh(unapproved_dataset)
+        session.refresh(approved_dataset)
+
+        approved_upload = crud.get_instance_from_short_hash(session=session, short_hash="abcdefgh")
+        if not approved_upload:
+            approved_upload = _generate_instance(uploader, approved_dataset, session)
+        approved_upload.enabled = True
+        session.add(approved_upload)
+        session.commit()
+
+        # generate a bunch of approved datasets to test pagination
+        n_datasets = session.query(Dataset).count()
+        if n_datasets < 500:
+            for _ in range(500):
+                generated_dataset = _generate_dataset(fake)
+                session.add(generated_dataset)
+            session.commit()
+
+
+
+def _generate_instance(uploader: "Account", dataset: "Dataset", session: Session) -> "DatasetInstance":
+    from torf import Torrent
+
+    from sciop import crud
+    from sciop.models import DatasetInstanceCreate, FileInTorrentCreate, TorrentFileCreate
+
+    torrent_path = config.torrent_dir / "__example__.torrent"
+    torrent_file = config.torrent_dir / "__example__"
+    with open(torrent_file, 'wb') as tfile:
+        tfile.write(b'0' * 16384 * 4)
+
+    torrent = Torrent(
+        path=torrent_file,
+        name="Example Torrent",
+        trackers=[["http://example.com/announce"]],
+        comment="My comment",
+        piece_size=16384,
+    )
+    torrent.generate()
+    created_torrent = TorrentFileCreate(
+        file_name="__example__.torrent",
+        hash="abcdefghijklmnop",
+        short_hash="abcdefgh",
+        total_size=16384 * 4,
+        piece_size=16384,
+        torrent_size=64,
+        files=[FileInTorrentCreate(path=str(torrent_file), size=2048)],
+        trackers=["http://example.com/announce"]
+    )
+    created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
+    torrent.write(created_torrent.filesystem_path, overwrite=True)
+    created_torrent = crud.create_torrent(session=session, created_torrent=created_torrent, account=uploader)
+
+    instance = DatasetInstanceCreate(
+        method="I downloaded it",
+        description="Its all here bub",
+        torrent_short_hash="abcdefgh",
+    )
+
+    created_instance = crud.create_instance(
+        session=session, created_instance=instance, dataset=dataset, account=uploader
+    )
+    return created_instance
+
+def _generate_dataset(fake: "Faker") -> "Dataset":
+    from sciop.models import Dataset, DatasetURL, DatasetTag
+    title = fake.unique.bs()
+    slug = title.lower().replace(" ", "-")
+
+    return Dataset(
+        slug=slug,
+        title=title,
+        agency=fake.company(),
+        homepage=fake.url(),
+        description=fake.text(1000),
+        priority="low",
+        source="web",
+        urls=[DatasetURL(url=fake.url()) for _ in range(3)],
+        tags=[DatasetTag(tag=fake.word().lower()) for _ in range(3)],
+        enabled=True
+    )
