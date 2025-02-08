@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from functools import partial
 from typing import Generator
 
 import uvicorn
@@ -41,7 +42,7 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
-app.add_middleware(LoggingMiddleware(app=app, app_name="sciop", logger=init_logger("sciop.requests")))
+app.add_middleware(partial(LoggingMiddleware, app_name="sciop", logger=init_logger("sciop.requests")))
 app.add_exception_handler(429, _rate_limit_exceeded_handler)
 
 # Set all CORS enabled origins
