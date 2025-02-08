@@ -9,6 +9,7 @@ from fastapi_pagination import add_pagination
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.cors import CORSMiddleware
+from py_fastapi_logging.middlewares.logging import LoggingMiddleware
 
 from sciop.api.main import api_router
 from sciop.config import config
@@ -39,6 +40,7 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(LoggingMiddleware)
 app.add_exception_handler(429, _rate_limit_exceeded_handler)
 
 # Set all CORS enabled origins
