@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-from functools import partial
 from typing import Generator
 
 import uvicorn
@@ -43,12 +42,10 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
-    partial(
-        LoggingMiddleware,
-        app_name="sciop",
-        logger=init_logger("sciop.requests"),
-        filtered_fields=[".*\.png"],
-    )
+    LoggingMiddleware,
+    app_name="sciop",
+    logger=init_logger("sciop.requests"),
+    filtered_fields=[".*\.png"],
 )
 app.add_exception_handler(429, _rate_limit_exceeded_handler)
 
