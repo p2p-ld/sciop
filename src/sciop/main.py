@@ -45,7 +45,7 @@ app.add_middleware(
     LoggingMiddleware,
     app_name="sciop",
     logger=init_logger("sciop.requests", level="DEBUG"),
-    filtered_fields=[r".*\.png", r".*\.torrent"],
+    exclude_requests_starting_with=[r".*\.png", r".*\.torrent"],
 )
 app.add_exception_handler(429, _rate_limit_exceeded_handler)
 
