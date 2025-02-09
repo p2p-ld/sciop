@@ -15,7 +15,9 @@ class AccountBase(SQLModel):
 
 class Account(AccountBase, TableMixin, table=True):
     hashed_password: str
-    scopes: list["Scope"] = Relationship(back_populates="account")
+    scopes: list["Scope"] = Relationship(
+        back_populates="account", sa_relationship_kwargs={"lazy": "selectin"}
+    )
     datasets: list["Dataset"] = Relationship(back_populates="account")
     submissions: list["DatasetInstance"] = Relationship(back_populates="account")
     external_submissions: list["ExternalInstance"] = Relationship(back_populates="account")

@@ -1,5 +1,5 @@
 {% from "macros/model-table.html" import model_table %}
-{% macro dataset_row(dataset) %}
+{% macro dataset_row(dataset, current_account, config) %}
 <div class="dataset" id="dataset-{{ dataset.slug }}">
     <div class="dataset-topmatter">
         <div class="dataset-header">
