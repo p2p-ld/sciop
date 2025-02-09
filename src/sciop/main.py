@@ -44,7 +44,7 @@ app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     LoggingMiddleware,
     app_name="sciop",
-    logger=init_logger("sciop.requests", level="DEBUG"),
+    logger=init_logger("sciop.requests"),
     exclude_requests_starting_with=["/static", "/torrent"],
 )
 app.add_exception_handler(429, _rate_limit_exceeded_handler)
