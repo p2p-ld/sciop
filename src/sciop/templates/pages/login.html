@@ -1,6 +1,6 @@
 {% extends "layouts/default.html" %}
 {% block content %}
-<form hx-post="{{ config.api_prefix }}/login" class="form login-form" id="login-form">
+<form hx-post="{{ config.api_prefix }}/login" class="form login-form" id="login-form" hx-trigger="keyup[keyCode==13]">
     <div class="form-row">
         <label for="username" class="form-label">Username</label>
         <input id="username" name="username" type="text">

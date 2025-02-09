@@ -6,6 +6,7 @@ from sciop.api.auth import get_password_hash, verify_password
 from sciop.models import (
     Account,
     AccountCreate,
+    AuditLog,
     Dataset,
     DatasetCreate,
     DatasetInstance,
@@ -13,6 +14,7 @@ from sciop.models import (
     DatasetTag,
     DatasetURL,
     FileInTorrent,
+    ModerationAction,
     TorrentFile,
     TorrentFileCreate,
     TrackerInTorrent,
@@ -120,7 +122,13 @@ def create_instance(
         session=session, short_hash=created_instance.torrent_short_hash
     )
     db_obj = DatasetInstance.model_validate(
-        created_instance, update={"torrent": torrent, "account": account, "dataset": dataset}
+        created_instance,
+        update={
+            "torrent": torrent,
+            "account": account,
+            "dataset": dataset,
+            "short_hash": created_instance.torrent_short_hash,
+        },
     )
     session.add(db_obj)
     session.commit()
@@ -146,3 +154,29 @@ def get_instance_from_short_hash(*, session: Session, short_hash: str) -> Option
     )
     instance = session.exec(statement).first()
     return instance
+
+
+def log_moderation_action(
+    *,
+    session: Session,
+    actor: Account,
+    action: ModerationAction,
+    target: Dataset | Account | DatasetInstance,
+    value: Optional[str] = None,
+) -> AuditLog:
+    audit_kwargs = {"actor": actor, "action": action, "value": value}
+
+    if isinstance(target, Dataset):
+        audit_kwargs["dataset_id"] = target.id
+    elif isinstance(target, DatasetInstance):
+        audit_kwargs["instance_id"] = target.id
+    elif isinstance(target, Account):
+        audit_kwargs["account_id"] = target.id
+    else:
+        raise ValueError(f"No moderation actions for target type {target}")
+
+    db_item = AuditLog(**audit_kwargs)
+    session.add(db_item)
+    session.commit()
+    session.refresh(db_item)
+    return db_item

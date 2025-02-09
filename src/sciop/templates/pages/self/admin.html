@@ -1,0 +1,26 @@
+{% extends "layouts/default.html" %}
+{% block content %}
+{% include "includes/self-tabs.html" %}
+<div class="page-header">
+  <h2>Accounts</h2>
+  <span class="htmx-indicator loading-indicator" id="accounts-loading-indicator">
+      <img src="/static/img/rings.svg"/>
+  </span>
+</div>
+<div class="container flex-container column">
+  <div class="row search-container" >
+    <input class="form-control search-input" type="search"
+           name="query" placeholder="Begin Typing To Search..."
+           hx-get="/self/admin/accounts/search"
+           hx-trigger="input changed delay:250ms, keyup[key=='Enter'], load"
+           hx-target="#accounts-table"
+           hx-indicator="#accounts-loading-indicator"
+           hx-swap="innerHTML"
+    >
+  </div>
+
+  <div id="accounts-table">
+  </div>
+</div>
+
+{% endblock %}

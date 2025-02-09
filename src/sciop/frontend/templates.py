@@ -2,6 +2,7 @@
 Common source for template environments and decorators
 """
 
+from types import ModuleType
 from typing import TYPE_CHECKING, Optional
 from typing import Literal as L
 
@@ -9,6 +10,7 @@ from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 
+from sciop import models
 from sciop.api import deps
 from sciop.config import Config, config
 from sciop.const import TEMPLATE_DIR
@@ -41,10 +43,15 @@ def template_config(request: Request) -> dict[L["config"], Config]:
     return {"config": config}
 
 
+def template_models(request: Request) -> dict[L["models"], ModuleType]:
+    return {"models": models}
+
+
 templates = Jinja2Templates(
     directory=TEMPLATE_DIR,
-    context_processors=[template_account, template_config],
+    context_processors=[template_account, template_config, template_models],
 )
+templates.env.globals["models"] = models
 
 jinja = Jinja(templates)
 """fasthx decorator, see https://github.com/volfpeter/fasthx"""

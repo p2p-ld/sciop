@@ -1,21 +1,12 @@
 {% extends "layouts/default.html" %}
 {% block content %}
-<h2>Hello {{ current_account.username }}</h2>
-
-Scopes:
-{% for scope in current_account.scopes %}
-<span class="token">{{ scope.name.value }}</span>
-{% endfor %}
-
-<h2>Uploads:</h2>
-
-{% if current_account.has_scope('review') %}
+{% include "includes/self-tabs.html" %}
 <h2>Review</h2>
 <h3>Datasets</h3>
 
 <div id="dataset-review-container" class="review-container">
     <div
-        hx-get="/review/datasets"
+        hx-get="/self/review/datasets"
         hx-trigger="load"
     >
         <span class="htmx-indicator search-indicator" id="review-datasets-indicator">
@@ -29,7 +20,7 @@ Scopes:
 
 <div id="instance-review-container"  class="review-container">
     <div
-        hx-get="/review/instances"
+        hx-get="/self/review/instances"
         hx-trigger="load"
     >
         <span class="htmx-indicator search-indicator" id="review-instances-indicator">
@@ -38,10 +29,4 @@ Scopes:
         </span>
     </div>
 </div>
-
-
-{% endif %}
-
-<button class="button" id="logout-button" hx-post="{{ config.api_prefix }}/logout">Logout</button>
-
 {% endblock %}

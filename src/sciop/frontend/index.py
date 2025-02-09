@@ -36,14 +36,6 @@ async def login(request: Request, account: CurrentAccount):
     )
 
 
-@index_router.get("/profile", response_class=HTMLResponse)
-async def profile(request: Request, account: CurrentAccount):
-    if account is None:
-        return RedirectResponse(url="/login", status_code=302)
-
-    return templates.TemplateResponse("pages/profile.html", {"request": request})
-
-
 @index_router.get("/request", response_class=HTMLResponse)
 async def request(request: Request, account: CurrentAccount):
     return templates.TemplateResponse(

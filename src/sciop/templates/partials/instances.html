@@ -1,0 +1,30 @@
+{% from 'macros/instance.html' import instance_collapsible %}
+<div id="instance-page" class="instance-page">
+  {% with swap_target="#instance-page" %}
+    {% include 'includes/pagination-buttons.html' %}
+  {% endwith %}
+  <div id="instances-table-inner"
+       class="collapsible-table instances-table {% if review %}review{% endif %}">
+    <div id="instances-table-head" class="table-head">
+      <span class="marker"></span>
+      <span class="col-slug">
+          short hash
+      </span>
+      <span class="col-title">
+          title
+      </span>
+      <span class="col-title">
+          size
+      </span>
+      <span class="col-created">
+          created
+      </span>
+      {% if review %}<span></span><span></span>{% endif %}
+    </div>
+    <div class="instance-items">
+      {% for instance in items %}
+      {{ instance_collapsible(instance, review=review, config=config) }}
+      {% endfor %}
+    </div>
+  </div>
+</div>

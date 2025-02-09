@@ -1,0 +1,52 @@
+{% macro account_row(dataset, current_account, config) %}
+
+{% endmacro %}
+
+{% macro account_collapsible(account, review=False, config = None, models=None) %}
+<details class="collapsible account-collapsible" id="account-collapsible-{{ account.id }}">
+    <summary class="collapsible-summary"
+             hx-get="/accounts/{{ account.username }}/partial"
+             hx-trigger="click once"
+             hx-target="#account-{{ account.username }}">
+
+        <span class="collapsible-marker"></span>
+        <span class="account-username item-link">
+            <a href="/accounts/{{ account.username }}">
+                {{ account.username }}
+            </a>
+        </span>
+
+        <span class="account-scopes tokens">
+        {% if review %}
+            {% for scope_name in models.Scopes.__members__.values() %}
+                {% if account.has_scope(scope_name) %}
+                    <button
+                        class="toggle-button checked"
+                        id="{{ account.username }}-scope-{{scope_name}}"
+                        hx-delete="/accounts/{{ account.username }}/scopes/{{ scope_name }}"
+                    >
+                        {{scope_name}}
+                    </button>
+                {% else %}
+                    <button class="toggle-button unchecked"
+                            id="{{ account.username }}-scope-{{scope_name}}">{{scope_name
+                        }}</button>
+                {% endif %}
+
+            {% endfor %}
+        {% else %}
+              {% for scope in account.scopes %}
+              <span class="account-scope token">{{ scope.name }}</span>
+              {% endfor %}
+        {% endif %}
+        </span>
+        <span class="account-timestamp timestamp">{{ account.created_at.strftime("%y-%m-%d %H:%M") }}</span>
+        {% if review %}
+        <button class="button suspend-button success-button"
+                hx-post="{{ config.api_prefix }}/accounts/{{ account.username }}/suspend">Suspend
+        </button>
+        {% endif %}
+    </summary>
+    <div class="account" id="account-{{ account.username }}"></div>
+</details>
+{% endmacro %}

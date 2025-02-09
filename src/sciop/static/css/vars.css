@@ -25,6 +25,10 @@ body {
   --color-primary-shade-3: color-mix(in lch, var(--color-primary) 50%, white);
   --color-primary-darker-1: color-mix(in lch, var(--color-primary) 80%, var(--color-dark-background));
   --color-border-deemphasized: #333;
+  --color-caution: red;
+  --color-caution-darker-1: color-mix(in lch, var(--color-caution) 80%, var(--color-dark-background));
+  --color-caution-contrast: var(--color-primary-contrast);
+
 
 
   &.light-theme {
@@ -37,5 +41,7 @@ body {
     --color-primary-contrast: #000;
     /*--color-primary-shade-1: color-mix(in lch, var(--color-primary) 75%, black);*/
     --color-primary-shade-1: lch(44% 132 317);
+    --color-caution: red;
+    --color-caution-contrast: var(--color-primary-contrast);
   }
 }

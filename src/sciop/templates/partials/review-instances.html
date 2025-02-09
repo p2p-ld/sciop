@@ -1,0 +1,10 @@
+{% from 'macros/instance.html' import instance_collapsible %}
+<div id="instance-review-panel" class="review-panel">
+{% if items | length == 0 %}
+    <span>No instances to review :)</span>
+{% else %}
+    {% with review=True %}
+      {% include "partials/instances.html" %}
+    {% endwith %}
+{% endif %}
+</div>

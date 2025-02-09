@@ -80,7 +80,7 @@
     {% if not dataset.enabled %}
         {% if current_account and current_account.has_scope("review") %}
         <button class="button success-button" id="approve-button"
-                hx-post="{{ config.api_prefix }}/review/datasets/{{ dataset.slug }}/approve">Approve this dataset</button>
+                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve this dataset</button>
         {% else %}
         <span>Dataset must be reviewed before uploads can be added</span>
         {% endif %}
@@ -101,13 +101,15 @@
              hx-trigger="click once"
              hx-target="#dataset-{{ dataset.slug }}">
         <span class="collapsible-marker"></span>
-        <span class="dataset-slug"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
+        <span class="dataset-slug item-link"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
         <span class="dataset-title">{{ dataset.title }}</span>
-        <span class="dataset-timestamp">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}</span>
-        <span class="spacer"></span>
+        <span class="dataset-timestamp timestamp">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}</span>
         {% if review %}
         <button class="button approve-button success-button"
-                hx-post="{{ config.api_prefix }}/review/datasets/{{ dataset.slug }}/approve">Approve
+                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve
+        </button>
+        <button class="button deny-button success-button caution"
+                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/deny">Deny
         </button>
         {% endif %}
     </summary>

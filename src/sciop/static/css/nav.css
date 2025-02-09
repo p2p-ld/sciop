@@ -34,16 +34,6 @@ nav.navbar {
   }
 
   a.nav-link {
-    color: var(--color-primary-shade-1);
-    font-size: 1.1em;
-
-    display: block;
-    position: relative;
-
-    &:hover {
-      text-decoration: unset;
-    }
-
     &::after {
       content: '';
       position: absolute;
@@ -56,7 +46,6 @@ nav.navbar {
       transition: opacity 300ms, transform 300ms, height 300ms;
       transform: translate3d(0, 1em, 0);
       transform-origin: bottom;
-
     }
 
     &:hover::after,
@@ -65,7 +54,14 @@ nav.navbar {
       height: 0.3em;
       /*transform: translate3d(0, 0.5em, 0);*/
     }
+
+    &.current::after {
+      opacity: 1;
+      height: 0.3em;
+    }
   }
+
+
 
   /* Ripped off from https://codepen.io/alvarotrigo/pen/zYPydpB */
   .toggle-switch {
@@ -135,3 +131,31 @@ nav.navbar {
   }
 }
 
+a.nav-link {
+  color: var(--color-primary-shade-1);
+  font-size: 1.1em;
+
+  display: block;
+  position: relative;
+
+  &:hover {
+    text-decoration: unset;
+  }
+}
+
+nav.tabs {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  justify-content: center;
+  padding: 0.5em 0;
+  gap: 1em;
+
+  a.tab-link {
+    padding: 0.5em 2em;
+  }
+
+  a.current {
+    border-bottom: 1px solid var(--color-primary);
+  }
+}

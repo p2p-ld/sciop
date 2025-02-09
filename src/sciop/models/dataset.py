@@ -240,6 +240,10 @@ class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
         return self.torrent.file_name
 
     @property
+    def short_hash(self) -> str:
+        return self.torrent.short_hash
+
+    @property
     def rss_description(self) -> str:
         """String to be used in the RSS description for this instance"""
         return f"Description: {self.description}\n\nMethod: {self.method}"

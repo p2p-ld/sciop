@@ -11,7 +11,7 @@ from sciop import crud
 from sciop.api.auth import ALGORITHM
 from sciop.config import config
 from sciop.db import get_session
-from sciop.models import Account, Dataset, TokenPayload
+from sciop.models import Account, Dataset, DatasetInstance, Scopes, TokenPayload
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 
@@ -68,19 +68,19 @@ CurrentAccount = Annotated[Optional[Account], Depends(get_current_account)]
 
 
 def require_current_active_admin(current_account: RequireCurrentAccount) -> Account:
-    if "admin" not in [scope.name for scope in current_account.scopes]:
+    if not current_account.has_scope("admin"):
         raise HTTPException(status_code=403, detail="Account must be admin")
     return current_account
 
 
 def require_current_active_reviewer(current_account: RequireCurrentAccount) -> Account:
-    if "review" not in [scope.name for scope in current_account.scopes]:
+    if not current_account.has_scope("review", "admin"):
         raise HTTPException(status_code=403, detail="Account must be reviewer")
     return current_account
 
 
 def require_current_active_uploader(current_account: RequireCurrentAccount) -> Account:
-    if "upload" not in [scope.name for scope in current_account.scopes]:
+    if not current_account.has_scope("upload", "admin"):
         raise HTTPException(status_code=403, detail="Account must be reviewer")
     return current_account
 
@@ -115,3 +115,54 @@ def require_enabled_dataset(dataset_slug: str, session: SessionDep) -> Dataset:
 
 RequireDataset = Annotated[Dataset, Depends(require_dataset)]
 RequireEnabledDataset = Annotated[Dataset, Depends(require_enabled_dataset)]
+
+
+def require_upload(short_hash: str, session: SessionDep) -> DatasetInstance:
+    upload = crud.get_instance_from_short_hash(session=session, short_hash=short_hash)
+    if not upload:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such upload {short_hash} exists!",
+        )
+    return upload
+
+
+def require_enabled_upload(short_hash: str, session: SessionDep) -> DatasetInstance:
+    upload = require_upload(short_hash, session)
+    if not upload.enabled:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Upload {short_hash} is not enabled",
+        )
+    return upload
+
+
+RequireUpload = Annotated[DatasetInstance, Depends(require_upload)]
+RequireEnabledUpload = Annotated[DatasetInstance, Depends(require_enabled_upload)]
+
+
+def require_account(username: str, session: SessionDep) -> Account:
+    account = crud.get_account(session=session, username=username)
+    if not username:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such account {username} exists!",
+        )
+    return account
+
+
+RequireAccount = Annotated[Account, Depends(require_account)]
+
+
+def valid_scope(scope: str | Scopes) -> Scopes:
+    try:
+        scope = getattr(Scopes, scope)
+    except AttributeError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such scope as {scope} exists!",
+        ) from None
+    return scope
+
+
+ValidScope = Annotated[Scopes, Depends(valid_scope)]

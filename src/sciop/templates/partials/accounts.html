@@ -1,0 +1,27 @@
+{% from 'macros/account.html' import account_collapsible %}
+<div id="account-page" class="account-page">
+  {% with swap_target="#account-page" %}
+    {% include 'includes/pagination-buttons.html' %}
+  {% endwith %}
+  <div id="accounts-table-inner"
+       class="collapsible-table accounts-table {% if review %}review{% endif %}">
+    <div id="accounts-table-head" class="table-head">
+      <span class="marker"></span>
+      <span class="col-slug">
+          slug
+      </span>
+      <span class="col-title">
+          title
+      </span>
+      <span class="col-created">
+          created
+      </span>
+      {% if review %}<span></span><span></span>{% endif %}
+    </div>
+    <div class="account-items">
+      {% for account in items %}
+      {{ account_collapsible(account, review=review, config=config, models=models) }}
+      {% endfor %}
+    </div>
+  </div>
+</div>
