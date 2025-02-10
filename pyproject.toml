@@ -62,10 +62,10 @@ start = { call = "sciop.main:main" }
 test = "pytest"
 lint.composite = [
     "ruff check",
-    "black sciop --diff"
+    "black . --diff"
 ]
 format.composite = [
-    "black src/sciop",
+    "black .",
     "ruff check --fix",
 ]
 

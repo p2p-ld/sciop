@@ -1,4 +1,3 @@
-
 import logging
 
 from fastapi.testclient import TestClient
