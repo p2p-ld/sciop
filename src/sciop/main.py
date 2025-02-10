@@ -15,8 +15,8 @@ from sciop.config import config
 from sciop.const import STATIC_DIR
 from sciop.db import create_tables
 from sciop.frontend.main import frontend_router
-from sciop.logging import LoggingMiddleware, init_logger
-from sciop.middleware import limiter
+from sciop.logging import init_logger
+from sciop.middleware import LoggingMiddleware, limiter
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"

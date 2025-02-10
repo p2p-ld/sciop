@@ -29,7 +29,7 @@ def init_logger(
 
     Args:
         name (str): Name of this logger. Ideally names are hierarchical
-            and indicate what they are logging for, eg. ``mio.sdcard``
+            and indicate what they are logging for, eg. ``sciop.api.auth``
             and don't contain metadata like timestamps, etc. (which are in the logs)
         log_dir (:class:`pathlib.Path`): Directory to store file-based logs in. If ``None``,
             get from :class:`.Config`. If ``False`` , disable file logging.
@@ -103,7 +103,7 @@ def _init_root(
     log_file_n: int = 5,
     log_file_size: int = 2**22,
 ) -> None:
-    root_logger = logging.getLogger("mio")
+    root_logger = logging.getLogger("sciop")
     file_handlers = [
         handler for handler in root_logger.handlers if isinstance(handler, RotatingFileHandler)
     ]
@@ -114,7 +114,7 @@ def _init_root(
     if log_dir is not False and not file_handlers:
         root_logger.addHandler(
             _file_handler(
-                "mio",
+                "sciop",
                 file_level,
                 log_dir,
                 log_file_n,
