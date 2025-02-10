@@ -19,3 +19,4 @@ The first part of that command, with `find`, descends into the `./tmy` directory
 
 The second part of that command, with `xargs`, reads filenames from its standard input, separated by a `NULL` character (`-0`) and runs the `sha512sum` command on them. The output is then redirected and saved in the `SHA512.sums` file.
 
+There are similar commands for computing the other kinds of checksum that are used in exactly the same way: `sha256sum`, and even `sha1sum` or `md5sum` for situations where those have been used by someone else. Checksums made with `sha256sum` should be stored in a file called `SHA256.sums` and similarly with the others.
