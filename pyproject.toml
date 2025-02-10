@@ -36,6 +36,7 @@ sciop = "sciop.main:main"
 [project.optional-dependencies]
 test = [
     "pytest>=8.3.4",
+    "httpx>=0.28.1",
 ]
 dev = [
     "sciop[test]",
@@ -61,10 +62,10 @@ start = { call = "sciop.main:main" }
 test = "pytest"
 lint.composite = [
     "ruff check",
-    "black sciop --diff"
+    "black . --diff"
 ]
 format.composite = [
-    "black src/sciop",
+    "black .",
     "ruff check --fix",
 ]
 
@@ -122,7 +123,7 @@ fixable = ["ALL"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/{api,frontend}/*" = ["ANN201"]
-"tests/**/test_*" = ["ANN201"]
+"tests/**/test_*" = ["ANN001", "ANN201", "F841"]
 
 [tool.black]
 target-version = ['py311', 'py312', 'py313']

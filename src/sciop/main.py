@@ -15,7 +15,8 @@ from sciop.config import config
 from sciop.const import STATIC_DIR
 from sciop.db import create_tables
 from sciop.frontend.main import frontend_router
-from sciop.middleware import limiter
+from sciop.logging import init_logger
+from sciop.middleware import LoggingMiddleware, limiter
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"
@@ -39,6 +40,7 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(LoggingMiddleware, logger=init_logger("requests"))
 app.add_exception_handler(429, _rate_limit_exceeded_handler)
 
 # Set all CORS enabled origins
@@ -66,4 +68,11 @@ app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
 
 
 def main() -> None:
-    uvicorn.run("sciop.main:app", host=config.host, port=config.port, reload=config.reload)
+    uvicorn.run(
+        "sciop.main:app",
+        host=config.host,
+        port=config.port,
+        reload=config.reload,
+        lifespan="on",
+        access_log=False,
+    )
