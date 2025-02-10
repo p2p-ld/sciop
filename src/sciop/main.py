@@ -6,10 +6,10 @@ from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
+from py_fastapi_logging.middlewares.logging import LoggingMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.cors import CORSMiddleware
-from py_fastapi_logging.middlewares.logging import LoggingMiddleware
 
 from sciop.api.main import api_router
 from sciop.config import config

@@ -11,10 +11,10 @@ from pathlib import Path
 from typing import Optional, Union
 
 from fastapi import HTTPException
+from rich.logging import RichHandler
 from starlette.middleware.base import BaseHTTPMiddleware, DispatchFunction, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.types import ASGIApp
-from rich.logging import RichHandler
 
 from sciop.config import LOG_LEVELS, Config
 
@@ -26,7 +26,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         self.logger = logger
         super().__init__(app, dispatch)
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> None:
         try:
             response = await call_next(request)
             response_code = response.status_code
