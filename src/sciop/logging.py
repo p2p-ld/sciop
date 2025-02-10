@@ -2,46 +2,15 @@
 Logging factory and handlers
 """
 
-from __future__ import annotations
-
 import logging
 import multiprocessing as mp
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional, Union
 
-from fastapi import HTTPException
-from starlette.middleware.base import BaseHTTPMiddleware, DispatchFunction, RequestResponseEndpoint
-from starlette.requests import Request
-from starlette.types import ASGIApp
 from rich.logging import RichHandler
 
 from sciop.config import LOG_LEVELS, Config
-
-
-class LoggingMiddleware(BaseHTTPMiddleware):
-    def __init__(
-        self, logger: logging.Logger, app: ASGIApp, dispatch: DispatchFunction | None = None
-    ):
-        self.logger = logger
-        super().__init__(app, dispatch)
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
-        try:
-            response = await call_next(request)
-            response_code = response.status_code
-            msg = ""
-            level = logging.DEBUG
-        except HTTPException as e:
-            response_code = e.status_code
-            msg = str(e)
-            level = logging.ERROR
-        except Exception as e:
-            response_code = 500
-            msg = f"Unhandled exception: {str(e)}"
-            level = logging.ERROR
-
-        self.logger.log(level, "[%s] %s: %s - %s", response_code, request.method, request.url, msg)
 
 
 def init_logger(
@@ -60,7 +29,7 @@ def init_logger(
 
     Args:
         name (str): Name of this logger. Ideally names are hierarchical
-            and indicate what they are logging for, eg. ``mio.sdcard``
+            and indicate what they are logging for, eg. ``sciop.api.auth``
             and don't contain metadata like timestamps, etc. (which are in the logs)
         log_dir (:class:`pathlib.Path`): Directory to store file-based logs in. If ``None``,
             get from :class:`.Config`. If ``False`` , disable file logging.
@@ -134,7 +103,7 @@ def _init_root(
     log_file_n: int = 5,
     log_file_size: int = 2**22,
 ) -> None:
-    root_logger = logging.getLogger("mio")
+    root_logger = logging.getLogger("sciop")
     file_handlers = [
         handler for handler in root_logger.handlers if isinstance(handler, RotatingFileHandler)
     ]
@@ -145,7 +114,7 @@ def _init_root(
     if log_dir is not False and not file_handlers:
         root_logger.addHandler(
             _file_handler(
-                "mio",
+                "sciop",
                 file_level,
                 log_dir,
                 log_file_n,
