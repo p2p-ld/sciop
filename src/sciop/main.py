@@ -69,5 +69,10 @@ app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
 
 def main() -> None:
     uvicorn.run(
-        "sciop.main:app", host=config.host, port=config.port, reload=config.reload, lifespan="on"
+        "sciop.main:app",
+        host=config.host,
+        port=config.port,
+        reload=config.reload,
+        lifespan="on",
+        access_log=False,
     )
