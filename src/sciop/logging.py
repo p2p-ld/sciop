@@ -4,78 +4,13 @@ Logging factory and handlers
 
 import logging
 import multiprocessing as mp
-from io import BytesIO
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional, Union
 
-from fastapi import HTTPException
 from rich.logging import RichHandler
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.requests import Request
-from starlette.responses import Response
-from starlette.types import ASGIApp
 
 from sciop.config import LOG_LEVELS, Config
-
-
-class LoggingMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: ASGIApp, logger: logging.Logger):
-        self.logger = logger
-        super().__init__(app)
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        try:
-            response = await call_next(request)
-            msg = None
-            if response.status_code < 400:
-                level = logging.INFO
-            elif response.status_code < 500:
-                level = logging.WARNING
-            else:
-                msg = await self._decode_body(response)
-                level = logging.ERROR
-
-            self._log_message(
-                response_code=response.status_code, request=request, msg=msg, level=level
-            )
-            return response
-        except HTTPException as e:
-            self._log_message(
-                response_code=e.status_code, request=request, msg=str(e), level=logging.ERROR
-            )
-            raise e
-        except Exception as e:
-            msg = f"Unhandled exception: {str(e)}"
-            self._log_message(response_code=500, request=request, msg=msg, level=logging.ERROR)
-            raise e
-
-    def _log_message(
-        self,
-        response_code: int,
-        request: Request,
-        msg: Optional[str] = None,
-        level: int = logging.INFO,
-    ) -> None:
-        if msg:
-            self.logger.log(
-                level, "[%s] %s: %s - %s", response_code, request.method, request.url.path, msg
-            )
-        else:
-            self.logger.log(level, "[%s] %s: %s", response_code, request.method, request.url.path)
-
-    async def _decode_body(self, response: Response) -> str:
-        if hasattr(response, "body_iterator"):
-            with BytesIO() as raw_buffer:
-                async for chunk in response.body_iterator:  # type: ignore[attr-defined]
-                    if not isinstance(chunk, bytes):
-                        chunk = chunk.encode(response.charset)
-                    raw_buffer.write(chunk)
-                body = raw_buffer.getvalue()
-        else:
-            body = response.body.decode("utf-8")
-
-        return body.decode("utf-8", errors="ignore")
 
 
 def init_logger(
