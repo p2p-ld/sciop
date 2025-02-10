@@ -18,6 +18,7 @@ async def index(request: Request, account: CurrentAccount):
     except IndexError:
         short_hash = ""
     return templates.TemplateResponse(
+        request,
         "pages/index.html",
         {
             "request": request,
