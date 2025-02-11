@@ -13,7 +13,7 @@ from sciop.config import config
 if TYPE_CHECKING:
     from faker import Faker
 
-    from sciop.models import Account, Dataset, Upload, UploadCreate
+    from sciop.models import Account, Dataset, Upload
 
 engine = create_engine(str(config.sqlite_path))
 maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
