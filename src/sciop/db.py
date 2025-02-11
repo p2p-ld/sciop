@@ -189,9 +189,7 @@ def create_seed_data() -> None:
         session.add(approved_upload)
         session.commit()
 
-        unapproved_upload = crud.get_upload_from_short_hash(
-            session=session, short_hash="unapprov"
-        )
+        unapproved_upload = crud.get_upload_from_short_hash(session=session, short_hash="unapprov")
         if not unapproved_upload:
             unapproved_upload = _generate_upload(
                 "unapproved", uploader, unapproved_dataset, session
