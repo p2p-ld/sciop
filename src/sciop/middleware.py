@@ -5,16 +5,16 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine, MutableMapping, Opti
 from fastapi import HTTPException
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from starlette.concurrency import iterate_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
-from starlette.concurrency import iterate_in_threadpool
 
+from sciop.api.deps import get_current_account
 from sciop.db import get_session
 from sciop.exceptions import UploadSizeExceeded
 from sciop.logging import init_logger
-from sciop.api.deps import get_current_account
 
 if TYPE_CHECKING:
     from fastapi import FastAPI

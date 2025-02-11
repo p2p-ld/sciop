@@ -167,11 +167,11 @@ def log_moderation_action(
     audit_kwargs = {"actor": actor, "action": action, "value": value}
 
     if isinstance(target, Dataset):
-        audit_kwargs["dataset_id"] = target.id
+        audit_kwargs["target_dataset"] = target
     elif isinstance(target, DatasetInstance):
-        audit_kwargs["instance_id"] = target.id
+        audit_kwargs["target_upload"] = target
     elif isinstance(target, Account):
-        audit_kwargs["account_id"] = target.id
+        audit_kwargs["target_account"] = target
     else:
         raise ValueError(f"No moderation actions for target type {target}")
 

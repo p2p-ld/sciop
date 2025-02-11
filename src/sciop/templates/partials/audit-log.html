@@ -1,0 +1,29 @@
+{% from 'macros/audit-log.html' import log_entry %}
+<div id="audit-log-page" class="audit-log-page">
+  {% with swap_target="#audit-log-page" %}
+    {% include 'includes/pagination-buttons.html' %}
+  {% endwith %}
+  <table id="audit-log-table-inner"
+       class="collapsible-table audit-log-table">
+    <tr id="audit-log-table-head" class="table-head">
+      <th class="col-actor">
+        Actor
+      </th>
+      <th class="col-action">
+          Action
+      </th>
+      <th class="col-value">
+          Value
+      </th>
+      <th class="col-target">
+          Target
+      </th>
+      <th class="col-timestamp">
+          Timestamp
+      </th>
+    </tr>
+    {% for entry in items %}
+    {{ log_entry(entry, config=config) }}
+    {% endfor %}
+  </table>
+</div>

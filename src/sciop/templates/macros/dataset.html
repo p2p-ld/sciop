@@ -1,8 +1,8 @@
 {% from "macros/model-table.html" import model_table %}
 {% macro dataset_row(dataset, current_account, config) %}
 <div class="dataset" id="dataset-{{ dataset.slug }}">
-    <div class="dataset-topmatter">
-        <div class="dataset-header">
+    <div class="dataset-topmatter topmatter">
+        <div class="dataset-header header">
             <h2 class="dataset-title">{{ dataset.title }} </h2>
             <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
             <p class="dataset-agency">{{ dataset.agency }}</p>
@@ -20,7 +20,7 @@
             </div>
             {% endif %}
         </div>
-        <div class="dataset-infobox">
+        <div class="dataset-infobox infobox">
             <p class="dataset-priority priority-{{ dataset.priority.value }}">{{dataset.priority.value}}</p>
             <table class="infobox-table">
                 {% if dataset.priority_comment %}
@@ -87,8 +87,6 @@
     {% elif current_account and  current_account.has_scope("upload") %}
         <button class="button" id="upload-button" hx-get="/datasets/{{dataset.slug}}/upload/start" hx-swap="outerHTML">Upload
         </button>
-    {% else %}
-        <button class="button" id="request-upload-button">Request Upload Permissions</button>
     {% endif %}
     </div>
 </div>

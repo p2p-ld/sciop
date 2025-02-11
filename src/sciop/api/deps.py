@@ -1,7 +1,7 @@
 from typing import Annotated, Any, Optional, TypeVar
 
 import jwt
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, ValidationError
@@ -154,15 +154,49 @@ def require_account(username: str, session: SessionDep) -> Account:
 RequireAccount = Annotated[Account, Depends(require_account)]
 
 
-def valid_scope(scope: str | Scopes) -> Scopes:
+def valid_scope(scope_name: str | Scopes) -> Scopes:
     try:
-        scope = getattr(Scopes, scope)
+        scope = getattr(Scopes, scope_name)
     except AttributeError:
         raise HTTPException(
             status_code=404,
-            detail=f"No such scope as {scope} exists!",
+            detail=f"No such scope as {scope_name} exists!",
         ) from None
     return scope
 
 
 ValidScope = Annotated[Scopes, Depends(valid_scope)]
+
+
+def add_htmx_response_trigger(request: Request, response: Response) -> Response:
+    """
+    Add an htmx trigger to allow htmx elements to listen to a generic "response" event
+    from other elements.
+
+    e.g.:
+
+        <div
+          hx-get="/some/thing"
+          hx-trigger="response from:.child"
+        >
+          <div>
+            <span
+              hx-get="/a/button/maybe"
+              class=.child
+            >
+              assume this does something
+            </span>
+          </div>
+        </div>
+    """
+    # yield response
+
+    if "hx-request" in request.headers:
+        if "hx-trigger" in response.headers:
+            response.headers["hx-trigger"] = ",".join([response.headers["hx-trigger"], "response"])
+        else:
+            response.headers["hx-trigger"] = "response"
+    return response
+
+
+HTMXResponse = Annotated[Response, Depends(add_htmx_response_trigger)]

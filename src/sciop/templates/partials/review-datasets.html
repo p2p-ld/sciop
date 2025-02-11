@@ -1,5 +1,6 @@
 {% from 'macros/dataset.html' import dataset_collapsible %}
-<div id="dataset-review-panel" class="review-panel">
+<div id="dataset-review-panel" class="review-panel"
+     hx-get="/self/review/datasets" hx-trigger="response from:.success-button">
 {% if items | length == 0 %}
     <span>No datasets to review :)</span>
 {% else %}

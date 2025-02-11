@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+
+from fastapi import APIRouter, Response
 
 from sciop import crud
 from sciop.api.deps import (
@@ -10,6 +11,7 @@ from sciop.api.deps import (
     SessionDep,
     ValidScope,
 )
+from sciop.frontend.templates import jinja
 from sciop.models import ModerationAction, Scope, SuccessResponse
 
 review_router = APIRouter()
@@ -17,7 +19,11 @@ review_router = APIRouter()
 
 @review_router.post("/datasets/{dataset_slug}/approve")
 async def approve_dataset(
-    dataset_slug: str, account: RequireReviewer, session: SessionDep, dataset: RequireDataset
+    dataset_slug: str,
+    account: RequireReviewer,
+    session: SessionDep,
+    dataset: RequireDataset,
+    response: Response,
 ) -> SuccessResponse:
     dataset.enabled = True
     session.add(dataset)
@@ -69,32 +75,64 @@ async def deny_upload(
     return SuccessResponse(success=True)
 
 
-@review_router.post("/accounts/{username}/scopes/{scope}")
-async def grant_account_scope(
-    username: str,
-    scope: ValidScope,
-    current_account: RequireAdmin,
-    account: RequireAccount,
-    session: SessionDep,
-):
-
-    if not account.has_scope(scope):
-        account.scopes.append(Scope(name=scope))
-        session.add(account)
-        session.commit()
+@review_router.delete("/accounts/{username}")
+async def suspend_account(
+    username: str, account: RequireAccount, session: SessionDep, current_account: RequireAdmin
+) -> SuccessResponse:
+    session.delete(account)
+    session.commit()
+    crud.log_moderation_action(
+        session=session, actor=current_account, action=ModerationAction.suspend, target=account
+    )
     return SuccessResponse(success=True)
 
 
-@review_router.delete("/accounts/{username}/scopes/{scope}")
-async def revoke_account_scope(
+@review_router.put("/accounts/{username}/scopes/{scope_name}")
+@jinja.hx("partials/scope-toggle-button.html")
+async def grant_account_scope(
     username: str,
-    scope: ValidScope,
+    scope_name: ValidScope,
     current_account: RequireAdmin,
     account: RequireAccount,
     session: SessionDep,
 ):
-    if scope := account.get_scope(scope):
+    if not account.has_scope(scope_name):
+        account.scopes.append(Scope(name=scope_name))
+        session.add(account)
+        session.commit()
+
+    crud.log_moderation_action(
+        session=session,
+        actor=current_account,
+        action=ModerationAction.add_scope,
+        target=account,
+        value=scope_name,
+    )
+    return SuccessResponse(
+        success=True, extra={"username": account.username, "scope_name": scope_name}
+    )
+
+
+@review_router.delete("/accounts/{username}/scopes/{scope_name}")
+@jinja.hx("partials/scope-toggle-button.html")
+async def revoke_account_scope(
+    username: str,
+    scope_name: ValidScope,
+    current_account: RequireAdmin,
+    account: RequireAccount,
+    session: SessionDep,
+):
+    if scope := account.get_scope(scope_name):
         account.scopes.remove(scope)
         session.add(account)
         session.commit()
-    return SuccessResponse(success=True)
+    crud.log_moderation_action(
+        session=session,
+        actor=current_account,
+        action=ModerationAction.remove_scope,
+        target=account,
+        value=scope_name,
+    )
+    return SuccessResponse(
+        success=True, extra={"username": account.username, "scope_name": scope_name}
+    )

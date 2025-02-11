@@ -1,5 +1,21 @@
 {% extends "layouts/default.html" %}
 {% block content %}
 {% include "includes/self-tabs.html" %}
-
+<div class="page-header">
+  <h2>Audit Log</h2>
+</div>
+<div class="container flex-container column">
+  <div id="audit-log-table">
+    <div
+        hx-get="/self/log/page"
+        hx-trigger="load"
+        hx-swap="outerHTML"
+    >
+        <span class="htmx-indicator search-indicator" id="review-datasets-indicator">
+            <span>Loading audit log...</span>
+            <img src="/static/img/rings.svg"/>
+        </span>
+    </div>
+  </div>
+</div>
 {% endblock %}

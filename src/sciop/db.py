@@ -221,6 +221,8 @@ def _generate_instance(
     with open(torrent_file, "wb") as tfile:
         tfile.write(b"0" * 16384 * 4)
 
+    file_size = torrent_file.stat().st_size
+
     torrent = Torrent(
         path=torrent_file,
         name=f"Example Torrent {name}",
@@ -238,7 +240,7 @@ def _generate_instance(
         total_size=16384 * 4,
         piece_size=16384,
         torrent_size=64,
-        files=[FileInTorrentCreate(path=str(torrent_file), size=2048)],
+        files=[FileInTorrentCreate(path=str(torrent_file.name), size=file_size)],
         trackers=["http://example.com/announce"],
     )
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)

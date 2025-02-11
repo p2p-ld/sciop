@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
+from sqlalchemy.orm import relationship
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.mixin import SearchableMixin, TableMixin
@@ -48,7 +49,20 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
     submissions: list["DatasetInstance"] = Relationship(back_populates="account")
     external_submissions: list["ExternalInstance"] = Relationship(back_populates="account")
     torrents: list["TorrentFile"] = Relationship(back_populates="account")
-    moderation_actions: list["AuditLog"] = Relationship(back_populates="actor")
+    moderation_actions: list["AuditLog"] = Relationship(
+        back_populates="actor",
+        sa_relationship=relationship(
+            "AuditLog",
+            primaryjoin="Account.id == AuditLog.actor_id",
+        ),
+    )
+    audit_log_target: list["AuditLog"] = Relationship(
+        back_populates="target_account",
+        sa_relationship=relationship(
+            "AuditLog",
+            primaryjoin="Account.id == AuditLog.target_account_id",
+        ),
+    )
 
 
 class AccountCreate(AccountBase):

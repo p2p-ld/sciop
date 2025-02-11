@@ -51,7 +51,7 @@
 }
 
 .instances-table {
-  --item-cols: 1em 6em 7fr 5em 7em;
+  --item-cols: 1em 6em 7fr 5em 7em 1em;
   display: grid;
 
   &.review {
@@ -60,11 +60,11 @@
 }
 
 .accounts-table {
-  --item-cols: 1em 6em 7fr 5em 7em;
+  --item-cols: 1em 6em 7fr 7em 7em;
   display: grid;
 
   &.review {
-    --item-cols: 1em 6em 7fr 5em 7em 4em 4em;
+    --item-cols: 1em 6em 7fr 7em 7em;
   }
 }
 
@@ -102,17 +102,38 @@
   }
 }
 
+.topmatter {
+  display: flex;
+  flex-direction: row;
 
-.dataset {
-  .dataset-topmatter {
-    display: flex;
-    flex-direction: row;
-  }
-  .dataset-header {
+  .header {
     flex-basis: 60%;
   }
-  .dataset-infobox {
-    flex-basis: 40%;
+  .infobox {
+    flex-basis: 40%
+  }
+}
+
+.infobox {
+  .infobox-header {
+    font-size: 2em;
+    text-align: center;
+  }
+  .infobox-subhead {
+    text-align: center;
+  }
+  .infobox-table {
+    width: 100%;
+  }
+  .infobox-key {
+    font-weight: bold;
+  }
+  .infobox-value {
+    font-family: var(--font-mono);
+  }
+  td {
+    border: 1px solid var(--color-border-deemphasized);
+    padding: 0 0.5em;
   }
 }
 
@@ -127,18 +148,40 @@
       background-color: var(--color-priority-low);
     }
   }
+}
 
-  .infobox-table {
+.upload-infobox {
+
+}
+
+
+.audit-log-page {
+  width: 80%;
+  max-width: 800px;
+  margin: auto;
+
+  .audit-log-table {
     width: 100%;
   }
-  .infobox-key {
-    font-weight: bold;
+
+  td, th {
+    text-align: right;
   }
-  .infobox-value {
-    font-family: var(--font-mono);
+
+  th.col-actor,
+  td.actor
+  {
+    text-align: left;
   }
-  td {
-    border: 1px solid var(--color-border-deemphasized);
-    padding: 0 0.5em;
+}
+
+.file-table {
+  display: grid;
+  font-size: 0.9em;
+  grid-template-columns: 8fr 1fr;
+  font-family: var(--font-mono);
+
+  .file-size {
+    text-align: right
   }
 }

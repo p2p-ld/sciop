@@ -12,8 +12,9 @@ from sciop.api.deps import (
     SessionDep,
 )
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Account, AccountRead, Dataset, DatasetInstance
+from sciop.models import Account, AccountRead, AuditLog, AuditLogRead, Dataset, DatasetInstance
 
+AuditLogRead.model_rebuild()
 self_router = APIRouter(prefix="/self")
 
 
@@ -76,3 +77,13 @@ async def accounts_search(
     else:
         stmt = select(Account).filter(Account.id.in_(Account.search_statement(query)))
     return paginate(conn=session, query=stmt)
+
+
+@self_router.get("/log/page")
+@jinja.hx("partials/audit-log.html")
+async def audit_log(
+    account: RequireReviewer,
+    session: SessionDep,
+) -> Page[AuditLogRead]:
+
+    return paginate(conn=session, query=select(AuditLog).order_by(AuditLog.updated_at.desc()))

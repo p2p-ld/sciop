@@ -12,7 +12,7 @@
     <input class="form-control search-input" type="search"
            name="query" placeholder="Begin Typing To Search..."
            hx-get="/self/admin/accounts/search"
-           hx-trigger="input changed delay:250ms, keyup[key=='Enter'], load"
+           hx-trigger="input changed delay:250ms, keyup[key=='Enter'], load, response from:.success-button"
            hx-target="#accounts-table"
            hx-indicator="#accounts-loading-indicator"
            hx-swap="innerHTML"

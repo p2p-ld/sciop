@@ -18,7 +18,7 @@ from sciop.models.dataset import (
     DatasetURL,
     ExternalInstance,
 )
-from sciop.models.moderation import AuditLog, ModerationAction
+from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
 from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.torrent import (
     FileInTorrent,
@@ -34,6 +34,7 @@ __all__ = [
     "AccountCreate",
     "AccountRead",
     "AuditLog",
+    "AuditLogRead",
     "Dataset",
     "DatasetCreate",
     "DatasetInstance",

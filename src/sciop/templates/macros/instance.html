@@ -1,5 +1,74 @@
-{% macro instance_row(dataset, current_account, config) %}
+{% macro instance_row(upload, current_account, config) %}
+<div class="upload" id="upload-{{ upload.short_hash }}">
+    <div class="upload-topmatter topmatter">
+        <div class="upload-header header">
+            <h2 class="title upload-title font-mono">{{ upload.short_hash }} </h2>
+            <span class="dataset-slug">
+                <a href="/datasets/{{upload.dataset.slug}}">
+                    {{ upload.dataset.slug }}
+                </a>
+            </span>
+            <h3 class="description">Description</h3>
+            <p>{{ upload.description }}</p>
+            <h3 class="method">Method</h3>
+            <p>{{ upload.method }}</p>
 
+        </div>
+        <div class="upload-infobox infobox">
+            <p class="infobox-header">
+                <a class="download-link font-mono" href="{{ upload.download_path }}">⬇️ download ⬇️</a>
+            </p>
+            <table class="infobox-table">
+                <tr>
+                    <td colspan="2" class="infobox-subhead">{{ upload.torrent.file_name }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Size</td>
+                    <td class="infobox-value">{{ upload.human_size }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Torrent Size</td>
+                    <td class="infobox-value">{{ upload.human_torrent_size }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Files</td>
+                    <td class="infobox-value">{{ upload.torrent.files | length }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Piece size</td>
+                    <td class="infobox-value">{{ upload.torrent.human_piece_size }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Created</td>
+                    <td class="infobox-value">{{ upload.created_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Updated</td>
+                    <td class="infobox-value">{{ upload.updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                </tr>
+            </table>
+        </div>
+
+    </div>
+
+    <h3>
+       Files
+    </h3>
+    <div class="file-table">
+        {% for file in upload.torrent.files %}
+        <span class="file-name">{{ file.path }}</span>
+        <span class="file-size">{{ file.human_size }}</span>
+        {% endfor %}
+    </div>
+    <h3>
+        Trackers
+    </h3>
+    <div class="tracker-list">
+        {% for tracker in upload.torrent.trackers %}
+        <code>{{ tracker.url }}</code>
+        {% endfor %}
+    </div>
+</div>
 {% endmacro %}
 
 {% macro instance_collapsible(instance, review=False, config = None) %}

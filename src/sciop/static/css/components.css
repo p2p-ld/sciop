@@ -36,14 +36,14 @@ button {
   }
 
   &.toggle-button {
-    &.unchecked {
+    &:not(.checked) {
       border-color: var(--color-border-deemphasized);
       color: var(--color-deemphasized);
       box-shadow: unset;
 
       &:hover {
-        background-color: var(--color-caution);
-        color: var(--color-caution-contrast);
+        background-color: var(--color-background);
+        border-color: var(--color-primary);
       }
     }
   }

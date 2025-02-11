@@ -23,13 +23,19 @@
                     <button
                         class="toggle-button checked"
                         id="{{ account.username }}-scope-{{scope_name}}"
-                        hx-delete="/accounts/{{ account.username }}/scopes/{{ scope_name }}"
+                        hx-delete="{{ config.api_prefix }}/accounts/{{ account.username }}/scopes/{{ scope_name }}"
+                        hx-target="this"
+                        hx-swap="outerHTML"
                     >
                         {{scope_name}}
                     </button>
                 {% else %}
-                    <button class="toggle-button unchecked"
-                            id="{{ account.username }}-scope-{{scope_name}}">{{scope_name
+                    <button class="toggle-button"
+                            id="{{ account.username }}-scope-{{scope_name}}"
+                            hx-put="{{ config.api_prefix }}/accounts/{{ account.username }}/scopes/{{ scope_name }}"
+                            hx-target="this"
+                            hx-swap="outerHTML"
+                    >{{scope_name
                         }}</button>
                 {% endif %}
 
@@ -42,8 +48,8 @@
         </span>
         <span class="account-timestamp timestamp">{{ account.created_at.strftime("%y-%m-%d %H:%M") }}</span>
         {% if review %}
-        <button class="button suspend-button success-button"
-                hx-post="{{ config.api_prefix }}/accounts/{{ account.username }}/suspend">Suspend
+        <button class="button suspend-button success-button caution"
+                hx-delete="{{ config.api_prefix }}/accounts/{{ account.username }}">Suspend
         </button>
         {% endif %}
     </summary>
