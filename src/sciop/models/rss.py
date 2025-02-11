@@ -5,7 +5,7 @@ for the bittorrent RSS spec
 
 from datetime import UTC, datetime
 
-from sciop.models import DatasetInstance
+from sciop.models import Upload
 from sciop.vendor.fastapi_rss.models import GUID, Enclosure, EnclosureAttrs, Item, RSSFeed
 
 
@@ -13,16 +13,16 @@ class TorrentItem(Item):
     """An individual torrent within a torrent RSS feed"""
 
     @classmethod
-    def from_instance(cls, instance: DatasetInstance) -> "TorrentItem":
+    def from_upload(cls, upload: Upload) -> "TorrentItem":
         return TorrentItem(
-            title=instance.file_name,
-            description=instance.rss_description,
-            guid=GUID(content=instance.absolute_download_path),
+            title=upload.file_name,
+            description=upload.rss_description,
+            guid=GUID(content=upload.absolute_download_path),
             enclosure=Enclosure(
                 attrs=EnclosureAttrs(
-                    url=instance.absolute_download_path,
+                    url=upload.absolute_download_path,
                     type="application/x-bittorrent",
-                    length=instance.torrent.torrent_size,
+                    length=upload.torrent.torrent_size,
                 )
             ),
         )
@@ -31,10 +31,10 @@ class TorrentItem(Item):
 class TorrentFeed(RSSFeed):
 
     @classmethod
-    def from_instances(
-        cls, title: str, link: str, description: str, instances: list[DatasetInstance]
+    def from_uploads(
+        cls, title: str, link: str, description: str, uploads: list[Upload]
     ) -> "TorrentFeed":
-        items = [TorrentItem.from_instance(instance) for instance in instances]
+        items = [TorrentItem.from_upload(upload) for upload in uploads]
         return TorrentFeed(
             title=title,
             link=link,

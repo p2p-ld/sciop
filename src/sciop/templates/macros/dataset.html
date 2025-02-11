@@ -63,13 +63,13 @@
     <h3>Uploads</h3>
 
     {% if dataset.enabled %}
-    <div id="dataset-instances-container" class="instances-container container">
+    <div id="dataset-uploads-container" class="uploads-container container">
         <div
-            hx-get="/datasets/{{ dataset.slug }}/instances"
+            hx-get="/datasets/{{ dataset.slug }}/uploads"
             hx-trigger="load"
         >
-            <span class="htmx-indicator search-indicator" id="instances-indicator">
-                <span>Loading dataset instances...</span>
+            <span class="htmx-indicator search-indicator" id="uploads-indicator">
+                <span>Loading dataset uploads...</span>
                 <img src="/static/img/rings.svg"/>
             </span>
         </div>

@@ -13,8 +13,8 @@ from sciop.middleware import limiter
 from sciop.models import (
     Dataset,
     DatasetCreate,
-    DatasetInstance,
-    DatasetInstanceCreate,
+    Upload,
+    UploadCreate,
     DatasetRead,
 )
 
@@ -70,49 +70,49 @@ async def datasets_create_form(
     return created_dataset
 
 
-@datasets_router.post("/{dataset_slug}/instances")
-async def datasets_create_instance(
-    instance: DatasetInstanceCreate,
+@datasets_router.post("/{dataset_slug}/uploads")
+async def datasets_create_upload(
+    upload: UploadCreate,
     dataset_slug: str,
     dataset: RequireEnabledDataset,
     account: RequireUploader,
     session: SessionDep,
-) -> DatasetInstance:
-    """Create an instance of a dataset"""
+) -> Upload:
+    """Create an upload of a dataset"""
     torrent = crud.get_torrent_from_short_hash(
-        session=session, short_hash=instance.torrent_short_hash
+        session=session, short_hash=upload.torrent_short_hash
     )
     if not torrent:
         raise HTTPException(
             status_code=404,
-            detail=f"No torrent with short hash {instance.torrent_short_hash} exists, "
+            detail=f"No torrent with short hash {upload.torrent_short_hash} exists, "
             "upload it first!",
         )
-    created_instance = crud.create_instance(
-        session=session, created_instance=instance, dataset=dataset, account=account
+    created_upload = crud.create_upload(
+        session=session, created_upload=upload, dataset=dataset, account=account
     )
-    return created_instance
+    return created_upload
 
 
-@datasets_router.post("/{dataset_slug}/instances/form")
-async def datasets_create_instance_form(
-    instance: Annotated[DatasetInstanceCreate, Form()],
+@datasets_router.post("/{dataset_slug}/uploads/form")
+async def datasets_create_upload_form(
+    upload: Annotated[UploadCreate, Form()],
     dataset_slug: str,
     dataset: RequireEnabledDataset,
     account: RequireUploader,
     session: SessionDep,
     response: Response,
-) -> DatasetInstance:
-    """Create an instance of a dataset"""
-    created_instance = datasets_create_instance(
-        instance=instance,
+) -> Upload:
+    """Create an upload of a dataset"""
+    created_upload = datasets_create_upload(
+        upload=upload,
         dataset_slug=dataset_slug,
         dataset=dataset,
         account=account,
         session=session,
     )
     response.headers["HX-Refresh"] = "true"
-    return created_instance
+    return created_upload
 
 
 # @datasets_router.post("/form")

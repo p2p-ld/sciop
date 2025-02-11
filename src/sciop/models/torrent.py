@@ -8,7 +8,7 @@ from sciop.config import config
 from sciop.models.mixin import TableMixin
 
 if TYPE_CHECKING:
-    from sciop.models.dataset import Account, DatasetInstance
+    from sciop.models.dataset import Account, Upload
 
 
 class FileInTorrent(TableMixin, table=True):
@@ -91,8 +91,8 @@ class TorrentFileBase(SQLModel):
 class TorrentFile(TorrentFileBase, TableMixin, table=True):
     account_id: Optional[int] = Field(default=None, foreign_key="account.id")
     account: "Account" = Relationship(back_populates="torrents")
-    instance_id: Optional[int] = Field(default=None, foreign_key="datasetinstance.id")
-    instance: Optional["DatasetInstance"] = Relationship(back_populates="torrent")
+    upload_id: Optional[int] = Field(default=None, foreign_key="upload.id")
+    upload: Optional["Upload"] = Relationship(back_populates="torrent")
     files: list["FileInTorrent"] = Relationship(back_populates="torrent")
     trackers: list["TrackerInTorrent"] = Relationship(back_populates="torrent")
 

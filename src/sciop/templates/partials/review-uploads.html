@@ -1,0 +1,12 @@
+{% from 'macros/upload.html' import upload_collapsible %}
+<div id="upload-review-panel" class="review-panel"
+     hx-get="/self/review/uploads"
+     hx-trigger="response from:.success-button">
+{% if items | length == 0 %}
+    <span>No uploads to review :)</span>
+{% else %}
+    {% with review=True %}
+      {% include "partials/uploads.html" %}
+    {% endwith %}
+{% endif %}
+</div>

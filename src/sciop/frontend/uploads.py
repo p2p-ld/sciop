@@ -19,7 +19,7 @@ uploads_router = APIRouter(prefix="/uploads")
 
 @uploads_router.get("/", response_class=HTMLResponse)
 async def uploads(request: Request, account: CurrentAccount, session: SessionDep):
-    uploads = crud.get_approved_instances(session=session)
+    uploads = crud.get_approved_uploads(session=session)
     return templates.TemplateResponse(
         "pages/uploads.html",
         {"request": request, "config": config, "current_account": account, "uploads": uploads},
@@ -44,7 +44,7 @@ async def uploads_search(query: str = None, session: SessionDep = None) -> Page[
 async def upload_show(
     short_hash: str, account: CurrentAccount, session: SessionDep, request: Request
 ):
-    upload = crud.get_instance_from_short_hash(session=session, short_hash=short_hash)
+    upload = crud.get_upload_from_short_hash(session=session, short_hash=short_hash)
     if not upload:
         raise HTTPException(
             status_code=404,

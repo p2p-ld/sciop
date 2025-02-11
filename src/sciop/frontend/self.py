@@ -12,7 +12,7 @@ from sciop.api.deps import (
     SessionDep,
 )
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Account, AccountRead, AuditLog, AuditLogRead, Dataset, DatasetInstance
+from sciop.models import Account, AccountRead, AuditLog, AuditLogRead, Dataset, Upload
 
 AuditLogRead.model_rebuild()
 self_router = APIRouter(prefix="/self")
@@ -58,12 +58,12 @@ async def review_datasets(account: RequireReviewer, session: SessionDep) -> Page
     return paginate(conn=session, query=stmt)
 
 
-@self_router.get("/review/instances", response_class=HTMLResponse)
-@jinja.hx("partials/review-instances.html")
-async def review_instances(
+@self_router.get("/review/uploads", response_class=HTMLResponse)
+@jinja.hx("partials/review-uploads.html")
+async def review_uploads(
     request: Request, account: RequireReviewer, session: SessionDep
-) -> Page[DatasetInstance]:
-    stmt = select(DatasetInstance).where(DatasetInstance.enabled == False)
+) -> Page[Upload]:
+    stmt = select(Upload).where(Upload.enabled == False)
     return paginate(conn=session, query=stmt)
 
 

@@ -26,7 +26,7 @@ async def upload_torrent(
     account: RequireUploader, file: UploadFile, session: SessionDep
 ) -> TorrentFileRead:
     """
-    Upload a torrent file prior to creating a Dataset Instance
+    Upload a torrent file prior to creating a Dataset upload
     """
     torrent = Torrent.read_stream(file.file)
     torrent.validate()

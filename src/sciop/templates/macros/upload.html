@@ -1,4 +1,4 @@
-{% macro instance_row(upload, current_account, config) %}
+{% macro upload_row(upload, current_account, config) %}
 <div class="upload" id="upload-{{ upload.short_hash }}">
     <div class="upload-topmatter topmatter">
         <div class="upload-header header">
@@ -71,33 +71,33 @@
 </div>
 {% endmacro %}
 
-{% macro instance_collapsible(instance, review=False, config = None) %}
-<details class="collapsible instance-collapsible" id="instance-collapsible-{{ instance.id }}">
+{% macro upload_collapsible(upload, review=False, config = None) %}
+<details class="collapsible upload-collapsible" id="upload-collapsible-{{ instance.id }}">
     <summary class="collapsible-summary"
-             hx-get="/uploads/{{ instance.short_hash }}/partial"
+             hx-get="/uploads/{{ upload.short_hash }}/partial"
              hx-trigger="click once"
-             hx-target="#upload-{{ instance.short_hash }}">
+             hx-target="#upload-{{ upload.short_hash }}">
 
         <span class="collapsible-marker"></span>
-        <span class="instance-hash item-link">
-            <a href="/uploads/{{ instance.short_hash }}">
-                {{ instance.short_hash }}
+        <span class="upload-hash item-link">
+            <a href="/uploads/{{ upload.short_hash }}">
+                {{ upload.short_hash }}
             </a>
         </span>
-        <span class="instance-title title">{{ instance.file_name }}</span>
-        <span class="instance-size size">{{ instance.human_size }}</span>
-        <span class="instance-timestamp timestamp">{{ instance.created_at.strftime("%y-%m-%d %H:%M") }}</span>
+        <span class="upload-title title">{{ upload.file_name }}</span>
+        <span class="upload-size size">{{ upload.human_size }}</span>
+        <span class="upload-timestamp timestamp">{{ upload.created_at.strftime("%y-%m-%d %H:%M") }}</span>
         {% if review %}
         <button class="button approve-button success-button"
-                hx-post="{{ config.api_prefix }}/uploads/{{ instance.short_hash }}/approve">Approve
+                hx-post="{{ config.api_prefix }}/uploads/{{ upload.short_hash }}/approve">Approve
         </button>
         <button class="button deny-button success-button caution"
-                hx-post="{{ config.api_prefix }}/uploads/{{ instance.short_hash }}/deny">Deny
+                hx-post="{{ config.api_prefix }}/uploads/{{ upload.short_hash }}/deny">Deny
         </button>
         {% else %}
-        <a class="icon-link download-link" href="{{ instance.download_path }}">⬇️</a>
+        <a class="icon-link download-link" href="{{ upload.download_path }}">⬇️</a>
         {% endif %}
     </summary>
-    <div class="upload" id="upload-{{ instance.short_hash }}"></div>
+    <div class="upload" id="upload-{{ upload.short_hash }}"></div>
 </details>
 {% endmacro %}

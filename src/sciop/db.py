@@ -13,7 +13,7 @@ from sciop.config import config
 if TYPE_CHECKING:
     from faker import Faker
 
-    from sciop.models import Account, Dataset, DatasetInstance
+    from sciop.models import Account, Dataset, Upload
 
 engine = create_engine(str(config.sqlite_path))
 maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
@@ -182,18 +182,18 @@ def create_seed_data() -> None:
         session.commit()
         session.refresh(approved_dataset)
 
-        approved_upload = crud.get_instance_from_short_hash(session=session, short_hash="abcdefgh")
+        approved_upload = crud.get_upload_from_short_hash(session=session, short_hash="abcdefgh")
         if not approved_upload:
-            approved_upload = _generate_instance("abcdefgh", uploader, approved_dataset, session)
+            approved_upload = _generate_upload("abcdefgh", uploader, approved_dataset, session)
         approved_upload.enabled = True
         session.add(approved_upload)
         session.commit()
 
-        unapproved_upload = crud.get_instance_from_short_hash(
+        unapproved_upload = crud.get_upload_from_short_hash(
             session=session, short_hash="unapprov"
         )
         if not unapproved_upload:
-            unapproved_upload = _generate_instance(
+            unapproved_upload = _generate_upload(
                 "unapproved", uploader, unapproved_dataset, session
             )
         unapproved_upload.enabled = False
@@ -209,13 +209,13 @@ def create_seed_data() -> None:
             session.commit()
 
 
-def _generate_instance(
+def _generate_upload(
     name: str, uploader: "Account", dataset: "Dataset", session: Session
-) -> "DatasetInstance":
+) -> "Upload":
     from torf import Torrent
 
     from sciop import crud
-    from sciop.models import DatasetInstanceCreate, FileInTorrentCreate, TorrentFileCreate
+    from sciop.models import UploadCreate, FileInTorrentCreate, TorrentFileCreate
 
     torrent_file = config.torrent_dir / f"__{name}__"
     with open(torrent_file, "wb") as tfile:
@@ -249,16 +249,16 @@ def _generate_instance(
         session=session, created_torrent=created_torrent, account=uploader
     )
 
-    instance = DatasetInstanceCreate(
+    upload = UploadCreate(
         method="I downloaded it",
         description="Its all here bub",
         torrent_short_hash=short_hash,
     )
 
-    created_instance = crud.create_instance(
-        session=session, created_instance=instance, dataset=dataset, account=uploader
+    created_upload = crud.create_upload(
+        session=session, created_upload=upload, dataset=dataset, account=uploader
     )
-    return created_instance
+    return created_upload
 
 
 def _generate_dataset(fake: "Faker") -> "Dataset":

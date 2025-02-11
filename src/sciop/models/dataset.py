@@ -106,8 +106,8 @@ class DatasetBase(SQLModel):
 
 class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     __searchable__ = ["title", "slug", "agency", "homepage", "description"]
-    instances: list["DatasetInstance"] = Relationship(back_populates="dataset")
-    external_instances: list["ExternalInstance"] = Relationship(back_populates="dataset")
+    uploads: list["Upload"] = Relationship(back_populates="dataset")
+    external_sources: list["ExternalSource"] = Relationship(back_populates="dataset")
     urls: list["DatasetURL"] = Relationship(back_populates="dataset")
     tags: list["DatasetTag"] = Relationship(back_populates="dataset")
     account_id: Optional[int] = Field(default=None, foreign_key="account.id")
@@ -172,8 +172,8 @@ def _tokenize(v: str) -> str:
 
 
 class DatasetRead(DatasetBase, TableReadMixin):
-    instances: list["DatasetInstance"]
-    external_instances: list["ExternalInstance"]
+    uploads: list["Upload"]
+    external_uploads: list["ExternalSource"]
     urls: list["DatasetURL"]
     tags: list["DatasetTag"]
     status: Status
@@ -194,7 +194,7 @@ class DatasetTag(SQLModel, table=True):
     tag: str
 
 
-class DatasetInstanceBase(SQLModel):
+class UploadBase(SQLModel):
     """
     A copy of a dataset
     """
@@ -206,20 +206,20 @@ class DatasetInstanceBase(SQLModel):
     )
     description: Optional[str] = Field(
         None,
-        description="Any additional information about this dataset instance",
+        description="Any additional information about this dataset upload",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
     )
 
 
-class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
+class Upload(UploadBase, TableMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 
     dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
-    dataset: Dataset = Relationship(back_populates="instances")
+    dataset: Dataset = Relationship(back_populates="uploads")
     account_id: Optional[int] = Field(default=None, foreign_key="account.id")
     account: Account = Relationship(back_populates="submissions")
     torrent: Optional["TorrentFile"] = Relationship(
-        back_populates="instance", sa_relationship_kwargs={"lazy": "selectin"}
+        back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
     )
     enabled: bool = False
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
@@ -254,25 +254,25 @@ class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
 
     @property
     def rss_description(self) -> str:
-        """String to be used in the RSS description for this instance"""
+        """String to be used in the RSS description for this upload"""
         return f"Description: {self.description}\n\nMethod: {self.method}"
 
 
-class DatasetInstanceRead(DatasetInstanceBase, TableReadMixin):
-    """Version of datasaet instance returned when reading"""
+class UploadRead(UploadBase, TableReadMixin):
+    """Version of datasaet upload returned when reading"""
 
     torrent: Optional["TorrentFile"] = None
 
 
-class DatasetInstanceCreate(DatasetInstanceBase):
-    """Dataset instance for creation, excludes the enabled param"""
+class UploadCreate(UploadBase):
+    """Dataset upload for creation, excludes the enabled param"""
 
     torrent_short_hash: str = Field(
         max_length=8, min_length=8, description="Short hash of the torrent file"
     )
 
 
-class ExternalInstanceBase(SQLModel):
+class ExternalSourceBase(SQLModel):
     """An external source for this dataset"""
 
     organization: str = Field(
@@ -285,8 +285,8 @@ class ExternalInstanceBase(SQLModel):
     )
 
 
-class ExternalInstance(ExternalInstanceBase, TableMixin, table=True):
+class ExternalSource(ExternalSourceBase, TableMixin, table=True):
     dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
-    dataset: Dataset = Relationship(back_populates="external_instances")
+    dataset: Dataset = Relationship(back_populates="external_sources")
     account_id: Optional[int] = Field(default=None, foreign_key="account.id")
     account: Optional[Account] = Relationship(back_populates="external_submissions")
