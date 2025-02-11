@@ -11,7 +11,7 @@ from sciop import crud
 from sciop.api.auth import ALGORITHM
 from sciop.config import config
 from sciop.db import get_session
-from sciop.models import Account, Dataset, Upload, Scopes, TokenPayload
+from sciop.models import Account, Dataset, Scopes, TokenPayload, Upload
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 

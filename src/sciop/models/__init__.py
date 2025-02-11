@@ -11,8 +11,6 @@ from sciop.models.api import SuccessResponse
 from sciop.models.dataset import (
     Dataset,
     DatasetCreate,
-    Upload,
-    UploadCreate,
     DatasetRead,
     DatasetTag,
     DatasetURL,
@@ -28,6 +26,10 @@ from sciop.models.torrent import (
     TorrentFileRead,
     TrackerInTorrent,
 )
+from sciop.models.upload import Upload, UploadCreate
+
+Dataset.model_rebuild()
+DatasetRead.model_rebuild()
 
 __all__ = [
     "Account",
@@ -37,8 +39,6 @@ __all__ = [
     "AuditLogRead",
     "Dataset",
     "DatasetCreate",
-    "Upload",
-    "UploadCreate",
     "DatasetRead",
     "DatasetTag",
     "DatasetURL",
@@ -57,4 +57,6 @@ __all__ = [
     "TorrentFileRead",
     "TorrentItem",
     "TrackerInTorrent",
+    "Upload",
+    "UploadCreate",
 ]

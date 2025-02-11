@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Response
 
 from sciop import crud

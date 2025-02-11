@@ -11,7 +11,7 @@ from sciop.api.deps import CurrentAccount, RequireDataset, RequireUploader, Sess
 from sciop.api.routes.upload import upload_torrent
 from sciop.config import config
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, UploadCreate, DatasetRead
+from sciop.models import Dataset, DatasetRead, UploadCreate
 
 datasets_router = APIRouter(prefix="/datasets")
 

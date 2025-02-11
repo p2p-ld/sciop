@@ -1,0 +1,87 @@
+from typing import Optional
+from urllib.parse import urljoin
+
+from sqlmodel import Field, Relationship, SQLModel
+
+from sciop.config import config
+from sciop.models import Account, AuditLog, Dataset, TorrentFile
+from sciop.models.mixin import TableMixin, TableReadMixin
+from sciop.types import InputType
+
+
+class UploadBase(SQLModel):
+    """
+    A copy of a dataset
+    """
+
+    method: Optional[str] = Field(
+        None,
+        description="""Description of how the dataset was acquired""",
+        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+    )
+    description: Optional[str] = Field(
+        None,
+        description="Any additional information about this dataset upload",
+        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+    )
+
+
+class Upload(UploadBase, TableMixin, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
+    dataset: Dataset = Relationship(back_populates="uploads")
+    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
+    account: Account = Relationship(back_populates="submissions")
+    torrent: Optional["TorrentFile"] = Relationship(
+        back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    enabled: bool = False
+    audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
+
+    @property
+    def human_size(self) -> str:
+        """Human-sized string representation of the torrent size"""
+        return self.torrent.human_size
+
+    @property
+    def human_torrent_size(self) -> str:
+        """Human-sized string representation of the size of the torrent itself"""
+        return self.torrent.human_torrent_size
+
+    @property
+    def download_path(self) -> str:
+        """Location where the torrent can be downloaded relative to site root"""
+        return self.torrent.download_path
+
+    @property
+    def absolute_download_path(self) -> str:
+        """Download path including the site root"""
+        return urljoin(config.base_url, self.download_path)
+
+    @property
+    def file_name(self) -> str:
+        return self.torrent.file_name
+
+    @property
+    def short_hash(self) -> str:
+        return self.torrent.short_hash
+
+    @property
+    def rss_description(self) -> str:
+        """String to be used in the RSS description for this upload"""
+        return f"Description: {self.description}\n\nMethod: {self.method}"
+
+
+class UploadRead(UploadBase, TableReadMixin):
+    """Version of datasaet upload returned when reading"""
+
+    torrent: Optional["TorrentFile"] = None
+
+
+class UploadCreate(UploadBase):
+    """Dataset upload for creation, excludes the enabled param"""
+
+    torrent_short_hash: str = Field(
+        max_length=8, min_length=8, description="Short hash of the torrent file"
+    )

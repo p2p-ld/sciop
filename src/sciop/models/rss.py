@@ -4,16 +4,19 @@ for the bittorrent RSS spec
 """
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
-from sciop.models import Upload
 from sciop.vendor.fastapi_rss.models import GUID, Enclosure, EnclosureAttrs, Item, RSSFeed
+
+if TYPE_CHECKING:
+    from sciop.models import Upload
 
 
 class TorrentItem(Item):
     """An individual torrent within a torrent RSS feed"""
 
     @classmethod
-    def from_upload(cls, upload: Upload) -> "TorrentItem":
+    def from_upload(cls, upload: "Upload") -> "TorrentItem":
         return TorrentItem(
             title=upload.file_name,
             description=upload.rss_description,
@@ -32,7 +35,7 @@ class TorrentFeed(RSSFeed):
 
     @classmethod
     def from_uploads(
-        cls, title: str, link: str, description: str, uploads: list[Upload]
+        cls, title: str, link: str, description: str, uploads: list["Upload"]
     ) -> "TorrentFeed":
         items = [TorrentItem.from_upload(upload) for upload in uploads]
         return TorrentFeed(

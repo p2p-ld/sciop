@@ -8,7 +8,8 @@ from sciop.config import config
 from sciop.models.mixin import TableMixin
 
 if TYPE_CHECKING:
-    from sciop.models.dataset import Account, Upload
+    from sciop.models import Upload
+    from sciop.models.dataset import Account
 
 
 class FileInTorrent(TableMixin, table=True):

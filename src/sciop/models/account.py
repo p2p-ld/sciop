@@ -11,10 +11,10 @@ if TYPE_CHECKING:
     from sciop.models import (
         AuditLog,
         Dataset,
-        Upload,
         ExternalSource,
         Scope,
         TorrentFile,
+        Upload,
     )
 
 

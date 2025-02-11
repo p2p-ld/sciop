@@ -13,9 +13,9 @@ from sciop.middleware import limiter
 from sciop.models import (
     Dataset,
     DatasetCreate,
+    DatasetRead,
     Upload,
     UploadCreate,
-    DatasetRead,
 )
 
 datasets_router = APIRouter(prefix="/datasets")
@@ -104,7 +104,7 @@ async def datasets_create_upload_form(
     response: Response,
 ) -> Upload:
     """Create an upload of a dataset"""
-    created_upload = datasets_create_upload(
+    created_upload = await datasets_create_upload(
         upload=upload,
         dataset_slug=dataset_slug,
         dataset=dataset,

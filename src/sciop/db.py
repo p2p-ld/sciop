@@ -13,7 +13,7 @@ from sciop.config import config
 if TYPE_CHECKING:
     from faker import Faker
 
-    from sciop.models import Account, Dataset, Upload
+    from sciop.models import Account, Dataset, Upload, UploadCreate
 
 engine = create_engine(str(config.sqlite_path))
 maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
@@ -213,7 +213,7 @@ def _generate_upload(
     from torf import Torrent
 
     from sciop import crud
-    from sciop.models import UploadCreate, FileInTorrentCreate, TorrentFileCreate
+    from sciop.models import FileInTorrentCreate, TorrentFileCreate, UploadCreate
 
     torrent_file = config.torrent_dir / f"__{name}__"
     with open(torrent_file, "wb") as tfile:

@@ -9,8 +9,6 @@ from sciop.models import (
     AuditLog,
     Dataset,
     DatasetCreate,
-    Upload,
-    UploadCreate,
     DatasetTag,
     DatasetURL,
     FileInTorrent,
@@ -18,6 +16,8 @@ from sciop.models import (
     TorrentFile,
     TorrentFileCreate,
     TrackerInTorrent,
+    Upload,
+    UploadCreate,
 )
 
 

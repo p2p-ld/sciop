@@ -72,7 +72,7 @@
 {% endmacro %}
 
 {% macro upload_collapsible(upload, review=False, config = None) %}
-<details class="collapsible upload-collapsible" id="upload-collapsible-{{ instance.id }}">
+<details class="collapsible upload-collapsible" id="upload-collapsible-{{ upload.id }}">
     <summary class="collapsible-summary"
              hx-get="/uploads/{{ upload.short_hash }}/partial"
              hx-trigger="click once"

@@ -1,43 +1,15 @@
 import re
-from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
-from urllib.parse import urljoin
 
 from pydantic import field_validator
 from sqlmodel import Field, Relationship, SQLModel
 
-from sciop.config import config
 from sciop.models.account import Account
 from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
+from sciop.types import InputType, Priority, SourceType, Status
 
 if TYPE_CHECKING:
-    from sciop.models import AuditLog, TorrentFile
-
-
-class Priority(StrEnum):
-    unknown = "unknown"
-    low = "low"
-    medium = "medium"
-    high = "high"
-
-
-class SourceType(StrEnum):
-    unknown = "unknown"
-    web = "web"
-    http = "http"
-    ftp = "ftp"
-    s3 = "s3"
-
-
-class Status(StrEnum):
-    todo = "todo"
-    claimed = "claimed"
-    completed = "completed"
-
-
-class InputType(StrEnum):
-    text = "text"
-    textarea = "textarea"
+    from sciop.models import AuditLog, Upload
 
 
 class DatasetBase(SQLModel):
@@ -172,10 +144,10 @@ def _tokenize(v: str) -> str:
 
 
 class DatasetRead(DatasetBase, TableReadMixin):
-    uploads: list["Upload"]
-    external_uploads: list["ExternalSource"]
-    urls: list["DatasetURL"]
-    tags: list["DatasetTag"]
+    uploads: list["Upload"] = Field(default_factory=list)
+    external_sources: list["ExternalSource"] = Field(default_factory=list)
+    urls: list["DatasetURL"] = Field(default_factory=list)
+    tags: list["DatasetTag"] = Field(default_factory=list)
     status: Status
     enabled: bool
 
@@ -192,84 +164,6 @@ class DatasetTag(SQLModel, table=True):
     dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
     dataset: Optional[Dataset] = Relationship(back_populates="tags")
     tag: str
-
-
-class UploadBase(SQLModel):
-    """
-    A copy of a dataset
-    """
-
-    method: Optional[str] = Field(
-        None,
-        description="""Description of how the dataset was acquired""",
-        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
-    )
-    description: Optional[str] = Field(
-        None,
-        description="Any additional information about this dataset upload",
-        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
-    )
-
-
-class Upload(UploadBase, TableMixin, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-
-    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
-    dataset: Dataset = Relationship(back_populates="uploads")
-    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
-    account: Account = Relationship(back_populates="submissions")
-    torrent: Optional["TorrentFile"] = Relationship(
-        back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
-    )
-    enabled: bool = False
-    audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
-
-    @property
-    def human_size(self) -> str:
-        """Human-sized string representation of the torrent size"""
-        return self.torrent.human_size
-
-    @property
-    def human_torrent_size(self) -> str:
-        """Human-sized string representation of the size of the torrent itself"""
-        return self.torrent.human_torrent_size
-
-    @property
-    def download_path(self) -> str:
-        """Location where the torrent can be downloaded relative to site root"""
-        return self.torrent.download_path
-
-    @property
-    def absolute_download_path(self) -> str:
-        """Download path including the site root"""
-        return urljoin(config.base_url, self.download_path)
-
-    @property
-    def file_name(self) -> str:
-        return self.torrent.file_name
-
-    @property
-    def short_hash(self) -> str:
-        return self.torrent.short_hash
-
-    @property
-    def rss_description(self) -> str:
-        """String to be used in the RSS description for this upload"""
-        return f"Description: {self.description}\n\nMethod: {self.method}"
-
-
-class UploadRead(UploadBase, TableReadMixin):
-    """Version of datasaet upload returned when reading"""
-
-    torrent: Optional["TorrentFile"] = None
-
-
-class UploadCreate(UploadBase):
-    """Dataset upload for creation, excludes the enabled param"""
-
-    torrent_short_hash: str = Field(
-        max_length=8, min_length=8, description="Short hash of the torrent file"
-    )
 
 
 class ExternalSourceBase(SQLModel):
