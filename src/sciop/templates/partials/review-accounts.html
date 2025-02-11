@@ -1,0 +1,10 @@
+{% from 'macros/account.html' import account_collapsible %}
+<div id="account-review-panel" class="review-panel">
+{% if items | length == 0 %}
+    <span>No accounts somehow!?!?! how are you even seeing this?</span>
+{% else %}
+    {% with review=True %}
+      {% include "partials/accounts.html" %}
+    {% endwith %}
+{% endif %}
+</div>

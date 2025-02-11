@@ -1,4 +1,12 @@
-from sciop.models.account import Account, AccountCreate, Scope, Scopes, Token, TokenPayload
+from sciop.models.account import (
+    Account,
+    AccountCreate,
+    AccountRead,
+    Scope,
+    Scopes,
+    Token,
+    TokenPayload,
+)
 from sciop.models.api import SuccessResponse
 from sciop.models.dataset import (
     Dataset,
@@ -10,6 +18,7 @@ from sciop.models.dataset import (
     DatasetURL,
     ExternalInstance,
 )
+from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
 from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.torrent import (
     FileInTorrent,
@@ -23,6 +32,9 @@ from sciop.models.torrent import (
 __all__ = [
     "Account",
     "AccountCreate",
+    "AccountRead",
+    "AuditLog",
+    "AuditLogRead",
     "Dataset",
     "DatasetCreate",
     "DatasetInstance",
@@ -33,6 +45,7 @@ __all__ = [
     "ExternalInstance",
     "FileInTorrent",
     "FileInTorrentCreate",
+    "ModerationAction",
     "Scope",
     "Scopes",
     "SuccessResponse",

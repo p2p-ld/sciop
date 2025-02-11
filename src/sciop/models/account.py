@@ -1,19 +1,46 @@
+from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
+from sqlalchemy.orm import relationship
 from sqlmodel import Field, Relationship, SQLModel
 
-from sciop.models.mixin import TableMixin
+from sciop.models.mixin import SearchableMixin, TableMixin
 
 if TYPE_CHECKING:
-    from sciop.models import Dataset, DatasetInstance, ExternalInstance, TorrentFile
+    from sciop.models import (
+        AuditLog,
+        Dataset,
+        DatasetInstance,
+        ExternalInstance,
+        Scope,
+        TorrentFile,
+    )
+
+
+class Scopes(StrEnum):
+    submit = "submit"
+    upload = "upload"
+    review = "review"
+    admin = "admin"
 
 
 class AccountBase(SQLModel):
     username: str
 
+    def has_scope(self, *args: str | Scopes) -> bool:
+        """Check if an account has a given scope."""
+        has_scopes = [scope.name.value for scope in self.scopes]
+        return any([scope in has_scopes for scope in args])
 
-class Account(AccountBase, TableMixin, table=True):
+    def get_scope(self, scope: str) -> Optional["Scope"]:
+        """Get the scope object from its name, returning None if not present"""
+        scope = [a_scope for a_scope in self.scopes if a_scope.name == scope]
+        return None if not scope else scope[0]
+
+
+class Account(AccountBase, TableMixin, SearchableMixin, table=True):
+    __searchable__ = ["username"]
     hashed_password: str
     scopes: list["Scope"] = Relationship(
         back_populates="account", sa_relationship_kwargs={"lazy": "selectin"}
@@ -22,20 +49,29 @@ class Account(AccountBase, TableMixin, table=True):
     submissions: list["DatasetInstance"] = Relationship(back_populates="account")
     external_submissions: list["ExternalInstance"] = Relationship(back_populates="account")
     torrents: list["TorrentFile"] = Relationship(back_populates="account")
-
-    def has_scope(self, scope: str) -> bool:
-        return scope in [scope.name.value for scope in self.scopes]
+    moderation_actions: list["AuditLog"] = Relationship(
+        back_populates="actor",
+        sa_relationship=relationship(
+            "AuditLog",
+            primaryjoin="Account.id == AuditLog.actor_id",
+        ),
+    )
+    audit_log_target: list["AuditLog"] = Relationship(
+        back_populates="target_account",
+        sa_relationship=relationship(
+            "AuditLog",
+            primaryjoin="Account.id == AuditLog.target_account_id",
+        ),
+    )
 
 
 class AccountCreate(AccountBase):
     password: str = Field(min_length=8, max_length=64)
 
 
-class Scopes(StrEnum):
-    submit = "submit"
-    upload = "upload"
-    review = "review"
-    admin = "admin"
+class AccountRead(AccountBase):
+    scopes: list["Scope"]
+    created_at: datetime
 
 
 class Scope(TableMixin, table=True):

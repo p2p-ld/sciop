@@ -3,7 +3,8 @@
   {% with swap_target="#dataset-page" %}
     {% include 'includes/pagination-buttons.html' %}
   {% endwith %}
-  <div id="datasets-table-inner" class="collapsible-table datasets-table">
+  <div id="datasets-table-inner"
+       class="collapsible-table datasets-table {% if review %}review{% endif %}">
     <div id="datasets-table-head" class="table-head">
       <span class="marker"></span>
       <span class="col-slug">
@@ -15,10 +16,11 @@
       <span class="col-created">
           created
       </span>
+      {% if review %}<span></span><span></span>{% endif %}
     </div>
     <div class="dataset-items">
       {% for dataset in items %}
-      {{ dataset_collapsible(dataset, review=False, config=config) }}
+      {{ dataset_collapsible(dataset, review=review, config=config) }}
       {% endfor %}
     </div>
   </div>

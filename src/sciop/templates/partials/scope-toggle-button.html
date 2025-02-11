@@ -1,0 +1,9 @@
+<button
+    class="toggle-button {% if request.method == 'PUT' %}checked{% endif %}"
+    id="{{ username }}-scope-{{scope_name}}"
+    hx-{% if request.method == 'PUT' %}delete{% else %}put{% endif %}="{{ request.url.path }}"
+    hx-target="this"
+    hx-swap="outerHTML"
+>
+    {{extra.scope_name}}
+</button>

@@ -1,8 +1,8 @@
 {% from "macros/model-table.html" import model_table %}
 {% macro dataset_row(dataset, current_account, config) %}
 <div class="dataset" id="dataset-{{ dataset.slug }}">
-    <div class="dataset-topmatter">
-        <div class="dataset-header">
+    <div class="dataset-topmatter topmatter">
+        <div class="dataset-header header">
             <h2 class="dataset-title">{{ dataset.title }} </h2>
             <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
             <p class="dataset-agency">{{ dataset.agency }}</p>
@@ -20,7 +20,7 @@
             </div>
             {% endif %}
         </div>
-        <div class="dataset-infobox">
+        <div class="dataset-infobox infobox">
             <p class="dataset-priority priority-{{ dataset.priority.value }}">{{dataset.priority.value}}</p>
             <table class="infobox-table">
                 {% if dataset.priority_comment %}
@@ -80,15 +80,13 @@
     {% if not dataset.enabled %}
         {% if current_account and current_account.has_scope("review") %}
         <button class="button success-button" id="approve-button"
-                hx-post="{{ config.api_prefix }}/review/datasets/{{ dataset.slug }}/approve">Approve this dataset</button>
+                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve this dataset</button>
         {% else %}
         <span>Dataset must be reviewed before uploads can be added</span>
         {% endif %}
     {% elif current_account and  current_account.has_scope("upload") %}
         <button class="button" id="upload-button" hx-get="/datasets/{{dataset.slug}}/upload/start" hx-swap="outerHTML">Upload
         </button>
-    {% else %}
-        <button class="button" id="request-upload-button">Request Upload Permissions</button>
     {% endif %}
     </div>
 </div>
@@ -101,13 +99,15 @@
              hx-trigger="click once"
              hx-target="#dataset-{{ dataset.slug }}">
         <span class="collapsible-marker"></span>
-        <span class="dataset-slug"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
+        <span class="dataset-slug item-link"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
         <span class="dataset-title">{{ dataset.title }}</span>
-        <span class="dataset-timestamp">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}</span>
-        <span class="spacer"></span>
+        <span class="dataset-timestamp timestamp">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}</span>
         {% if review %}
         <button class="button approve-button success-button"
-                hx-post="{{ config.api_prefix }}/review/datasets/{{ dataset.slug }}/approve">Approve
+                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve
+        </button>
+        <button class="button deny-button success-button caution"
+                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/deny">Deny
         </button>
         {% endif %}
     </summary>

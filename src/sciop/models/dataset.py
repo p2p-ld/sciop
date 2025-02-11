@@ -11,7 +11,7 @@ from sciop.models.account import Account
 from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
 
 if TYPE_CHECKING:
-    from sciop.models import TorrentFile
+    from sciop.models import AuditLog, TorrentFile
 
 
 class Priority(StrEnum):
@@ -114,6 +114,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     account: Optional["Account"] = Relationship(back_populates="datasets")
     status: Status = "todo"
     enabled: bool = False
+    audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
 
 
 class DatasetCreate(DatasetBase):
@@ -217,13 +218,21 @@ class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
     dataset: Dataset = Relationship(back_populates="instances")
     account_id: Optional[int] = Field(default=None, foreign_key="account.id")
     account: Account = Relationship(back_populates="submissions")
-    torrent: Optional["TorrentFile"] = Relationship(back_populates="instance")
+    torrent: Optional["TorrentFile"] = Relationship(
+        back_populates="instance", sa_relationship_kwargs={"lazy": "selectin"}
+    )
     enabled: bool = False
+    audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
 
     @property
     def human_size(self) -> str:
         """Human-sized string representation of the torrent size"""
         return self.torrent.human_size
+
+    @property
+    def human_torrent_size(self) -> str:
+        """Human-sized string representation of the size of the torrent itself"""
+        return self.torrent.human_torrent_size
 
     @property
     def download_path(self) -> str:
@@ -240,6 +249,10 @@ class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
         return self.torrent.file_name
 
     @property
+    def short_hash(self) -> str:
+        return self.torrent.short_hash
+
+    @property
     def rss_description(self) -> str:
         """String to be used in the RSS description for this instance"""
         return f"Description: {self.description}\n\nMethod: {self.method}"
@@ -247,6 +260,8 @@ class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
 
 class DatasetInstanceRead(DatasetInstanceBase, TableReadMixin):
     """Version of datasaet instance returned when reading"""
+
+    torrent: Optional["TorrentFile"] = None
 
 
 class DatasetInstanceCreate(DatasetInstanceBase):

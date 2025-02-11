@@ -1,0 +1,37 @@
+{% macro log_entry(entry, config=None) %}
+<tr class="table-row audit-log-table-row">
+    <td class="actor account-username item-link">
+        <a href="/accounts/{{ entry.actor.username }}">
+            {{ entry.actor.username }}
+        </a>
+    </td>
+    <td class="action">
+      {{entry.action.value}}
+    </td>
+    <td class="value">
+      {{entry.value}}
+    </td>
+    {% if entry.target_account %}
+      <td class="target account-username item-link">
+        <a href="/accounts/{{ entry.target_account.username }}">
+          {{ entry.target_account.username }}
+        </a>
+      </td>
+    {% elif entry.target_dataset %}
+      <td class="target dataset-slug item-link">
+        <a href="/datasets/{{ entry.target_dataset.slug }}">
+          {{ entry.target_dataset.slug }}
+        </a>
+      </td>
+    {% elif entry.target_upload %}
+      <td class="target short-hash item-link">
+        <a href="/uploads/{{ entry.target_upload.short_hash }}">
+          {{ entry.target_upload.short_hash }}
+        </a>
+      </td>
+    {% endif %}
+    <td class="timestamp">
+      {{ entry.created_at.strftime("%y-%m-%d %H:%M") }}
+    </td>
+</tr>
+{% endmacro %}

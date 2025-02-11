@@ -1,12 +1,15 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Form, HTTPException, Response
+from fastapi import APIRouter, Form, HTTPException
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import select
+from starlette.requests import Request
+from starlette.responses import Response
 
 from sciop import crud
 from sciop.api.deps import CurrentAccount, RequireEnabledDataset, RequireUploader, SessionDep
+from sciop.middleware import limiter
 from sciop.models import (
     Dataset,
     DatasetCreate,
@@ -19,13 +22,18 @@ datasets_router = APIRouter(prefix="/datasets")
 
 
 @datasets_router.get("/")
-def datasets(session: SessionDep) -> Page[DatasetRead]:
+async def datasets(session: SessionDep) -> Page[DatasetRead]:
     return paginate(session, select(Dataset).order_by(Dataset.created_at))
 
 
 @datasets_router.post("/")
-def datasets_create(
-    dataset: DatasetCreate, session: SessionDep, current_account: CurrentAccount
+@limiter.limit("10/hour")
+async def datasets_create(
+    request: Request,
+    dataset: DatasetCreate,
+    session: SessionDep,
+    current_account: CurrentAccount,
+    response: Response,
 ) -> DatasetRead:
     existing_dataset = crud.get_dataset(session=session, dataset_slug=dataset.slug)
     if existing_dataset:
@@ -40,7 +48,9 @@ def datasets_create(
 
 
 @datasets_router.post("/form")
-def datasets_create_form(
+@limiter.limit("10/hour")
+async def datasets_create_form(
+    request: Request,
     dataset: Annotated[DatasetCreate, Form()],
     session: SessionDep,
     current_account: CurrentAccount,
@@ -49,15 +59,19 @@ def datasets_create_form(
     """
     Create a dataset with form encoded data
     """
-    created_dataset = datasets_create(
-        dataset=dataset, session=session, current_account=current_account
+    created_dataset = await datasets_create(
+        request=request,
+        dataset=dataset,
+        session=session,
+        current_account=current_account,
+        response=response,
     )
     response.headers["HX-Location"] = f"/datasets/{created_dataset.slug}"
     return created_dataset
 
 
 @datasets_router.post("/{dataset_slug}/instances")
-def datasets_create_instance(
+async def datasets_create_instance(
     instance: DatasetInstanceCreate,
     dataset_slug: str,
     dataset: RequireEnabledDataset,
@@ -81,7 +95,7 @@ def datasets_create_instance(
 
 
 @datasets_router.post("/{dataset_slug}/instances/form")
-def datasets_create_instance_form(
+async def datasets_create_instance_form(
     instance: Annotated[DatasetInstanceCreate, Form()],
     dataset_slug: str,
     dataset: RequireEnabledDataset,

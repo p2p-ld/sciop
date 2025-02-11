@@ -23,6 +23,30 @@ button {
     background-color: var(--color-primary);
     color: var(--color-primary-contrast);
   }
+
+  &.caution {
+    border-color: var(--color-caution);
+    color: var(--color-caution);
+    box-shadow: 2px 2px 0 var(--color-caution-darker-1);
+
+    &:hover {
+      background-color: var(--color-caution);
+      color: var(--color-caution-contrast);
+    }
+  }
+
+  &.toggle-button {
+    &:not(.checked) {
+      border-color: var(--color-border-deemphasized);
+      color: var(--color-deemphasized);
+      box-shadow: unset;
+
+      &:hover {
+        background-color: var(--color-background);
+        border-color: var(--color-primary);
+      }
+    }
+  }
 }
 
 .search-container {
@@ -92,6 +116,10 @@ button {
 .collapsible {
   padding: 0.25em 0.5em;
   border: 1px solid var(--color-border-deemphasized);
+
+  summary {
+    align-items: center;
+  }
 }
 
 .collapsible:not([open]) {

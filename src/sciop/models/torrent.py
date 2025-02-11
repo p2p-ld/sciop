@@ -20,6 +20,10 @@ class FileInTorrent(TableMixin, table=True):
     torrent_id: Optional[int] = Field(default=None, foreign_key="torrentfile.id")
     torrent: Optional["TorrentFile"] = Relationship(back_populates="files")
 
+    @property
+    def human_size(self) -> str:
+        return humanize.naturalsize(self.size)
+
 
 class FileInTorrentCreate(SQLModel):
     path: str
@@ -73,6 +77,15 @@ class TorrentFileBase(SQLModel):
     def human_size(self) -> str:
         """Human-sized string representation of the torrent size"""
         return humanize.naturalsize(self.total_size)
+
+    @property
+    def human_torrent_size(self) -> str:
+        """Human-sized string representation of the torrent file size"""
+        return humanize.naturalsize(self.torrent_size)
+
+    @property
+    def human_piece_size(self) -> str:
+        return humanize.naturalsize(self.piece_size)
 
 
 class TorrentFile(TorrentFileBase, TableMixin, table=True):

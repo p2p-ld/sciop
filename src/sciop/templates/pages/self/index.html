@@ -1,0 +1,17 @@
+{% extends "layouts/default.html" %}
+{% block content %}
+{% include "includes/self-tabs.html" %}
+<h2>Hello {{ current_account.username }}</h2>
+
+Scopes:
+{% for scope in current_account.scopes %}
+<span class="token">{{ scope.name.value }}</span>
+{% endfor %}
+
+<h2>Datasets:</h2>
+
+<h2>Uploads:</h2>
+
+<button class="button" id="logout-button" hx-post="{{ config.api_prefix }}/logout">Logout</button>
+
+{% endblock %}

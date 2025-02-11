@@ -5,11 +5,14 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine, MutableMapping, Opti
 from fastapi import HTTPException
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from starlette.concurrency import iterate_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from sciop.api.deps import get_current_account
+from sciop.db import get_session
 from sciop.exceptions import UploadSizeExceeded
 from sciop.logging import init_logger
 
@@ -72,6 +75,22 @@ limiter = Limiter(
 )
 
 
+def exempt_scoped(request: Request) -> bool:
+    """
+    Exempt any account with any scope from rate limits
+
+    FIXME: Needs to also get accounts from header tokens from API requests
+    """
+    token = request.cookies.get("access_token", None)
+    if token is None:
+        return False
+    session = next(get_session())
+    account = get_current_account(session, token)
+    if not account:
+        return False
+    return len(account.scopes) > 0
+
+
 class LoggingMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: ASGIApp, logger: logging.Logger):
         self.logger = logger
@@ -84,6 +103,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             if response.status_code < 400:
                 level = logging.INFO
             elif response.status_code < 500:
+                msg = await self._decode_body(response)
                 level = logging.WARNING
             else:
                 msg = await self._decode_body(response)
@@ -118,14 +138,20 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             self.logger.log(level, "[%s] %s: %s", response_code, request.method, request.url.path)
 
     async def _decode_body(self, response: Response) -> str:
+
         if hasattr(response, "body_iterator"):
+            chunks = []
             with BytesIO() as raw_buffer:
                 async for chunk in response.body_iterator:  # type: ignore[attr-defined]
+                    chunks.append(chunk)
                     if not isinstance(chunk, bytes):
                         chunk = chunk.encode(response.charset)
                     raw_buffer.write(chunk)
                 body = raw_buffer.getvalue()
-        else:
+            response.body_iterator = iterate_in_threadpool(iter(chunks))
+        elif hasattr(response, "body"):
             body = response.body.decode("utf-8")
+        else:
+            body = b""
 
         return body.decode("utf-8", errors="ignore")

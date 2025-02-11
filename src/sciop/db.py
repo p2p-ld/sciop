@@ -184,9 +184,20 @@ def create_seed_data() -> None:
 
         approved_upload = crud.get_instance_from_short_hash(session=session, short_hash="abcdefgh")
         if not approved_upload:
-            approved_upload = _generate_instance(uploader, approved_dataset, session)
+            approved_upload = _generate_instance("abcdefgh", uploader, approved_dataset, session)
         approved_upload.enabled = True
         session.add(approved_upload)
+        session.commit()
+
+        unapproved_upload = crud.get_instance_from_short_hash(
+            session=session, short_hash="unapprov"
+        )
+        if not unapproved_upload:
+            unapproved_upload = _generate_instance(
+                "unapproved", uploader, unapproved_dataset, session
+            )
+        unapproved_upload.enabled = False
+        session.add(unapproved_upload)
         session.commit()
 
         # generate a bunch of approved datasets to test pagination
@@ -199,33 +210,37 @@ def create_seed_data() -> None:
 
 
 def _generate_instance(
-    uploader: "Account", dataset: "Dataset", session: Session
+    name: str, uploader: "Account", dataset: "Dataset", session: Session
 ) -> "DatasetInstance":
     from torf import Torrent
 
     from sciop import crud
     from sciop.models import DatasetInstanceCreate, FileInTorrentCreate, TorrentFileCreate
 
-    torrent_file = config.torrent_dir / "__example__"
+    torrent_file = config.torrent_dir / f"__{name}__"
     with open(torrent_file, "wb") as tfile:
         tfile.write(b"0" * 16384 * 4)
 
+    file_size = torrent_file.stat().st_size
+
     torrent = Torrent(
         path=torrent_file,
-        name="Example Torrent",
+        name=f"Example Torrent {name}",
         trackers=[["http://example.com/announce"]],
         comment="My comment",
         piece_size=16384,
     )
     torrent.generate()
+    short_hash = name[0:8] if len(name) >= 8 else f"{name:x>8}"
+
     created_torrent = TorrentFileCreate(
-        file_name="__example__.torrent",
+        file_name=f"__{name}__.torrent",
         hash="abcdefghijklmnop",
-        short_hash="abcdefgh",
+        short_hash=short_hash,
         total_size=16384 * 4,
         piece_size=16384,
         torrent_size=64,
-        files=[FileInTorrentCreate(path=str(torrent_file), size=2048)],
+        files=[FileInTorrentCreate(path=str(torrent_file.name), size=file_size)],
         trackers=["http://example.com/announce"],
     )
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
@@ -237,7 +252,7 @@ def _generate_instance(
     instance = DatasetInstanceCreate(
         method="I downloaded it",
         description="Its all here bub",
-        torrent_short_hash="abcdefgh",
+        torrent_short_hash=short_hash,
     )
 
     created_instance = crud.create_instance(
