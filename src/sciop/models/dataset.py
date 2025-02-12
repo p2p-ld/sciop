@@ -6,7 +6,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.account import Account
 from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
-from sciop.types import InputType, Priority, SourceType, Status
+from sciop.types import IDField, InputType, Priority, SourceType, Status
 
 if TYPE_CHECKING:
     from sciop.models import AuditLog, Upload
@@ -78,11 +78,13 @@ class DatasetBase(SQLModel):
 
 class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     __searchable__ = ["title", "slug", "publisher", "homepage", "description"]
+
+    dataset_id: IDField = Field(None, primary_key=True)
     uploads: list["Upload"] = Relationship(back_populates="dataset")
     external_sources: list["ExternalSource"] = Relationship(back_populates="dataset")
     urls: list["DatasetURL"] = Relationship(back_populates="dataset")
     tags: list["DatasetTag"] = Relationship(back_populates="dataset")
-    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
+    account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: Optional["Account"] = Relationship(back_populates="datasets")
     status: Status = "todo"
     enabled: bool = False
@@ -128,11 +130,7 @@ class DatasetCreate(DatasetBase):
     @field_validator("tags", mode="after")
     def tokenize_tags(cls, value: list[str]) -> list[str]:
         """Transform tags to lowercase alphanumeric characters, replacing anything else with -"""
-        print("tokenize")
-        print(value)
         res = [_tokenize(v) for v in value]
-        print("after")
-        print(res)
         return res
 
 
@@ -153,15 +151,19 @@ class DatasetRead(DatasetBase, TableReadMixin):
 
 
 class DatasetURL(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
+    __tablename__ = "dataset_url"
+
+    dataset_url_id: IDField = Field(default=None, primary_key=True)
+    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
     dataset: Optional[Dataset] = Relationship(back_populates="urls")
     url: str
 
 
 class DatasetTag(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
+    __tablename__ = "dataset_tag"
+
+    dataset_tag_id: IDField = Field(default=None, primary_key=True)
+    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
     dataset: Optional[Dataset] = Relationship(back_populates="tags")
     tag: str
 
@@ -180,7 +182,10 @@ class ExternalSourceBase(SQLModel):
 
 
 class ExternalSource(ExternalSourceBase, TableMixin, table=True):
-    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
+    __tablename__ = "external_source"
+
+    external_source_id: IDField = Field(None, primary_key=True)
+    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
     dataset: Dataset = Relationship(back_populates="external_sources")
-    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
+    account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: Optional[Account] = Relationship(back_populates="external_submissions")

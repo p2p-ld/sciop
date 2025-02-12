@@ -7,6 +7,7 @@ from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.mixin import TableMixin
+from sciop.types import IDField
 
 if TYPE_CHECKING:
     from sciop.models import Account, AccountRead, Dataset, Upload
@@ -35,8 +36,10 @@ class ModerationAction(StrEnum):
     """Suspend an account"""
 
 
-_actor_id = Column(Integer, ForeignKey("account.id"), nullable=True)
-_target_account_id = Column(Integer, ForeignKey("account.id", ondelete="SET NULL"), nullable=True)
+_actor_id = Column(Integer, ForeignKey("account.account_id"), nullable=True)
+_target_account_id = Column(
+    Integer, ForeignKey("account.account_id", ondelete="SET NULL"), nullable=True
+)
 
 
 class AuditLog(TableMixin, table=True):
@@ -49,6 +52,7 @@ class AuditLog(TableMixin, table=True):
 
     __tablename__ = "audit_log"
 
+    audit_log_id: IDField = Field(None, primary_key=True)
     actor_id: Optional[int] = Field(sa_column=_actor_id)
     actor: "Account" = Relationship(
         back_populates="moderation_actions",
@@ -60,13 +64,13 @@ class AuditLog(TableMixin, table=True):
     action: ModerationAction = Field(description="The action taken")
 
     target_dataset_id: Optional[int] = Field(
-        default=None, foreign_key="dataset.id", ondelete="SET NULL"
+        default=None, foreign_key="dataset.dataset_id", ondelete="SET NULL"
     )
     target_dataset: Optional["Dataset"] = Relationship(
         back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
     )
     target_upload_id: Optional[int] = Field(
-        default=None, foreign_key="upload.id", ondelete="SET NULL"
+        default=None, foreign_key="upload.upload_id", ondelete="SET NULL"
     )
     target_upload: Optional["Upload"] = Relationship(
         back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
@@ -100,3 +104,7 @@ class AuditLogRead(SQLModel):
 
 class Report(TableMixin, table=True):
     """Reports of items and accounts"""
+
+    __tablename__ = "report"
+
+    report_id: IDField = Field(None, primary_key=True)

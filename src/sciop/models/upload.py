@@ -6,7 +6,7 @@ from sqlmodel import Field, Relationship, SQLModel
 from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, TorrentFile
 from sciop.models.mixin import TableMixin, TableReadMixin
-from sciop.types import InputType
+from sciop.types import IDField, InputType
 
 
 class UploadBase(SQLModel):
@@ -27,11 +27,10 @@ class UploadBase(SQLModel):
 
 
 class Upload(UploadBase, TableMixin, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-
-    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
+    upload_id: IDField = Field(default=None, primary_key=True)
+    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
     dataset: Dataset = Relationship(back_populates="uploads")
-    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
+    account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: Account = Relationship(back_populates="submissions")
     torrent: Optional["TorrentFile"] = Relationship(
         back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
