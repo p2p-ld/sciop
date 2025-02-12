@@ -149,7 +149,7 @@ def create_seed_data() -> None:
                 dataset_create=DatasetCreate(
                     slug="unapproved",
                     title="Unapproved Dataset",
-                    agency="An Agency",
+                    publisher="An Agency",
                     homepage="example.com",
                     description="An unapproved dataset",
                     priority="low",
@@ -168,7 +168,7 @@ def create_seed_data() -> None:
                 dataset_create=DatasetCreate(
                     slug="approved",
                     title="Example Approved Dataset with Upload",
-                    agency="Another Agency",
+                    publisher="Another Agency",
                     homepage="example.com",
                     description="An unapproved dataset",
                     priority="low",
@@ -268,7 +268,7 @@ def _generate_dataset(fake: "Faker") -> "Dataset":
     return Dataset(
         slug=slug,
         title=title,
-        agency=fake.company(),
+        publisher=fake.company(),
         homepage=fake.url(),
         description=fake.text(1000),
         priority="low",

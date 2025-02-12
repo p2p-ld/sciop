@@ -31,10 +31,10 @@ class DatasetBase(SQLModel):
         unique=True,
         index=True,
     )
-    agency: str = Field(
-        title="Agency",
+    publisher: str = Field(
+        title="Publisher",
         description="""
-    The Agency or Organization that is associated with the dataset.
+    The agency, organization, author, group, publisher, etc. that is associated with the dataset.
     Please use a canonical acronym/abbreviation form of the name when possible,
     using the autocompleted values if any correct matches are listed.
     """,
@@ -77,7 +77,7 @@ class DatasetBase(SQLModel):
 
 
 class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
-    __searchable__ = ["title", "slug", "agency", "homepage", "description"]
+    __searchable__ = ["title", "slug", "publisher", "homepage", "description"]
     uploads: list["Upload"] = Relationship(back_populates="dataset")
     external_sources: list["ExternalSource"] = Relationship(back_populates="dataset")
     urls: list["DatasetURL"] = Relationship(back_populates="dataset")
