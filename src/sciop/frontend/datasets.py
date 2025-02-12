@@ -11,7 +11,7 @@ from sciop.api.deps import CurrentAccount, RequireDataset, RequireUploader, Sess
 from sciop.api.routes.upload import upload_torrent
 from sciop.config import config
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, DatasetInstanceCreate, DatasetRead
+from sciop.models import Dataset, DatasetRead, UploadCreate
 
 datasets_router = APIRouter(prefix="/datasets")
 
@@ -62,18 +62,18 @@ async def dataset_partial(request: Request, dataset: RequireDataset):
     )
 
 
-@datasets_router.get("/{dataset_slug}/instances", response_class=HTMLResponse)
-async def dataset_instances(
+@datasets_router.get("/{dataset_slug}/uploads", response_class=HTMLResponse)
+async def dataset_uploads(
     dataset_slug: str,
     account: CurrentAccount,
     dataset: RequireDataset,
     session: SessionDep,
     request: Request,
 ):
-    instances = crud.get_instances(dataset=dataset, session=session)
+    uploads = crud.get_uploads(dataset=dataset, session=session)
     return templates.TemplateResponse(
-        "partials/dataset-instances.html",
-        {"request": request, "config": config, "instances": instances, "dataset": dataset},
+        "partials/dataset-uploads.html",
+        {"request": request, "config": config, "uploads": uploads, "dataset": dataset},
     )
 
 
@@ -131,6 +131,6 @@ async def dataset_upload_torrent(
             "current_account": account,
             "dataset": dataset,
             "torrent": created_torrent,
-            "model": DatasetInstanceCreate,
+            "model": UploadCreate,
         },
     )

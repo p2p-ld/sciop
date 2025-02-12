@@ -9,8 +9,6 @@ from sciop.models import (
     AuditLog,
     Dataset,
     DatasetCreate,
-    DatasetInstance,
-    DatasetInstanceCreate,
     DatasetTag,
     DatasetURL,
     FileInTorrent,
@@ -18,6 +16,8 @@ from sciop.models import (
     TorrentFile,
     TorrentFileCreate,
     TrackerInTorrent,
+    Upload,
+    UploadCreate,
 )
 
 
@@ -83,10 +83,10 @@ def get_review_datasets(*, session: Session) -> list[Dataset]:
     return datasets
 
 
-def get_review_instances(*, session: Session) -> list[DatasetInstance]:
-    statement = select(DatasetInstance).where(DatasetInstance.enabled == False)
-    instances = session.exec(statement).all()
-    return instances
+def get_review_uploads(*, session: Session) -> list[Upload]:
+    statement = select(Upload).where(Upload.enabled == False)
+    uploads = session.exec(statement).all()
+    return uploads
 
 
 def get_torrent_from_hash(*, hash: str, session: Session) -> Optional[TorrentFile]:
@@ -115,19 +115,19 @@ def create_torrent(
     return db_obj
 
 
-def create_instance(
-    *, session: Session, created_instance: DatasetInstanceCreate, account: Account, dataset: Dataset
-) -> DatasetInstance:
+def create_upload(
+    *, session: Session, created_upload: UploadCreate, account: Account, dataset: Dataset
+) -> Upload:
     torrent = get_torrent_from_short_hash(
-        session=session, short_hash=created_instance.torrent_short_hash
+        session=session, short_hash=created_upload.torrent_short_hash
     )
-    db_obj = DatasetInstance.model_validate(
-        created_instance,
+    db_obj = Upload.model_validate(
+        created_upload,
         update={
             "torrent": torrent,
             "account": account,
             "dataset": dataset,
-            "short_hash": created_instance.torrent_short_hash,
+            "short_hash": created_upload.torrent_short_hash,
         },
     )
     session.add(db_obj)
@@ -136,24 +136,22 @@ def create_instance(
     return db_obj
 
 
-def get_instances(*, dataset: Dataset, session: Session) -> list[DatasetInstance]:
-    statement = select(DatasetInstance).where(DatasetInstance.dataset == dataset)
-    instances = session.exec(statement).all()
-    return instances
+def get_uploads(*, dataset: Dataset, session: Session) -> list[Upload]:
+    statement = select(Upload).where(Upload.dataset == dataset)
+    uploads = session.exec(statement).all()
+    return uploads
 
 
-def get_instances_from_tag(*, session: Session, tag: str) -> list[DatasetInstance]:
-    statement = select(DatasetInstance).join(Dataset).join(DatasetTag).filter(DatasetTag.tag == tag)
-    instances = session.exec(statement).all()
-    return instances
+def get_uploads_from_tag(*, session: Session, tag: str) -> list[Upload]:
+    statement = select(Upload).join(Dataset).join(DatasetTag).filter(DatasetTag.tag == tag)
+    uploads = session.exec(statement).all()
+    return uploads
 
 
-def get_instance_from_short_hash(*, session: Session, short_hash: str) -> Optional[DatasetInstance]:
-    statement = (
-        select(DatasetInstance).join(TorrentFile).filter(TorrentFile.short_hash == short_hash)
-    )
-    instance = session.exec(statement).first()
-    return instance
+def get_upload_from_short_hash(*, session: Session, short_hash: str) -> Optional[Upload]:
+    statement = select(Upload).join(TorrentFile).filter(TorrentFile.short_hash == short_hash)
+    upload = session.exec(statement).first()
+    return upload
 
 
 def log_moderation_action(
@@ -161,14 +159,14 @@ def log_moderation_action(
     session: Session,
     actor: Account,
     action: ModerationAction,
-    target: Dataset | Account | DatasetInstance,
+    target: Dataset | Account | Upload,
     value: Optional[str] = None,
 ) -> AuditLog:
     audit_kwargs = {"actor": actor, "action": action, "value": value}
 
     if isinstance(target, Dataset):
         audit_kwargs["target_dataset"] = target
-    elif isinstance(target, DatasetInstance):
+    elif isinstance(target, Upload):
         audit_kwargs["target_upload"] = target
     elif isinstance(target, Account):
         audit_kwargs["target_account"] = target

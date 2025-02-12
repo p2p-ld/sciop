@@ -1,43 +1,15 @@
 import re
-from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
-from urllib.parse import urljoin
 
 from pydantic import field_validator
 from sqlmodel import Field, Relationship, SQLModel
 
-from sciop.config import config
 from sciop.models.account import Account
 from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
+from sciop.types import InputType, Priority, SourceType, Status
 
 if TYPE_CHECKING:
-    from sciop.models import AuditLog, TorrentFile
-
-
-class Priority(StrEnum):
-    unknown = "unknown"
-    low = "low"
-    medium = "medium"
-    high = "high"
-
-
-class SourceType(StrEnum):
-    unknown = "unknown"
-    web = "web"
-    http = "http"
-    ftp = "ftp"
-    s3 = "s3"
-
-
-class Status(StrEnum):
-    todo = "todo"
-    claimed = "claimed"
-    completed = "completed"
-
-
-class InputType(StrEnum):
-    text = "text"
-    textarea = "textarea"
+    from sciop.models import AuditLog, Upload
 
 
 class DatasetBase(SQLModel):
@@ -106,8 +78,8 @@ class DatasetBase(SQLModel):
 
 class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     __searchable__ = ["title", "slug", "agency", "homepage", "description"]
-    instances: list["DatasetInstance"] = Relationship(back_populates="dataset")
-    external_instances: list["ExternalInstance"] = Relationship(back_populates="dataset")
+    uploads: list["Upload"] = Relationship(back_populates="dataset")
+    external_sources: list["ExternalSource"] = Relationship(back_populates="dataset")
     urls: list["DatasetURL"] = Relationship(back_populates="dataset")
     tags: list["DatasetTag"] = Relationship(back_populates="dataset")
     account_id: Optional[int] = Field(default=None, foreign_key="account.id")
@@ -172,10 +144,10 @@ def _tokenize(v: str) -> str:
 
 
 class DatasetRead(DatasetBase, TableReadMixin):
-    instances: list["DatasetInstance"]
-    external_instances: list["ExternalInstance"]
-    urls: list["DatasetURL"]
-    tags: list["DatasetTag"]
+    uploads: list["Upload"] = Field(default_factory=list)
+    external_sources: list["ExternalSource"] = Field(default_factory=list)
+    urls: list["DatasetURL"] = Field(default_factory=list)
+    tags: list["DatasetTag"] = Field(default_factory=list)
     status: Status
     enabled: bool
 
@@ -194,85 +166,7 @@ class DatasetTag(SQLModel, table=True):
     tag: str
 
 
-class DatasetInstanceBase(SQLModel):
-    """
-    A copy of a dataset
-    """
-
-    method: Optional[str] = Field(
-        None,
-        description="""Description of how the dataset was acquired""",
-        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
-    )
-    description: Optional[str] = Field(
-        None,
-        description="Any additional information about this dataset instance",
-        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
-    )
-
-
-class DatasetInstance(DatasetInstanceBase, TableMixin, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-
-    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
-    dataset: Dataset = Relationship(back_populates="instances")
-    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
-    account: Account = Relationship(back_populates="submissions")
-    torrent: Optional["TorrentFile"] = Relationship(
-        back_populates="instance", sa_relationship_kwargs={"lazy": "selectin"}
-    )
-    enabled: bool = False
-    audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
-
-    @property
-    def human_size(self) -> str:
-        """Human-sized string representation of the torrent size"""
-        return self.torrent.human_size
-
-    @property
-    def human_torrent_size(self) -> str:
-        """Human-sized string representation of the size of the torrent itself"""
-        return self.torrent.human_torrent_size
-
-    @property
-    def download_path(self) -> str:
-        """Location where the torrent can be downloaded relative to site root"""
-        return self.torrent.download_path
-
-    @property
-    def absolute_download_path(self) -> str:
-        """Download path including the site root"""
-        return urljoin(config.base_url, self.download_path)
-
-    @property
-    def file_name(self) -> str:
-        return self.torrent.file_name
-
-    @property
-    def short_hash(self) -> str:
-        return self.torrent.short_hash
-
-    @property
-    def rss_description(self) -> str:
-        """String to be used in the RSS description for this instance"""
-        return f"Description: {self.description}\n\nMethod: {self.method}"
-
-
-class DatasetInstanceRead(DatasetInstanceBase, TableReadMixin):
-    """Version of datasaet instance returned when reading"""
-
-    torrent: Optional["TorrentFile"] = None
-
-
-class DatasetInstanceCreate(DatasetInstanceBase):
-    """Dataset instance for creation, excludes the enabled param"""
-
-    torrent_short_hash: str = Field(
-        max_length=8, min_length=8, description="Short hash of the torrent file"
-    )
-
-
-class ExternalInstanceBase(SQLModel):
+class ExternalSourceBase(SQLModel):
     """An external source for this dataset"""
 
     organization: str = Field(
@@ -285,8 +179,8 @@ class ExternalInstanceBase(SQLModel):
     )
 
 
-class ExternalInstance(ExternalInstanceBase, TableMixin, table=True):
+class ExternalSource(ExternalSourceBase, TableMixin, table=True):
     dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
-    dataset: Dataset = Relationship(back_populates="external_instances")
+    dataset: Dataset = Relationship(back_populates="external_sources")
     account_id: Optional[int] = Field(default=None, foreign_key="account.id")
     account: Optional[Account] = Relationship(back_populates="external_submissions")

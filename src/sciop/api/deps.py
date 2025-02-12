@@ -11,7 +11,7 @@ from sciop import crud
 from sciop.api.auth import ALGORITHM
 from sciop.config import config
 from sciop.db import get_session
-from sciop.models import Account, Dataset, DatasetInstance, Scopes, TokenPayload
+from sciop.models import Account, Dataset, Scopes, TokenPayload, Upload
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 
@@ -117,8 +117,8 @@ RequireDataset = Annotated[Dataset, Depends(require_dataset)]
 RequireEnabledDataset = Annotated[Dataset, Depends(require_enabled_dataset)]
 
 
-def require_upload(short_hash: str, session: SessionDep) -> DatasetInstance:
-    upload = crud.get_instance_from_short_hash(session=session, short_hash=short_hash)
+def require_upload(short_hash: str, session: SessionDep) -> Upload:
+    upload = crud.get_upload_from_short_hash(session=session, short_hash=short_hash)
     if not upload:
         raise HTTPException(
             status_code=404,
@@ -127,7 +127,7 @@ def require_upload(short_hash: str, session: SessionDep) -> DatasetInstance:
     return upload
 
 
-def require_enabled_upload(short_hash: str, session: SessionDep) -> DatasetInstance:
+def require_enabled_upload(short_hash: str, session: SessionDep) -> Upload:
     upload = require_upload(short_hash, session)
     if not upload.enabled:
         raise HTTPException(
@@ -137,8 +137,8 @@ def require_enabled_upload(short_hash: str, session: SessionDep) -> DatasetInsta
     return upload
 
 
-RequireUpload = Annotated[DatasetInstance, Depends(require_upload)]
-RequireEnabledUpload = Annotated[DatasetInstance, Depends(require_enabled_upload)]
+RequireUpload = Annotated[Upload, Depends(require_upload)]
+RequireEnabledUpload = Annotated[Upload, Depends(require_enabled_upload)]
 
 
 def require_account(username: str, session: SessionDep) -> Account:

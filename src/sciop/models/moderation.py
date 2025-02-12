@@ -9,7 +9,7 @@ from sqlmodel import Field, Relationship, SQLModel
 from sciop.models.mixin import TableMixin
 
 if TYPE_CHECKING:
-    from sciop.models import Account, AccountRead, Dataset, DatasetInstance
+    from sciop.models import Account, AccountRead, Dataset, Upload
 
 
 class ModerationAction(StrEnum):
@@ -66,9 +66,9 @@ class AuditLog(TableMixin, table=True):
         back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
     )
     target_upload_id: Optional[int] = Field(
-        default=None, foreign_key="datasetinstance.id", ondelete="SET NULL"
+        default=None, foreign_key="upload.id", ondelete="SET NULL"
     )
-    target_upload: Optional["DatasetInstance"] = Relationship(
+    target_upload: Optional["Upload"] = Relationship(
         back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
     )
     target_account_id: Optional[int] = Field(sa_column=_target_account_id)
@@ -92,7 +92,7 @@ class AuditLogRead(SQLModel):
     action: ModerationAction
     target_account: Optional["AccountRead"] = None
     target_dataset: Optional["Dataset"] = None
-    target_upload: Optional["DatasetInstance"] = None
+    target_upload: Optional["Upload"] = None
     value: Optional[str] = None
     created_at: datetime
     updated_at: datetime

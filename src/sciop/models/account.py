@@ -11,10 +11,10 @@ if TYPE_CHECKING:
     from sciop.models import (
         AuditLog,
         Dataset,
-        DatasetInstance,
-        ExternalInstance,
+        ExternalSource,
         Scope,
         TorrentFile,
+        Upload,
     )
 
 
@@ -46,8 +46,8 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
         back_populates="account", sa_relationship_kwargs={"lazy": "selectin"}
     )
     datasets: list["Dataset"] = Relationship(back_populates="account")
-    submissions: list["DatasetInstance"] = Relationship(back_populates="account")
-    external_submissions: list["ExternalInstance"] = Relationship(back_populates="account")
+    submissions: list["Upload"] = Relationship(back_populates="account")
+    external_submissions: list["ExternalSource"] = Relationship(back_populates="account")
     torrents: list["TorrentFile"] = Relationship(back_populates="account")
     moderation_actions: list["AuditLog"] = Relationship(
         back_populates="actor",

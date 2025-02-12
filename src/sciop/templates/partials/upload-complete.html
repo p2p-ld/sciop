@@ -20,8 +20,8 @@
 <button
     class="form-button"
     type="submit"
-    name="instance"
-    hx-post='{{ config.api_prefix }}/datasets/{{ dataset.slug }}/instances/form'
+    name="upload"
+    hx-post='{{ config.api_prefix }}/datasets/{{ dataset.slug }}/uploads/form'
     hx-include="#upload-form"
 >Submit</button>
 

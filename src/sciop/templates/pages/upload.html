@@ -1,8 +1,8 @@
 {% extends "layouts/default.html" %}
-{% from "macros/instance.html" import instance_row %}
+{% from "macros/upload.html" import upload_row %}
 {% block content %}
 <h2>{{ upload.title }}</h2>
 
-{{ instance_row(upload, current_account, config) }}
+{{ upload_row(upload, current_account, config) }}
 
 {% endblock %}

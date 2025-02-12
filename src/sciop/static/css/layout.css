@@ -50,7 +50,7 @@
   }
 }
 
-.instances-table {
+.uploads-table {
   --item-cols: 1em 6em 7fr 5em 7em 1em;
   display: grid;
 
@@ -70,12 +70,12 @@
 
 
 .datasets-table,
-.instances-table,
+.uploads-table,
 .accounts-table{
 
   .table-head,
   .dataset-collapsible > .collapsible-summary,
-  .instance-collapsible > .collapsible-summary,
+  .upload-collapsible > .collapsible-summary,
   .account-collapsible > .collapsible-summary
   {
     display: grid;
@@ -89,7 +89,7 @@
 
   .dataset-slug,
   .dataset-slug a,
-  .instance-hash,
+  .upload-hash,
   .instance-hash a,
   .account-username,
   .account-username a,

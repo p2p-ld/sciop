@@ -11,12 +11,10 @@ from sciop.models.api import SuccessResponse
 from sciop.models.dataset import (
     Dataset,
     DatasetCreate,
-    DatasetInstance,
-    DatasetInstanceCreate,
     DatasetRead,
     DatasetTag,
     DatasetURL,
-    ExternalInstance,
+    ExternalSource,
 )
 from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
 from sciop.models.rss import TorrentFeed, TorrentItem
@@ -28,6 +26,10 @@ from sciop.models.torrent import (
     TorrentFileRead,
     TrackerInTorrent,
 )
+from sciop.models.upload import Upload, UploadCreate
+
+Dataset.model_rebuild()
+DatasetRead.model_rebuild()
 
 __all__ = [
     "Account",
@@ -37,12 +39,10 @@ __all__ = [
     "AuditLogRead",
     "Dataset",
     "DatasetCreate",
-    "DatasetInstance",
-    "DatasetInstanceCreate",
     "DatasetRead",
     "DatasetTag",
     "DatasetURL",
-    "ExternalInstance",
+    "ExternalSource",
     "FileInTorrent",
     "FileInTorrentCreate",
     "ModerationAction",
@@ -57,4 +57,6 @@ __all__ = [
     "TorrentFileRead",
     "TorrentItem",
     "TrackerInTorrent",
+    "Upload",
+    "UploadCreate",
 ]
