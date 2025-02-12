@@ -24,17 +24,17 @@ def test_full_text_search():
         match_ok = Dataset(
             title="Matches a single thing once like key",
             slug="matching-ok",
-            agency="Agency of matching ok",
+            publisher="Agency of matching ok",
         )
         match_good = Dataset(
             title="Matches several keywords like key and word several times, see key key key",
             slug="matching-good",
-            agency="Agency of matching good",
+            publisher="Agency of matching good",
         )
         no_match = Dataset(
             title="Nothing in here",
             slug="not-good",
-            agency="Agency of not good",
+            publisher="Agency of not good",
         )
 
         session.add(match_ok)
