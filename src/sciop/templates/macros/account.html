@@ -3,7 +3,7 @@
 {% endmacro %}
 
 {% macro account_collapsible(account, review=False, config = None, models=None) %}
-<details class="collapsible account-collapsible" id="account-collapsible-{{ account.id }}">
+<details class="collapsible account-collapsible" id="account-collapsible-{{ account.account_id }}">
     <summary class="collapsible-summary"
              hx-get="/accounts/{{ account.username }}/partial"
              hx-trigger="click once"

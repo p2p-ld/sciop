@@ -34,7 +34,7 @@ async def datasets_search(query: str = None, session: SessionDep = None) -> Page
         stmt = (
             select(Dataset)
             .where(Dataset.enabled == True)
-            .filter(Dataset.id.in_(Dataset.search_statement(query)))
+            .filter(Dataset.dataset_id.in_(Dataset.search_statement(query)))
         )
     return paginate(conn=session, query=stmt)
 

@@ -6,13 +6,13 @@ from sqlalchemy.orm import relationship
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.mixin import SearchableMixin, TableMixin
+from sciop.types import IDField
 
 if TYPE_CHECKING:
     from sciop.models import (
         AuditLog,
         Dataset,
         ExternalSource,
-        Scope,
         TorrentFile,
         Upload,
     )
@@ -41,6 +41,8 @@ class AccountBase(SQLModel):
 
 class Account(AccountBase, TableMixin, SearchableMixin, table=True):
     __searchable__ = ["username"]
+
+    account_id: IDField = Field(default=None, primary_key=True)
     hashed_password: str
     scopes: list["Scope"] = Relationship(
         back_populates="account", sa_relationship_kwargs={"lazy": "selectin"}
@@ -53,14 +55,14 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
         back_populates="actor",
         sa_relationship=relationship(
             "AuditLog",
-            primaryjoin="Account.id == AuditLog.actor_id",
+            primaryjoin="Account.account_id == AuditLog.actor_id",
         ),
     )
     audit_log_target: list["AuditLog"] = Relationship(
         back_populates="target_account",
         sa_relationship=relationship(
             "AuditLog",
-            primaryjoin="Account.id == AuditLog.target_account_id",
+            primaryjoin="Account.account_id == AuditLog.target_account_id",
         ),
     )
 
@@ -75,7 +77,8 @@ class AccountRead(AccountBase):
 
 
 class Scope(TableMixin, table=True):
-    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
+    scope_id: IDField = Field(None, primary_key=True)
+    account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: Account = Relationship(back_populates="scopes")
     name: Scopes
 
