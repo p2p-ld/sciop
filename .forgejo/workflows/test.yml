@@ -3,6 +3,9 @@ name: Python tests
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Run tests
