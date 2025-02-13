@@ -68,7 +68,7 @@ class SearchableMixin(SQLModel):
         """
         for name, field in cls.model_fields.items():
             field: FieldInfo
-            if field.primary_key is True:
+            if getattr(field, "primary_key", False) is True:
                 return name
         raise ValueError("No primary key found")
 

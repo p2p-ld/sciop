@@ -44,7 +44,9 @@ def create_tables() -> None:
     """
     from sciop import models
 
+    # FIXME: Super janky, do this in a __new__ or a decorator
     models.Dataset.register_events()
+    models.Account.register_events()
 
     SQLModel.metadata.create_all(engine)
     # check version here since creating the table is the same action as

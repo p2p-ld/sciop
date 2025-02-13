@@ -9,10 +9,10 @@
 </div>
 <div class="container flex-container column">
   <div class="row search-container" >
-    <input class="form-control search-input" type="search"
+    <input class="form-control search-input enter-trigger" type="search"
            name="query" placeholder="Begin Typing To Search..."
            hx-get="/datasets/search"
-           hx-trigger="input changed delay:250ms, keyup[key=='Enter'], load"
+           hx-trigger="input changed delay:250ms, load, enterKeyUp"
            hx-target="#datasets-table"
            hx-indicator="#datasets-loading-indicator"
            hx-swap="innerHTML"
