@@ -1,23 +1,38 @@
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Optional, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self, Optional, get_origin
 
 from sqlalchemy import Column, Table, event
-from sqlmodel import Field, SQLModel, select, text, Session
+from sqlmodel import Field, Session, SQLModel, select, text
+
+from sciop.types import IDField
 
 if TYPE_CHECKING:
     from sqlalchemy import Connection, Table, TextClause
     from sqlalchemy.sql.expression import Select
+    from sqlmodel.main import FieldInfo
 
 
 class TableMixin(SQLModel):
     """Mixin to add base elements to all tables"""
 
-    id: Optional[int] = Field(default=None, primary_key=True)
     created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: Optional[datetime] = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"onupdate": lambda: datetime.now(UTC)},
     )
+
+    @property
+    def id(self) -> int:
+        """
+        The value of the primary key, `table_id` property.
+        """
+        for name, field in self.model_fields.items():
+            try:
+                if field.annotation is IDField or IDField in get_origin(field.annotation):
+                    return getattr(self, name)
+            except TypeError:
+                continue
+        raise AttributeError("No IDField found")
 
 
 class TableReadMixin(SQLModel):
@@ -25,7 +40,6 @@ class TableReadMixin(SQLModel):
     Mixin to add base elements to the read version of all tables
     """
 
-    id: int
     created_at: datetime
     updated_at: datetime
 
@@ -45,6 +59,18 @@ class SearchableMixin(SQLModel):
     """
 
     _fts_table: ClassVar[Table] = None
+
+    @classmethod
+    def primary_key_column(cls) -> str:
+        """
+        Name of the column that is the primary key, i.e. is an IDField
+        (Assuming there is only one)
+        """
+        for name, field in cls.model_fields.items():
+            field: FieldInfo
+            if field.primary_key is True:
+                return name
+        raise ValueError("No primary key found")
 
     @classmethod
     def fts_table(cls) -> Table:
@@ -104,7 +130,11 @@ class SearchableMixin(SQLModel):
         else:
             where_clause = text(f"{cls.__fts_table_name__()} = :query").bindparams(query=query)
 
-        return select(table.c.rowid.label("id")).where(where_clause).order_by(text("rank"))
+        return (
+            select(table.c.rowid.label(cls.primary_key_column()))
+            .where(where_clause)
+            .order_by(text("rank"))
+        )
 
     @classmethod
     def count_statement(cls, query: str) -> "TextClause":
@@ -131,36 +161,39 @@ class SearchableMixin(SQLModel):
         if not cls.__searchable__:
             return
 
-        # table_name = "__".join([target.name, "search"])
         table_name = cls.__fts_table_name__()
         col_names = ", ".join(cls.__searchable__)
-        new_names = ", ".join([f"new.{cname}" for cname in cls.__searchable__])
-        old_names = ", ".join([f"old.{cname}" for cname in cls.__searchable__])
+        new_names = ", ".join(
+            [f"new.{cname}" for cname in [cls.primary_key_column()] + cls.__searchable__]
+        )
+        old_names = ", ".join(
+            [f"old.{cname}" for cname in [cls.primary_key_column()] + cls.__searchable__]
+        )
         # ruff: noqa: E501
         create_stmt = text(
             f"""
-            CREATE VIRTUAL TABLE {table_name} USING fts5({col_names}, content={target.name}, content_rowid=id, tokenize='trigram');
+            CREATE VIRTUAL TABLE {table_name} USING fts5({col_names}, content={target.name}, content_rowid={cls.primary_key_column()}, tokenize='trigram');
             """
         )
         trigger_insert = text(
             f"""
             CREATE TRIGGER {target.name}_ai AFTER INSERT ON {target.name} BEGIN
-              INSERT INTO {table_name}(rowid, {', '.join(cls.__searchable__)}) VALUES (new.id, {new_names});
+              INSERT INTO {table_name}(rowid, {', '.join(cls.__searchable__)}) VALUES ({new_names});
             END;
             """
         )
         trigger_delete = text(
             f"""
             CREATE TRIGGER {target.name}_ad AFTER DELETE ON {target.name} BEGIN
-              INSERT INTO {table_name}({table_name}, rowid, {col_names}) VALUES('delete', old.id, {old_names});
+              INSERT INTO {table_name}({table_name}, rowid, {col_names}) VALUES('delete', {old_names});
             END;
             """
         )
         trigger_update = text(
             f"""
             CREATE TRIGGER {target.name}_au AFTER UPDATE ON {target.name} BEGIN
-              INSERT INTO {table_name}({table_name}, rowid, {col_names}) VALUES('delete', old.id, {old_names});
-              INSERT INTO {table_name}(rowid, {col_names}) VALUES (new.id, {new_names});
+              INSERT INTO {table_name}({table_name}, rowid, {col_names}) VALUES('delete', {old_names});
+              INSERT INTO {table_name}(rowid, {col_names}) VALUES ({new_names});
             END;
             """
         )
@@ -168,9 +201,3 @@ class SearchableMixin(SQLModel):
         connection.execute(trigger_insert)
         connection.execute(trigger_delete)
         connection.execute(trigger_update)
-
-
-class TestSearchability(SearchableMixin, TableMixin, table=True):
-    __searchable__ = ["title", "description"]
-    title: str
-    description: str

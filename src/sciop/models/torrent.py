@@ -6,6 +6,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.config import config
 from sciop.models.mixin import TableMixin
+from sciop.types import IDField
 
 if TYPE_CHECKING:
     from sciop.models import Upload
@@ -15,10 +16,13 @@ if TYPE_CHECKING:
 class FileInTorrent(TableMixin, table=True):
     """A file within a torrent file"""
 
+    __tablename__ = "file_in_torrent"
+
+    file_in_torrent_id: IDField = Field(None, primary_key=True)
     path: str = Field(description="Path of file within torrent")
     size: int = Field(description="Size in bytes")
 
-    torrent_id: Optional[int] = Field(default=None, foreign_key="torrentfile.id")
+    torrent_id: Optional[int] = Field(default=None, foreign_key="torrent_file.torrent_file_id")
     torrent: Optional["TorrentFile"] = Relationship(back_populates="files")
 
     @property
@@ -38,9 +42,12 @@ class FileInTorrentRead(FileInTorrentCreate):
 class TrackerInTorrent(TableMixin, table=True):
     """A tracker within a torrent file"""
 
+    __tablename__ = "tracker_in_torrent"
+
+    tracker_in_torrent_id: IDField = Field(None, primary_key=True)
     url: str = Field(description="Tracker announce url")
 
-    torrent_id: Optional[int] = Field(default=None, foreign_key="torrentfile.id")
+    torrent_id: Optional[int] = Field(default=None, foreign_key="torrent_file.torrent_file_id")
     torrent: Optional["TorrentFile"] = Relationship(back_populates="trackers")
 
 
@@ -90,9 +97,12 @@ class TorrentFileBase(SQLModel):
 
 
 class TorrentFile(TorrentFileBase, TableMixin, table=True):
-    account_id: Optional[int] = Field(default=None, foreign_key="account.id")
+    __tablename__ = "torrent_file"
+
+    torrent_file_id: IDField = Field(None, primary_key=True)
+    account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: "Account" = Relationship(back_populates="torrents")
-    upload_id: Optional[int] = Field(default=None, foreign_key="upload.id")
+    upload_id: Optional[int] = Field(default=None, foreign_key="upload.upload_id")
     upload: Optional["Upload"] = Relationship(back_populates="torrent")
     files: list["FileInTorrent"] = Relationship(back_populates="torrent")
     trackers: list["TrackerInTorrent"] = Relationship(back_populates="torrent")

@@ -1,4 +1,9 @@
 from enum import StrEnum
+from typing import Annotated, Optional, TypeAlias
+
+from annotated_types import Gt
+
+IDField: TypeAlias = Optional[Annotated[int, Gt(0)]]
 
 
 class Priority(StrEnum):
