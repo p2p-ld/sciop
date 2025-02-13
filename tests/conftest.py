@@ -1,3 +1,4 @@
+import os
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -11,8 +12,13 @@ TMP_DIR = Path(__file__).parent / "__tmp__"
 TMP_DIR.mkdir(exist_ok=True)
 
 
+def pytest_sessionstart(session):
+    os.environ["SCIOP_SECRET_KEY"] = "12345"
+
+
 @pytest.fixture(autouse=True)
 def monkeypatch_config(monkeypatch: "Monkeypatch", tmp_path: Path) -> None:
+
     from sciop import config
 
     # do this once we write a way to figure out where the hell the db went
