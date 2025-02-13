@@ -5,7 +5,7 @@ on:
 
 jobs:
   lint:
-    runs-on: codeberg-tiny
+    runs-on: ${{ contains($GITHUB_SERVER_URL, 'https://codeberg.org') && 'codeberg-tiny' || 'ubuntu-latest' }}
     steps:
       - name: Checkout repo
         uses: https://code.forgejo.org/actions/checkout@v4
