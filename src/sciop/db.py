@@ -235,7 +235,7 @@ def _generate_upload(
 
     created_torrent = TorrentFileCreate(
         file_name=f"__{name}__.torrent",
-        hash="abcdefghijklmnop",
+        file_hash="abcdefghijklmnop",
         short_hash=short_hash,
         total_size=16384 * 4,
         piece_size=16384,

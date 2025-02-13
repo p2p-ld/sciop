@@ -89,8 +89,8 @@ def get_review_uploads(*, session: Session) -> list[Upload]:
     return uploads
 
 
-def get_torrent_from_hash(*, hash: str, session: Session) -> Optional[TorrentFile]:
-    statement = select(TorrentFile).where(TorrentFile.hash == hash)
+def get_torrent_from_file_hash(*, hash: str, session: Session) -> Optional[TorrentFile]:
+    statement = select(TorrentFile).where(TorrentFile.file_hash == hash)
     value = session.exec(statement).first()
     return value
 

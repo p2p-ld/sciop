@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.mixin import SearchableMixin, TableMixin
-from sciop.types import IDField
+from sciop.types import IDField, UsernameStr
 
 if TYPE_CHECKING:
     from sciop.models import (
@@ -26,7 +26,7 @@ class Scopes(StrEnum):
 
 
 class AccountBase(SQLModel):
-    username: str
+    username: UsernameStr
 
     def has_scope(self, *args: str | Scopes) -> bool:
         """Check if an account has a given scope."""
