@@ -11,7 +11,7 @@ permissions:
 jobs:
   test:
     name: tests
-    runs-on: ${{ contains($GITHUB_SERVER_URL, 'https://git.jon-e.net') && 'jonny-runner' || 'codeberg-tiny'
+    runs-on: ${{ contains($GITHUB_SERVER_URL, 'https://git.jon-e.net') && 'jonny-runner' || 'codeberg-tiny' }}
     steps:
       - name: Checkout repo
         uses: https://code.forgejo.org/actions/checkout@v4
