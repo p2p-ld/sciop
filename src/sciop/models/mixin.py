@@ -1,8 +1,8 @@
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Optional, get_origin
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Self, get_origin
 
 from sqlalchemy import Column, Table, event
-from sqlmodel import Field, SQLModel, select, text
+from sqlmodel import Field, Session, SQLModel, select, text
 
 from sciop.types import IDField
 
@@ -88,6 +88,21 @@ class SearchableMixin(SQLModel):
     @classmethod
     def __fts_table_name__(cls) -> str:
         return "__".join([cls.__tablename__, "search"])
+
+    @classmethod
+    def search(cls, query: str, session: Session) -> list[Self]:
+        """
+        Find model instances that match the provided query
+        This convenience method should generally be avoided, as it returns all matches
+        and its text statement makes it impossible/tricky to combine with other queries,
+        but it is a bit more efficient than the `in` clause in the normal search_statement
+        """
+
+        text_stmt = text(
+            f"SELECT rowid as {cls.primary_key_column()}, * FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q ORDER BY rank;"
+        ).bindparams(q=query)
+        stmt = select(cls).from_statement(text_stmt)
+        return session.exec(stmt).all()
 
     @classmethod
     def search_statement(cls, query: str) -> "Select":

@@ -1,4 +1,4 @@
-name: Python tests
+name: tests
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   test:
-    name: Run tests
+    name: tests
     runs-on: codeberg-tiny
     steps:
       - name: Checkout repo
