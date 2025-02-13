@@ -16,7 +16,7 @@ from sciop.const import STATIC_DIR
 from sciop.db import create_tables
 from sciop.frontend.main import frontend_router
 from sciop.logging import init_logger
-from sciop.middleware import LoggingMiddleware, limiter
+from sciop.middleware import LoggingMiddleware, limiter, security_headers
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"
@@ -40,8 +40,10 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
-app.add_middleware(LoggingMiddleware, logger=init_logger("requests"))
 app.add_exception_handler(429, _rate_limit_exceeded_handler)
+app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
+app.middleware("http")(security_headers)
+app.add_middleware(LoggingMiddleware, logger=init_logger("requests"))
 
 # Set all CORS enabled origins
 if config.all_cors_origins:
@@ -52,6 +54,7 @@ if config.all_cors_origins:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
 
 app.include_router(api_router)
 app.include_router(frontend_router)
@@ -64,7 +67,6 @@ add_pagination(app)
 #     ContentSizeLimitMiddleware,
 #     max_content_size = config.upload_limit
 # )
-app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
 
 
 def main() -> None:

@@ -32,7 +32,9 @@ def login(
 
     access_token_expires = timedelta(minutes=config.token_expire_minutes)
     token = create_access_token(account.account_id, expires_delta=access_token_expires)
-    response.set_cookie(key="access_token", value=token, httponly=True)
+    response.set_cookie(
+        key="access_token", value=token, httponly=True, secure=True, samesite="strict"
+    )
     response.headers["HX-Location"] = "/self"
     return Token(access_token=token)
 
@@ -61,6 +63,8 @@ def register(
     created_account = create_account(session=session, account_create=account)
     access_token_expires = timedelta(minutes=config.token_expire_minutes)
     token = create_access_token(created_account.account_id, access_token_expires)
-    response.set_cookie(key="access_token", value=token)
+    response.set_cookie(
+        key="access_token", value=token, httponly=True, secure=True, samesite="strict"
+    )
     response.headers["HX-Location"] = "/self"
     return created_account

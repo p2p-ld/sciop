@@ -12,6 +12,7 @@ from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from sciop.api.deps import get_current_account
+from sciop.config import config
 from sciop.db import get_session
 from sciop.exceptions import UploadSizeExceeded
 from sciop.logging import init_logger
@@ -155,3 +156,19 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             body = b""
 
         return body.decode("utf-8", errors="ignore")
+
+
+async def security_headers(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    """
+    CSP, cross-origin, content-type noshiff, deny frames
+    """
+    response = await call_next(request)
+    sec_headers = {
+        "Content-Security-Policy": config.csp.format(),
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+    }
+    response.headers.update(sec_headers)
+    return response

@@ -60,6 +60,34 @@ class LogConfig(BaseModel):
         return value
 
 
+class CSPConfig(BaseModel):
+    """
+    Configure CSP headers used by the csp_headers middleware
+
+    For now these are single-valued params, expand the annotations as needed.
+    """
+
+    default_src: Literal["self"] | str = "self"
+    child_src: Literal["self"] | str = "self"
+    img_src: Literal["self"] | str = "self, data:"
+    object_src: Literal["none"] | str = "none"
+    script_src: Literal["self"] | str = "self"
+    style_src: Literal["self"] | str = "self"
+
+    _format: Optional[str] = None
+
+    def format(self) -> str:
+        """
+        Create a Content-Security_Policy header string
+
+        Only generated once per instance - CSPConfig is not intended to be mutated
+        """
+        if self._format is None:
+            format_parts = [f"{k.replace('_', '-')} '{v}'" for k, v in self.model_dump().items()]
+            self._format = "; ".join(format_parts)
+        return self._format
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -88,11 +116,12 @@ class Config(BaseSettings):
     """in bytes"""
     torrent_dir: Path = Path(_dirs.user_data_dir) / "torrents"
     """Directory to store uploaded torrents"""
+    csp: CSPConfig = CSPConfig()
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def all_cors_origins(self) -> list[str]:
-        if self.env == "dev":
+        if self.env in ("dev", "test"):
             return [f"{self.public_url}:{self.port}"]
         elif self.env == "prod":
             return [f"{self.public_url}"]

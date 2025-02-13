@@ -32,3 +32,16 @@ def test_logging(monkeypatch, capsys, tmp_path, log_dir, log_console_width):
 
     assert expected_lines[0] in log_entries[0]
     assert expected_lines[1] in log_entries[1]
+
+
+def test_security_headers():
+    response = client.get("/")
+    expected_headers = (
+        "Content-Security-Policy",
+        "Cross-Origin-Opener-Policy",
+        "Referrer-Policy",
+        "X-Content-Type-Options",
+        "X-Frame-Options",
+    )
+
+    assert all(header in response.headers for header in expected_headers)
