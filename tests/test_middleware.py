@@ -1,14 +1,9 @@
 import logging
 
-from fastapi.testclient import TestClient
-
 from sciop.config import config
-from sciop.main import app
-
-client = TestClient(app)
 
 
-def test_logging(monkeypatch, capsys, tmp_path, log_dir, log_console_width):
+def test_logging(client, monkeypatch, capsys, tmp_path, log_dir, log_console_width):
     monkeypatch.setattr(config.logs, "level_file", logging.DEBUG)
     monkeypatch.setattr(config.logs, "level_stdout", logging.DEBUG)
     monkeypatch.setattr(config.logs, "dir", tmp_path)
@@ -34,7 +29,7 @@ def test_logging(monkeypatch, capsys, tmp_path, log_dir, log_console_width):
     assert expected_lines[1] in log_entries[1]
 
 
-def test_security_headers():
+def test_security_headers(client):
     response = client.get("/")
     expected_headers = (
         "Content-Security-Policy",

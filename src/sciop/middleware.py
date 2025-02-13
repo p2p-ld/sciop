@@ -178,5 +178,27 @@ async def security_headers(request: Request, call_next: RequestResponseEndpoint)
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
     }
+    # swagger docs need js
+    if "/docs/api" in request.url.path:
+        print(
+            {
+                **config.csp.model_dump(),
+                "script_src": "'self' 'https://cdn.jsdelivr.net'",
+                "enable_nonce": [],
+            }
+        )
+        sec_headers["Content-Security-Policy"] = (
+            type(config.csp)
+            .model_construct(
+                **{
+                    **config.csp.model_dump(),
+                    "style_src": "'self' https://cdn.jsdelivr.net",
+                    "script_src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+                    "enable_nonce": [],
+                }
+            )
+            .format(nonce=nonce)
+        )
+
     response.headers.update(sec_headers)
     return response

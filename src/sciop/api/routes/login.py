@@ -11,7 +11,7 @@ from sciop.api.deps import SessionDep
 from sciop.config import config
 from sciop.crud import create_account, get_account
 from sciop.middleware import limiter
-from sciop.models import Account, AccountCreate, SuccessResponse, Token
+from sciop.models import AccountCreate, AccountRead, SuccessResponse, Token
 
 login_router = APIRouter()
 
@@ -53,7 +53,7 @@ def register(
     account: Annotated[AccountCreate, Form()],
     session: SessionDep,
     response: Response,
-) -> Account:
+) -> AccountRead:
     existing_account = get_account(session=session, username=account.username)
     if existing_account:
         raise HTTPException(

@@ -7,7 +7,7 @@ from annotated_types import Gt, MaxLen
 from pydantic import AfterValidator, AnyUrl, Field, TypeAdapter
 from slugify import slugify
 
-USERNAME_PATTERN = re.compile(r"[\w-]+")
+USERNAME_PATTERN = re.compile(r"^[\w-]+$")
 
 IDField: TypeAlias = Optional[Annotated[int, Gt(0)]]
 EscapedStr: TypeAlias = Annotated[str, AfterValidator(escape)]
@@ -17,7 +17,7 @@ UsernameStr: TypeAlias = Annotated[
 ]
 AnyUrlTypeAdapter = TypeAdapter(AnyUrl)
 MaxLenURL = Annotated[
-    str, MaxLen(512), AfterValidator(lambda url: AnyUrlTypeAdapter.validate_python(url))
+    str, MaxLen(512), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
 ]
 
 
