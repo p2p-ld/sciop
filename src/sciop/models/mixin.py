@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Self, Optional, get_origin
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Self, get_origin
 
 from sqlalchemy import Column, Table, event
 from sqlmodel import Field, Session, SQLModel, select, text
@@ -99,7 +99,7 @@ class SearchableMixin(SQLModel):
         """
 
         text_stmt = text(
-            f"SELECT rowid as id, * FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q ORDER BY rank;"
+            f"SELECT rowid as {cls.primary_key_column()}, * FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q ORDER BY rank;"
         ).bindparams(q=query)
         stmt = select(cls).from_statement(text_stmt)
         return session.exec(stmt).all()

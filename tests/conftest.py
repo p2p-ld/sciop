@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -12,7 +12,7 @@ TMP_DIR = Path(__file__).parent / "__tmp__"
 TMP_DIR.mkdir(exist_ok=True)
 
 
-def pytest_sessionstart(session):
+def pytest_sessionstart(session: pytest.Session) -> None:
     os.environ["SCIOP_SECRET_KEY"] = "12345"
 
 
