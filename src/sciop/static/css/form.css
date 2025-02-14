@@ -1,7 +1,7 @@
 .form {
     display: grid;
     grid-template-columns: minmax(10px, auto) 3fr;
-    gap: 0.5em 1em;
+    gap: 1em 1em;
 
     .form-item {
         display: grid;
@@ -10,9 +10,59 @@
         grid-template-columns: subgrid;
     }
 
-    .form-item-description {
-        grid-column-start: 2;
+    @media screen and (max-width: 700px) {
+        grid-template-columns: 1fr;
+
+        .form-item {
+            grid-column-end: 2;
+        }
     }
 
+    .form-label {
+        display: flex;
+        align-items: center;
+        font-weight: bold;
+    }
 
+    .form-input,
+    .form-textarea
+    {
+        width: 100%;
+
+        &:user-invalid,
+        &.invalid {
+            border: 1px solid var(--color-caution);
+        }
+
+    }
+
+    .form-item-description {
+        grid-column-start: 2;
+        color: var(--color-text-deemphasized);
+        margin-top: 0.5em;
+    }
+
+    .constraint-gutter {
+        font-family: var(--font-mono);
+        color: var(--color-text-deemphasized);
+        font-size: 0.8em;
+        display: flex;
+        justify-content: space-between;
+        margin-right: 1em;
+    }
+
+    .error-feedback {
+        color: var(--color-caution);
+
+        &.changed {
+            color: var(--color-primary);
+        }
+    }
+
+    .constraint {
+        margin-left: 1em;
+    }
+    .optional {
+        border-color: var(--color-border-deemphasized);
+    }
 }

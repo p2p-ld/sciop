@@ -1,3 +1,61 @@
+{% macro form_field(field, field_name, parent_id) %}
+{%- set ns=namespace(minlength=False, maxlength=False, pattern=False) %}
+{%- set required=field.is_required() %}
+{%- if field.metadata %}
+{%- for meta in field.metadata %}
+    {%- if meta.min_length %}{% set ns.minlength=meta.min_length %}{% endif %}
+    {%- if meta.max_length %}{% set ns.maxlength=meta.max_length %}{% endif %}
+    {%- if meta.pattern %}{% set ns.pattern=meta.pattern %}{% endif %}
+{%- endfor %}
+{%- endif %}
+{%- set closing_tag=False %}
+{%- if field.json_schema_extra and field.json_schema_extra.get('input_type', None) == 'textarea' %}
+    {%- set element="textarea" %}
+    {%- set closing_tag=True %}
+    {%- set cls="form-textarea form-input" %}
+{%- elif field.annotation.__members__ %}
+    {%- set element="select" %}
+    {%- set closing_tag=True %}
+    {%- set cls="form-select form-input" %}
+{%- else %}
+    {%- set element="input" %}
+    {%- set cls="form-input" %}
+{%- endif -%}
+
+<div class="form-input-group">
+    <div class="constraint-gutter">
+        <span class="error-feedback"></span>
+        <span class="spacer"></span>
+        <div class="constraints">
+        {% if ns.minlength %}<span class="constraint">min length: {{ ns.minlength }}</span>{% endif %}
+        {% if ns.maxlength %}<span class="constraint">max length: {{ ns.maxlength }}</span>{% endif %}
+        {% if ns.pattern   %}<span class="constraint">matching: <code>{{ ns.pattern }}</code></span>{% endif %}
+        {% if required     %}<span class="constraint">required</span>{% endif %}
+        </div>
+    </div>
+    <{{element}}
+        id="{{ parent_id }}-{{ field_name }}"
+        name="{{ field_name }}"
+        class="{{ cls }}{% if not required %} optional{% endif %}"
+        {%- if required %}required{% endif %}
+        {%- if ns.minlength %} minlength="{{ ns.minlength }}"{% endif %}
+        {%- if ns.maxlength %} maxlength="{{ ns.maxlength }}"{% endif %}
+        {%- if ns.pattern %} pattern="{{ ns.pattern }}"{% endif %}
+    >
+    {%- if element=="select" %}
+    {% for member in field.annotation.__members__.values() %}
+    <option value="{{ member.value }}">{{ member.value }}</option>
+    {% endfor %}
+    {%- endif %}
+    {%- if closing_tag %}</{{element}}>{% endif %}
+
+</div>
+
+{% if field.description %}
+<p class="form-item-description">{{ field.description }}</p>
+{% endif %}
+{% endmacro %}
+
 {% macro inner_model_form(id, model, exclude = []) %}
 {% for field_name, field in model.model_fields.items() if field_name not in exclude %}
 <div class="form-item">
@@ -8,15 +66,7 @@
             {{ field_name }}
         {% endif %}
     </label>
-    {% if field.json_schema_extra and field.json_schema_extra.get('input_type', None) == 'textarea' %}
-        <textarea id="{{ id }}-{{ field_name }}" name="{{ field_name }}" class="form-textarea"></textarea>
-    {% elif field.json_schema_extra and field.json_schema_extra.get('input_type', None) == 'textarea' %}
-    {% else %}
-        <input id="{{ id }}-{{ field_name }}" name="{{ field_name }}" class="form-input">
-    {% endif %}
-    {% if field.description %}
-    <p class="form-item-description">{{ field.description }}</p>
-    {% endif %}
+    {{ form_field(field, field_name, id) }}
 </div>
 {% endfor %}
 {% endmacro %}

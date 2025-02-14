@@ -13,4 +13,36 @@ document.addEventListener("keyup", (e) => {
       htmx.trigger(elt, "enterKeyUp");
     }
   }
+});
+
+// Error reporting for forms
+htmx.on("htmx:responseError", (e) => {
+  const xhr = e.detail.xhr;
+
+  if (xhr.status == 422) {
+    const errors = JSON.parse(xhr.responseText)["detail"];
+    const form = e.detail.target;
+    const feedbacks = document.querySelectorAll(`#${form.id} .error-feedback`);
+    feedbacks.forEach(f => f.innerHTML = '');
+
+    for (error of errors){
+      let name = error['loc'][1];
+      const field = document.querySelector(`#${form.id} [name="${name}"]`);
+      const feedback = document.querySelector(`#${form.id} div:has([name="${name}"]) .error-feedback`);
+      field.setCustomValidity(error['msg']);
+      feedback.innerHTML = error['msg'];
+      feedback.classList.remove("changed");
+      field.classList.add("invalid");
+      field.addEventListener('focus', () => field.reportValidity());
+      field.addEventListener('change', () => {
+        field.setCustomValidity('');
+        field.classList.remove("invalid");
+        feedback.classList.add("changed");
+      });
+      field.reportValidity();
+    }
+  } else {
+    // Handle the error some other way
+    console.error(xhr.responseText);
+  }
 })

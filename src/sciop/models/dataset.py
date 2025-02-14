@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Annotated, Optional
+from typing import TYPE_CHECKING, Annotated, Any, Optional
 
 from pydantic import field_validator
 from sqlmodel import Field, Relationship, SQLModel
@@ -57,7 +57,7 @@ class DatasetBase(SQLModel):
         None,
         title="Homepage",
         description="""
-    (Optional) The index/landing page that describes this dataset
+    The index/landing page that describes this dataset
     (but isn't necessarily the direct link to the data itself), if any. 
     """,
     )
@@ -65,7 +65,7 @@ class DatasetBase(SQLModel):
         None,
         title="Description",
         description="""
-    (Optional) Additional information about the dataset.
+    Additional information about the dataset.
     """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=4096,
@@ -75,7 +75,7 @@ class DatasetBase(SQLModel):
         None,
         title="Priority Comment",
         description="""
-    (Optional) Additional information about the priority of preserving this dataset,
+    Additional information about the priority of preserving this dataset,
     if it is especially endangered or likely to be tampered with in the short term.
     """,
         schema_extra={"input_type": InputType.textarea},
@@ -136,17 +136,27 @@ class DatasetCreate(DatasetBase):
     )
 
     @field_validator("urls", "tags", mode="before")
-    def split_strings(cls, value: str | list[str]) -> list[str]:
+    def split_strings(cls, value: str | list[str]) -> Optional[list[str]]:
         """Split lists of strings given as one entry per line"""
         if isinstance(value, str):
             if not value or value == "":
-                return []
+                return None
             value = value.splitlines()
-        elif isinstance(value, list) and len(value) == 1 and "\n" in value[0]:
-            value = value[0].splitlines()
+        elif isinstance(value, list) and len(value) == 1:
+            if "\n" in value[0]:
+                value = value[0].splitlines()
+            elif value[0] == "":
+                return None
 
         # filter empty strings
         value = [v for v in value if v.strip()]
+        return value
+
+    @field_validator("*", mode="before")
+    def empty_strings_are_none(cls, value: Any) -> Any:
+        """Forms sometimes submit input without anything as empty strings not None"""
+        if value == "":
+            value = None
         return value
 
 
