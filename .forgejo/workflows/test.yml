@@ -9,9 +9,26 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  test-codeberg:
     name: tests
-    runs-on: ${{ contains( env.GITHUB_SERVER_URL, 'codeberg.org') && 'codeberg-tiny' || 'ubuntu-latest' }}
+    if: ${{ contains( env.GITHUB_SERVER_URL, 'codeberg.org') }}
+    runs-on: codeberg-tiny
+    steps:
+      - name: Checkout repo
+        uses: https://code.forgejo.org/actions/checkout@v4
+      - name: Install python
+        uses: https://code.forgejo.org/actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install deps
+        run: pip install -e .[test]
+      - name: Run tests
+        run: pytest
+
+  test-githublike:
+    name: tests
+    if: ${{ !contains( env.GITHUB_SERVER_URL, 'codeberg.org') }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: https://code.forgejo.org/actions/checkout@v4
