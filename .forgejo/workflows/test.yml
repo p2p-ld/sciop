@@ -10,8 +10,7 @@ permissions:
 
 jobs:
   test-codeberg:
-    name: tests-codeberg
-    if: ${{ env.GITHUB_SERVER_URL }} == 'https://codeberg.org'
+    name: tests
     runs-on: codeberg-tiny
     steps:
       - name: Checkout repo
@@ -19,22 +18,6 @@ jobs:
       - name: Echo github server url
         run: |
           echo "${{ env.GITHUB_SERVER_URL }}"
-      - name: Install python
-        uses: https://code.forgejo.org/actions/setup-python@v5
-        with:
-          python-version: '3.13'
-      - name: Install deps
-        run: pip install -e .[test]
-      - name: Run tests
-        run: pytest
-
-  test-githublike:
-    name: tests
-    if: ${{ env.GITHUB_SERVER_URL }} != 'https://codeberg.org'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: https://code.forgejo.org/actions/checkout@v4
       - name: Install python
         uses: https://code.forgejo.org/actions/setup-python@v5
         with:
