@@ -70,7 +70,7 @@ class CSPConfig(BaseModel):
 
     default_src: Literal["self"] | str = "self"
     child_src: Literal["self"] | str = "self"
-    img_src: Literal["self"] | str = "self"
+    img_src: Literal["self"] | str = "'self' data:"
     object_src: Literal["none"] | str = "none"
     script_src: Literal["self"] | str = "strict-dynamic"  # "strict-dynamic"
     style_src: Literal["self"] | str = "self"
