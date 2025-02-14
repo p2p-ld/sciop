@@ -11,7 +11,7 @@ permissions:
 jobs:
   test-codeberg:
     name: tests-codeberg
-    if: ${{ env.GITHUB_SERVER_URL }} == 'https://codeberg.org'
+    if: contains(env.GITHUB_SERVER_URL, 'codeberg')
     runs-on: codeberg-tiny
     steps:
       - name: Checkout repo
@@ -30,7 +30,7 @@ jobs:
 
   test-githublike:
     name: tests
-    if: contains(env.GITHUB_SERVER_URL, 'codeberg')
+    if: !contains(env.GITHUB_SERVER_URL, 'codeberg')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
