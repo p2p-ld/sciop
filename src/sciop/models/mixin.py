@@ -1,3 +1,4 @@
+import sys
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Optional, Self, get_origin
@@ -235,9 +236,12 @@ class EnumTableMixin(SQLModel):
         session.commit()
 
     @classmethod
-    def get_item(cls, item: str, session: Session) -> Self:
+    def get_item(cls, item: str | StrEnum, session: Session) -> Self:
         """Get the row corresponding to this enum item"""
-        if item not in cls.enum_class():
+        if isinstance(item, str) and sys.version_info < (3, 12):
+            if item not in cls.enum_class().__members__:
+                raise KeyError(f"No such item {item} exists in {cls.enum_class()}")
+        elif item not in cls.enum_class():
             raise KeyError(f"No such item {item} exists in {cls.enum_class()}")
 
         return session.exec(
