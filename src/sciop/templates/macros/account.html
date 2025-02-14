@@ -42,7 +42,7 @@
             {% endfor %}
         {% else %}
               {% for scope in account.scopes %}
-              <span class="account-scope token">{{ scope.name }}</span>
+              <span class="account-scope token">{{ scope.scope.value }}</span>
               {% endfor %}
         {% endif %}
         </span>

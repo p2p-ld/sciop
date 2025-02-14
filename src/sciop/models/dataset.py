@@ -5,6 +5,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.account import Account
 from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
+from sciop.models.tag import DatasetTagLink
 from sciop.types import (
     EscapedStr,
     IDField,
@@ -17,7 +18,7 @@ from sciop.types import (
 )
 
 if TYPE_CHECKING:
-    from sciop.models import AuditLog, Upload
+    from sciop.models import AuditLog, Tag, Upload
 
 
 class DatasetBase(SQLModel):
@@ -98,7 +99,11 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     uploads: list["Upload"] = Relationship(back_populates="dataset")
     external_sources: list["ExternalSource"] = Relationship(back_populates="dataset")
     urls: list["DatasetURL"] = Relationship(back_populates="dataset")
-    tags: list["DatasetTag"] = Relationship(back_populates="dataset")
+    tags: list["Tag"] = Relationship(
+        back_populates="datasets",
+        sa_relationship_kwargs={"lazy": "selectin"},
+        link_model=DatasetTagLink,
+    )
     account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: Optional["Account"] = Relationship(back_populates="datasets")
     status: Status = "todo"
@@ -149,7 +154,7 @@ class DatasetRead(DatasetBase, TableReadMixin):
     uploads: list["Upload"] = Field(default_factory=list)
     external_sources: list["ExternalSource"] = Field(default_factory=list)
     urls: list["DatasetURL"] = Field(default_factory=list)
-    tags: list["DatasetTag"] = Field(default_factory=list)
+    tags: list["Tag"] = Field(default_factory=list)
     status: Status
     enabled: bool
 
@@ -161,15 +166,6 @@ class DatasetURL(SQLModel, table=True):
     dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
     dataset: Optional[Dataset] = Relationship(back_populates="urls")
     url: MaxLenURL
-
-
-class DatasetTag(SQLModel, table=True):
-    __tablename__ = "dataset_tag"
-
-    dataset_tag_id: IDField = Field(default=None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
-    dataset: Optional[Dataset] = Relationship(back_populates="tags")
-    tag: SlugStr = Field(max_length=32)
 
 
 class ExternalSourceBase(SQLModel):

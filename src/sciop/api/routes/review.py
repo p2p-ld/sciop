@@ -96,7 +96,7 @@ async def grant_account_scope(
     session: SessionDep,
 ):
     if not account.has_scope(scope_name):
-        account.scopes.append(Scope(name=scope_name))
+        account.scopes.append(Scope.get_item(scope_name, session))
         session.add(account)
         session.commit()
 

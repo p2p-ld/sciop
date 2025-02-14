@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional
 from sqlalchemy.orm import relationship
 from sqlmodel import Field, Relationship, SQLModel
 
-from sciop.models.mixin import SearchableMixin, TableMixin
+from sciop.models.mixin import EnumTableMixin, SearchableMixin, TableMixin
 from sciop.types import IDField, UsernameStr
 
 if TYPE_CHECKING:
@@ -25,17 +25,25 @@ class Scopes(StrEnum):
     admin = "admin"
 
 
+class AccountScopeLink(TableMixin, table=True):
+    __tablename__ = "account_scope_link"
+    account_id: Optional[int] = Field(
+        default=None, foreign_key="account.account_id", primary_key=True
+    )
+    scope_id: Optional[int] = Field(default=None, foreign_key="scope.scope_id", primary_key=True)
+
+
 class AccountBase(SQLModel):
-    username: UsernameStr
+    username: UsernameStr = Field(unique=True)
 
     def has_scope(self, *args: str | Scopes) -> bool:
         """Check if an account has a given scope."""
-        has_scopes = [scope.name.value for scope in self.scopes]
+        has_scopes = [scope.scope.value for scope in self.scopes]
         return any([scope in has_scopes for scope in args])
 
     def get_scope(self, scope: str) -> Optional["Scope"]:
         """Get the scope object from its name, returning None if not present"""
-        scope = [a_scope for a_scope in self.scopes if a_scope.name == scope]
+        scope = [a_scope for a_scope in self.scopes if a_scope.scope.value == scope]
         return None if not scope else scope[0]
 
 
@@ -45,7 +53,9 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
     account_id: IDField = Field(default=None, primary_key=True)
     hashed_password: str
     scopes: list["Scope"] = Relationship(
-        back_populates="account", sa_relationship_kwargs={"lazy": "selectin"}
+        back_populates="accounts",
+        sa_relationship_kwargs={"lazy": "selectin"},
+        link_model=AccountScopeLink,
     )
     datasets: list["Dataset"] = Relationship(back_populates="account")
     submissions: list["Upload"] = Relationship(back_populates="account")
@@ -76,11 +86,12 @@ class AccountRead(AccountBase):
     created_at: datetime
 
 
-class Scope(TableMixin, table=True):
+class Scope(TableMixin, EnumTableMixin, table=True):
+    __enum_column_name__ = "scope"
+
     scope_id: IDField = Field(None, primary_key=True)
-    account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
-    account: Account = Relationship(back_populates="scopes")
-    name: Scopes
+    accounts: list[Account] = Relationship(back_populates="scopes", link_model=AccountScopeLink)
+    scope: Scopes = Field(unique=True)
 
 
 # JSON payload containing access token
