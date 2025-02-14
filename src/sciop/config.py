@@ -70,10 +70,11 @@ class CSPConfig(BaseModel):
 
     default_src: Literal["self"] | str = "self"
     child_src: Literal["self"] | str = "self"
-    img_src: Literal["self"] | str = "self"
+    img_src: Literal["self"] | str = "'self' data:"
     object_src: Literal["none"] | str = "none"
     script_src: Literal["self"] | str = "strict-dynamic"  # "strict-dynamic"
     style_src: Literal["self"] | str = "self"
+    font_src: Literal["self"] | str = "self"
 
     nonce_entropy: int = 90
     enable_nonce: list[str] = Field(default_factory=lambda: ["script_src"])
@@ -136,10 +137,18 @@ class Config(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def all_cors_origins(self) -> list[str]:
+        return [self.external_url]
+
+    @property
+    def external_url(self) -> str:
+        """
+        Complete url where the site can be reached, including port if local.
+        Differentiates between requests that might be made from a local service
+        """
         if self.env in ("dev", "test"):
-            return [f"{self.public_url}:{self.port}"]
+            return f"{self.public_url}:{self.port}"
         elif self.env == "prod":
-            return [f"{self.public_url}"]
+            return f"{self.public_url}"
 
     @property
     def sqlite_path(self) -> str:

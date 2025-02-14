@@ -12,11 +12,12 @@ from starlette.middleware.cors import CORSMiddleware
 
 from sciop.api.main import api_router
 from sciop.config import config
-from sciop.const import STATIC_DIR
+from sciop.const import DOCS_DIR, STATIC_DIR
 from sciop.db import create_tables
 from sciop.frontend.main import frontend_router
 from sciop.logging import init_logger
 from sciop.middleware import LoggingMiddleware, limiter, security_headers
+from sciop.services import build_docs
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"
@@ -25,6 +26,7 @@ from sciop.middleware import LoggingMiddleware, limiter, security_headers
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Generator[None, None, None]:
     create_tables()
+    build_docs()
     yield
 
 
@@ -61,6 +63,8 @@ app.include_router(frontend_router)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/torrents", StaticFiles(directory=config.torrent_dir), name="torrents")
+DOCS_DIR.mkdir(exist_ok=True)
+app.mount("/docs", StaticFiles(directory=DOCS_DIR, html=True), name="docs")
 add_pagination(app)
 
 # app.add_middleware(

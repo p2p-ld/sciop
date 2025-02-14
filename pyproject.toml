@@ -26,6 +26,7 @@ dependencies = [
     "fasthx>=2.1.1",
     "faker>=35.2.0",
     "python-slugify>=8.0.4",
+    "mkdocs-material>=9.6.4",
 ]
 requires-python = ">=3.11"
 readme = "README.md"

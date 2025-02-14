@@ -179,21 +179,15 @@ async def security_headers(request: Request, call_next: RequestResponseEndpoint)
         "X-Frame-Options": "DENY",
     }
     # swagger docs need js
-    if "/docs/api" in request.url.path:
-        print(
-            {
-                **config.csp.model_dump(),
-                "script_src": "'self' 'https://cdn.jsdelivr.net'",
-                "enable_nonce": [],
-            }
-        )
+    if "/docs" in request.url.path:
         sec_headers["Content-Security-Policy"] = (
             type(config.csp)
             .model_construct(
                 **{
                     **config.csp.model_dump(),
-                    "style_src": "'self' https://cdn.jsdelivr.net",
+                    "style_src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
                     "script_src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+                    "font_src": "'self' https://fonts.gstatic.com",
                     "enable_nonce": [],
                 }
             )

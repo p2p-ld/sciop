@@ -164,3 +164,4 @@ cython_debug/
 
 db.sqlite
 __tmp__
+src/sciop/docs
