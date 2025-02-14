@@ -1,5 +1,6 @@
 import logging
 from io import BytesIO
+from secrets import token_urlsafe
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, MutableMapping, Optional
 
 from fastapi import HTTPException
@@ -162,13 +163,42 @@ async def security_headers(request: Request, call_next: RequestResponseEndpoint)
     """
     CSP, cross-origin, content-type noshiff, deny frames
     """
+    nonce = token_urlsafe(config.csp.nonce_entropy)
+    request.state.nonce = nonce
+
     response = await call_next(request)
+
+    if "text/html" not in response.headers.get("content-type", ""):
+        return response
+
     sec_headers = {
-        "Content-Security-Policy": config.csp.format(),
+        "Content-Security-Policy": config.csp.format(nonce),
         "Cross-Origin-Opener-Policy": "same-origin",
         "Referrer-Policy": "strict-origin-when-cross-origin",
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
     }
+    # swagger docs need js
+    if "/docs/api" in request.url.path:
+        print(
+            {
+                **config.csp.model_dump(),
+                "script_src": "'self' 'https://cdn.jsdelivr.net'",
+                "enable_nonce": [],
+            }
+        )
+        sec_headers["Content-Security-Policy"] = (
+            type(config.csp)
+            .model_construct(
+                **{
+                    **config.csp.model_dump(),
+                    "style_src": "'self' https://cdn.jsdelivr.net",
+                    "script_src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+                    "enable_nonce": [],
+                }
+            )
+            .format(nonce=nonce)
+        )
+
     response.headers.update(sec_headers)
     return response

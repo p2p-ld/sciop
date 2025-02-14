@@ -68,7 +68,7 @@ class SearchableMixin(SQLModel):
         """
         for name, field in cls.model_fields.items():
             field: FieldInfo
-            if field.primary_key is True:
+            if getattr(field, "primary_key", False) is True:
                 return name
         raise ValueError("No primary key found")
 
@@ -99,7 +99,8 @@ class SearchableMixin(SQLModel):
         """
 
         text_stmt = text(
-            f"SELECT rowid as {cls.primary_key_column()}, * FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q ORDER BY rank;"
+            f"SELECT rowid as {cls.primary_key_column()}, * FROM {cls.__fts_table_name__()} "  # noqa: S608 - confirmed no sqli
+            f"WHERE {cls.__fts_table_name__()} MATCH :q ORDER BY rank;"
         ).bindparams(q=query)
         stmt = select(cls).from_statement(text_stmt)
         return session.exec(stmt).all()
@@ -140,7 +141,7 @@ class SearchableMixin(SQLModel):
     def count_statement(cls, query: str) -> "TextClause":
         """Select statement to count number of search results"""
         return text(
-            f"SELECT count(*) FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q;"
+            f"SELECT count(*) FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q;"  # noqa: S608 - confirmed no sqli
         ).bindparams(q=query)
 
     @classmethod
@@ -157,6 +158,9 @@ class SearchableMixin(SQLModel):
 
         Uses an external content table - https://sqlite.org/fts5.html#external_content_and_contentless_tables
         and the ``trigram`` tokenizer to support subtoken queries
+
+        These are definitely string interpolations in sql text clauses,
+        but none of the interpolated values are from user input, all are derived from the model class
         """
         if not cls.__searchable__:
             return
@@ -176,11 +180,11 @@ class SearchableMixin(SQLModel):
             """
         )
         trigger_insert = text(
-            f"""
+            f"""  
             CREATE TRIGGER {target.name}_ai AFTER INSERT ON {target.name} BEGIN
               INSERT INTO {table_name}(rowid, {', '.join(cls.__searchable__)}) VALUES ({new_names});
             END;
-            """
+            """  # noqa: S608 - confirmed no sqli
         )
         trigger_delete = text(
             f"""
@@ -195,7 +199,7 @@ class SearchableMixin(SQLModel):
               INSERT INTO {table_name}({table_name}, rowid, {col_names}) VALUES('delete', {old_names});
               INSERT INTO {table_name}(rowid, {col_names}) VALUES ({new_names});
             END;
-            """
+            """  # noqa: S608 - confirmed no sqli
         )
         connection.execute(create_stmt)
         connection.execute(trigger_insert)

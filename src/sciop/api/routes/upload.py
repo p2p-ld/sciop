@@ -32,7 +32,7 @@ async def upload_torrent(
     torrent.validate()
     await file.seek(0)
     hash = _hash_file(file)
-    existing_torrent = crud.get_torrent_from_hash(session=session, hash=hash)
+    existing_torrent = crud.get_torrent_from_file_hash(session=session, hash=hash)
     if existing_torrent:
         # FIXME: Handle duplicate torrent files
         # raise HTTPException(
@@ -43,7 +43,8 @@ async def upload_torrent(
 
     created_torrent = TorrentFileCreate(
         file_name=file.filename,
-        hash=hash,
+        file_hash=hash,
+        infohash=torrent.infohash,
         short_hash=hash[0:8],
         total_size=torrent.size,
         piece_size=torrent.piece_size,

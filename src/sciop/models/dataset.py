@@ -1,45 +1,58 @@
-import re
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Annotated, Optional
 
 from pydantic import field_validator
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.account import Account
 from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
-from sciop.types import IDField, InputType, Priority, SourceType, Status
+from sciop.types import (
+    EscapedStr,
+    IDField,
+    InputType,
+    MaxLenURL,
+    Priority,
+    SlugStr,
+    SourceType,
+    Status,
+)
 
 if TYPE_CHECKING:
     from sciop.models import AuditLog, Upload
 
 
 class DatasetBase(SQLModel):
-    title: str = Field(
+    title: EscapedStr = Field(
         title="Title",
         description="""
     Human readable name for dataset. 
     Match the title given by the source as closely as possible.
     """,
+        min_length=3,
+        max_length=512,
     )
-    slug: str = Field(
+    slug: SlugStr = Field(
         title="Dataset Slug",
         description="""
     Short, computer readable name for dataset.
     The acronym or abbreviation of the dataset name, e.g. for the NOAA
     "Fundamental Climate Data Record - Mean Layer Temperature NOAA"
-    use "fcdr-mlt-noaa"
+    use "fcdr-mlt-noaa". Converted to a slugified string.
     """,
         unique=True,
         index=True,
+        min_length=2,
+        max_length=48,
     )
-    publisher: str = Field(
+    publisher: EscapedStr = Field(
         title="Publisher",
         description="""
     The agency, organization, author, group, publisher, etc. that is associated with the dataset.
     Please use a canonical acronym/abbreviation form of the name when possible,
     using the autocompleted values if any correct matches are listed.
     """,
+        max_length=256,
     )
-    homepage: Optional[str] = Field(
+    homepage: Optional[MaxLenURL] = Field(
         None,
         title="Homepage",
         description="""
@@ -47,16 +60,17 @@ class DatasetBase(SQLModel):
     (but isn't necessarily the direct link to the data itself), if any. 
     """,
     )
-    description: Optional[str] = Field(
+    description: Optional[EscapedStr] = Field(
         None,
         title="Description",
         description="""
     (Optional) Additional information about the dataset.
     """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+        max_length=4096,
     )
     priority: Priority = Field("unknown", title="Priority")
-    priority_comment: Optional[str] = Field(
+    priority_comment: Optional[EscapedStr] = Field(
         None,
         title="Priority Comment",
         description="""
@@ -64,6 +78,7 @@ class DatasetBase(SQLModel):
     if it is especially endangered or likely to be tampered with in the short term.
     """,
         schema_extra={"input_type": InputType.textarea},
+        max_length=1024,
     )
     source: SourceType = Field(
         "unknown",
@@ -92,7 +107,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
 
 
 class DatasetCreate(DatasetBase):
-    urls: list[str] = Field(
+    urls: list[MaxLenURL] = Field(
         title="URL(s)",
         description="""
         URL(s) to the direct download of the data, if public.
@@ -102,7 +117,7 @@ class DatasetCreate(DatasetBase):
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
     )
-    tags: list[str] = Field(
+    tags: list[Annotated[SlugStr, Field(min_length=2, max_length=32)]] = Field(
         title="Tags",
         description="""
         Tags for this dataset. One tag per line. 
@@ -125,20 +140,9 @@ class DatasetCreate(DatasetBase):
         elif isinstance(value, list) and len(value) == 1 and "\n" in value[0]:
             value = value[0].splitlines()
 
+        # filter empty strings
+        value = [v for v in value if v.strip()]
         return value
-
-    @field_validator("tags", mode="after")
-    def tokenize_tags(cls, value: list[str]) -> list[str]:
-        """Transform tags to lowercase alphanumeric characters, replacing anything else with -"""
-        res = [_tokenize(v) for v in value]
-        return res
-
-
-def _tokenize(v: str) -> str:
-    v = v.lower()
-    v = re.sub(r"[^0-9a-z\s\-_]", "", v)
-    v = re.sub(r"[\s_]", "-", v)
-    return v
 
 
 class DatasetRead(DatasetBase, TableReadMixin):
@@ -156,7 +160,7 @@ class DatasetURL(SQLModel, table=True):
     dataset_url_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
     dataset: Optional[Dataset] = Relationship(back_populates="urls")
-    url: str
+    url: MaxLenURL
 
 
 class DatasetTag(SQLModel, table=True):
@@ -165,19 +169,21 @@ class DatasetTag(SQLModel, table=True):
     dataset_tag_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
     dataset: Optional[Dataset] = Relationship(back_populates="tags")
-    tag: str
+    tag: SlugStr = Field(max_length=32)
 
 
 class ExternalSourceBase(SQLModel):
     """An external source for this dataset"""
 
-    organization: str = Field(
-        "", description="The name of the group or person who provides the dataset"
+    source: EscapedStr = Field(
+        description="The name of the group or person who provides the dataset",
+        max_length=256,
     )
-    url: str = Field(description="Link to the external source")
-    description: str = Field(
+    url: MaxLenURL = Field(description="Link to the external source", max_length=512)
+    description: EscapedStr = Field(
         description="Additional information about the completeness, accuracy, etc. "
-        "of the external source"
+        "of the external source",
+        max_length=4096,
     )
 
 

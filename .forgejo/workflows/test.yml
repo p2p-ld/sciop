@@ -9,12 +9,15 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  test-codeberg:
     name: tests
-    runs-on: ${{ contains( env.GITHUB_SERVER_URL, 'codeberg.org') && 'codeberg-tiny' || 'ubuntu-latest' }}
+    runs-on: codeberg-tiny
     steps:
       - name: Checkout repo
         uses: https://code.forgejo.org/actions/checkout@v4
+      - name: Echo github server url
+        run: |
+          echo "${{ env.GITHUB_SERVER_URL }}"
       - name: Install python
         uses: https://code.forgejo.org/actions/setup-python@v5
         with:

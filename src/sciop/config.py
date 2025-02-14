@@ -4,6 +4,7 @@ from typing import Literal, Optional
 from platformdirs import PlatformDirs
 from pydantic import (
     BaseModel,
+    Field,
     computed_field,
     field_validator,
 )
@@ -69,23 +70,37 @@ class CSPConfig(BaseModel):
 
     default_src: Literal["self"] | str = "self"
     child_src: Literal["self"] | str = "self"
-    img_src: Literal["self"] | str = "self, data:"
+    img_src: Literal["self"] | str = "self"
     object_src: Literal["none"] | str = "none"
-    script_src: Literal["self"] | str = "self"
+    script_src: Literal["self"] | str = "strict-dynamic"  # "strict-dynamic"
     style_src: Literal["self"] | str = "self"
 
-    _format: Optional[str] = None
+    nonce_entropy: int = 90
+    enable_nonce: list[str] = Field(default_factory=lambda: ["script_src"])
 
-    def format(self) -> str:
+    def format(self, nonce: str) -> str:
         """
         Create a Content-Security_Policy header string
 
-        Only generated once per instance - CSPConfig is not intended to be mutated
+        TODO: This seems rly slow on every page load, profile this later.
         """
-        if self._format is None:
-            format_parts = [f"{k.replace('_', '-')} '{v}'" for k, v in self.model_dump().items()]
-            self._format = "; ".join(format_parts)
-        return self._format
+
+        format_parts = []
+        for key, val in self.model_dump().items():
+            if key in ("nonce_entropy", "enable_nonce"):
+                continue
+
+            # if we're given a pre-quoted string, or multiple params, assume they're quoted already
+            if "'" not in val:
+                val = f"'{val}'"
+
+            if key in self.enable_nonce:
+                val = f"'nonce-{nonce}' {val}"
+
+            key = key.replace("_", "-")
+            format_parts.append(f"{key} {val}")
+
+        return "; ".join(format_parts)
 
 
 class Config(BaseSettings):

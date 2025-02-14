@@ -6,7 +6,7 @@ from sqlmodel import Field, Relationship, SQLModel
 from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, TorrentFile
 from sciop.models.mixin import TableMixin, TableReadMixin
-from sciop.types import IDField, InputType
+from sciop.types import EscapedStr, IDField, InputType
 
 
 class UploadBase(SQLModel):
@@ -14,15 +14,17 @@ class UploadBase(SQLModel):
     A copy of a dataset
     """
 
-    method: Optional[str] = Field(
+    method: Optional[EscapedStr] = Field(
         None,
         description="""Description of how the dataset was acquired""",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+        max_length=2048,
     )
-    description: Optional[str] = Field(
+    description: Optional[EscapedStr] = Field(
         None,
         description="Any additional information about this dataset upload",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+        max_length=4096,
     )
 
 

@@ -47,9 +47,13 @@ def template_models(request: Request) -> dict[L["models"], ModuleType]:
     return {"models": models}
 
 
+def template_nonce(request: Request) -> dict[L["nonce"], str]:
+    return {"nonce": getattr(request.state, "nonce", "")}
+
+
 templates = Jinja2Templates(
     directory=TEMPLATE_DIR,
-    context_processors=[template_account, template_config, template_models],
+    context_processors=[template_account, template_config, template_models, template_nonce],
 )
 templates.env.globals["models"] = models
 

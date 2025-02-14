@@ -44,7 +44,9 @@ def create_tables() -> None:
     """
     from sciop import models
 
+    # FIXME: Super janky, do this in a __new__ or a decorator
     models.Dataset.register_events()
+    models.Account.register_events()
 
     SQLModel.metadata.create_all(engine)
     # check version here since creating the table is the same action as
@@ -150,11 +152,11 @@ def create_seed_data() -> None:
                     slug="unapproved",
                     title="Unapproved Dataset",
                     publisher="An Agency",
-                    homepage="example.com",
+                    homepage="https://example.com",
                     description="An unapproved dataset",
                     priority="low",
                     source="web",
-                    urls=["example.com/1", "example.com/2"],
+                    urls=["https://example.com/1", "https://example.com/2"],
                     tags=["unapproved", "test", "aaa", "bbb"],
                 ),
             )
@@ -169,11 +171,11 @@ def create_seed_data() -> None:
                     slug="approved",
                     title="Example Approved Dataset with Upload",
                     publisher="Another Agency",
-                    homepage="example.com",
+                    homepage="https://example.com",
                     description="An unapproved dataset",
                     priority="low",
                     source="web",
-                    urls=["example.com/3", "example.com/4"],
+                    urls=["https://example.com/3", "https://example.com/4"],
                     tags=["approved", "test", "aaa", "bbb", "ccc"],
                 ),
             )
@@ -233,7 +235,8 @@ def _generate_upload(
 
     created_torrent = TorrentFileCreate(
         file_name=f"__{name}__.torrent",
-        hash="abcdefghijklmnop",
+        file_hash="abcdefghijklmnop",
+        infohash="fiuwhgliauherliuh",
         short_hash=short_hash,
         total_size=16384 * 4,
         piece_size=16384,

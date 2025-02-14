@@ -25,6 +25,7 @@ dependencies = [
     "slowapi>=0.1.9",
     "fasthx>=2.1.1",
     "faker>=35.2.0",
+    "python-slugify>=8.0.4",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -103,7 +104,11 @@ select = [
     # emptiness
     "D419",
     # snake case function name
-    "N802"
+    "N802",
+    # FastAPI
+    "FAST",
+    # SQLi and Autoescaping in templates
+    "S608", "S701",
 ]
 ignore = [
     "ANN101", "ANN102", "ANN401", "ANN204",
