@@ -10,9 +10,18 @@
         grid-template-columns: subgrid;
     }
 
+    @media screen and (max-width: 700px) {
+        grid-template-columns: 1fr;
+
+        .form-item {
+            grid-column-end: 2;
+        }
+    }
+
     .form-label {
         display: flex;
         align-items: center;
+        font-weight: bold;
     }
 
     .form-input,
@@ -20,13 +29,17 @@
     {
         width: 100%;
 
-        &:user-invalid {
+        &:user-invalid,
+        &.invalid {
             border: 1px solid var(--color-caution);
         }
+
     }
 
     .form-item-description {
         grid-column-start: 2;
+        color: var(--color-text-deemphasized);
+        margin-top: 0.5em;
     }
 
     .constraint-gutter {
@@ -34,8 +47,16 @@
         color: var(--color-text-deemphasized);
         font-size: 0.8em;
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
         margin-right: 1em;
+    }
+
+    .error-feedback {
+        color: var(--color-caution);
+
+        &.changed {
+            color: var(--color-primary);
+        }
     }
 
     .constraint {

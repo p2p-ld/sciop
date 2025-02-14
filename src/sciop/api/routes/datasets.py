@@ -37,9 +37,16 @@ async def datasets_create(
 ) -> DatasetRead:
     existing_dataset = crud.get_dataset(session=session, dataset_slug=dataset.slug)
     if existing_dataset:
+        # mimic the pydantic error
         raise HTTPException(
-            status_code=400,
-            detail="A dataset with this slug already exists!",
+            status_code=422,
+            detail=[
+                {
+                    "type": "value_not_unique",
+                    "loc": ["body", "slug"],
+                    "msg": "A dataset with this slug already exists!",
+                }
+            ],
         )
     created_dataset = crud.create_dataset(
         session=session, dataset_create=dataset, current_account=current_account

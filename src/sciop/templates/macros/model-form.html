@@ -24,10 +24,14 @@
 
 <div class="form-input-group">
     <div class="constraint-gutter">
+        <span class="error-feedback"></span>
+        <span class="spacer"></span>
+        <div class="constraints">
         {% if ns.minlength %}<span class="constraint">min length: {{ ns.minlength }}</span>{% endif %}
         {% if ns.maxlength %}<span class="constraint">max length: {{ ns.maxlength }}</span>{% endif %}
         {% if ns.pattern   %}<span class="constraint">matching: <code>{{ ns.pattern }}</code></span>{% endif %}
         {% if required     %}<span class="constraint">required</span>{% endif %}
+        </div>
     </div>
     <{{element}}
         id="{{ parent_id }}-{{ field_name }}"
