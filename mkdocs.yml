@@ -8,6 +8,8 @@ copyright: CC BY-NC-SA 4.0
 
 nav:
   - index.md
+  - Scraper's Guide:
+    - Checksums: scraping/checksums.md
   - API: /docs/api
 
 theme:
