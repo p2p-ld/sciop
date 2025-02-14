@@ -57,7 +57,7 @@ class DatasetBase(SQLModel):
         None,
         title="Homepage",
         description="""
-    (Optional) The index/landing page that describes this dataset
+    The index/landing page that describes this dataset
     (but isn't necessarily the direct link to the data itself), if any. 
     """,
     )
@@ -65,7 +65,7 @@ class DatasetBase(SQLModel):
         None,
         title="Description",
         description="""
-    (Optional) Additional information about the dataset.
+    Additional information about the dataset.
     """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=4096,
@@ -75,7 +75,7 @@ class DatasetBase(SQLModel):
         None,
         title="Priority Comment",
         description="""
-    (Optional) Additional information about the priority of preserving this dataset,
+    Additional information about the priority of preserving this dataset,
     if it is especially endangered or likely to be tampered with in the short term.
     """,
         schema_extra={"input_type": InputType.textarea},
