@@ -79,6 +79,7 @@ def main() -> None:
         host=config.host,
         port=config.port,
         reload=config.reload,
+        reload_includes=["*.py", "*.md", "*.yml"],
         lifespan="on",
         access_log=False,
     )
