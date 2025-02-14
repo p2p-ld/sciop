@@ -53,7 +53,7 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
     account_id: IDField = Field(default=None, primary_key=True)
     hashed_password: str
     scopes: list["Scope"] = Relationship(
-        back_populates="account",
+        back_populates="accounts",
         sa_relationship_kwargs={"lazy": "selectin"},
         link_model=AccountScopeLink,
     )
@@ -90,7 +90,7 @@ class Scope(TableMixin, EnumTableMixin, table=True):
     __enum_column_name__ = "scope"
 
     scope_id: IDField = Field(None, primary_key=True)
-    account: list[Account] = Relationship(back_populates="scopes", link_model=AccountScopeLink)
+    accounts: list[Account] = Relationship(back_populates="scopes", link_model=AccountScopeLink)
     scope: Scopes = Field(unique=True)
 
 

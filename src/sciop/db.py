@@ -7,14 +7,14 @@ from alembic.util.exc import CommandError
 from sqlalchemy import text
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, func, select
 
 from sciop.config import config
 
 if TYPE_CHECKING:
     from faker import Faker
 
-    from sciop.models import Account, Dataset, Upload
+    from sciop.models import Account, Dataset, DatasetCreate, Upload
 
 engine = create_engine(str(config.sqlite_path))
 maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
@@ -110,7 +110,7 @@ def alembic_version() -> Optional[str]:
 
 
 def create_seed_data() -> None:
-    if config.env not in ("dev", "test"):
+    if config.env != "dev":
         return
     from faker import Faker
 
@@ -190,11 +190,13 @@ def create_seed_data() -> None:
         session.commit()
 
         # generate a bunch of approved datasets to test pagination
-        n_datasets = session.query(Dataset).count()
+        n_datasets = session.exec(select(func.count(Dataset.dataset_id))).one()
         if n_datasets < 500:
             for _ in range(500):
                 generated_dataset = _generate_dataset(fake)
-                session.add(generated_dataset)
+                dataset = crud.create_dataset(session=session, dataset_create=generated_dataset)
+                dataset.enabled = True
+                session.add(dataset)
             session.commit()
 
 
@@ -272,13 +274,13 @@ def _generate_upload(
     return created_upload
 
 
-def _generate_dataset(fake: "Faker") -> "Dataset":
-    from sciop.models import Dataset, DatasetTag, DatasetURL
+def _generate_dataset(fake: "Faker") -> "DatasetCreate":
+    from sciop.models import DatasetCreate
 
     title = fake.unique.bs()
     slug = title.lower().replace(" ", "-")
 
-    return Dataset(
+    return DatasetCreate(
         slug=slug,
         title=title,
         publisher=fake.company(),
@@ -286,7 +288,6 @@ def _generate_dataset(fake: "Faker") -> "Dataset":
         description=fake.text(1000),
         priority="low",
         source="web",
-        urls=[DatasetURL(url=fake.url()) for _ in range(3)],
-        tags=[DatasetTag(tag=fake.word().lower()) for _ in range(3)],
-        enabled=True,
+        urls=[fake.url() for _ in range(3)],
+        tags=[f for f in [fake.word().lower() for _ in range(3)] if len(f) > 2],
     )

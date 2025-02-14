@@ -9,10 +9,10 @@ from sciop.models import (
     AuditLog,
     Dataset,
     DatasetCreate,
-    DatasetTag,
     DatasetURL,
     FileInTorrent,
     ModerationAction,
+    Tag,
     TorrentFile,
     TorrentFileCreate,
     TrackerInTorrent,
@@ -51,7 +51,12 @@ def create_dataset(
 ) -> Dataset:
     enabled = current_account is not None and current_account.has_scope("submit")
     urls = [DatasetURL(url=url) for url in dataset_create.urls]
-    tags = [DatasetTag(tag=tag) for tag in dataset_create.tags]
+
+    existing_tags = session.exec(select(Tag).filter(Tag.tag.in_(dataset_create.tags))).all()
+    existing_tag_str = set([e.tag for e in existing_tags])
+    new_tags = set(dataset_create.tags) - existing_tag_str
+    new_tags = [Tag(tag=tag) for tag in new_tags]
+    tags = [*existing_tags, *new_tags]
 
     db_obj = Dataset.model_validate(
         dataset_create,
@@ -141,7 +146,7 @@ def get_uploads(*, dataset: Dataset, session: Session) -> list[Upload]:
 
 
 def get_uploads_from_tag(*, session: Session, tag: str) -> list[Upload]:
-    statement = select(Upload).join(Dataset).join(DatasetTag).filter(DatasetTag.tag == tag)
+    statement = select(Upload).join(Dataset).where(Dataset.tags.any(tag=tag))
     uploads = session.exec(statement).all()
     return uploads
 

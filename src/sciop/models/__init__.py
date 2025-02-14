@@ -13,12 +13,12 @@ from sciop.models.dataset import (
     Dataset,
     DatasetCreate,
     DatasetRead,
-    DatasetTag,
     DatasetURL,
     ExternalSource,
 )
 from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
 from sciop.models.rss import TorrentFeed, TorrentItem
+from sciop.models.tag import DatasetTagLink, Tag
 from sciop.models.torrent import (
     FileInTorrent,
     FileInTorrentCreate,
@@ -42,8 +42,8 @@ __all__ = [
     "Dataset",
     "DatasetCreate",
     "DatasetRead",
-    "DatasetTag",
     "DatasetURL",
+    "DatasetTagLink",
     "ExternalSource",
     "FileInTorrent",
     "FileInTorrentCreate",
@@ -51,6 +51,7 @@ __all__ = [
     "Scope",
     "Scopes",
     "SuccessResponse",
+    "Tag",
     "Token",
     "TokenPayload",
     "TorrentFeed",
