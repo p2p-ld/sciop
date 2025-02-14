@@ -5,6 +5,7 @@ from alembic import command
 from alembic.config import Config as AlembicConfig
 from alembic.util.exc import CommandError
 from sqlalchemy import text
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -31,13 +32,9 @@ def get_session() -> Generator[Session, None, None]:
     #     session.close()
 
 
-def create_tables() -> None:
+def create_tables(engine: Engine = engine) -> None:
     """
     Create tables and stamps with an alembic version
-
-    Args:
-        engine:
-        config:
 
     References:
         - https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-an-up-to-date-database-from-scratch
@@ -52,6 +49,9 @@ def create_tables() -> None:
     # check version here since creating the table is the same action as
     # ensuring our migration metadata is correct!
     ensure_alembic_version()
+
+    models.Scope.ensure_enum_values(next(get_session()))
+
     create_seed_data()
 
 
@@ -121,18 +121,7 @@ def create_seed_data() -> None:
 
     with maker() as session:
         # session = get_session()
-        admin = crud.get_account(username="admin", session=session)
-        if not admin:
-            admin = crud.create_account(
-                account_create=AccountCreate(username="admin", password="adminadmin"),
-                session=session,
-            )
-
-        scopes = [Scope(name=a_scope) for a_scope in Scopes.__members__.values()]
-        admin.scopes = scopes
-        session.add(admin)
-        session.commit()
-        session.refresh(admin)
+        create_admin(session)
 
         uploader = crud.get_account(username="uploader", session=session)
         if not uploader:
@@ -140,7 +129,7 @@ def create_seed_data() -> None:
                 account_create=AccountCreate(username="uploader", password="uploaderuploader"),
                 session=session,
             )
-        uploader.scopes = [Scope(name=Scopes.upload)]
+        uploader.scopes = [Scope.get_item(Scopes.upload.value, session)]
         session.add(uploader)
         session.refresh(uploader)
 
@@ -207,6 +196,27 @@ def create_seed_data() -> None:
                 generated_dataset = _generate_dataset(fake)
                 session.add(generated_dataset)
             session.commit()
+
+
+def create_admin(session: Session) -> Optional["Account"]:
+    if config.env not in ("dev", "test"):
+        return
+
+    from sciop import crud
+    from sciop.models import AccountCreate, Scope, Scopes
+
+    admin = crud.get_account(username="admin", session=session)
+    if not admin:
+        admin = crud.create_account(
+            account_create=AccountCreate(username="admin", password="adminadmin"),
+            session=session,
+        )
+
+    scopes = [Scope.get_item(a_scope, session) for a_scope in Scopes.__members__.values()]
+    admin.scopes = scopes
+    session.add(admin)
+    session.commit()
+    session.refresh(admin)
 
 
 def _generate_upload(

@@ -49,9 +49,7 @@ def authenticate(*, session: Session, username: str, password: str) -> Account |
 def create_dataset(
     *, session: Session, dataset_create: DatasetCreate, current_account: Optional[Account] = None
 ) -> Dataset:
-    enabled = current_account is not None and any(
-        [scope.name == "submit" for scope in current_account.scopes]
-    )
+    enabled = current_account is not None and current_account.has_scope("submit")
     urls = [DatasetURL(url=url) for url in dataset_create.urls]
     tags = [DatasetTag(tag=tag) for tag in dataset_create.tags]
 
