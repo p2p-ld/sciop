@@ -1,5 +1,3 @@
-from urllib.parse import urljoin
-
 from fastapi import APIRouter, HTTPException
 from starlette.requests import Request
 from starlette.responses import Response
@@ -12,7 +10,6 @@ from sciop import crud
 from sciop.api.deps import SessionDep
 from sciop.config import config
 from sciop.models.dataset import Dataset
-from sciop.models.upload import Upload
 
 DSID = Namespace(f"{config.public_url}/id/")
 DSPG = Namespace(f"{config.public_url}/datasets/")
@@ -31,7 +28,7 @@ def serialise_graph(g: Graph, format: str) -> Response:
     elif format == "js":
         return Response(g.serialize(format="json-ld"), media_type="application/json")
     else:
-        raise HTTPException(500, detail=f"Something went very wrong serializing an RDF graph")
+        raise HTTPException(500, detail="Something went very wrong serializing an RDF graph")
 
 
 def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
@@ -63,7 +60,7 @@ async def dataset_graph(slug: str, suffix: str, session: SessionDep) -> Response
         raise HTTPException(404, detail=f"No such serialisation: {suffix}")
     d = crud.get_dataset(session=session, dataset_slug=slug)
     if d is None or not d.enabled:
-        raise HTTPExcception(404, detail=f"No such dataset: {slug}")
+        raise HTTPException(404, detail=f"No such dataset: {slug}")
     g = Graph()
     dataset_to_rdf(g, d)
     return serialise_graph(g, suffix)
@@ -102,7 +99,7 @@ ctype_to_suffix = {v: k for k, v in suffix_to_ctype.items()}
 @id_router.get("/{slug}")
 async def id_redirect(slug: str, request: Request) -> Response:
     try:
-        content_type = decide_content_type(
+        decide_content_type(
             request.headers.get("accept", "text/html").split(","),
             ["text/html", "application/xhtml+xml"],
         )
@@ -122,7 +119,7 @@ async def dataset_autoneg(
         suffix = ctype_to_suffix[content_type]
         return Response(status_code=303, headers={"Location": f"{slug}.{suffix}"})
     except NoAgreeableContentTypeError:
-        raise HTTPException(406, detail="No suitable serialisation, sorry")
+        raise HTTPException(406, detail="No suitable serialisation, sorry") from None
 
 
 @rdf_router.get("/tag/{tag}")
