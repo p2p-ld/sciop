@@ -29,7 +29,7 @@ class Graph(RGraph):
     def __init__(self, *av: Tuple, **kw: Dict) -> None:
         super().__init__(*av, **kw)
         self.namespace_manager.bind("tags", TAGS)
-
+        self.namespace_manager.bind("dset", DSID)
 
 def serialise_graph(g: Graph, format: str) -> Response:
     """
