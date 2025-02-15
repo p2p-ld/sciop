@@ -1,0 +1,17 @@
+{% extends "layouts/default.html" %}
+{% from "macros/model-form.html" import model_form %}
+{% block content %}
+<h2>Test page</h2>
+
+<p>
+  This is just a page that purposely has broken stuff on it to evoke errors,
+  there's nothing really interesting here
+</p>
+
+<ul>
+  <li>
+    <button hx-post="/test/500">500</button>
+  </li>
+</ul>
+
+{% endblock %}

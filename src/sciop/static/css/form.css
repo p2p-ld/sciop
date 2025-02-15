@@ -66,3 +66,32 @@
         border-color: var(--color-border-deemphasized);
     }
 }
+
+.form.login-form {
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    justify-content: space-between;
+
+    input {
+        width: 100%;
+    }
+}
+.login-form-container {
+    margin: 3em auto;
+    width: 50%;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+
+    .login-buttons {
+        margin-top: 1em;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1em;
+        button {
+            padding: 0.5em 1em;
+            font-size: 1em;
+        }
+    }
+}
