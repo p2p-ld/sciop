@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import TYPE_CHECKING, Annotated, Any, Optional
 
 from pydantic import field_validator
@@ -7,13 +8,15 @@ from sciop.models.account import Account
 from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
 from sciop.models.tag import DatasetTagLink
 from sciop.types import (
+    AccessType,
     EscapedStr,
     IDField,
     InputType,
     MaxLenURL,
+    Scarcity,
+    ScrapeStatus,
     SlugStr,
     SourceType,
-    Status,
 )
 
 if TYPE_CHECKING:
@@ -78,6 +81,40 @@ class DatasetBase(SQLModel):
     and "http" if the dataset is some other raw data available via http download.
     """,
     )
+    source_available: bool = Field(
+        default=True,
+        title="Source Available",
+        description="""
+        Whether the canonical source of this dataset is still available.
+        """,
+    )
+    last_seen_at: Optional[datetime] = Field(
+        default=None,
+        title="Last Seen At",
+        description="""
+        If the dataset has been removed, the last time it was known to be available. 
+        If the dataset is scheduled to be removed, 
+        the time in the future where it is expected to be unavailable. 
+        Otherwise, leave blank.
+        """,
+    )
+    source_access: AccessType = Field(
+        default="unknown",
+        title="Source Access",
+        description="""
+    How the canonical source can be accessed, whether it needs credentials
+    or is intended to be public
+    """,
+    )
+    scarcity: Scarcity = Field(
+        default="unknown",
+        title="Scarcity",
+        description="""
+    To prioritize scrapes, an estimate of the rarity of this dataset.
+    Datasets that are likely to only exist in one or a few places are prioritized over
+    those that are widely available.
+    """,
+    )
 
 
 class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
@@ -94,7 +131,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     )
     account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: Optional["Account"] = Relationship(back_populates="datasets")
-    status: Status = "todo"
+    scrape_status: ScrapeStatus = "unknown"
     enabled: bool = False
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
 
@@ -153,7 +190,7 @@ class DatasetRead(DatasetBase, TableReadMixin):
     external_sources: list["ExternalSource"] = Field(default_factory=list)
     urls: list["DatasetURL"] = Field(default_factory=list)
     tags: list["Tag"] = Field(default_factory=list)
-    status: Status
+    scrape_status: ScrapeStatus
     enabled: bool
 
 

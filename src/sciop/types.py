@@ -21,18 +21,40 @@ MaxLenURL = Annotated[
 ]
 
 
+class AccessType(StrEnum):
+    unknown = "unknown"
+    public = "public"
+    registration = "registration"
+    paywalled = "paywalled"
+    proprietary = "proprietary"
+
+
+class Scarcity(StrEnum):
+    unknown = "unknown"
+    source_only: Annotated[str, "The dataset is likely to only exist at the canonical source"] = (
+        "source_only"
+    )
+    external_unconfirmed: Annotated[
+        str, "The dataset likely has external backups, but their location is unknown"
+    ] = "external_unconfirmed"
+    external_confirmed: Annotated[
+        str, "The dataset is known to have readily available external sources"
+    ] = "external_confirmed"
+
+
+class ScrapeStatus(StrEnum):
+    unknown = "unknown"
+    not_started = "not_started"
+    in_progress = "in_progress"
+    completed = "completed"
+
+
 class SourceType(StrEnum):
     unknown = "unknown"
     web = "web"
     http = "http"
     ftp = "ftp"
     s3 = "s3"
-
-
-class Status(StrEnum):
-    todo = "todo"
-    claimed = "claimed"
-    completed = "completed"
 
 
 class InputType(StrEnum):

@@ -9,6 +9,7 @@
 {%- endfor %}
 {%- endif %}
 {%- set closing_tag=False %}
+{%- set input_type=None %}
 {%- if field.json_schema_extra and field.json_schema_extra.get('input_type', None) == 'textarea' %}
     {%- set element="textarea" %}
     {%- set closing_tag=True %}
@@ -17,11 +18,15 @@
     {%- set element="select" %}
     {%- set closing_tag=True %}
     {%- set cls="form-select form-input" %}
+{%- elif field.annotation.__name__ == "bool" %}
+    {%- set element="input" %}
+    {%- set input_type="checkbox" %}
+    {%- set checked=field.default is true %}
+    {%- set cls="form-checkbox form-input" %}
 {%- else %}
     {%- set element="input" %}
     {%- set cls="form-input" %}
 {%- endif -%}
-
 <div class="form-input-group">
     <div class="constraint-gutter">
         <span class="error-feedback"></span>
@@ -37,10 +42,12 @@
         id="{{ parent_id }}-{{ field_name }}"
         name="{{ field_name }}"
         class="{{ cls }}{% if not required %} optional{% endif %}"
-        {%- if required %}required{% endif %}
+        {%- if input_type %} type="{{ input_type }}"{% endif %}
         {%- if ns.minlength %} minlength="{{ ns.minlength }}"{% endif %}
         {%- if ns.maxlength %} maxlength="{{ ns.maxlength }}"{% endif %}
         {%- if ns.pattern %} pattern="{{ ns.pattern }}"{% endif %}
+        {%- if required %} required{% endif %}
+        {%- if checked %} checked{% endif %}
     >
     {%- if element=="select" %}
     {% for member in field.annotation.__members__.values() %}
