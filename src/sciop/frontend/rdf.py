@@ -1,10 +1,10 @@
+from content_negotiation import NoAgreeableContentTypeError, decide_content_type
 from fastapi import APIRouter, HTTPException
+from rdflib.graph import Graph
+from rdflib.namespace import DCAT, DCTERMS, FOAF, RDF, RDFS, Namespace
+from rdflib.term import BNode, Literal, URIRef
 from starlette.requests import Request
 from starlette.responses import Response
-from rdflib.namespace import Namespace, RDF, RDFS, DCTERMS, DCAT, FOAF
-from rdflib.graph import Graph
-from rdflib.term import BNode, Literal, URIRef
-from content_negotiation import decide_content_type, NoAgreeableContentTypeError
 
 from sciop import crud
 from sciop.api.deps import SessionDep
@@ -133,4 +133,4 @@ async def tag_autoneg(
         suffix = ctype_to_suffix[content_type]
         return Response(status_code=303, headers={"Location": f"{tag}.{suffix}"})
     except NoAgreeableContentTypeError:
-        raise HTTPException(406, detail="No suitable serialisation, sorry")
+        raise HTTPException(406, detail="No suitable serialisation, sorry") from None
