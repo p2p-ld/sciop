@@ -26,10 +26,9 @@ class Graph(RGraph):
     for nicer serialisations
     """
 
-
-def __init__(self: Graph, *av: Tuple, **kw: Dict) -> None:
-    super().__init__(*av, **kw)
-    self.namespace_manager.bind("tags", TAGS)
+    def __init__(self, *av: Tuple, **kw: Dict) -> None:
+        super().__init__(*av, **kw)
+        self.namespace_manager.bind("tags", TAGS)
 
 
 def serialise_graph(g: Graph, format: str) -> Response:
