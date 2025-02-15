@@ -56,3 +56,10 @@
 .font-mono {
     font-family: var(--font-mono);
 }
+
+.aside {
+    color: var(--color-text-deemphasized);
+    font-style: italic;
+    font-size: 0.8em;
+    margin: 2em 0;
+}

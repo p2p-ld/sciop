@@ -1,7 +1,10 @@
+import re
+import unicodedata
 from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
+from pydantic import field_validator
 from sqlalchemy.orm import relationship
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -78,7 +81,29 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
 
 
 class AccountCreate(AccountBase):
-    password: str = Field(min_length=8, max_length=64)
+    password: str = Field(min_length=12, max_length=64)
+
+    @field_validator("password", mode="after")
+    def has_digits(cls, val: str) -> str:
+        """Has at least two digits, and password not exclusively digits"""
+        n_digits = len(re.findall(r"\d{1}", val))
+
+        assert n_digits >= 2, "Passwords must have at least two digits"
+        assert n_digits <= len(val) - 2, "Passwords must have at least two non-digit characters"
+
+        return val
+
+    @field_validator("password", mode="after")
+    def normalize_unicode(cls, val: str) -> str:
+        """
+        Normalize passwords to form C
+
+        idk my dogs if i'm wrong about this hmu
+
+        https://www.unicode.org/reports/tr15/#Stability_of_Normalized_Forms
+        https://www.rfc-editor.org/rfc/rfc8265#section-4.2
+        """
+        return unicodedata.normalize("NFC", val)
 
 
 class AccountRead(AccountBase):
