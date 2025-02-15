@@ -1,3 +1,4 @@
+import gzip
 import logging
 from io import BytesIO
 from secrets import token_urlsafe
@@ -150,6 +151,8 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                         chunk = chunk.encode(response.charset)
                     raw_buffer.write(chunk)
                 body = raw_buffer.getvalue()
+                if response.headers.get("content-encoding", False) == "gzip":
+                    body = gzip.decompress(body)
             response.body_iterator = iterate_in_threadpool(iter(chunks))
         elif hasattr(response, "body"):
             body = response.body.decode("utf-8")

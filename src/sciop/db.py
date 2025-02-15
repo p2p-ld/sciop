@@ -126,7 +126,7 @@ def create_seed_data() -> None:
         uploader = crud.get_account(username="uploader", session=session)
         if not uploader:
             uploader = crud.create_account(
-                account_create=AccountCreate(username="uploader", password="uploaderuploader"),
+                account_create=AccountCreate(username="uploader", password="uploaderuploader12"),
                 session=session,
             )
         uploader.scopes = [Scope.get_item(Scopes.upload.value, session)]
@@ -210,7 +210,7 @@ def create_admin(session: Session) -> Optional["Account"]:
     admin = crud.get_account(username="admin", session=session)
     if not admin:
         admin = crud.create_account(
-            account_create=AccountCreate(username="admin", password="adminadmin"),
+            account_create=AccountCreate(username="admin", password="adminadmin12"),
             session=session,
         )
 

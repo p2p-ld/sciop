@@ -6,17 +6,23 @@ from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
-from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.cors import CORSMiddleware
 
 from sciop.api.main import api_router
 from sciop.config import config
 from sciop.const import DOCS_DIR, STATIC_DIR
 from sciop.db import create_tables
+from sciop.exceptions import http_handler, rate_limit_handler
 from sciop.frontend.main import frontend_router
 from sciop.logging import init_logger
-from sciop.middleware import LoggingMiddleware, limiter, security_headers
+from sciop.middleware import (
+    ContentSizeLimitMiddleware,
+    LoggingMiddleware,
+    limiter,
+    security_headers,
+)
 from sciop.services import build_docs
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
@@ -42,10 +48,10 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
-app.add_exception_handler(429, _rate_limit_exceeded_handler)
-app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
+app.add_middleware(ContentSizeLimitMiddleware, max_content_size=config.upload_limit)
 app.middleware("http")(security_headers)
 app.add_middleware(LoggingMiddleware, logger=init_logger("requests"))
+app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
 
 # Set all CORS enabled origins
 if config.all_cors_origins:
@@ -67,10 +73,8 @@ DOCS_DIR.mkdir(exist_ok=True)
 app.mount("/docs", StaticFiles(directory=DOCS_DIR, html=True), name="docs")
 add_pagination(app)
 
-# app.add_middleware(
-#     ContentSizeLimitMiddleware,
-#     max_content_size = config.upload_limit
-# )
+app.add_exception_handler(429, rate_limit_handler)
+app.add_exception_handler(StarletteHTTPException, http_handler)
 
 
 def main() -> None:

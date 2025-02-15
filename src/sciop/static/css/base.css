@@ -17,3 +17,7 @@ a:hover {
 .preload {
   transition: none !important;
 }
+
+ul {
+    padding-inline-start: 1em;
+}
