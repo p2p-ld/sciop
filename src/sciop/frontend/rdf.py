@@ -20,6 +20,7 @@ DSPG = Namespace(f"{config.public_url}/datasets/")
 id_router = APIRouter(prefix="/id")
 rdf_router = APIRouter(prefix="/rdf")
 
+
 def serialise_graph(g: Graph, format: str) -> Response:
     if format == "ttl":
         return Response(g.serialize(format="ttl"), media_type="text/turtle")
@@ -31,6 +32,7 @@ def serialise_graph(g: Graph, format: str) -> Response:
         return Response(g.serialize(format="json-ld"), media_type="application/json")
     else:
         raise HTTPException(500, detail=f"Something went very wrong serializing an RDF graph")
+
 
 def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
     g.add((DSID[d.slug], RDF["type"], DCAT["Dataset"]))
@@ -45,13 +47,15 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
     for tag in d.tags:
         g.add((DSID[d.slug], DCAT["keyword"], Literal(tag.tag)))
     for u in d.uploads:
-        if not u.enabled: continue
+        if not u.enabled:
+            continue
         n = BNode()
         g.add((DSID[d.slug], DCAT["distribution"], n))
         g.add((n, RDF["type"], DCAT["Distribution"]))
         g.add((n, DCAT["downloadURL"], URIRef(u.absolute_download_path)))
         g.add((n, DCAT["mediaType"], Literal("application/x-bittorrent")))
     return g
+
 
 @rdf_router.get("/datasets/{slug}.{suffix}")
 async def dataset_graph(slug: str, suffix: str, session: SessionDep) -> Response:
@@ -63,6 +67,7 @@ async def dataset_graph(slug: str, suffix: str, session: SessionDep) -> Response
     g = Graph()
     dataset_to_rdf(g, d)
     return serialise_graph(g, suffix)
+
 
 @rdf_router.get("/tag/{tag}.{suffix}")
 async def tag_feed(tag: str, suffix: str, session: SessionDep) -> Response:
@@ -83,47 +88,52 @@ async def tag_feed(tag: str, suffix: str, session: SessionDep) -> Response:
 
     return serialise_graph(g, suffix)
 
+
 ## Content-type autonegotiation plumbing
 suffix_to_ctype = {
-        "ttl": "text/turtle",
-        "rdf": "application/rdf+xml",
-        "nt": "text/n-triples",
-        "js": "application/json",
+    "ttl": "text/turtle",
+    "rdf": "application/rdf+xml",
+    "nt": "text/n-triples",
+    "js": "application/json",
 }
-ctype_to_suffix = { v:k for k,v in suffix_to_ctype.items() }
+ctype_to_suffix = {v: k for k, v in suffix_to_ctype.items()}
+
 
 @id_router.get("/{slug}")
 async def id_redirect(slug: str, request: Request) -> Response:
     try:
         content_type = decide_content_type(
-                request.headers.get("accept", "text/html").split(","),
-                ["text/html", "application/xhtml+xml"],
+            request.headers.get("accept", "text/html").split(","),
+            ["text/html", "application/xhtml+xml"],
         )
-        return Response(status_code=303, headers={ "Location": f"/datasets/{slug}" })
+        return Response(status_code=303, headers={"Location": f"/datasets/{slug}"})
     except NoAgreeableContentTypeError:
-        return Response(status_code=303, headers={ "Location": f"/rdf/datasets/{slug}" })
+        return Response(status_code=303, headers={"Location": f"/rdf/datasets/{slug}"})
+
 
 @rdf_router.get("/datasets/{slug}")
-async def dataset_autoneg(slug: str, session: SessionDep, request: Request, response: Response) -> Response:
+async def dataset_autoneg(
+    slug: str, session: SessionDep, request: Request, response: Response
+) -> Response:
     try:
         content_type = decide_content_type(
-                request.headers.get("accept", "text/turtle").split(","),
-                list(ctype_to_suffix)
+            request.headers.get("accept", "text/turtle").split(","), list(ctype_to_suffix)
         )
         suffix = ctype_to_suffix[content_type]
-        return Response(status_code=303, headers={ "Location": f"{slug}.{suffix}" })
+        return Response(status_code=303, headers={"Location": f"{slug}.{suffix}"})
     except NoAgreeableContentTypeError:
         raise HTTPException(406, detail="No suitable serialisation, sorry")
+
 
 @rdf_router.get("/tag/{tag}")
-async def tag_autoneg(tag: str, session: SessionDep, request: Request, response: Response) -> Response:
+async def tag_autoneg(
+    tag: str, session: SessionDep, request: Request, response: Response
+) -> Response:
     try:
         content_type = decide_content_type(
-                request.headers.get("accept", "text/turtle").split(","),
-                list(ctype_to_suffix)
+            request.headers.get("accept", "text/turtle").split(","), list(ctype_to_suffix)
         )
         suffix = ctype_to_suffix[content_type]
-        return Response(status_code=303, headers={ "Location": f"{tag}.{suffix}" })
+        return Response(status_code=303, headers={"Location": f"{tag}.{suffix}"})
     except NoAgreeableContentTypeError:
         raise HTTPException(406, detail="No suitable serialisation, sorry")
-
