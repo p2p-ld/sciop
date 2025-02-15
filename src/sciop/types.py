@@ -20,14 +20,6 @@ MaxLenURL = Annotated[
     str, MaxLen(512), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
 ]
 
-
-class Priority(StrEnum):
-    unknown = "unknown"
-    low = "low"
-    medium = "medium"
-    high = "high"
-
-
 class SourceType(StrEnum):
     unknown = "unknown"
     web = "web"

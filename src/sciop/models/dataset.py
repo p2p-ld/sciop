@@ -11,7 +11,6 @@ from sciop.types import (
     IDField,
     InputType,
     MaxLenURL,
-    Priority,
     SlugStr,
     SourceType,
     Status,
@@ -70,18 +69,7 @@ class DatasetBase(SQLModel):
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=4096,
     )
-    priority: Priority = Field("unknown", title="Priority")
-    priority_comment: Optional[EscapedStr] = Field(
-        None,
-        title="Priority Comment",
-        description="""
-    Additional information about the priority of preserving this dataset,
-    if it is especially endangered or likely to be tampered with in the short term.
-    """,
-        schema_extra={"input_type": InputType.textarea},
-        max_length=1024,
-    )
-    source: SourceType = Field(
+    source_type: SourceType = Field(
         "unknown",
         title="Source Type",
         description="""
@@ -90,6 +78,7 @@ class DatasetBase(SQLModel):
     and "http" if the dataset is some other raw data available via http download.
     """,
     )
+
 
 
 class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
