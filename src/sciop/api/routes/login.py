@@ -28,7 +28,7 @@ def login(
         session=session, username=account.username, password=account.password
     )
     if account is None:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+        raise HTTPException(status_code=400, detail="Incorrect password or account does not exist")
 
     access_token_expires = timedelta(minutes=config.token_expire_minutes)
     token = create_access_token(account.account_id, expires_delta=access_token_expires)

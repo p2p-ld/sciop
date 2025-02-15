@@ -1,23 +1,35 @@
 {% extends "layouts/default.html" %}
 {% block content %}
+<div class="login-form-container">
 <form hx-post="{{ config.api_prefix }}/login" class="form login-form enter-trigger" id="login-form"
       hx-trigger="enterKeyUp">
-    <div class="form-row">
+    <div class="form-item">
         <label for="username" class="form-label">Username</label>
-        <input id="username" name="username" type="text">
+        <div class="form-input-group">
+            <input id="username" name="username" type="text">
+            <div class="constraint-gutter">
+                <span class="error-feedback"></span>
+            </div>
+        </div>
     </div>
-    <div class="form-row">
+    <div class="form-item">
         <label for="password" class="form-label">Password</label>
-        <input id="password" name="password" type="password">
+        <div class="form-input-group">
+            <input id="password" name="password" type="password">
+            <div class="constraint-gutter">
+                <span class="error-feedback"></span>
+            </div>
+        </div>
     </div>
 </form>
-<div class="form-row">
+<div class="form-row login-buttons">
     <button
         class="form-button"
         type="submit"
         name="account"
         hx-post="{{ config.api_prefix }}/register"
         hx-include="#login-form"
+        hx-target="#login-form"
     >Register</button>
     <button
         class="form-button"
@@ -25,6 +37,8 @@
         name="account"
         hx-post="{{ config.api_prefix }}/login"
         hx-include="#login-form"
+        hx-target="#login-form"
     >Login</button>
+</div>
 </div>
 {% endblock %}

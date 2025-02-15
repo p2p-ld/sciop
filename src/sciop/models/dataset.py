@@ -42,7 +42,7 @@ class DatasetBase(SQLModel):
         unique=True,
         index=True,
         min_length=2,
-        max_length=48,
+        max_length=128,
     )
     publisher: EscapedStr = Field(
         title="Publisher",

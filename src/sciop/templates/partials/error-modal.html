@@ -1,0 +1,11 @@
+{% set id_n = range(1, 1024) | random %}
+<div id="error-modal-{{ id_n }}" class="error-modal modal">
+  <div class="modal-header">
+    <span class="status-code">{{ status_code }} </span>
+    <button class="close-button" hx-target="#error-modal-{{ id_n }}" hx-swap="delete"
+            data-target="#error-modal-{{ id_n }}">close</button>
+  </div>
+  <div class="modal-body">
+    {{ detail }}
+  </div>
+</div>

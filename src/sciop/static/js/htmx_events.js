@@ -18,7 +18,6 @@ document.addEventListener("keyup", (e) => {
 // Error reporting for forms
 htmx.on("htmx:responseError", (e) => {
   const xhr = e.detail.xhr;
-
   if (xhr.status == 422) {
     const errors = JSON.parse(xhr.responseText)["detail"];
     const form = e.detail.target;
@@ -45,4 +44,21 @@ htmx.on("htmx:responseError", (e) => {
     // Handle the error some other way
     console.error(xhr.responseText);
   }
+})
+
+htmx.on("htmx:beforeOnLoad", (evt) => {
+  if (evt.detail.xhr.status >= 400 && evt.detail.xhr.status !== 422) {
+      evt.detail.shouldSwap = true;
+  }
+})
+
+// Close buttons on modals
+htmx.on("htmx:afterSwap", (evt) => {
+  if (evt.detail.xhr.status<400){ return }
+  let buttons = [...evt.detail.target.querySelectorAll(".close-button")];
+  buttons.forEach((b) => {
+    b.addEventListener("click", () => {
+      let target = document.querySelector(b.getAttribute('data-target'));
+      target.remove();
+  })})
 })
