@@ -132,7 +132,7 @@ def account(session: Session) -> "Account":
 
     account = crud.get_account(session=session, username="test_account")
     if not account:
-        account = AccountCreate(username="test_account", password="a very strong password")
+        account = AccountCreate(username="test_account", password="a very strong password12")
         account = crud.create_account(session=session, account_create=account)
     return account
 
@@ -151,7 +151,7 @@ def admin_token(client: "TestClient", admin_user: "Account") -> "Token":
 
     response = client.post(
         config.api_prefix + "/login",
-        data={"username": "admin", "password": "adminadmin"},
+        data={"username": "admin", "password": "adminadmin12"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert response.status_code == 200
