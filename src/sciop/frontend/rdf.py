@@ -67,7 +67,10 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
         g.add((DSID[d.slug], DCAT["keyword"], Literal(tag.tag)))
         g.add((DSID[d.slug], DCAT["inCatalog"], TAGS[tag.tag]))
     for u in d.urls:
-        g.add((DSID[d.slug], DCAT["downloadURL"], URIRef(u.url)))
+        n = BNode()
+        g.add((DSID[d.slug], DCAT["distribution"], n))
+        g.add((n, RDF["type"], DCAT["Distribution"]))
+        g.add((n, DCAT["downloadURL"], URIRef(u.url)))
     for u in d.uploads:
         if not u.enabled:
             continue
