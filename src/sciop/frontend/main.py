@@ -5,6 +5,7 @@ from sciop.config import config
 from sciop.frontend.accounts import accounts_router
 from sciop.frontend.datasets import datasets_router
 from sciop.frontend.index import index_router
+from sciop.frontend.rdf import id_router, rdf_router
 from sciop.frontend.rss import rss_router
 from sciop.frontend.self import self_router
 from sciop.frontend.test import test_router
@@ -15,6 +16,8 @@ frontend_router.include_router(index_router)
 frontend_router.include_router(accounts_router)
 frontend_router.include_router(datasets_router)
 frontend_router.include_router(rss_router)
+frontend_router.include_router(id_router)
+frontend_router.include_router(rdf_router)
 
 frontend_router.include_router(self_router)
 frontend_router.include_router(uploads_router)

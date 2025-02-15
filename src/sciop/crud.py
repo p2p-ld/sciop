@@ -80,10 +80,20 @@ def get_approved_datasets(*, session: Session) -> list[Dataset]:
     return session.exec(statement).all()
 
 
+def get_approved_datasets_from_tag(*, session: Session, tag: str) -> list[Upload]:
+    statement = select(Dataset).where(Dataset.enabled == True, Dataset.tags.any(tag=tag))
+    return session.exec(statement).all()
+
+
 def get_review_datasets(*, session: Session) -> list[Dataset]:
     statement = select(Dataset).where(Dataset.enabled == False)
     datasets = session.exec(statement).all()
     return datasets
+
+
+def get_review_datasets_from_tag(*, session: Session, tag: str) -> list[Upload]:
+    statement = select(Dataset).where(Dataset.enabled == False, Dataset.tags.any(tag=tag))
+    return session.exec(statement).all()
 
 
 def get_review_uploads(*, session: Session) -> list[Upload]:
