@@ -80,7 +80,6 @@ class DatasetBase(SQLModel):
     )
 
 
-
 class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     __searchable__ = ["title", "slug", "publisher", "homepage", "description"]
 
