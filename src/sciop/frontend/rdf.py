@@ -76,6 +76,15 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
         g.add((n, RDF["type"], DCAT["Distribution"]))
         g.add((n, DCAT["downloadURL"], URIRef(u.absolute_download_path)))
         g.add((n, DCAT["mediaType"], Literal("application/x-bittorrent")))
+    for s in d.external_sources:
+        n = BNode()
+        g.add((DSID[d.slug], DCTERMS["contributor"], n))
+        if s.name is not None:
+            g.add((n, FOAF["name"], Literal(s.source)))
+        if s.url is not None:
+            g.add((n, FOAF["homepage"], URIRef(s.url)))
+        if s.description is not None:
+            g.add((n, DCTERMS["description"], Literal(s.description)))
     docs = [
         URIRef(f"{config.public_url}/rdf/datasets/{d.slug}.ttl"),
         URIRef(f"{config.public_url}/rdf/datasets/{d.slug}.rdf"),
