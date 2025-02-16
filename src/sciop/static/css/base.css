@@ -18,6 +18,10 @@ a:hover {
   transition: none !important;
 }
 
+ul {
+    padding-inline-start: 1em;
+}
+
 .hidden {
   display: none;
 }
