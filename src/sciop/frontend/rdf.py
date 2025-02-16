@@ -63,6 +63,10 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
         g.add((DSID[d.slug], DCTERMS["description"], Literal(d.description)))
     if d.homepage is not None:
         g.add((DSID[d.slug], FOAF["homepage"], URIRef(d.homepage)))
+    if d.dataset_created_at is not None:
+        g.add((DSID[d.slug], DCTERMS["created"], Literal(d.dataset_created_at)))
+    if d.dataset_updated_at is not None:
+        g.add((DSID[d.slug], DCTERMS["modified"], Literal(d.dataset_updated_at)))
     for tag in d.tags:
         g.add((DSID[d.slug], DCAT["keyword"], Literal(tag.tag)))
         g.add((DSID[d.slug], DCAT["inCatalog"], TAGS[tag.tag]))
