@@ -69,5 +69,12 @@ To run lint:
 
 Changes can then be submitted as a pull request against this repository on Codeberg.
 
+# Troubleshooting
+
+## DB Migrations
+We currently don't support database migrations, so old versions of the sqlite db can cause errors upon changes to the code. By default, the database is located at `./db.sqlite` wherever you invoke `sciop` from, so deleting the database should resolve any exceptions relating to missing columns and the like:
+
+    rm -v ./db.sqlite
+
 # License
 [EUPL v1.2](./LICENSE)
