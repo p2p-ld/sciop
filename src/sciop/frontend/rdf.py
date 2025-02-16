@@ -31,6 +31,7 @@ class Graph(RGraph):
         self.namespace_manager.bind("tags", TAGS)
         self.namespace_manager.bind("dset", DSID)
 
+
 def serialise_graph(g: Graph, format: str) -> Response:
     """
     Serialises an RDF graph into an HTTP response, setting
