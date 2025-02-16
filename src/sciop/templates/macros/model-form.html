@@ -79,7 +79,28 @@
 </div>
 
 {% if field.description %}
-<p class="form-item-description">{{ field.description }}</p>
+<div class="form-item-description">
+    {%- if annotation.__members__ and annotation.__annotations__ %}
+    <details>
+    <summary>Show/Hide Option Description</summary>
+    <table class="enum-description">
+        <tr>
+            <th>Option</th>
+            <th>Description</th>
+        </tr>
+    {%- for key, val in annotation.__annotations__.items() %}
+    <tr>
+        <td class="key"><span class="bold">{{ key }}</span></td>
+        <td class="value">{{ val.__metadata__[0] }}</td>
+    </tr>
+    {%- endfor %}
+    </table>
+    </details>
+    {%- endif %}
+    <p>
+    {{ field.description }}
+    </p>
+</div>
 {% endif %}
 {% endmacro %}
 

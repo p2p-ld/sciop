@@ -55,3 +55,7 @@
 .font-mono {
     font-family: var(--font-mono);
 }
+
+.bold {
+    font-weight: bold;
+}
