@@ -65,15 +65,24 @@ class Threat(StrEnum):
     )
     watchlist: Annotated[
         str,
-        "Content is at risk by its nature, either the topic or publisher, but no specific threat has been made",
+        (
+            "Content is at risk by its nature, either the topic or publisher, "
+            "but no specific threat has been made"
+        ),
     ] = "watchlist"
     endangered: Annotated[
         str,
-        "This item in particular is likely to be removed soon, but takedown has not been issued. This item should be preserved pre-emptively if no higher-threat items exist.",
+        (
+            "This item in particular is likely to be removed soon, but takedown has not been "
+            "issued. This item should be preserved pre-emptively if no higher-threat items exist."
+        ),
     ] = "endangered"
     takedown_issued: Annotated[
         str,
-        "This item has had a specific takedown notice issued for it, and must be preserved immediately",
+        (
+            "This item has had a specific takedown notice issued for it, "
+            "and must be preserved immediately"
+        ),
     ] = "takedown_issued"
     extinct: Annotated[str, "Threat has been realized, source no longer exists"] = "extinct"
 

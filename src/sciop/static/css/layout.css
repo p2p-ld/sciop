@@ -148,14 +148,32 @@ table {
 }
 
 .dataset-infobox {
-  .dataset-priority {
+  margin-top: 1em;
+  .dataset-threat-label {
+    text-align: center;
+    width: 100%;
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+  }
+
+  .dataset-threat {
     font-size: 2em;
     font-weight: bold;
     text-align: center;
-    margin: 0.5em 0 0 0;
+    margin: 0 0 0 0;
 
-    &.priority-low {
-      background-color: var(--color-priority-low);
+    &.threat-indefinite {
+      background-color: var(--color-threat-indefinite);
+    }
+    &.threat-watchlist {
+      background-color: var(--color-threat-watchlist);
+    }
+    &.threat-endangered {
+      background-color: var(--color-threat-endangered);
+    }
+    &.threat-takedown_issued {
+      background-color: var(--color-threat-takedown_issued);
     }
   }
 }

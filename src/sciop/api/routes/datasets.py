@@ -66,6 +66,10 @@ async def datasets_create_form(
     """
     Create a dataset with form encoded data
     """
+    # hacky workaround for checkboxes in forms
+    # https://github.com/fastapi/fastapi/discussions/13380
+    form = await request.form()
+    dataset.source_available = "source_available" in form
     created_dataset = await datasets_create(
         request=request,
         dataset=dataset,
