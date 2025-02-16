@@ -21,3 +21,7 @@ a:hover {
 ul {
     padding-inline-start: 1em;
 }
+
+.hidden {
+  display: none;
+}

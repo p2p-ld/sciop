@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import TYPE_CHECKING, Annotated, Any, Optional
 
 from pydantic import field_validator
@@ -7,14 +8,16 @@ from sciop.models.account import Account
 from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
 from sciop.models.tag import DatasetTagLink
 from sciop.types import (
+    AccessType,
     EscapedStr,
     IDField,
     InputType,
     MaxLenURL,
-    Priority,
+    Scarcity,
+    ScrapeStatus,
     SlugStr,
     SourceType,
-    Status,
+    Threat,
 )
 
 if TYPE_CHECKING:
@@ -52,6 +55,7 @@ class DatasetBase(SQLModel):
     using the autocompleted values if any correct matches are listed.
     """,
         max_length=256,
+        schema_extra={"json_schema_extra": {"autocomplete": "publisher"}},
     )
     homepage: Optional[MaxLenURL] = Field(
         None,
@@ -70,24 +74,72 @@ class DatasetBase(SQLModel):
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=4096,
     )
-    priority: Priority = Field("unknown", title="Priority")
-    priority_comment: Optional[EscapedStr] = Field(
+    dataset_created_at: Optional[datetime] = Field(
         None,
-        title="Priority Comment",
+        title="Dataset Creation Date",
         description="""
-    Additional information about the priority of preserving this dataset,
-    if it is especially endangered or likely to be tampered with in the short term.
-    """,
-        schema_extra={"input_type": InputType.textarea},
-        max_length=1024,
+        Datetime when dataset was originally created in UTC. May be approximate or left blank.
+        """,
     )
-    source: SourceType = Field(
+    dataset_updated_at: Optional[datetime] = Field(
+        None,
+        title="Dataset Last Updated",
+        description="""
+        Datetime when the dataset was last updated in UTC. May be approximate or left blank
+        """,
+    )
+    source_type: SourceType = Field(
         "unknown",
         title="Source Type",
         description="""
     The protocol/technology needed to download the dataset.
     Use "web" if the dataset is an archive of websites themselves,
     and "http" if the dataset is some other raw data available via http download.
+    """,
+    )
+    source_available: bool = Field(
+        default=True,
+        title="Source Available",
+        description="""
+        Whether the canonical source of this dataset is still available.
+        """,
+    )
+    last_seen_at: Optional[datetime] = Field(
+        default=None,
+        title="Last Seen At",
+        description="""
+        If the dataset has been removed, the last time it was known to be available. 
+        If the dataset is scheduled to be removed, 
+        the time in the future where it is expected to be unavailable. 
+        Otherwise, leave blank.
+        Times should be in UTC.
+        """,
+    )
+    source_access: AccessType = Field(
+        default="unknown",
+        title="Source Access",
+        description="""
+    How the canonical source can be accessed, whether it needs credentials
+    or is intended to be public
+    """,
+    )
+    scarcity: Scarcity = Field(
+        default="unknown",
+        title="Scarcity",
+        description="""
+    To prioritize scrapes, an estimate of the rarity of this dataset.
+    Datasets that are likely to only exist in one or a few places are prioritized over
+    those that are widely available.
+    """,
+    )
+    threat: Threat = Field(
+        default="unknown",
+        title="Threat",
+        description="""
+    To prioritize scrapes, an estimate of how likely this dataset is likely to disappear
+    in the immediate future. Datasets that are under direct threat due to the their nature
+    or specific threats made against them are prioritized over those 
+    for whom no specific threat exists.
     """,
     )
 
@@ -106,7 +158,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     )
     account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: Optional["Account"] = Relationship(back_populates="datasets")
-    status: Status = "todo"
+    scrape_status: ScrapeStatus = "unknown"
     enabled: bool = False
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
 
@@ -115,28 +167,29 @@ class DatasetCreate(DatasetBase):
     urls: list[MaxLenURL] = Field(
         title="URL(s)",
         description="""
-        URL(s) to the direct download of the data, if public.
+        URL(s) to the direct download of the data, if public, 
+        or any additional URLs associated with the dataset.
         One URL per line.
-        If uploading a recursive web archive dump (source type == web), 
-        only the top-level URL is needed.
+        If uploading a recursive web archive dump, only the top-level URL is needed.
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
     )
     tags: list[Annotated[SlugStr, Field(min_length=2, max_length=32)]] = Field(
         title="Tags",
         description="""
-        Tags for this dataset. One tag per line. 
+        Tags for this dataset. Use matching autocomplete values, when available.
+        Enter as comma separated list or press enter to store a token.
         Only lowercase alphanumeric characters and `-` are allowed.
         Include as many tags as are applicable: topic, data type/file type,
         if this dataset is part of a collection (e.g. each dataset in NOAA's
         Fundamental Climate Data Records should be tagged with `fcdr`), etc.
         Tags are used to generate RSS feeds so people can reseed data that is important to them.
         """,
-        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+        schema_extra={"json_schema_extra": {"input_type": InputType.tokens}},
     )
 
     @field_validator("urls", "tags", mode="before")
-    def split_strings(cls, value: str | list[str]) -> Optional[list[str]]:
+    def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
         """Split lists of strings given as one entry per line"""
         if isinstance(value, str):
             if not value or value == "":
@@ -152,6 +205,32 @@ class DatasetCreate(DatasetBase):
         value = [v for v in value if v.strip()]
         return value
 
+    @field_validator("tags", "tags", mode="before")
+    def split_commas(cls, value: str | list[str]) -> Optional[list[str]]:
+        """Split lists of strings given as one entry per line"""
+        if isinstance(value, str):
+            if not value or value == "":
+                return None
+            value = value.split(",")
+
+        # split any substrings, e.g. if comma-separated strings are used in
+        # the token-input style of tag entry
+        split_val = []
+        for v in value:
+            split_subvals = v.split(",")
+            split_subvals = [subv.strip() for subv in split_subvals]
+            split_val.extend(split_subvals)
+        value = split_val
+
+        # filter empty strings
+        value = [v for v in value if v.strip()]
+
+        # if left with an empty list, None
+        if value:
+            return value
+        else:
+            return None
+
     @field_validator("*", mode="before")
     def empty_strings_are_none(cls, value: Any) -> Any:
         """Forms sometimes submit input without anything as empty strings not None"""
@@ -165,7 +244,7 @@ class DatasetRead(DatasetBase, TableReadMixin):
     external_sources: list["ExternalSource"] = Field(default_factory=list)
     urls: list["DatasetURL"] = Field(default_factory=list)
     tags: list["Tag"] = Field(default_factory=list)
-    status: Status
+    scrape_status: ScrapeStatus
     enabled: bool
 
 

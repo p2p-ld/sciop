@@ -9,19 +9,34 @@
 {%- endfor %}
 {%- endif %}
 {%- set closing_tag=False %}
+{%- set input_type=None %}
+{% if field.annotation.__args__ %}
+  {% set annotation = field.annotation.__args__[0] %}
+{% else %}
+  {% set annotation = field.annotation %}
+{% endif %}
+{% set autocomplete=field.json_schema_extra.autocomplete %}
 {%- if field.json_schema_extra and field.json_schema_extra.get('input_type', None) == 'textarea' %}
     {%- set element="textarea" %}
     {%- set closing_tag=True %}
     {%- set cls="form-textarea form-input" %}
-{%- elif field.annotation.__members__ %}
+{%- elif annotation.__members__ %}
     {%- set element="select" %}
     {%- set closing_tag=True %}
     {%- set cls="form-select form-input" %}
+{%- elif annotation.__name__ == "bool" %}
+    {%- set element="input" %}
+    {%- set input_type="checkbox" %}
+    {%- set checked=field.default is true %}
+    {%- set cls="form-checkbox form-input" %}
+{%- elif annotation.__name__ == "datetime"  %}
+    {%- set element="input" %}
+    {%- set input_type="datetime-local" %}
+    {%- set cls="form-datetime form-input" %}
 {%- else %}
     {%- set element="input" %}
     {%- set cls="form-input" %}
 {%- endif -%}
-
 <div class="form-input-group">
     <div class="constraint-gutter">
         <span class="error-feedback"></span>
@@ -33,14 +48,25 @@
         {% if required     %}<span class="constraint">required</span>{% endif %}
         </div>
     </div>
+{%- if field.json_schema_extra.input_type == "tokens" %}
+    {{ token_input(field, field_name, parent_id) }}
+{% else %}
     <{{element}}
         id="{{ parent_id }}-{{ field_name }}"
         name="{{ field_name }}"
         class="{{ cls }}{% if not required %} optional{% endif %}"
-        {%- if required %}required{% endif %}
+        {%- if input_type %} type="{{ input_type }}"{% endif %}
         {%- if ns.minlength %} minlength="{{ ns.minlength }}"{% endif %}
         {%- if ns.maxlength %} maxlength="{{ ns.maxlength }}"{% endif %}
         {%- if ns.pattern %} pattern="{{ ns.pattern }}"{% endif %}
+        {%- if required %} required{% endif %}
+        {%- if checked %} checked{% endif %}
+        {%- if autocomplete %}
+          hx-get="/autocomplete/{{ autocomplete }}"
+          hx-target="#{{ parent_id }}-{{ field_name }}-autocomplete"
+          hx-trigger="input changed delay:250ms"
+          list="{{ parent_id }}-{{ field_name }}-autocomplete"
+        {%- endif %}
     >
     {%- if element=="select" %}
     {% for member in field.annotation.__members__.values() %}
@@ -48,12 +74,50 @@
     {% endfor %}
     {%- endif %}
     {%- if closing_tag %}</{{element}}>{% endif %}
-
+    {% if autocomplete %}<datalist id="{{ parent_id }}-{{ field_name }}-autocomplete"></datalist>{% endif %}
+{% endif %}
 </div>
 
 {% if field.description %}
-<p class="form-item-description">{{ field.description }}</p>
+<div class="form-item-description">
+    {%- if annotation.__members__ and annotation.__annotations__ %}
+    <details>
+    <summary>Show/Hide Option Description</summary>
+    <table class="enum-description">
+        <tr>
+            <th>Option</th>
+            <th>Description</th>
+        </tr>
+    {%- for key, val in annotation.__annotations__.items() %}
+    <tr>
+        <td class="key"><span class="bold">{{ key }}</span></td>
+        <td class="value">{{ val.__metadata__[0] }}</td>
+    </tr>
+    {%- endfor %}
+    </table>
+    </details>
+    {%- endif %}
+    <p>
+    {{ field.description }}
+    </p>
+</div>
 {% endif %}
+{% endmacro %}
+
+{% macro token_input(field, field_name, parent_id) %}
+<div class="tokens-container" id="{{ parent_id }}-{{ field_name }}-tokens"></div>
+<input
+    class="form-input form-tokens"
+    id="{{ parent_id }}-{{ field_name }}"
+    name="{{ field_name }}"
+    list="{{ parent_id }}-{{ field_name }}-autocomplete"
+    hx-get="/autocomplete/{{ field_name }}"
+    hx-target="#{{ parent_id }}-{{ field_name }}-autocomplete"
+    hx-trigger="input changed delay:250ms"
+    hx-params="*"
+    data-tokens-container="#{{ parent_id }}-{{ field_name }}-tokens"
+>
+<datalist id="{{ parent_id }}-{{ field_name }}-autocomplete"></datalist>
 {% endmacro %}
 
 {% macro inner_model_form(id, model, exclude = []) %}
