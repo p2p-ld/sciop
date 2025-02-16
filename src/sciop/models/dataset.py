@@ -17,6 +17,7 @@ from sciop.types import (
     ScrapeStatus,
     SlugStr,
     SourceType,
+    Threat,
 )
 
 if TYPE_CHECKING:
@@ -115,6 +116,16 @@ class DatasetBase(SQLModel):
     To prioritize scrapes, an estimate of the rarity of this dataset.
     Datasets that are likely to only exist in one or a few places are prioritized over
     those that are widely available.
+    """,
+    )
+    threat: Threat = Field(
+        default="unknown",
+        title="Threat",
+        description="""
+    To prioritize scrapes, an estimate of how likely this dataset is likely to disappear
+    in the immediate future. Datasets that are under direct threat due to the their nature
+    or specific threats made against them are prioritized over those 
+    for whom no specific threat exists.
     """,
     )
 
