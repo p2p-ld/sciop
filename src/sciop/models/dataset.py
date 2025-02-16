@@ -74,6 +74,20 @@ class DatasetBase(SQLModel):
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=4096,
     )
+    dataset_created_at: Optional[datetime] = Field(
+        None,
+        title="Dataset Creation Date",
+        description="""
+        Datetime when dataset was originally created in UTC. May be approximate or left blank.
+        """,
+    )
+    dataset_updated_at: Optional[datetime] = Field(
+        None,
+        title="Dataset Last Updated",
+        description="""
+        Datetime when the dataset was last updated in UTC. May be approximate or left blank
+        """,
+    )
     source_type: SourceType = Field(
         "unknown",
         title="Source Type",
@@ -153,10 +167,10 @@ class DatasetCreate(DatasetBase):
     urls: list[MaxLenURL] = Field(
         title="URL(s)",
         description="""
-        URL(s) to the direct download of the data, if public.
+        URL(s) to the direct download of the data, if public, 
+        or any additional URLs associated with the dataset.
         One URL per line.
-        If uploading a recursive web archive dump (source type == web), 
-        only the top-level URL is needed.
+        If uploading a recursive web archive dump, only the top-level URL is needed.
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
     )
