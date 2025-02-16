@@ -45,7 +45,6 @@
     font-family: var(--font-mono);
     font-size: 85%;
     padding: 0.15em 0.25em;
-
 }
 
 .timestamp {
@@ -62,4 +61,8 @@
     font-style: italic;
     font-size: 0.8em;
     margin: 2em 0;
+}
+
+.bold {
+    font-weight: bold;
 }

@@ -21,23 +21,59 @@
             {% endif %}
         </div>
         <div class="dataset-infobox infobox">
-            <p class="dataset-priority priority-{{ dataset.priority.value }}">{{dataset.priority.value}}</p>
+            <span class="dataset-threat-label">Threat</span>
+            <p class="dataset-threat threat-{{ dataset.threat.value }}">{{dataset.threat.value}}</p>
             <table class="infobox-table">
-                {% if dataset.priority_comment %}
                 <tr>
-                    <td class="infobox-priority-comment">{{ dataset.priority_comment }}</td>
+                    <td class="infobox-key">Scrape Status</td>
+                    <td class="infobox-value">{{ dataset.scrape_status.value }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Available at Source</td>
+                    <td class="infobox-value">{{ dataset.source_available }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Scarcity</td>
+                    <td class="infobox-value">{{ dataset.scarcity }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Source Type</td>
+                    <td class="infobox-value">{{ dataset.source_type }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Source Access</td>
+                    <td class="infobox-value">{{ dataset.source_access }}</td>
+                </tr>
+                {% if dataset.dataset_created_at %}
+                <tr>
+                    <td class="infobox-key">Dataset Created</td>
+                    <td class="infobox-value">{{ dataset.dataset_created_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                </tr>
+                {% endif %}
+                {% if dataset.dataset_updated_at %}
+                <tr>
+                    <td class="infobox-key">Dataset Last Updated</td>
+                    <td class="infobox-value">{{ dataset.dataset_updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                </tr>
+                {% endif %}
+                {% if dataset.last_seen_at %}
+                <tr>
+                    <td class="infobox-key">
+                        {%- if dataset.last_seen_at > now(UTC) %}
+                            To be removed at
+                        {%- else %}
+                            Last Seen
+                        {%- endif %}
+                    </td>
+                    <td class="infobox-value">{{ dataset.last_seen_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
                 </tr>
                 {% endif %}
                 <tr>
-                    <td class="infobox-key">Status</td>
-                    <td class="infobox-value">{{ dataset.status.value }}</td>
-                </tr>
-                <tr>
-                    <td class="infobox-key">Created</td>
+                    <td class="infobox-key">Submitted</td>
                     <td class="infobox-value">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
                 </tr>
                 <tr>
-                    <td class="infobox-key">Updated</td>
+                    <td class="infobox-key">Record Last Updated</td>
                     <td class="infobox-value">{{ dataset.updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
                 </tr>
             </table>

@@ -2,9 +2,12 @@
 :root {
     --color-dark-background: rgba(23, 23, 26, 1);
     --color-light-background: #eee;
-    --color-priority-low: lch(56.05% 49.39 256.63);
-    --color-priority-medium: lch(58.97% 76.96 59.37);
-    --color-priority-high: lch(47.26% 75.67 14.74);
+    --color-threat-unknown: var(--color-background-shade);
+    --color-threat-indefinite: lch(56.05% 49.39 256.63);
+    --color-threat-watchlist: lch(58.97% 76.96 59.37);
+    --color-threat-endangered: lch(47.26% 75.67 14.74);
+    --color-threat-takedown_issued: lch(47.26% 75.67 14.74);
+    --color-threat-extinct: var(--color-background-shade);
 
     --font-sans: "Work Sans", "Helvetica Neue", "Segoe UI", "Helvetica", "Roboto", sans-serif;
     --font-mono: "Anonymous Pro", "Fira Code", "Courier New", "Courier", monospace;
