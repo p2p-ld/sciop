@@ -40,6 +40,7 @@ class Scarcity(StrEnum):
     external_confirmed: Annotated[
         str, "The dataset is known to have readily available external sources"
     ] = "external_confirmed"
+    uploaded: Annotated[str, "The dataset has been uploaded to sciop"] = "uploaded"
 
 
 class ScrapeStatus(StrEnum):
@@ -60,3 +61,4 @@ class SourceType(StrEnum):
 class InputType(StrEnum):
     text = "text"
     textarea = "textarea"
+    tokens = "tokens"

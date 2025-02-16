@@ -17,3 +17,7 @@ a:hover {
 .preload {
   transition: none !important;
 }
+
+.hidden {
+  display: none;
+}

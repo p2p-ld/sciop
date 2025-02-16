@@ -29,6 +29,10 @@
     {
         width: 100%;
 
+        &[type="checkbox"] {
+            width: unset;
+        }
+
         &:user-invalid,
         &.invalid {
             border: 1px solid var(--color-caution);

@@ -21,7 +21,7 @@
             {% endif %}
         </div>
         <div class="dataset-infobox infobox">
-            <p class="dataset-priority priority-{{ dataset.priority.value }}">{{dataset.priority.value}}</p>
+            <p class="dataset-priority priority-{{ dataset.scarcity.value }}">{{dataset.scarcity.value}}</p>
             <table class="infobox-table">
                 {% if dataset.priority_comment %}
                 <tr>
@@ -30,7 +30,7 @@
                 {% endif %}
                 <tr>
                     <td class="infobox-key">Status</td>
-                    <td class="infobox-value">{{ dataset.status.value }}</td>
+                    <td class="infobox-value">{{ dataset.scrape_status.value }}</td>
                 </tr>
                 <tr>
                     <td class="infobox-key">Created</td>

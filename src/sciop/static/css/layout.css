@@ -185,3 +185,30 @@
     text-align: right
   }
 }
+
+.tokens-container {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5em;
+  margin-bottom: 0.5em;
+
+  .token-button-container {
+    /*border: 1px solid var(--color-primary-shade-3);*/
+    border-radius: 3px;
+  }
+  .token {
+    border: unset;
+  }
+  button.token-delete-button {
+    color: var(--color-primary-shade-3);
+    border-radius: 0 3px 3px 0;
+    border: unset;
+    border-left: 1px solid var(--color-primary-shade-3);
+    box-shadow: unset;
+
+    &:hover {
+      background-color: var(--color-primary-shade-3);
+      color: var(--color-background);
+    }
+  }
+}

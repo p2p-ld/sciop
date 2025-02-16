@@ -62,3 +62,57 @@ htmx.on("htmx:afterSwap", (evt) => {
       target.remove();
   })})
 })
+
+// Token input field
+function addToken(e){
+  if (e.key !== "Enter"){ return }
+  e.preventDefault()
+  let container = document.querySelector(e.target.getAttribute("data-tokens-container"));
+
+  // Ignore existing tags
+  let input_children = container.querySelectorAll("input");
+  let existing_tags = [...input_children].map((child) => child.value);
+  if (existing_tags.includes(e.target.value)){return}
+
+  // hidden input element representing the token in the form
+  let token = document.createElement("input");
+  token.setAttribute("name", e.target.name);
+  token.setAttribute("value", e.target.value);
+  token.value = e.target.value;
+  token.setAttribute("readonly", "readonly");
+  token.classList.add("hidden");
+
+  // visible token
+  let token_span = document.createElement("span");
+  token_span.innerHTML = e.target.value;
+  token_span.classList.add("token")
+
+  // delete button
+  let token_container = document.createElement("div");
+  token_container.classList.add("token-button-container");
+  let delete_button = document.createElement("button");
+  delete_button.setAttribute("type", "button");
+  delete_button.innerHTML = "x";
+  delete_button.classList.add("delete-button", "token-delete-button");
+  delete_button.addEventListener("mouseup", (e) => {
+    token_container.remove()
+  });
+
+  // combine and add
+  token_container.appendChild(token);
+  token_container.appendChild(token_span);
+  token_container.appendChild(delete_button);
+  container.appendChild(token_container);
+
+  // clear input
+  e.target.value = "";
+  e.target.focus();
+}
+
+function init_token_input(){
+  let token_inputs = document.querySelectorAll(".form-tokens");
+  token_inputs.forEach((e) => {
+    e.addEventListener("keyup", addToken)
+  })
+}
+init_token_input();

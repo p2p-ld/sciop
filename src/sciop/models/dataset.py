@@ -54,6 +54,7 @@ class DatasetBase(SQLModel):
     using the autocompleted values if any correct matches are listed.
     """,
         max_length=256,
+        schema_extra={"json_schema_extra": {"autocomplete": "publisher"}},
     )
     homepage: Optional[MaxLenURL] = Field(
         None,
@@ -96,6 +97,7 @@ class DatasetBase(SQLModel):
         If the dataset is scheduled to be removed, 
         the time in the future where it is expected to be unavailable. 
         Otherwise, leave blank.
+        Times should be in UTC.
         """,
     )
     source_access: AccessType = Field(
@@ -150,18 +152,19 @@ class DatasetCreate(DatasetBase):
     tags: list[Annotated[SlugStr, Field(min_length=2, max_length=32)]] = Field(
         title="Tags",
         description="""
-        Tags for this dataset. One tag per line. 
+        Tags for this dataset. Use matching autocomplete values, when available.
+        Enter as comma separated list or press enter to store a token.
         Only lowercase alphanumeric characters and `-` are allowed.
         Include as many tags as are applicable: topic, data type/file type,
         if this dataset is part of a collection (e.g. each dataset in NOAA's
         Fundamental Climate Data Records should be tagged with `fcdr`), etc.
         Tags are used to generate RSS feeds so people can reseed data that is important to them.
         """,
-        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+        schema_extra={"json_schema_extra": {"input_type": InputType.tokens}},
     )
 
     @field_validator("urls", "tags", mode="before")
-    def split_strings(cls, value: str | list[str]) -> Optional[list[str]]:
+    def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
         """Split lists of strings given as one entry per line"""
         if isinstance(value, str):
             if not value or value == "":
@@ -176,6 +179,32 @@ class DatasetCreate(DatasetBase):
         # filter empty strings
         value = [v for v in value if v.strip()]
         return value
+
+    @field_validator("tags", "tags", mode="before")
+    def split_commas(cls, value: str | list[str]) -> Optional[list[str]]:
+        """Split lists of strings given as one entry per line"""
+        if isinstance(value, str):
+            if not value or value == "":
+                return None
+            value = value.split(",")
+
+        # split any substrings, e.g. if comma-separated strings are used in
+        # the token-input style of tag entry
+        split_val = []
+        for v in value:
+            split_subvals = v.split(",")
+            split_subvals = [subv.strip() for subv in split_subvals]
+            split_val.extend(split_subvals)
+        value = split_val
+
+        # filter empty strings
+        value = [v for v in value if v.strip()]
+
+        # if left with an empty list, None
+        if value:
+            return value
+        else:
+            return None
 
     @field_validator("*", mode="before")
     def empty_strings_are_none(cls, value: Any) -> Any:
