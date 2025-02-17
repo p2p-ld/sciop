@@ -43,15 +43,15 @@ We use [`pdm`](https://pdm-project.org/latest/) to build and interact with the c
 
 ## Setup Development Environment
 
-First, setup a virtual environment and ensure pip is up to date as described in [installing dependencies](#installing-dependencies), but *without* installing anything else besides pip itself yet:
-
-    python -m venv ~/.envs/sciop
-    . ~/.envs/sciop/bin/activate
-    pip install --upgrade pip
-
-To install `pdm`:
+`pdm` can be installed at the top level, without entering a virtual environment:
 
     pip install pdm
+
+However, it is also possible to install `pdm` within an existing venv.
+
+Then, `pdm` can install dependencies, implicitly creating a venv if not already within one:
+
+    pdm install
 
 ## Testing Your Changes
 
@@ -67,6 +67,10 @@ To run lint:
 
     pdm run lint
 
+To run automated testing:
+
+    pdm run test
+
 Changes can then be submitted as a pull request against this repository on Codeberg.
 
 # Troubleshooting
@@ -75,6 +79,8 @@ Changes can then be submitted as a pull request against this repository on Codeb
 We currently don't support database migrations, so old versions of the sqlite db can cause errors upon changes to the code. By default, the database is located at `./db.sqlite` wherever you invoke `sciop` from, so deleting the database should resolve any exceptions relating to missing columns and the like:
 
     rm -v ./db.sqlite
+
+Note that we expect this to change soon to support real db migrations, which will make this workaround unnecessary.
 
 # License
 [EUPL v1.2](./LICENSE)
