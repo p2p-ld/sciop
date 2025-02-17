@@ -165,7 +165,6 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
 
 
-
 class DatasetCreate(DatasetBase):
     urls: list[MaxLenURL] = Field(
         title="URL(s)",
@@ -294,6 +293,7 @@ class ExternalIdentifierBase(SQLModel):
 
     type: ExternalIdentifierType
     identifier: str
+
 
 class ExternalIdentifier(ExternalIdentifierBase, TableMixin, table=True):
     __tablename__ = "external_identifier"
