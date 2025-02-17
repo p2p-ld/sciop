@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Optional
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Self
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator, TypeAdapter
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.account import Account
@@ -18,6 +18,7 @@ from sciop.types import (
     SlugStr,
     SourceType,
     Threat,
+    ExternalIdentifierType,
 )
 
 if TYPE_CHECKING:
@@ -150,6 +151,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     dataset_id: IDField = Field(None, primary_key=True)
     uploads: list["Upload"] = Relationship(back_populates="dataset")
     external_sources: list["ExternalSource"] = Relationship(back_populates="dataset")
+    external_identifiers: list["ExternalIdentifier"] = Relationship(back_populates="dataset")
     urls: list["DatasetURL"] = Relationship(back_populates="dataset")
     tags: list["Tag"] = Relationship(
         back_populates="datasets",
@@ -161,6 +163,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     scrape_status: ScrapeStatus = "unknown"
     enabled: bool = False
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
+
 
 
 class DatasetCreate(DatasetBase):
@@ -187,6 +190,7 @@ class DatasetCreate(DatasetBase):
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.tokens}},
     )
+    external_identifiers: list["ExternalIdentifierCreate"] = Field(default_factory=list)
 
     @field_validator("urls", "tags", mode="before")
     def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
@@ -242,6 +246,7 @@ class DatasetCreate(DatasetBase):
 class DatasetRead(DatasetBase, TableReadMixin):
     uploads: list["Upload"] = Field(default_factory=list)
     external_sources: list["ExternalSource"] = Field(default_factory=list)
+    external_identifiers: list["ExternalIdentifier"] = Field(default_factory=list)
     urls: list["DatasetURL"] = Field(default_factory=list)
     tags: list["Tag"] = Field(default_factory=list)
     scrape_status: ScrapeStatus
@@ -280,3 +285,39 @@ class ExternalSource(ExternalSourceBase, TableMixin, table=True):
     dataset: Dataset = Relationship(back_populates="external_sources")
     account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: Optional[Account] = Relationship(back_populates="external_submissions")
+
+
+class ExternalIdentifierBase(SQLModel):
+    """
+    Some additional, probably persistent identifier for a dataset
+    """
+
+    type: ExternalIdentifierType
+    identifier: str
+
+class ExternalIdentifier(ExternalIdentifierBase, TableMixin, table=True):
+    __tablename__ = "external_identifier"
+
+    external_identifier_id: IDField = Field(None, primary_key=True)
+    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
+    dataset: Dataset = Relationship(back_populates="external_identifiers")
+
+
+class ExternalIdentifierCreate(ExternalIdentifierBase):
+
+    @field_validator("identifier", mode="before")
+    def strip_whitespace(cls, val: str) -> str:
+        return val.strip()
+
+    @model_validator(mode="after")
+    def validate_by_type(self) -> Self:
+        """
+        Apply additional validation from the annotation on the external identifier type
+        """
+        annotation = ExternalIdentifierType.__annotations__.get(self.type, None)
+        if annotation is None:
+            return self
+
+        adapter = TypeAdapter(annotation)
+        self.identifier = adapter.validate_python(self.identifier)
+        return self
