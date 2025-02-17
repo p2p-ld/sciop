@@ -51,6 +51,7 @@ async def datasets_create(
     created_dataset = crud.create_dataset(
         session=session, dataset_create=dataset, current_account=current_account
     )
+    response.headers["HX-Location"] = f"/datasets/{created_dataset.slug}"
     return created_dataset
 
 
@@ -65,6 +66,8 @@ async def datasets_create_form(
 ) -> DatasetRead:
     """
     Create a dataset with form encoded data
+
+    TODO: This can likely be removed after the addition of form-json
     """
     # hacky workaround for checkboxes in forms
     # https://github.com/fastapi/fastapi/discussions/13380

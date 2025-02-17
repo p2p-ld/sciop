@@ -50,6 +50,10 @@
     </div>
 {%- if field.json_schema_extra.input_type == "tokens" %}
     {{ token_input(field, field_name, parent_id) }}
+{%- elif field.json_schema_extra.input_type == "model_list" %}
+    <div class="model-list-input" name="{{ field_name }}">
+    {{ add_subform_button(parent_id, field_name, 0, field.json_schema_extra.model_name) }}
+    </div>
 {% else %}
     <{{element}}
         id="{{ parent_id }}-{{ field_name }}"
@@ -78,7 +82,7 @@
 {% endif %}
 </div>
 
-{% if field.description %}
+{% if field.description or (annotation.__members__ and annotation.__annotations__) %}
 <div class="form-item-description">
     {%- if annotation.__members__ and annotation.__annotations__ %}
     <details>
@@ -91,15 +95,17 @@
     {%- for key, val in annotation.__annotations__.items() %}
     <tr>
         <td class="key"><span class="bold">{{ key }}</span></td>
-        <td class="value">{{ val.__metadata__[0] }}</td>
+        <td class="value">{{ val.__metadata__[-1] }}</td>
     </tr>
     {%- endfor %}
     </table>
     </details>
     {%- endif %}
+    {% if field.description %}
     <p>
     {{ field.description }}
     </p>
+    {% endif %}
 </div>
 {% endif %}
 {% endmacro %}
@@ -120,6 +126,15 @@
 <datalist id="{{ parent_id }}-{{ field_name }}-autocomplete"></datalist>
 {% endmacro %}
 
+{% macro add_subform_button(parent_id, field_name, idx, model_name) %}
+<a class="add-subform-button button"
+   hx-get="/partials/model-list?idx={{idx}}&field_name={{field_name}}&model_name={{model_name}}&form_id={{parent_id}}"
+   hx-swap="outerHTML"
+>
+    +
+</a>
+{% endmacro %}
+
 {% macro inner_model_form(id, model, exclude = []) %}
 {% for field_name, field in model.model_fields.items() if field_name not in exclude %}
 <div class="form-item">
@@ -136,7 +151,7 @@
 {% endmacro %}
 
 {% macro model_form(id, model, exclude = []) %}
-<form class="form" id="{{ id }}">
+<form class="form" id="{{ id }}" hx-ext="form-json">
   {{ inner_model_form(id, model, exclude) }}
 </form>
 {% endmacro %}

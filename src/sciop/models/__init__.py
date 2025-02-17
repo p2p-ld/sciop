@@ -14,6 +14,8 @@ from sciop.models.dataset import (
     DatasetCreate,
     DatasetRead,
     DatasetURL,
+    ExternalIdentifier,
+    ExternalIdentifierCreate,
     ExternalSource,
 )
 from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
@@ -44,6 +46,8 @@ __all__ = [
     "DatasetRead",
     "DatasetURL",
     "DatasetTagLink",
+    "ExternalIdentifier",
+    "ExternalIdentifierCreate",
     "ExternalSource",
     "FileInTorrent",
     "FileInTorrentCreate",

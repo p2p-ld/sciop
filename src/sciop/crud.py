@@ -10,6 +10,7 @@ from sciop.models import (
     Dataset,
     DatasetCreate,
     DatasetURL,
+    ExternalIdentifier,
     FileInTorrent,
     ModerationAction,
     Tag,
@@ -51,6 +52,10 @@ def create_dataset(
 ) -> Dataset:
     enabled = current_account is not None and current_account.has_scope("submit")
     urls = [DatasetURL(url=url) for url in dataset_create.urls]
+    external_identifiers = [
+        ExternalIdentifier(type=e.type, identifier=e.identifier)
+        for e in dataset_create.external_identifiers
+    ]
 
     existing_tags = session.exec(select(Tag).filter(Tag.tag.in_(dataset_create.tags))).all()
     existing_tag_str = set([e.tag for e in existing_tags])
@@ -60,7 +65,13 @@ def create_dataset(
 
     db_obj = Dataset.model_validate(
         dataset_create,
-        update={"enabled": enabled, "account": current_account, "urls": urls, "tags": tags},
+        update={
+            "enabled": enabled,
+            "account": current_account,
+            "urls": urls,
+            "tags": tags,
+            "external_identifiers": external_identifiers,
+        },
     )
     session.add(db_obj)
     session.commit()

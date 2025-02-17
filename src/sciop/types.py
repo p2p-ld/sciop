@@ -4,7 +4,7 @@ from html import escape
 from typing import Annotated, Optional, TypeAlias
 
 from annotated_types import Gt, MaxLen
-from pydantic import AfterValidator, AnyUrl, Field, TypeAdapter, BeforeValidator
+from pydantic import AfterValidator, AnyUrl, BeforeValidator, Field, TypeAdapter
 from slugify import slugify
 
 USERNAME_PATTERN = re.compile(r"^[\w-]+$")
@@ -91,6 +91,7 @@ class InputType(StrEnum):
     text = "text"
     textarea = "textarea"
     tokens = "tokens"
+    model_list = "model_list"
 
 
 ARK_PATTERN = r"^\S*ark:\S+"
@@ -99,7 +100,7 @@ Entirely incomplete pattern just to recognize ark vs not ark
 See: https://arks.org/specs/
 """
 
-DOI_PATTERN = r"^10\.\d{3,9}\/[-._;()/:A-Z0-9]+$"
+DOI_PATTERN = r"^10\.\d{3,9}\/[-._;()/:A-Za-z0-9]+$"
 """
 https://www.crossref.org/blog/dois-and-matching-regular-expressions/
 """

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Self
 
-from pydantic import field_validator, model_validator, TypeAdapter
+from pydantic import TypeAdapter, field_validator, model_validator
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.account import Account
@@ -10,6 +10,7 @@ from sciop.models.tag import DatasetTagLink
 from sciop.types import (
     AccessType,
     EscapedStr,
+    ExternalIdentifierType,
     IDField,
     InputType,
     MaxLenURL,
@@ -18,7 +19,6 @@ from sciop.types import (
     SlugStr,
     SourceType,
     Threat,
-    ExternalIdentifierType,
 )
 
 if TYPE_CHECKING:
@@ -189,7 +189,16 @@ class DatasetCreate(DatasetBase):
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.tokens}},
     )
-    external_identifiers: list["ExternalIdentifierCreate"] = Field(default_factory=list)
+    external_identifiers: list["ExternalIdentifierCreate"] = Field(
+        title="External Identifiers",
+        default_factory=list,
+        schema_extra={
+            "json_schema_extra": {
+                "input_type": InputType.model_list,
+                "model_name": "ExternalIdentifierCreate",
+            }
+        },
+    )
 
     @field_validator("urls", "tags", mode="before")
     def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
@@ -203,9 +212,11 @@ class DatasetCreate(DatasetBase):
                 value = value[0].splitlines()
             elif value[0] == "":
                 return None
+        elif value is None:
+            return None
 
         # filter empty strings
-        value = [v for v in value if v.strip()]
+        value = [v for v in value if v and v.strip()]
         return value
 
     @field_validator("tags", "tags", mode="before")
@@ -215,6 +226,8 @@ class DatasetCreate(DatasetBase):
             if not value or value == "":
                 return None
             value = value.split(",")
+        elif value is None:
+            return None
 
         # split any substrings, e.g. if comma-separated strings are used in
         # the token-input style of tag entry

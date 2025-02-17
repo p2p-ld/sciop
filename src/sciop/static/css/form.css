@@ -22,6 +22,7 @@
         display: flex;
         align-items: center;
         font-weight: bold;
+        text-wrap: wrap;
     }
 
     .form-input,
@@ -97,5 +98,38 @@
             padding: 0.5em 1em;
             font-size: 1em;
         }
+    }
+}
+
+.add-subform-button {
+    width: 80%;
+    margin: 1em auto 1em auto;
+    display: flex;
+    text-align: center;
+    justify-content: center;
+}
+
+.model-list-input {
+    border: 1px solid var(--color-border-deemphasized);
+
+
+    .model-list-item {
+        padding: 1em;
+
+        &:not(:nth-last-child(2)){
+            border-bottom: 1px solid var(--color-border-deemphasized);
+            margin-bottom: 1em;
+            padding-bottom: 1em;
+        }
+
+        &.model-list-item.invalid {
+            border-left: 1px solid var(--color-caution);
+        }
+    }
+
+
+
+    .form-item:not(:first-child){
+        margin-top: 1em;
     }
 }

@@ -25,3 +25,12 @@ Create a configuration starting from the sample:
 Run sciop
 
     sciop
+
+
+## Vendored Software
+
+This project includes the following vendored software:
+
+- [htmx](https://htmx.org/) - Zero-Clause BSD
+- [form-json](https://github.com/xehrad/form-json/) - GPL 3.0
+- [fastapi_rss](https://github.com/sbordeyne/fastapi_rss) - MIT
