@@ -1,4 +1,5 @@
 import importlib.resources
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Generator, Optional
 
 from alembic import command
@@ -143,6 +144,8 @@ def create_seed_data() -> None:
                     publisher="An Agency",
                     homepage="https://example.com",
                     description="An unapproved dataset",
+                    dataset_created_at=datetime.now(UTC),
+                    dataset_updated_at=datetime.now(UTC),
                     priority="low",
                     source="web",
                     urls=["https://example.com/1", "https://example.com/2"],
@@ -162,6 +165,8 @@ def create_seed_data() -> None:
                     publisher="Another Agency",
                     homepage="https://example.com",
                     description="An unapproved dataset",
+                    dataset_created_at=datetime.now(UTC),
+                    dataset_updated_at=datetime.now(UTC),
                     priority="low",
                     source="web",
                     urls=["https://example.com/3", "https://example.com/4"],
@@ -195,6 +200,8 @@ def create_seed_data() -> None:
             for _ in range(500):
                 generated_dataset = _generate_dataset(fake)
                 dataset = crud.create_dataset(session=session, dataset_create=generated_dataset)
+                dataset.dataset_created_at = datetime.now(UTC)
+                dataset.dataset_updated_at = datetime.now(UTC)
                 dataset.enabled = True
                 session.add(dataset)
             session.commit()

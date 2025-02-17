@@ -13,9 +13,9 @@ from sciop.api.deps import SessionDep
 from sciop.config import config
 from sciop.models.dataset import Dataset
 
-TAGS = Namespace(f"{config.public_url}/id/tag/")
-DSID = Namespace(f"{config.public_url}/id/datasets/")
-DSPG = Namespace(f"{config.public_url}/datasets/")
+TAGS = Namespace(f"{config.base_url}/id/tag/")
+DSID = Namespace(f"{config.base_url}/id/datasets/")
+DSPG = Namespace(f"{config.base_url}/datasets/")
 
 rdf_router = APIRouter(prefix="/rdf")
 
@@ -26,10 +26,10 @@ class Graph(RGraph):
     for nicer serialisations
     """
 
-
-def __init__(self: Graph, *av: Tuple, **kw: Dict) -> None:
-    super().__init__(*av, **kw)
-    self.namespace_manager.bind("tags", TAGS)
+    def __init__(self, *av: Tuple, **kw: Dict) -> None:
+        super().__init__(*av, **kw)
+        self.namespace_manager.bind("tags", TAGS)
+        self.namespace_manager.bind("dset", DSID)
 
 
 def serialise_graph(g: Graph, format: str) -> Response:
@@ -63,11 +63,18 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
         g.add((DSID[d.slug], DCTERMS["description"], Literal(d.description)))
     if d.homepage is not None:
         g.add((DSID[d.slug], FOAF["homepage"], URIRef(d.homepage)))
+    if d.dataset_created_at is not None:
+        g.add((DSID[d.slug], DCTERMS["created"], Literal(d.dataset_created_at)))
+    if d.dataset_updated_at is not None:
+        g.add((DSID[d.slug], DCTERMS["modified"], Literal(d.dataset_updated_at)))
     for tag in d.tags:
         g.add((DSID[d.slug], DCAT["keyword"], Literal(tag.tag)))
         g.add((DSID[d.slug], DCAT["inCatalog"], TAGS[tag.tag]))
     for u in d.urls:
-        g.add((DSID[d.slug], DCAT["downloadURL"], URIRef(u.url)))
+        n = BNode()
+        g.add((DSID[d.slug], DCAT["distribution"], n))
+        g.add((n, RDF["type"], DCAT["Distribution"]))
+        g.add((n, DCAT["downloadURL"], URIRef(u.url)))
     for u in d.uploads:
         if not u.enabled:
             continue
@@ -86,10 +93,10 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
         if s.description is not None:
             g.add((n, DCTERMS["description"], Literal(s.description)))
     docs = [
-        URIRef(f"{config.public_url}/rdf/datasets/{d.slug}.ttl"),
-        URIRef(f"{config.public_url}/rdf/datasets/{d.slug}.rdf"),
-        URIRef(f"{config.public_url}/rdf/datasets/{d.slug}.js"),
-        URIRef(f"{config.public_url}/rdf/datasets/{d.slug}.nt"),
+        URIRef(f"{config.base_url}/rdf/datasets/{d.slug}.ttl"),
+        URIRef(f"{config.base_url}/rdf/datasets/{d.slug}.rdf"),
+        URIRef(f"{config.base_url}/rdf/datasets/{d.slug}.js"),
+        URIRef(f"{config.base_url}/rdf/datasets/{d.slug}.nt"),
     ]
     for doc in docs:
         g.add((DSID[d.slug], FOAF["isPrimaryTopicOf"], doc))
@@ -127,11 +134,11 @@ async def tag_graph(tag: str, suffix: str, session: SessionDep) -> Response:
     g.add((cat, RDFS["label"], Literal(f"SciOp catalog for tag: {tag}")))
     g.add((cat, DCTERMS["title"], Literal(f"SciOp catalog for tag: {tag}")))
     docs = [
-        URIRef(f"{config.public_url}/rdf/tag/{tag}.ttl"),
-        URIRef(f"{config.public_url}/rdf/tag/{tag}.rdf"),
-        URIRef(f"{config.public_url}/rdf/tag/{tag}.nt"),
-        URIRef(f"{config.public_url}/rdf/tag/{tag}.js"),
-        URIRef(f"{config.public_url}/rdf/tag/{tag}.rss"),
+        URIRef(f"{config.base_url}/rdf/tag/{tag}.ttl"),
+        URIRef(f"{config.base_url}/rdf/tag/{tag}.rdf"),
+        URIRef(f"{config.base_url}/rdf/tag/{tag}.nt"),
+        URIRef(f"{config.base_url}/rdf/tag/{tag}.js"),
+        URIRef(f"{config.base_url}/rdf/tag/{tag}.rss"),
     ]
     for doc in docs:
         g.add((cat, FOAF["isPrimaryTopicOf"], doc))
@@ -174,7 +181,7 @@ def autoneg(entity: str, ident: str, session: SessionDep, request: Request) -> R
     And similarly for /id/datasets/bar
 
     This means that we can construct a canonical (for us) identifier for datasets
-    and tags using the {config.public_url}/id/ prefix.
+    and tags using the {config.base_url}/id/ prefix.
     """
     try:
         content_type = decide_content_type(
