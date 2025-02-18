@@ -1,0 +1,10 @@
+{% from 'macros/dataset-part.html' import dataset_part_collapsible %}
+<div id="dataset-{{dataset.slug}}-parts" class="dataset-parts">
+{% if parts | length == 0 %}
+  <span>No dataset parts</span>
+{% else %}
+  {% for part in parts %}
+  {{ dataset_part_collapsible(part, dataset, current_account, config) }}
+  {% endfor %}
+{% endif %}
+</div>

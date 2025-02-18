@@ -2,8 +2,10 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Self
 
 from pydantic import TypeAdapter, field_validator, model_validator
+from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
+from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS
 from sciop.models.account import Account
 from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
 from sciop.models.tag import DatasetTagLink
@@ -164,7 +166,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     scrape_status: ScrapeStatus = "unknown"
     enabled: bool = False
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
-    dataset_parts: list["DatasetPart"] = Relationship(back_populates="dataset")
+    parts: list["DatasetPart"] = Relationship(back_populates="dataset")
 
 
 class DatasetCreate(DatasetBase):
@@ -206,6 +208,11 @@ class DatasetCreate(DatasetBase):
         },
         max_length=32,
     )
+    parts: list["DatasetPartCreate"] = Field(
+        default_factory=list,
+        title="Part(s)",
+        schema_extra={"json_schema_extra": {"input_type": InputType.none}},
+    )
 
     @field_validator("urls", "tags", mode="before")
     def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
@@ -246,6 +253,11 @@ class DatasetCreate(DatasetBase):
         if value == "":
             value = None
         return value
+
+    @field_validator("slug", mode="after")
+    def not_reserved_slug(cls, slug: str) -> str:
+        assert slug not in DATASET_RESERVED_SLUGS, f"slug {slug} is reserved"
+        return slug
 
 
 class DatasetRead(DatasetBase, TableReadMixin):
@@ -347,19 +359,19 @@ class DatasetPartBase(SQLModel):
         title="Part Slug",
         description="Unique identifier for this dataset part",
         max_length=256,
-        unique=True,
         index=True,
     )
 
 
 class DatasetPart(DatasetPartBase, TableMixin, table=True):
     __tablename__ = "dataset_part"
+    __table_args__ = (UniqueConstraint("dataset_id", "part_slug", name="_dataset_part_slug_uc"),)
 
     dataset_part_id: IDField = Field(None, primary_key=True)
-    dataset_id: IDField = Field(None, foreign_key="dataset.dataset_id")
-    dataset: Dataset = Relationship(back_populates="dataset_parts")
-    uploads: list["Upload"] = Field(default_factory=list)
-    paths: list["DatasetPath"] = Relationship(back_populates="dataset")
+    dataset_id: Optional[int] = Field(None, foreign_key="dataset.dataset_id")
+    dataset: Dataset = Relationship(back_populates="parts")
+    uploads: list["Upload"] = Relationship(back_populates="dataset_part")
+    paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
 
 
 class DatasetPartCreate(DatasetPartBase):
@@ -368,11 +380,17 @@ class DatasetPartCreate(DatasetPartBase):
         title="Paths",
         description="A list of paths that this part should contain, "
         "if the part is not a single file.",
+        max_length=128,
     )
 
     @field_validator("paths", mode="before")
     def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
         return _split_lines(value)
+
+    @field_validator("part_slug", mode="after")
+    def not_reserved_slug(cls, slug: str) -> str:
+        assert slug not in DATASET_PART_RESERVED_SLUGS, f"slug {slug} is reserved"
+        return slug
 
 
 class DatasetPartRead(DatasetPartBase):
@@ -385,12 +403,13 @@ class DatasetPartRead(DatasetPartBase):
         return "/".join([self.dataset.slug, self.part_slug])
 
 
-class DatasetPath(SQLModel, TableMixin, table=True):
+class DatasetPath(TableMixin, table=True):
     __tablename__ = "dataset_path"
 
     dataset_path_id: IDField = Field(None, primary_key=True)
     dataset_part_id: Optional[int] = Field(None, foreign_key="dataset_part.dataset_part_id")
     dataset_part: DatasetPart = Relationship(back_populates="paths")
+    path: str = Field(max_length=1024)
 
 
 def _split_lines(value: str | list[str]) -> Optional[list[str]]:

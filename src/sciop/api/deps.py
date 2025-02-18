@@ -11,7 +11,7 @@ from sciop import crud
 from sciop.api.auth import ALGORITHM
 from sciop.config import config
 from sciop.db import get_session
-from sciop.models import Account, Dataset, Scopes, TokenPayload, Upload
+from sciop.models import Account, Dataset, DatasetPart, Scopes, TokenPayload, Upload
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 
@@ -115,6 +115,23 @@ def require_enabled_dataset(dataset_slug: str, session: SessionDep) -> Dataset:
 
 RequireDataset = Annotated[Dataset, Depends(require_dataset)]
 RequireEnabledDataset = Annotated[Dataset, Depends(require_enabled_dataset)]
+
+
+def require_dataset_part(
+    dataset_slug: str, dataset_part_slug: str, session: SessionDep
+) -> DatasetPart:
+    part = crud.get_dataset_part(
+        session=session, dataset_slug=dataset_slug, dataset_part_slug=dataset_part_slug
+    )
+    if not part:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such dataset part {dataset_slug}/{dataset_part_slug} exists!",
+        )
+    return part
+
+
+RequireDatasetPart = Annotated[DatasetPart, Depends(require_dataset_part)]
 
 
 def require_upload(short_hash: str, session: SessionDep) -> Upload:

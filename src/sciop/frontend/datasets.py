@@ -7,7 +7,13 @@ from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import select
 
 from sciop import crud
-from sciop.api.deps import CurrentAccount, RequireDataset, RequireUploader, SessionDep
+from sciop.api.deps import (
+    CurrentAccount,
+    RequireDataset,
+    RequireDatasetPart,
+    RequireUploader,
+    SessionDep,
+)
 from sciop.api.routes.upload import upload_torrent
 from sciop.config import config
 from sciop.frontend.templates import jinja, templates
@@ -59,6 +65,13 @@ async def dataset_show(
 async def dataset_partial(request: Request, dataset: RequireDataset):
     return templates.TemplateResponse(
         "partials/dataset.html", {"dataset": dataset, "request": request}
+    )
+
+
+@datasets_router.get("/{dataset_slug}/parts", response_class=HTMLResponse)
+async def dataset_parts(request: Request, dataset: RequireDataset):
+    return templates.TemplateResponse(
+        request, "partials/dataset-parts.html", {"dataset": dataset, "parts": dataset.parts}
     )
 
 
@@ -133,4 +146,33 @@ async def dataset_upload_torrent(
             "torrent": created_torrent,
             "model": UploadCreate,
         },
+    )
+
+
+@datasets_router.get("/{dataset_slug}/{dataset_part_slug}", response_class=HTMLResponse)
+async def dataset_part_show(
+    request: Request, dataset: RequireDataset, part: RequireDatasetPart, session: SessionDep
+):
+    return templates.TemplateResponse(
+        request, "pages/dataset-part.html", {"dataset": dataset, "part": part}
+    )
+
+
+@datasets_router.get("/{dataset_slug}/{dataset_part_slug}/partial", response_class=HTMLResponse)
+async def dataset_part_partial(
+    request: Request, dataset: RequireDataset, part: RequireDatasetPart, session: SessionDep
+):
+    return templates.TemplateResponse(
+        request, "partials/dataset-part.html", {"dataset": dataset, "part": part}
+    )
+
+
+@datasets_router.get("/{dataset_slug}/{dataset_part_slug}/uploads", response_class=HTMLResponse)
+async def dataset_part_uploads(
+    request: Request, dataset_slug: str, part: RequireDatasetPart, session: SessionDep
+):
+    uploads = crud.get_uploads(dataset=part, session=session)
+    return templates.TemplateResponse(
+        "partials/dataset-uploads.html",
+        {"request": request, "config": config, "uploads": uploads},
     )

@@ -21,7 +21,7 @@ AnyUrlTypeAdapter = TypeAdapter(AnyUrl)
 MaxLenURL = Annotated[
     str, MaxLen(512), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
 ]
-PathLike = Annotated[PathLike_[str], AfterValidator(lambda x: Path(x).as_posix)]
+PathLike = Annotated[PathLike_[str], AfterValidator(lambda x: Path(x).as_posix())]
 
 
 class AccessType(StrEnum):
@@ -95,6 +95,7 @@ class InputType(StrEnum):
     textarea = "textarea"
     tokens = "tokens"
     model_list = "model_list"
+    none = "none"
 
 
 ARK_PATTERN = r"^\S*ark:\S+"
@@ -138,3 +139,4 @@ class ExternalIdentifierType(StrEnum):
     qid: Annotated[QID_TYPE, "Wikidata Identifier"] = "qid"
     rrid: Annotated[str, "Research Resource Identifier"] = "rrid"
     urn: Annotated[str, "Uniform Resource Name"] = "urn"
+    orcid: Annotated[str, "Open Researcher and Contributor ID"] = "orcid"

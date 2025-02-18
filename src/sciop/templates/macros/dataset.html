@@ -133,6 +133,19 @@
         </button>
     {% endif %}
     </div>
+
+    <h3>Parts</h3>
+    <div id="dataset-{{ dataset.slug }}-parts-container" class="dataset-parts-container">
+        <div
+            hx-get="/datasets/{{ dataset.slug }}/parts"
+            hx-trigger="load"
+        >
+            <span class="htmx-indicator search-indicator" id="uploads-indicator">
+                <span>Loading dataset parts...</span>
+                <img src="/static/img/rings.svg"/>
+            </span>
+        </div>
+    </div>
 </div>
 {% endmacro %}
 
