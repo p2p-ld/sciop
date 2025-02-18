@@ -15,10 +15,16 @@ from fastapi.testclient import TestClient
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.chromium.options import ChromiumOptions
+from selenium.webdriver.chromium.service import ChromiumService
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine
 from uvicorn import Config, Server
 from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager.chrome import ChromeDriver
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
+
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.base import Engine
@@ -158,14 +164,24 @@ async def run_server() -> Server_:
 
 @pytest.fixture()
 async def driver(run_server: Server_) -> webdriver.Firefox:
-    manager = GeckoDriverManager().install()
-    options = FirefoxOptions()
+    # manager = GeckoDriverManager().install()
+    # options = FirefoxOptions()
+    # options.add_argument("--disable-dev-shm-usage")
+    # options.add_argument("--headless")
+    # options.headless = True
+    # options.add_argument(f"--window-size={1920},{1080}")
+    # _service = FirefoxService(executable_path=manager)
+    # browser = webdriver.Firefox(service=_service, options=options)
+
+    manager = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
+    options = ChromiumOptions()
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--headless")
     options.headless = True
     options.add_argument(f"--window-size={1920},{1080}")
-    _service = FirefoxService(executable_path=manager)
-    browser = webdriver.Firefox(service=_service, options=options)
+    _service = ChromiumService(executable_path=manager)
+    browser = webdriver.Chrome(service=_service, options=options)
+
     return browser
 
 
