@@ -13,18 +13,13 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from fastapi.testclient import TestClient
 from selenium import webdriver
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from selenium.webdriver.firefox.service import Service as FirefoxService
 from selenium.webdriver.chromium.options import ChromiumOptions
 from selenium.webdriver.chromium.service import ChromiumService
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine
 from uvicorn import Config, Server
-from webdriver_manager.firefox import GeckoDriverManager
-from webdriver_manager.chrome import ChromeDriver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
-
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.base import Engine
