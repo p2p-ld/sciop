@@ -172,6 +172,8 @@ async def driver(run_server: Server_) -> webdriver.Firefox:
     options = ChromiumOptions()
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-gpu")
     options.headless = True
     options.add_argument(f"--window-size={1920},{1080}")
     _service = ChromiumService(executable_path=manager)
