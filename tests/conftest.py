@@ -163,8 +163,9 @@ async def driver(run_server: Server_) -> webdriver.Firefox:
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
+    options.add_argument("--disable-gpu")
     options.headless = True
-    options.add_argument(f"--window-size={1920},{1080}")
+    options.add_argument("--window-size=1920,1080")
     _service = FirefoxService(executable_path=manager)
     browser = webdriver.Firefox(service=_service, options=options)
     return browser
