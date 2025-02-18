@@ -143,7 +143,7 @@ class Server_(Server):
             thread.join()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 async def run_server() -> Server_:
     from sciop.main import app
 
