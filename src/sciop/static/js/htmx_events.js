@@ -26,19 +26,27 @@ htmx.on("htmx:responseError", (e) => {
 
     for (error of errors){
       let name = error['loc'][1];
-      const field = document.querySelector(`#${form.id} [name="${name}"]`);
-      const feedback = document.querySelector(`#${form.id} div:has([name="${name}"]) .error-feedback`);
-      field.setCustomValidity(error['msg']);
+      let field = document.querySelector(`#${form.id} [name="${name}"]`);
+      let feedback = document.querySelector(`#${form.id} div:has([name="${name}"]) .error-feedback`);
+      if (field !== null && "setCustomValidity" in field) {
+        field.setCustomValidity(error['msg']);
+        field.addEventListener('focus', () => field.reportValidity());
+        field.addEventListener('change', () => field.setCustomValidity(''));
+        field.reportValidity();
+      } else {
+        // Pydantic doesn't give us enough information to target errors to fields within nested models,
+        // so we just report on the whole class
+        field = document.querySelector(`#${form.id} div[name="${name}"]>div:nth-child(${error['loc'][2] + 1})`);
+        feedback = document.querySelector(`#${form.id} div[name="${name}"]>div:nth-child(${error['loc'][2] + 1}) .error-feedback`);
+      }
       feedback.innerHTML = error['msg'];
       feedback.classList.remove("changed");
       field.classList.add("invalid");
-      field.addEventListener('focus', () => field.reportValidity());
+
       field.addEventListener('change', () => {
-        field.setCustomValidity('');
         field.classList.remove("invalid");
         feedback.classList.add("changed");
       });
-      field.reportValidity();
     }
   } else {
     // Handle the error some other way

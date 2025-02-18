@@ -21,9 +21,10 @@ to upload, you will be able to do so after submitting the dataset.
         class="form-button"
         type="submit"
         name="dataset"
-        hx-post="{{ config.api_prefix }}/datasets/form"
+        hx-post="{{ config.api_prefix }}/datasets"
         hx-include="#request-form"
         hx-target="#request-form"
+        hx-ext="form-json"
     >Submit</button>
 </div>
 

@@ -84,3 +84,12 @@ Note that we expect this to change soon to support real db migrations, which wil
 
 # License
 [EUPL v1.2](./LICENSE)
+
+
+# Vendored Software
+
+This project includes the following vendored software:
+
+- [htmx](https://htmx.org/) - Zero-Clause BSD
+- [form-json](https://github.com/xehrad/form-json/) - GPL 3.0
+- [fastapi_rss](https://github.com/sbordeyne/fastapi_rss) - MIT

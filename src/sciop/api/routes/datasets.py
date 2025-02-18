@@ -8,7 +8,13 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from sciop import crud
-from sciop.api.deps import CurrentAccount, RequireEnabledDataset, RequireUploader, SessionDep
+from sciop.api.deps import (
+    CurrentAccount,
+    RequireDataset,
+    RequireEnabledDataset,
+    RequireUploader,
+    SessionDep,
+)
 from sciop.middleware import limiter
 from sciop.models import (
     Dataset,
@@ -51,6 +57,7 @@ async def datasets_create(
     created_dataset = crud.create_dataset(
         session=session, dataset_create=dataset, current_account=current_account
     )
+    response.headers["HX-Location"] = f"/datasets/{created_dataset.slug}"
     return created_dataset
 
 
@@ -65,6 +72,8 @@ async def datasets_create_form(
 ) -> DatasetRead:
     """
     Create a dataset with form encoded data
+
+    TODO: This can likely be removed after the addition of form-json
     """
     # hacky workaround for checkboxes in forms
     # https://github.com/fastapi/fastapi/discussions/13380
@@ -79,6 +88,11 @@ async def datasets_create_form(
     )
     response.headers["HX-Location"] = f"/datasets/{created_dataset.slug}"
     return created_dataset
+
+
+@datasets_router.get("/{dataset_slug}")
+async def dataset_show(dataset: RequireDataset) -> DatasetRead:
+    return dataset
 
 
 @datasets_router.post("/{dataset_slug}/uploads")

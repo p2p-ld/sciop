@@ -4,7 +4,7 @@ from html import escape
 from typing import Annotated, Optional, TypeAlias
 
 from annotated_types import Gt, MaxLen
-from pydantic import AfterValidator, AnyUrl, Field, TypeAdapter
+from pydantic import AfterValidator, AnyUrl, BeforeValidator, Field, TypeAdapter
 from slugify import slugify
 
 USERNAME_PATTERN = re.compile(r"^[\w-]+$")
@@ -91,3 +91,47 @@ class InputType(StrEnum):
     text = "text"
     textarea = "textarea"
     tokens = "tokens"
+    model_list = "model_list"
+
+
+ARK_PATTERN = r"^\S*ark:\S+"
+"""
+Entirely incomplete pattern just to recognize ark vs not ark
+See: https://arks.org/specs/
+"""
+
+DOI_PATTERN = r"^10\.\d{3,9}\/[-._;()/:A-Za-z0-9]+$"
+"""
+https://www.crossref.org/blog/dois-and-matching-regular-expressions/
+"""
+
+ISNI_PATTERN = r"^[0-9]{15}[0-9X]$"
+ISSN_PATTERN = r"^[0-9]{4}-[0-9]{3}[0-9X]$"
+QID_PATTERN = r"^Q\d+$"
+
+
+def _strip_doi_prefix(val: str) -> str:
+    val = val.strip()
+    val = re.sub(r"^https://doi\.org/", "", val)
+    val = re.sub(r"^doi:[/]{,2}", "", val)
+    return val
+
+
+ARK_TYPE: TypeAlias = Annotated[str, Field(pattern=ARK_PATTERN)]
+DOI_TYPE: TypeAlias = Annotated[str, BeforeValidator(_strip_doi_prefix), Field(pattern=DOI_PATTERN)]
+ISNI_TYPE: TypeAlias = Annotated[str, Field(pattern=ISNI_PATTERN)]
+ISSN_TYPE: TypeAlias = Annotated[str, Field(pattern=ISSN_PATTERN)]
+QID_TYPE: TypeAlias = Annotated[str, Field(pattern=QID_PATTERN)]
+
+
+class ExternalIdentifierType(StrEnum):
+    ark: Annotated[ARK_TYPE, "Archival Resource Key"] = "ark"
+    cid: Annotated[str, "IPFS/IPLD Content Identifier"] = "cid"
+    doi: Annotated[DOI_TYPE, "Digital Object Identifier"] = "doi"
+    isni: Annotated[ISNI_TYPE, "International Standard Name Identifier "] = "isni"
+    isbn: Annotated[str, "International Standard Book Number"] = "isbn"
+    issn: Annotated[ISSN_TYPE, "International Standard Serial Number"] = "issn"
+    purl: Annotated[AnyUrl, "Persistent Uniform Resource Locator"] = "purl"
+    qid: Annotated[QID_TYPE, "Wikidata Identifier"] = "qid"
+    rrid: Annotated[str, "Research Resource Identifier"] = "rrid"
+    urn: Annotated[str, "Uniform Resource Name"] = "urn"

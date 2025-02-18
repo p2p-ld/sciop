@@ -44,6 +44,14 @@
                     <td class="infobox-key">Source Access</td>
                     <td class="infobox-value">{{ dataset.source_access }}</td>
                 </tr>
+                {% if dataset.external_identifiers %}
+                {% for identifier in dataset.external_identifiers %}
+                <tr>
+                    <td class="infobox-key">{{ identifier.type }}</td>
+                    <td class="infobox-value">{{ identifier.identifier }}</td>
+                </tr>
+                {% endfor %}
+                {% endif %}
                 {% if dataset.dataset_created_at %}
                 <tr>
                     <td class="infobox-key">Dataset Created</td>

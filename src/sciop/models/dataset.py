@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Optional
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Self
 
-from pydantic import field_validator
+from pydantic import TypeAdapter, field_validator, model_validator
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.account import Account
@@ -10,6 +10,7 @@ from sciop.models.tag import DatasetTagLink
 from sciop.types import (
     AccessType,
     EscapedStr,
+    ExternalIdentifierType,
     IDField,
     InputType,
     MaxLenURL,
@@ -150,6 +151,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     dataset_id: IDField = Field(None, primary_key=True)
     uploads: list["Upload"] = Relationship(back_populates="dataset")
     external_sources: list["ExternalSource"] = Relationship(back_populates="dataset")
+    external_identifiers: list["ExternalIdentifier"] = Relationship(back_populates="dataset")
     urls: list["DatasetURL"] = Relationship(back_populates="dataset")
     tags: list["Tag"] = Relationship(
         back_populates="datasets",
@@ -165,6 +167,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
 
 class DatasetCreate(DatasetBase):
     urls: list[MaxLenURL] = Field(
+        default_factory=list,
         title="URL(s)",
         description="""
         URL(s) to the direct download of the data, if public, 
@@ -173,6 +176,7 @@ class DatasetCreate(DatasetBase):
         If uploading a recursive web archive dump, only the top-level URL is needed.
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+        max_length=512,
     )
     tags: list[Annotated[SlugStr, Field(min_length=2, max_length=32)]] = Field(
         title="Tags",
@@ -186,6 +190,19 @@ class DatasetCreate(DatasetBase):
         Tags are used to generate RSS feeds so people can reseed data that is important to them.
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.tokens}},
+        min_length=1,
+        max_length=512,
+    )
+    external_identifiers: list["ExternalIdentifierCreate"] = Field(
+        title="External Identifiers",
+        default_factory=list,
+        schema_extra={
+            "json_schema_extra": {
+                "input_type": InputType.model_list,
+                "model_name": "ExternalIdentifierCreate",
+            }
+        },
+        max_length=32,
     )
 
     @field_validator("urls", "tags", mode="before")
@@ -193,16 +210,18 @@ class DatasetCreate(DatasetBase):
         """Split lists of strings given as one entry per line"""
         if isinstance(value, str):
             if not value or value == "":
-                return None
+                return []
             value = value.splitlines()
         elif isinstance(value, list) and len(value) == 1:
             if "\n" in value[0]:
                 value = value[0].splitlines()
             elif value[0] == "":
-                return None
+                return []
+        elif value is None:
+            return []
 
         # filter empty strings
-        value = [v for v in value if v.strip()]
+        value = [v for v in value if v and v.strip()]
         return value
 
     @field_validator("tags", "tags", mode="before")
@@ -212,6 +231,8 @@ class DatasetCreate(DatasetBase):
             if not value or value == "":
                 return None
             value = value.split(",")
+        elif value is None:
+            return None
 
         # split any substrings, e.g. if comma-separated strings are used in
         # the token-input style of tag entry
@@ -242,10 +263,19 @@ class DatasetCreate(DatasetBase):
 class DatasetRead(DatasetBase, TableReadMixin):
     uploads: list["Upload"] = Field(default_factory=list)
     external_sources: list["ExternalSource"] = Field(default_factory=list)
+    external_identifiers: list["ExternalIdentifierRead"] = Field(default_factory=list)
     urls: list["DatasetURL"] = Field(default_factory=list)
-    tags: list["Tag"] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
     scrape_status: ScrapeStatus
     enabled: bool
+
+    @field_validator("tags", mode="before")
+    def collapse_tags(cls, val: list["Tag"]) -> list[str]:
+        return [tag.tag for tag in val]
+
+    @field_validator("tags", mode="after")
+    def sort_list(cls, val: list[Any]) -> list[Any]:
+        return sorted(val)
 
 
 class DatasetURL(SQLModel, table=True):
@@ -280,3 +310,44 @@ class ExternalSource(ExternalSourceBase, TableMixin, table=True):
     dataset: Dataset = Relationship(back_populates="external_sources")
     account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: Optional[Account] = Relationship(back_populates="external_submissions")
+
+
+class ExternalIdentifierBase(SQLModel):
+    """
+    Some additional, probably persistent identifier for a dataset
+    """
+
+    type: ExternalIdentifierType
+    identifier: str = Field(max_length=512)
+
+
+class ExternalIdentifier(ExternalIdentifierBase, TableMixin, table=True):
+    __tablename__ = "external_identifier"
+
+    external_identifier_id: IDField = Field(None, primary_key=True)
+    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
+    dataset: Dataset = Relationship(back_populates="external_identifiers")
+
+
+class ExternalIdentifierCreate(ExternalIdentifierBase):
+
+    @field_validator("identifier", mode="before")
+    def strip_whitespace(cls, val: str) -> str:
+        return val.strip()
+
+    @model_validator(mode="after")
+    def validate_by_type(self) -> Self:
+        """
+        Apply additional validation from the annotation on the external identifier type
+        """
+        annotation = ExternalIdentifierType.__annotations__.get(self.type, None)
+        if annotation is None:
+            return self
+
+        adapter = TypeAdapter(annotation)
+        self.identifier = adapter.validate_python(self.identifier)
+        return self
+
+
+class ExternalIdentifierRead(ExternalIdentifierBase):
+    pass

@@ -41,6 +41,9 @@ sciop = "sciop.main:main"
 test = [
     "pytest>=8.3.4",
     "httpx>=0.28.1",
+    "webdriver-manager>=4.0.2",
+    "selenium>=4.28.1",
+    "pytest-asyncio>=0.25.3",
 ]
 dev = [
     "sciop[test]",
@@ -137,3 +140,6 @@ fixable = ["ALL"]
 target-version = ['py311', 'py312', 'py313']
 include = "(?:tests|sciop|scripts)/.*\\.py$"
 line-length = 100
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
