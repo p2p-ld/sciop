@@ -1,14 +1,24 @@
+import asyncio
+import contextlib
 import logging
 import os
+import socket
+import time
 from pathlib import Path
+from threading import Thread
 from typing import TYPE_CHECKING, Callable
 from typing import Literal as L
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from fastapi.testclient import TestClient
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.firefox.service import Service as FirefoxService
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine
+from uvicorn import Config, Server
+from webdriver_manager.firefox import GeckoDriverManager
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.base import Engine
@@ -98,6 +108,64 @@ def client() -> TestClient:
 
     client = TestClient(app)
     return client
+
+
+def _unused_port(socket_type: int) -> int:
+    """Find an unused localhost port from 1024-65535 and return it."""
+    with contextlib.closing(socket.socket(type=socket_type)) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
+# This was copied from pytest-asyncio.
+# Ref.: https://github.com/pytest-dev/pytest-asyncio/blob/25d9592286682bc6dbfbf291028ff7a9594cf283/pytest_asyncio/plugin.py#L525-L527  # noqa: E501
+@pytest.fixture
+def unused_tcp_port() -> int:
+    return _unused_port(socket.SOCK_STREAM)
+
+
+class Server_(Server):
+    """
+    Borrowed from https://github.com/encode/uvicorn/discussions/1455
+    """
+
+    @contextlib.contextmanager
+    def run_in_thread(self) -> None:
+        thread = Thread(target=self.run)
+        thread.start()
+        try:
+            while not self.started:
+                time.sleep(1e-3)
+            yield
+        finally:
+            self.should_exit = True
+            thread.join()
+
+
+@pytest.fixture
+async def run_server() -> Server_:
+    from sciop.main import app
+
+    config = Config(
+        app=app,
+        port=8080,
+    )
+    server = Server_(config=config)
+    await asyncio.sleep(0.1)
+    with server.run_in_thread():
+        yield server
+
+
+@pytest.fixture()
+async def driver(run_server: Server_) -> webdriver.Firefox:
+    manager = GeckoDriverManager().install()
+    options = FirefoxOptions()
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--headless")
+    options.add_argument(f"--window-size={1920},{1080}")
+    _service = FirefoxService(executable_path=manager)
+    browser = webdriver.Firefox(service=_service, options=options)
+    return browser
 
 
 @pytest.fixture

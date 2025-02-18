@@ -8,7 +8,13 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from sciop import crud
-from sciop.api.deps import CurrentAccount, RequireEnabledDataset, RequireUploader, SessionDep
+from sciop.api.deps import (
+    CurrentAccount,
+    RequireDataset,
+    RequireEnabledDataset,
+    RequireUploader,
+    SessionDep,
+)
 from sciop.middleware import limiter
 from sciop.models import (
     Dataset,
@@ -82,6 +88,11 @@ async def datasets_create_form(
     )
     response.headers["HX-Location"] = f"/datasets/{created_dataset.slug}"
     return created_dataset
+
+
+@datasets_router.get("/{dataset_slug}")
+async def dataset_show(dataset: RequireDataset) -> DatasetRead:
+    return dataset
 
 
 @datasets_router.post("/{dataset_slug}/uploads")

@@ -167,6 +167,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
 
 class DatasetCreate(DatasetBase):
     urls: list[MaxLenURL] = Field(
+        default_factory=list,
         title="URL(s)",
         description="""
         URL(s) to the direct download of the data, if public, 
@@ -189,6 +190,7 @@ class DatasetCreate(DatasetBase):
         Tags are used to generate RSS feeds so people can reseed data that is important to them.
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.tokens}},
+        min_length=1,
         max_length=512,
     )
     external_identifiers: list["ExternalIdentifierCreate"] = Field(
@@ -208,15 +210,15 @@ class DatasetCreate(DatasetBase):
         """Split lists of strings given as one entry per line"""
         if isinstance(value, str):
             if not value or value == "":
-                return None
+                return []
             value = value.splitlines()
         elif isinstance(value, list) and len(value) == 1:
             if "\n" in value[0]:
                 value = value[0].splitlines()
             elif value[0] == "":
-                return None
+                return []
         elif value is None:
-            return None
+            return []
 
         # filter empty strings
         value = [v for v in value if v and v.strip()]
@@ -263,9 +265,13 @@ class DatasetRead(DatasetBase, TableReadMixin):
     external_sources: list["ExternalSource"] = Field(default_factory=list)
     external_identifiers: list["ExternalIdentifier"] = Field(default_factory=list)
     urls: list["DatasetURL"] = Field(default_factory=list)
-    tags: list["Tag"] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
     scrape_status: ScrapeStatus
     enabled: bool
+
+    @field_validator("tags", mode="before")
+    def collapse_tags(cls, val: list["Tag"]) -> list[str]:
+        return [tag.tag for tag in val]
 
 
 class DatasetURL(SQLModel, table=True):
