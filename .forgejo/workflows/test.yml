@@ -34,5 +34,6 @@ jobs:
       - name: Install Chromium
         run: |
           sudo apt-get update && sudo apt-get install chromium-browser -y
+          /usr/bin/chromium-browser --version
       - name: Run tests
         run: pytest
