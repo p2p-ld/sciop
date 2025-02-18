@@ -24,5 +24,8 @@ jobs:
           python-version: '3.13'
       - name: Install deps
         run: pip install -e .[test]
+      - name: Install Firefox
+        run: |
+          sudo apt update && sudo apt install firefox -y
       - name: Run tests
         run: pytest

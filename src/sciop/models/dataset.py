@@ -263,7 +263,7 @@ class DatasetCreate(DatasetBase):
 class DatasetRead(DatasetBase, TableReadMixin):
     uploads: list["Upload"] = Field(default_factory=list)
     external_sources: list["ExternalSource"] = Field(default_factory=list)
-    external_identifiers: list["ExternalIdentifier"] = Field(default_factory=list)
+    external_identifiers: list["ExternalIdentifierRead"] = Field(default_factory=list)
     urls: list["DatasetURL"] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     scrape_status: ScrapeStatus
@@ -272,6 +272,10 @@ class DatasetRead(DatasetBase, TableReadMixin):
     @field_validator("tags", mode="before")
     def collapse_tags(cls, val: list["Tag"]) -> list[str]:
         return [tag.tag for tag in val]
+
+    @field_validator("tags", mode="after")
+    def sort_list(cls, val: list[Any]) -> list[Any]:
+        return sorted(val)
 
 
 class DatasetURL(SQLModel, table=True):
@@ -343,3 +347,7 @@ class ExternalIdentifierCreate(ExternalIdentifierBase):
         adapter = TypeAdapter(annotation)
         self.identifier = adapter.validate_python(self.identifier)
         return self
+
+
+class ExternalIdentifierRead(ExternalIdentifierBase):
+    pass
