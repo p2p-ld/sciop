@@ -2,7 +2,6 @@ import asyncio
 import contextlib
 import logging
 import os
-import platform
 import socket
 import time
 from pathlib import Path
@@ -14,15 +13,13 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from fastapi.testclient import TestClient
 from selenium import webdriver
-from selenium.common.exceptions import SessionNotCreatedException
 from selenium.webdriver.chromium.options import ChromiumOptions
 from selenium.webdriver.chromium.service import ChromiumService
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine
 from uvicorn import Config, Server
 from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import PATTERN, ChromeType
-from webdriver_manager.core.utils import read_version_from_cmd
+from webdriver_manager.core.os_manager import ChromeType
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.base import Engine
@@ -171,19 +168,7 @@ async def driver(run_server: Server_) -> webdriver.Firefox:
     # _service = FirefoxService(executable_path=manager)
     # browser = webdriver.Firefox(service=_service, options=options)
 
-    if platform.system().lower() == "linux":
-        version = read_version_from_cmd(
-            "/usr/bin/chromium-browser --version", pattern=PATTERN[ChromeType.CHROMIUM]
-        )
-    elif platform.system().lower() == "darwin":
-        version = read_version_from_cmd(
-            "/usr/local/bin/chromium --version",
-            pattern=PATTERN[ChromeType.CHROMIUM],
-        )
-    else:
-        version = None
-
-    manager = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM, driver_version=version).install()
+    manager = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
     options = ChromiumOptions()
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--headless")
@@ -192,10 +177,7 @@ async def driver(run_server: Server_) -> webdriver.Firefox:
     options.headless = True
     options.add_argument(f"--window-size={1920},{1080}")
     _service = ChromiumService(executable_path=manager)
-    try:
-        browser = webdriver.Chrome(service=_service, options=options)
-    except SessionNotCreatedException:
-        pytest.skip()
+    browser = webdriver.Chrome(service=_service, options=options)
 
     return browser
 
