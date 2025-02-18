@@ -26,6 +26,6 @@ jobs:
         run: pip install -e .[test]
       - name: Install Firefox
         run: |
-          sudo apt update && sudo apt install firefox -y
+          sudo apt update && sudo apt install firefox xvfb -y
       - name: Run tests
         run: pytest
