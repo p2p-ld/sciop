@@ -175,6 +175,7 @@ class DatasetCreate(DatasetBase):
         If uploading a recursive web archive dump, only the top-level URL is needed.
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+        max_length=512,
     )
     tags: list[Annotated[SlugStr, Field(min_length=2, max_length=32)]] = Field(
         title="Tags",
@@ -188,6 +189,7 @@ class DatasetCreate(DatasetBase):
         Tags are used to generate RSS feeds so people can reseed data that is important to them.
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.tokens}},
+        max_length=512,
     )
     external_identifiers: list["ExternalIdentifierCreate"] = Field(
         title="External Identifiers",
@@ -198,6 +200,7 @@ class DatasetCreate(DatasetBase):
                 "model_name": "ExternalIdentifierCreate",
             }
         },
+        max_length=32,
     )
 
     @field_validator("urls", "tags", mode="before")
@@ -305,7 +308,7 @@ class ExternalIdentifierBase(SQLModel):
     """
 
     type: ExternalIdentifierType
-    identifier: str
+    identifier: str = Field(max_length=512)
 
 
 class ExternalIdentifier(ExternalIdentifierBase, TableMixin, table=True):
