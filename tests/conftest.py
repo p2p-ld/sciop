@@ -156,9 +156,12 @@ async def run_server() -> Server_:
         yield server
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 async def driver(run_server: Server_) -> webdriver.Firefox:
-    manager = GeckoDriverManager().install()
+    if os.environ.get("IN_CI", False):
+        executable_path = "/snap/bin/firefox.geckodriver"
+    else:
+        executable_path = GeckoDriverManager().install()
     options = FirefoxOptions()
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--headless")
@@ -166,8 +169,11 @@ async def driver(run_server: Server_) -> webdriver.Firefox:
     options.add_argument("--disable-gpu")
     options.headless = True
     options.add_argument("--window-size=1920,1080")
-    _service = FirefoxService(executable_path=manager)
+    _service = FirefoxService(executable_path=executable_path)
     browser = webdriver.Firefox(service=_service, options=options)
+    browser.set_window_size(1920, 1080)
+    browser.maximize_window()
+    browser.implicitly_wait(5)
     return browser
 
 

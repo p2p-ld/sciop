@@ -30,4 +30,4 @@ jobs:
       - name: Run tests
         run: |
           mkdir $HOME/tmp
-          DISPLAY=":99.0" TMPDIR=$HOME/tmp xvfb-run pytest
+          IN_CI=true TMPDIR=$HOME/tmp xvfb-run pytest
