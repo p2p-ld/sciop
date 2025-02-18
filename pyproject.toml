@@ -43,6 +43,7 @@ test = [
     "httpx>=0.28.1",
     "webdriver-manager>=4.0.2",
     "selenium>=4.28.1",
+    "pytest-asyncio>=0.25.3",
 ]
 dev = [
     "sciop[test]",
@@ -141,5 +142,4 @@ include = "(?:tests|sciop|scripts)/.*\\.py$"
 line-length = 100
 
 [tool.pytest.ini_options]
-addopts = "--driver Firefox"
 asyncio_mode = "auto"
