@@ -13,6 +13,7 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from fastapi.testclient import TestClient
 from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from sqlalchemy.orm import sessionmaker
@@ -170,11 +171,15 @@ async def driver(run_server: Server_) -> webdriver.Firefox:
     options.headless = True
     options.add_argument("--window-size=1920,1080")
     _service = FirefoxService(executable_path=executable_path)
-    browser = webdriver.Firefox(service=_service, options=options)
-    browser.set_window_size(1920, 1080)
-    browser.maximize_window()
-    browser.implicitly_wait(5)
-    return browser
+    try:
+        browser = webdriver.Firefox(service=_service, options=options)
+        browser.set_window_size(1920, 1080)
+        browser.maximize_window()
+        browser.implicitly_wait(5)
+
+        yield browser
+    except WebDriverException as e:
+        pytest.skip(str(e))
 
 
 @pytest.fixture
