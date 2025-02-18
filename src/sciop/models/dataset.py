@@ -14,6 +14,7 @@ from sciop.types import (
     IDField,
     InputType,
     MaxLenURL,
+    PathLike,
     Scarcity,
     ScrapeStatus,
     SlugStr,
@@ -163,6 +164,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     scrape_status: ScrapeStatus = "unknown"
     enabled: bool = False
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
+    dataset_parts: list["DatasetPart"] = Relationship(back_populates="dataset")
 
 
 class DatasetCreate(DatasetBase):
@@ -208,21 +210,7 @@ class DatasetCreate(DatasetBase):
     @field_validator("urls", "tags", mode="before")
     def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
         """Split lists of strings given as one entry per line"""
-        if isinstance(value, str):
-            if not value or value == "":
-                return []
-            value = value.splitlines()
-        elif isinstance(value, list) and len(value) == 1:
-            if "\n" in value[0]:
-                value = value[0].splitlines()
-            elif value[0] == "":
-                return []
-        elif value is None:
-            return []
-
-        # filter empty strings
-        value = [v for v in value if v and v.strip()]
-        return value
+        return _split_lines(value)
 
     @field_validator("tags", "tags", mode="before")
     def split_commas(cls, value: str | list[str]) -> Optional[list[str]]:
@@ -284,6 +272,7 @@ class DatasetURL(SQLModel, table=True):
     dataset_url_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
     dataset: Optional[Dataset] = Relationship(back_populates="urls")
+
     url: MaxLenURL
 
 
@@ -351,3 +340,72 @@ class ExternalIdentifierCreate(ExternalIdentifierBase):
 
 class ExternalIdentifierRead(ExternalIdentifierBase):
     pass
+
+
+class DatasetPartBase(SQLModel):
+    part_slug: SlugStr = Field(
+        title="Part Slug",
+        description="Unique identifier for this dataset part",
+        max_length=256,
+        unique=True,
+        index=True,
+    )
+
+
+class DatasetPart(DatasetPartBase, TableMixin, table=True):
+    __tablename__ = "dataset_part"
+
+    dataset_part_id: IDField = Field(None, primary_key=True)
+    dataset_id: IDField = Field(None, foreign_key="dataset.dataset_id")
+    dataset: Dataset = Relationship(back_populates="dataset_parts")
+    uploads: list["Upload"] = Field(default_factory=list)
+    paths: list["DatasetPath"] = Relationship(back_populates="dataset")
+
+
+class DatasetPartCreate(DatasetPartBase):
+    paths: list[PathLike] = Field(
+        default_factory=list,
+        title="Paths",
+        description="A list of paths that this part should contain, "
+        "if the part is not a single file.",
+    )
+
+    @field_validator("paths", mode="before")
+    def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
+        return _split_lines(value)
+
+
+class DatasetPartRead(DatasetPartBase):
+    dataset: Dataset
+    uploads: list["Upload"] = Field(default_factory=list)
+
+    @property
+    def absolute_slug(self) -> str:
+        """Slug joined by / with the parent dataset slug"""
+        return "/".join([self.dataset.slug, self.part_slug])
+
+
+class DatasetPath(SQLModel, TableMixin, table=True):
+    __tablename__ = "dataset_path"
+
+    dataset_path_id: IDField = Field(None, primary_key=True)
+    dataset_part_id: Optional[int] = Field(None, foreign_key="dataset_part.dataset_part_id")
+    dataset_part: DatasetPart = Relationship(back_populates="paths")
+
+
+def _split_lines(value: str | list[str]) -> Optional[list[str]]:
+    if isinstance(value, str):
+        if not value or value == "":
+            return []
+        value = value.splitlines()
+    elif isinstance(value, list) and len(value) == 1:
+        if "\n" in value[0]:
+            value = value[0].splitlines()
+        elif value[0] == "":
+            return []
+    elif value is None:
+        return []
+
+    # filter empty strings
+    value = [v for v in value if v and v.strip()]
+    return value

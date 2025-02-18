@@ -1,6 +1,8 @@
 import re
 from enum import StrEnum
 from html import escape
+from os import PathLike as PathLike_
+from pathlib import Path
 from typing import Annotated, Optional, TypeAlias
 
 from annotated_types import Gt, MaxLen
@@ -19,6 +21,7 @@ AnyUrlTypeAdapter = TypeAdapter(AnyUrl)
 MaxLenURL = Annotated[
     str, MaxLen(512), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
 ]
+PathLike = Annotated[PathLike_[str], AfterValidator(lambda x: Path(x).as_posix)]
 
 
 class AccessType(StrEnum):

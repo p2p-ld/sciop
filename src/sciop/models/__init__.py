@@ -12,6 +12,7 @@ from sciop.models.api import SuccessResponse
 from sciop.models.dataset import (
     Dataset,
     DatasetCreate,
+    DatasetPart,
     DatasetRead,
     DatasetURL,
     ExternalIdentifier,
@@ -43,6 +44,7 @@ __all__ = [
     "AuditLogRead",
     "Dataset",
     "DatasetCreate",
+    "DatasetPart",
     "DatasetRead",
     "DatasetURL",
     "DatasetTagLink",
