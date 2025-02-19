@@ -8,7 +8,7 @@ test_router = APIRouter(prefix="/test")
 
 @test_router.get("/", response_class=HTMLResponse, include_in_schema=False)
 def test(request: Request):
-    return templates.TemplateResponse("pages/test.html", {"request": request})
+    return templates.TemplateResponse(request, "pages/test.html")
 
 
 @test_router.post("/500")

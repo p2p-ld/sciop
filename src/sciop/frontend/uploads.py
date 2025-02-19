@@ -10,7 +10,6 @@ from sciop.api.deps import (
     RequireUpload,
     SessionDep,
 )
-from sciop.config import config
 from sciop.frontend.templates import jinja, templates
 from sciop.models import Dataset, DatasetRead
 
@@ -18,11 +17,12 @@ uploads_router = APIRouter(prefix="/uploads")
 
 
 @uploads_router.get("/", response_class=HTMLResponse)
-async def uploads(request: Request, account: CurrentAccount, session: SessionDep):
+async def uploads(request: Request, session: SessionDep):
     uploads = crud.get_approved_uploads(session=session)
     return templates.TemplateResponse(
+        request,
         "pages/uploads.html",
-        {"request": request, "config": config, "current_account": account, "uploads": uploads},
+        {"uploads": uploads},
     )
 
 
@@ -51,13 +51,12 @@ async def upload_show(
             detail=f"No such upload {short_hash} exists",
         )
     return templates.TemplateResponse(
+        request,
         "pages/upload.html",
-        {"request": request, "config": config, "current_account": account, "upload": upload},
+        {"upload": upload},
     )
 
 
 @uploads_router.get("/{short_hash}/partial", response_class=HTMLResponse)
 async def upload_partial(request: Request, upload: RequireUpload):
-    return templates.TemplateResponse(
-        "partials/upload.html", {"upload": upload, "request": request}
-    )
+    return templates.TemplateResponse(request, "partials/upload.html", {"upload": upload})

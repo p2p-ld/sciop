@@ -3,7 +3,6 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 import sciop
 from sciop.api.deps import CurrentAccount
-from sciop.config import config
 from sciop.const import STATIC_DIR
 from sciop.frontend.templates import templates
 from sciop.models import DatasetCreate
@@ -12,7 +11,7 @@ index_router = APIRouter()
 
 
 @index_router.get("/", response_class=HTMLResponse)
-async def index(request: Request, account: CurrentAccount):
+async def index(request: Request):
     try:
         short_hash = sciop.__version__.split("+")[1]
     except IndexError:
@@ -21,9 +20,6 @@ async def index(request: Request, account: CurrentAccount):
         request,
         "pages/index.html",
         {
-            "request": request,
-            "config": config,
-            "current_account": account,
             "version": sciop.__version__,
             "short_hash": short_hash,
         },
@@ -31,18 +27,13 @@ async def index(request: Request, account: CurrentAccount):
 
 
 @index_router.get("/login", response_class=HTMLResponse)
-async def login(request: Request, account: CurrentAccount):
-    return templates.TemplateResponse(
-        "pages/login.html", {"request": request, "config": config, "current_account": account}
-    )
+async def login(request: Request):
+    return templates.TemplateResponse(request, "pages/login.html")
 
 
 @index_router.get("/request", response_class=HTMLResponse)
-async def request(request: Request, account: CurrentAccount):
-    return templates.TemplateResponse(
-        "pages/request.html",
-        {"request": request, "config": config, "current_account": account, "model": DatasetCreate},
-    )
+async def request(request: Request):
+    return templates.TemplateResponse(request, "pages/request.html", {"model": DatasetCreate})
 
 
 @index_router.get("/upload", response_class=HTMLResponse)
@@ -50,9 +41,7 @@ async def upload(request: Request, account: CurrentAccount):
     if account is None:
         return RedirectResponse(url="/login", status_code=302)
 
-    return templates.TemplateResponse(
-        "pages/upload.html", {"request": request, "config": config, "current_account": account}
-    )
+    return templates.TemplateResponse(request, "pages/upload.html")
 
 
 @index_router.get("/favicon.ico", response_class=FileResponse, include_in_schema=False)
