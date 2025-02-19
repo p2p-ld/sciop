@@ -30,6 +30,8 @@ body {
   --color-primary-shade-3: color-mix(in lch, var(--color-primary) 50%, white);
   --color-primary-darker-1: color-mix(in lch, var(--color-primary) 80%, var(--color-dark-background));
   --color-border-deemphasized: #333;
+  --color-deemphasized: #888;
+  --color-disabled: #404040;
   --color-caution: red;
   --color-caution-darker-1: color-mix(in lch, var(--color-caution) 80%, var(--color-dark-background));
   --color-caution-contrast: var(--color-primary-contrast);

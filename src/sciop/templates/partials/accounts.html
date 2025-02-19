@@ -20,7 +20,7 @@
     </div>
     <div class="account-items">
       {% for account in items %}
-      {{ account_collapsible(account, review=review, config=config, models=models) }}
+      {{ account_collapsible(account, review=review, config=config, models=models, current_account=current_account) }}
       {% endfor %}
     </div>
   </div>
