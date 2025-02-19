@@ -50,6 +50,23 @@ button,
       }
     }
   }
+
+  &:disabled {
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--color-background),
+      var(--color-background) 5px,
+      var(--color-disabled) 5px,
+      var(--color-disabled) 7px
+    );
+    box-shadow: unset;
+    border-color: var(--color-border-deemphasized);
+    color: var(--color-deemphasized);
+
+    &:hover {
+      border-color: var(--color-border-deemphasized);
+    }
+  }
 }
 
 .search-container {
