@@ -113,8 +113,8 @@ def log_console_width(monkeypatch: "MonkeyPatch") -> None:
 def client() -> TestClient:
     from sciop.main import app
 
-    client = TestClient(app)
-    return client
+    with TestClient(app) as client:
+        yield client
 
 
 def _unused_port(socket_type: int) -> int:
