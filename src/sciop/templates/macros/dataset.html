@@ -1,9 +1,9 @@
 {% from "macros/model-table.html" import model_table %}
-{% macro dataset_row(dataset, current_account, config) %}
+{% macro dataset_row(dataset, current_account, config, header_start=1) %}
 <div class="dataset" id="dataset-{{ dataset.slug }}">
     <div class="dataset-topmatter topmatter">
         <div class="dataset-header header">
-            <h2 class="dataset-title">{{ dataset.title }} </h2>
+            <h{{ header_start }} class="dataset-title">{{ dataset.title }} </h{{ header_start }}>
             <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
             <p class="dataset-publisher">{{ dataset.publisher }}</p>
             <a class="dataset-homepage" href="{{ dataset.homepage }}">{{ dataset.homepage }}</a>
@@ -93,7 +93,7 @@
     </p>
 
     {% if dataset.urls | length > 0 %}
-    <h3>URLs</h3>
+    <h{{ header_start + 1 }}>URLs</h{{ header_start + 1 }}>
 
     <ul class="url-list">
         {% for url in dataset.urls %}
@@ -104,7 +104,7 @@
     </ul>
     {% endif %}
 
-    <h3>Uploads</h3>
+    <h{{ header_start + 1 }}>Uploads</h{{ header_start + 1 }}>
 
     {% if dataset.enabled %}
     <div id="dataset-uploads-container" class="uploads-container container">

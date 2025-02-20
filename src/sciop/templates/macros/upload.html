@@ -1,16 +1,16 @@
-{% macro upload_row(upload, current_account, config) %}
+{% macro upload_row(upload, current_account, config, header_start=1) %}
 <div class="upload" id="upload-{{ upload.short_hash }}">
     <div class="upload-topmatter topmatter">
         <div class="upload-header header">
-            <h2 class="title upload-title font-mono">{{ upload.short_hash }} </h2>
+            <h{{ header_start }} class="title upload-title font-mono">{{ upload.short_hash }} </h{{ header_start }}>
             <span class="dataset-slug">
                 <a href="/datasets/{{upload.dataset.slug}}">
                     {{ upload.dataset.slug }}
                 </a>
             </span>
-            <h3 class="description">Description</h3>
+            <h{{ header_start + 1}} class="description">Description</h{{ header_start + 1}}>
             <p>{{ upload.description }}</p>
-            <h3 class="method">Method</h3>
+            <h{{ header_start + 1}} class="method">Method</h{{ header_start + 1}}>
             <p>{{ upload.method }}</p>
 
         </div>
@@ -51,18 +51,18 @@
 
     </div>
 
-    <h3>
+    <h{{ header_start + 1}}>
        Files
-    </h3>
+    </h{{ header_start + 1}}>
     <div class="file-table">
         {% for file in upload.torrent.files %}
         <span class="file-name">{{ file.path }}</span>
         <span class="file-size">{{ file.human_size }}</span>
         {% endfor %}
     </div>
-    <h3>
+    <h{{ header_start + 1}}>
         Trackers
-    </h3>
+    </h{{ header_start + 1}}>
     <div class="tracker-list">
         {% for tracker in upload.torrent.trackers %}
         <code>{{ tracker.url }}</code>

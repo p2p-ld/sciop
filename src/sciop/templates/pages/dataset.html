@@ -2,6 +2,6 @@
 {% from "macros/dataset.html" import dataset_row %}
 {% block content %}
 
-{{ dataset_row(dataset, current_account, config) }}
+{{ dataset_row(dataset, current_account, config, header_start=1) }}
 
 {% endblock %}
