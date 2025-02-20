@@ -3,21 +3,21 @@ import sys
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
+
+mpatch = MonkeyPatch()
+mpatch.setenv("SCIOP_SECRET_KEY", "12345")
+
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, create_engine
 
 from .fixtures import *
 from .fixtures import TMP_DIR, TORRENT_DIR
 
-mpatch = MonkeyPatch()
 
-def pytest_session_started(request):
-    global mpatch
-    mpatch.setenv("SCIOP_SECRET_KEY", "12345")
-
-def pytest_session_finished(session):
+def pytest_session_finished(session: pytest.Session) -> None:
     global mpatch
     mpatch.undo()
+
 
 def pytest_collection_finish(session: pytest.Session) -> None:
     from sciop.middleware import limiter

@@ -137,7 +137,7 @@ fixable = ["ALL"]
 [tool.ruff.lint.per-file-ignores]
 "**/{api,frontend}/*" = ["ANN201"]
 "tests/**/test_*" = ["ANN001", "ANN201", "F841"]
-"tests/conftest.py" = ["F403"]
+"tests/conftest.py" = ["F403", "E402"]
 "tests/fixtures/**/*" = ["F403"]
 
 [tool.black]
