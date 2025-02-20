@@ -99,6 +99,9 @@ table {
   }
 }
 
+.collapsible-table {
+  margin-bottom: 1em;
+}
 
 .datasets-table,
 .uploads-table,

@@ -89,13 +89,20 @@
         <span class="upload-timestamp timestamp">{{ upload.created_at.strftime("%y-%m-%d %H:%M") }}</span>
         {% if review %}
         <button class="button approve-button success-button"
+                role="button"
+                aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it available for download"
+                aria-controls="upload-collapsible-{{ upload.upload_id }}"
                 hx-post="{{ config.api_prefix }}/uploads/{{ upload.short_hash }}/approve">Approve
         </button>
         <button class="button deny-button success-button caution"
+                role="button"
+                aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
+                aria-controls="upload-collapsible-{{ upload.upload_id }}"
                 hx-post="{{ config.api_prefix }}/uploads/{{ upload.short_hash }}/deny">Deny
         </button>
         {% else %}
-        <a class="icon-link download-link" href="{{ upload.download_path }}">⬇️</a>
+        <a class="icon-link download-link" href="{{ upload.download_path }}" aria-label="Download" title="Download">⬇️
+        </a>
         {% endif %}
     </summary>
     <div class="upload" id="upload-{{ upload.short_hash }}"></div>

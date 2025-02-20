@@ -148,9 +148,14 @@
         <span class="dataset-timestamp timestamp">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}</span>
         {% if review %}
         <button class="button approve-button success-button"
+                role="button"
+                aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it visible on the site"
+                aria-controls="dataset-collapsible-{{ dataset.slug }}"
                 hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve
         </button>
         <button class="button deny-button success-button caution"
+                aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
+                aria-controls="dataset-collapsible-{{ dataset.slug }}"
                 hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/deny">Deny
         </button>
         {% endif %}
