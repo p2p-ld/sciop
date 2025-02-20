@@ -143,3 +143,6 @@ line-length = 100
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = """
+  selenium: tests that use the selenium webdriver
+"""

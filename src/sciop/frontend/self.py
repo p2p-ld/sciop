@@ -23,22 +23,22 @@ async def profile(request: Request, account: CurrentAccount):
     if account is None:
         return RedirectResponse(url="/login", status_code=302)
 
-    return templates.TemplateResponse("pages/self/index.html", {"request": request})
+    return templates.TemplateResponse(request, "pages/self/index.html")
 
 
 @self_router.get("/review", response_class=HTMLResponse)
 async def review(request: Request, account: RequireReviewer):
-    return templates.TemplateResponse("pages/self/review.html", {"request": request})
+    return templates.TemplateResponse(request, "pages/self/review.html")
 
 
 @self_router.get("/admin", response_class=HTMLResponse)
 async def admin(request: Request, account: RequireAdmin):
-    return templates.TemplateResponse("pages/self/admin.html", {"request": request})
+    return templates.TemplateResponse(request, "pages/self/admin.html")
 
 
 @self_router.get("/log", response_class=HTMLResponse)
 async def log(request: Request, account: RequireReviewer):
-    return templates.TemplateResponse("pages/self/log.html", {"request": request})
+    return templates.TemplateResponse(request, "pages/self/log.html")
 
 
 @self_router.get("/datasets", response_class=HTMLResponse)

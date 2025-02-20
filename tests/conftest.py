@@ -3,6 +3,7 @@ import contextlib
 import logging
 import os
 import socket
+import sys
 import time
 from pathlib import Path
 from threading import Thread
@@ -67,6 +68,11 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch") -> None:
 
     new_config = config.Config(env="test", db=db_path, secret_key="12345")
     monkeypatch_session.setattr(config, "config", new_config)
+    for key, module in sys.modules.items():
+        if not key.startswith("sciop.") and not key.startswith("tests."):
+            continue
+        with contextlib.suppress(AttributeError):
+            monkeypatch_session.setattr(module, "config", new_config)
 
     from sciop import db
 
@@ -107,8 +113,8 @@ def log_console_width(monkeypatch: "MonkeyPatch") -> None:
 def client() -> TestClient:
     from sciop.main import app
 
-    client = TestClient(app)
-    return client
+    with TestClient(app) as client:
+        yield client
 
 
 def _unused_port(socket_type: int) -> int:
