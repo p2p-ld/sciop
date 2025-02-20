@@ -1,5 +1,5 @@
 function darkmode(){
-  const btn = document.querySelector("#option-darkmode-input");
+  const btn = document.querySelector("#theme-button");
   const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
   const storedTheme = localStorage.getItem("theme");
   let currentTheme;
@@ -7,8 +7,14 @@ function darkmode(){
   function setTheme(theme){
     if (theme === "dark"){
       document.body.classList.remove("light-theme");
+      btn.ariaPressed = "false"
+      btn.ariaLabel = "Toggle the theme to light mode"
+      btn.classList.remove("light")
     } else {
       document.body.classList.add("light-theme");
+      btn.ariaPressed = "true"
+      btn.ariaLabel = "Toggle the theme to dark mode"
+      btn.classList.add("light")
     }
     localStorage.setItem("theme", theme);
   }
@@ -22,11 +28,11 @@ function darkmode(){
   setTheme(currentTheme);
   btn.checked = currentTheme === "light";
 
-  btn.addEventListener("change", function (e) {
-    if (btn.checked) {
-      setTheme("light");
-    } else {
+  btn.addEventListener("click", function (e) {
+    if (btn.ariaPressed === "true") {
       setTheme("dark");
+    } else {
+      setTheme("light");
     }
   });
 }
@@ -55,7 +61,7 @@ function waitForElm(selector) {
     });
 }
 
-waitForElm("#option-darkmode-input").then(() => darkmode())
+waitForElm("#theme-button").then(() => darkmode())
 
 // Don't animate background color changes and the toggle button when first loading the page
 window.addEventListener("load", () => {
