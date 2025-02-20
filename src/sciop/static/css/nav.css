@@ -14,10 +14,10 @@ nav.navbar {
     flex-grow: 2;
   }
 
-  h2 {
+  .site-title {
     margin: 0em 1em;
-    font-family: var(--font-mono);
     font-size: 1.5em;
+    font-weight: bold;
   }
 
   .nav-button {

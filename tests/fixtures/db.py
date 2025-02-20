@@ -5,6 +5,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from sqlalchemy import create_engine, Engine
 from sqlmodel import Session, SQLModel
 
+
 @pytest.fixture(scope="session", autouse=True)
 def create_tables(monkeypatch_session: "MonkeyPatch", monkeypatch_config: None) -> None:
     from sciop.config import config
