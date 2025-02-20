@@ -1,11 +1,13 @@
+import contextlib
 import sys
-from typing import TYPE_CHECKING
+
 import pytest
-from sqlalchemy.orm import sessionmaker
 from _pytest.monkeypatch import MonkeyPatch
+from sqlalchemy.orm import sessionmaker
+from sqlmodel import Session, create_engine
 
 from .fixtures import *
-from .fixtures import TMP_DIR
+from .fixtures import TMP_DIR, TORRENT_DIR
 
 
 def pytest_collection_finish(session: pytest.Session) -> None:

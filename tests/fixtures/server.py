@@ -10,18 +10,19 @@ from selenium import webdriver
 from selenium.common import WebDriverException
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
+from sqlmodel import Session
 from starlette.testclient import TestClient
-from uvicorn import Server, Config
+from uvicorn import Config, Server
 from webdriver_manager.firefox import GeckoDriverManager
 
 
 @pytest.fixture()
-def client(session) -> TestClient:
+def client(session: Session) -> TestClient:
     """Client that runs the lifespan actions"""
-    from sciop.main import app
     from sciop.db import get_session
+    from sciop.main import app
 
-    def get_session_override():
+    def get_session_override() -> Session:
         return session
 
     app.dependency_overrides[get_session] = get_session_override
@@ -30,12 +31,12 @@ def client(session) -> TestClient:
 
 
 @pytest.fixture()
-def client_lifespan(session) -> TestClient:
+def client_lifespan(session: Session) -> TestClient:
     """Client that runs the lifespan actions"""
-    from sciop.main import app
     from sciop.db import get_session
+    from sciop.main import app
 
-    def get_session_override():
+    def get_session_override() -> Session:
         return session
 
     app.dependency_overrides[get_session] = get_session_override
@@ -77,11 +78,11 @@ class Server_(Server):
 
 
 @pytest.fixture()
-async def run_server(session) -> Server_:
-    from sciop.main import app
+async def run_server(session: Session) -> Server_:
     from sciop.db import get_session
+    from sciop.main import app
 
-    def get_session_override():
+    def get_session_override() -> Session:
         return session
 
     app.dependency_overrides[get_session] = get_session_override

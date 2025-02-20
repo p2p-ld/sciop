@@ -2,7 +2,7 @@ from typing import Callable
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import Engine, create_engine
 from sqlmodel import Session, SQLModel
 
 
@@ -16,11 +16,11 @@ def create_tables(monkeypatch_session: "MonkeyPatch", monkeypatch_config: None) 
 
 
 @pytest.fixture
-def session(monkeypatch) -> Session:
-    from sciop.db import maker, engine, get_session
+def session(monkeypatch: MonkeyPatch) -> Session:
     from sciop import db
-    from sciop.frontend import templates
     from sciop.api import deps
+    from sciop.db import engine, get_session, maker
+    from sciop.frontend import templates
     from sciop.main import app
 
     connection = engine.connect()
@@ -29,7 +29,7 @@ def session(monkeypatch) -> Session:
     trans = connection.begin()
     session = maker(bind=connection)
 
-    def get_session_override():
+    def get_session_override() -> Session:
         yield session
 
     monkeypatch.setattr(db, "get_session", get_session_override)

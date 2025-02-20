@@ -1,30 +1,29 @@
-from typing import Literal as L, ParamSpec, Protocol, Concatenate
+import random
 from collections.abc import Callable as C
+from pathlib import Path
+from typing import Concatenate, ParamSpec
+from typing import Literal as L
 
 import pytest
-import random
-from sqlmodel import Session, SQLModel
-from starlette.testclient import TestClient
 from faker import Faker
+from sqlmodel import Session
+from starlette.testclient import TestClient
 from torf import Torrent
-from pathlib import Path
 
+from sciop import crud
 from sciop.models import (
     Account,
     AccountCreate,
     Dataset,
     DatasetCreate,
+    Scope,
+    Scopes,
     Token,
     TorrentFile,
     TorrentFileCreate,
     Upload,
-    Dataset,
-    Scope,
-    Scopes,
     UploadCreate,
 )
-from sciop import crud
-from .paths import TORRENT_DIR
 
 fake = Faker()
 
@@ -92,7 +91,7 @@ def default_torrent() -> dict:
 
 @pytest.fixture
 def account(
-    default_account, session: Session
+    default_account: dict, session: Session
 ) -> C[Concatenate[list[Scopes] | None, Session | None, P], "Account"]:
     def _account(
         scopes: list[Scopes] = None, session_: Session | None = None, **kwargs: P.kwargs
@@ -100,10 +99,7 @@ def account(
         if not session_:
             session_ = session
 
-        if scopes is None:
-            scopes = []
-        else:
-            scopes = [Scope.get_item(s, session=session_) for s in scopes]
+        scopes = [] if scopes is None else [Scope.get_item(s, session=session_) for s in scopes]
         default_account.update(kwargs)
 
         account_ = crud.get_account(session=session_, username=kwargs["username"])
@@ -121,7 +117,7 @@ def account(
 
 
 @pytest.fixture
-def admin_user(account) -> "Account":
+def admin_user(account: C[..., "Account"]) -> "Account":
     yield account(
         scopes=[Scopes.admin, Scopes.upload, Scopes.review],
         username="admin",
@@ -130,12 +126,14 @@ def admin_user(account) -> "Account":
 
 
 @pytest.fixture
-def uploader(account) -> Account:
+def uploader(account: C[..., "Account"]) -> Account:
     return account(scopes=[Scopes.upload])
 
 
 @pytest.fixture
-def dataset(default_dataset, session: Session) -> C[Concatenate[bool, Session | None, P], Dataset]:
+def dataset(
+    default_dataset: dict, session: Session
+) -> C[Concatenate[bool, Session | None, P], Dataset]:
     def _dataset(
         enabled: bool = True, session_: Session | None = None, **kwargs: P.kwargs
     ) -> Dataset:
@@ -156,7 +154,7 @@ def dataset(default_dataset, session: Session) -> C[Concatenate[bool, Session | 
 
 
 @pytest.fixture
-def torrent(default_torrent, tmp_path) -> C[P, Torrent]:
+def torrent(default_torrent: dict, tmp_path: Path) -> C[P, Torrent]:
 
     def _torrent(**kwargs: P.kwargs) -> Torrent:
         default_torrent.update(kwargs)
@@ -176,7 +174,11 @@ def torrent(default_torrent, tmp_path) -> C[P, Torrent]:
 
 @pytest.fixture
 def torrentfile(
-    default_torrentfile, torrent, session, account, tmp_path
+    default_torrentfile: dict,
+    torrent: C[..., Torrent],
+    session: Session,
+    account: C[..., Account],
+    tmp_path: Path,
 ) -> C[Concatenate[Account | None, Session | None, P], TorrentFile]:
     def _torrentfile(
         account_: Account | None = None, session_: Session | None = None, **kwargs: P.kwargs
@@ -203,7 +205,11 @@ def torrentfile(
 
 @pytest.fixture
 def upload(
-    default_upload, torrentfile, account, dataset, session
+    default_upload: dict,
+    torrentfile: C[..., TorrentFile],
+    account: C[..., Account],
+    dataset: C[..., Dataset],
+    session: Session,
 ) -> C[
     Concatenate[bool, TorrentFile | None, Account | None, Dataset | None, Session | None, P], Upload
 ]:
@@ -222,7 +228,7 @@ def upload(
         if torrentfile_ is None:
             torrentfile_ = torrentfile(account_=account_, session_=session_)
         if dataset_ is None:
-            dataset_ = dataset(enabled=True, session=_)
+            dataset_ = dataset(enabled=True, session=session_)
 
         default_upload.update(kwargs)
         if "torrent_short_hash" not in kwargs:
@@ -241,7 +247,7 @@ def upload(
 
 
 @pytest.fixture
-def admin_token(client: "TestClient", admin_user: "Account", session) -> "Token":
+def admin_token(client: "TestClient", admin_user: "Account", session: Session) -> "Token":
     from sciop.config import config
     from sciop.models import Token
 
@@ -263,7 +269,13 @@ def admin_auth_header(admin_token: "Token") -> dict[L["Authorization"], str]:
 
 
 @pytest.fixture()
-def default_db(account, dataset, upload, session, torrentfile):
+def default_db(
+    account: C[..., Account],
+    dataset: C[..., Dataset],
+    upload: C[..., Upload],
+    session: Session,
+    torrentfile: C[..., TorrentFile],
+) -> tuple[Account, Account, TorrentFile, Dataset, Upload]:
     admin = account(
         scopes=[Scopes.admin, Scopes.upload, Scopes.review],
         session_=session,
