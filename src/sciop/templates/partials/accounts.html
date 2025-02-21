@@ -23,5 +23,8 @@
       {{ account_collapsible(account, review=review, config=config, models=models, current_account=current_account) }}
       {% endfor %}
     </div>
+  {% with swap_target="#account-page" %}
+    {% include 'includes/pagination-buttons.html' %}
+  {% endwith %}
   </div>
 </div>

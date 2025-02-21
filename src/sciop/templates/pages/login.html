@@ -1,6 +1,7 @@
 {% extends "layouts/default.html" %}
 {% block content %}
 <div class="login-form-container">
+<h1>Login</h1>
 <form hx-post="{{ config.api_prefix }}/login" class="form login-form enter-trigger" id="login-form"
       hx-trigger="enterKeyUp">
     <div class="form-item">

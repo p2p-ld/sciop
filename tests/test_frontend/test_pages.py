@@ -2,13 +2,13 @@ import pytest
 
 
 @pytest.mark.parametrize("url", ("/", "/datasets", "/docs", "/request"))
-def test_public_pages_load(url, client):
+def test_public_pages_load(url, client_lifespan):
     """
     The babiest of tests, just make sure public pages load.
 
     Remove this once we have proper tests for pages
     """
-    response = client.get(url)
+    response = client_lifespan.get(url)
     assert response.status_code == 200
 
 

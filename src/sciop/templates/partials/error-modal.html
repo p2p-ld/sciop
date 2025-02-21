@@ -1,7 +1,11 @@
 {% set id_n = range(1, 1024) | random %}
-<div id="error-modal-{{ id_n }}" class="error-modal modal">
+<div id="error-modal-{{ id_n }}" class="error-modal modal"
+     aria-modal="true"
+     role="dialog"
+     aria-labelledby="modal-status-code"
+     tabindex="-1">
   <div class="modal-header">
-    <span class="status-code">{{ status_code }} </span>
+    <span id="modal-status-code" class="status-code">{{ status_code }} </span>
     <button class="close-button" hx-target="#error-modal-{{ id_n }}" hx-swap="delete"
             data-target="#error-modal-{{ id_n }}">close</button>
   </div>

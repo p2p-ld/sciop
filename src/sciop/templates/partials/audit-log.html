@@ -26,4 +26,7 @@
     {{ log_entry(entry, config=config) }}
     {% endfor %}
   </table>
+  {% with swap_target="#audit-log-page" %}
+    {% include 'includes/pagination-buttons.html' %}
+  {% endwith %}
 </div>

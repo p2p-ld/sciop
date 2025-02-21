@@ -1,16 +1,16 @@
-{% macro upload_row(upload, current_account, config) %}
+{% macro upload_row(upload, current_account, config, header_start=1) %}
 <div class="upload" id="upload-{{ upload.short_hash }}">
     <div class="upload-topmatter topmatter">
         <div class="upload-header header">
-            <h2 class="title upload-title font-mono">{{ upload.short_hash }} </h2>
+            <h{{ header_start }} class="title upload-title font-mono">{{ upload.short_hash }} </h{{ header_start }}>
             <span class="dataset-slug">
                 <a href="/datasets/{{upload.dataset.slug}}">
                     {{ upload.dataset.slug }}
                 </a>
             </span>
-            <h3 class="description">Description</h3>
+            <h{{ header_start + 1}} class="description">Description</h{{ header_start + 1}}>
             <p>{{ upload.description }}</p>
-            <h3 class="method">Method</h3>
+            <h{{ header_start + 1}} class="method">Method</h{{ header_start + 1}}>
             <p>{{ upload.method }}</p>
 
         </div>
@@ -40,29 +40,37 @@
                 </tr>
                 <tr>
                     <td class="infobox-key">Created</td>
-                    <td class="infobox-value">{{ upload.created_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                    <td class="infobox-value">
+                        <time datetime="{{ upload.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+                        {{ upload.created_at.strftime("%y-%m-%d %H:%M") }} UTC
+                        </time>
+                    </td>
                 </tr>
                 <tr>
                     <td class="infobox-key">Updated</td>
-                    <td class="infobox-value">{{ upload.updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                    <td class="infobox-value">
+                        <time datetime="{{ upload.updated_at.strftime('%y-%m-%d %H:%M') }}Z">
+                        {{ upload.updated_at.strftime("%y-%m-%d %H:%M") }} UTC
+                        </time>
+                    </td>
                 </tr>
             </table>
         </div>
 
     </div>
 
-    <h3>
+    <h{{ header_start + 1}}>
        Files
-    </h3>
+    </h{{ header_start + 1}}>
     <div class="file-table">
         {% for file in upload.torrent.files %}
         <span class="file-name">{{ file.path }}</span>
         <span class="file-size">{{ file.human_size }}</span>
         {% endfor %}
     </div>
-    <h3>
+    <h{{ header_start + 1}}>
         Trackers
-    </h3>
+    </h{{ header_start + 1}}>
     <div class="tracker-list">
         {% for tracker in upload.torrent.trackers %}
         <code>{{ tracker.url }}</code>
@@ -86,16 +94,25 @@
         </span>
         <span class="upload-title title">{{ upload.file_name }}</span>
         <span class="upload-size size">{{ upload.human_size }}</span>
-        <span class="upload-timestamp timestamp">{{ upload.created_at.strftime("%y-%m-%d %H:%M") }}</span>
+        <time class="upload-timestamp timestamp" datetime="{{ upload.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+            {{ upload.created_at.strftime("%y-%m-%d %H:%M") }}
+        </time>
         {% if review %}
         <button class="button approve-button success-button"
+                role="button"
+                aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it available for download"
+                aria-controls="upload-collapsible-{{ upload.upload_id }}"
                 hx-post="{{ config.api_prefix }}/uploads/{{ upload.short_hash }}/approve">Approve
         </button>
         <button class="button deny-button success-button caution"
+                role="button"
+                aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
+                aria-controls="upload-collapsible-{{ upload.upload_id }}"
                 hx-post="{{ config.api_prefix }}/uploads/{{ upload.short_hash }}/deny">Deny
         </button>
         {% else %}
-        <a class="icon-link download-link" href="{{ upload.download_path }}">⬇️</a>
+        <a class="icon-link download-link" href="{{ upload.download_path }}" aria-label="Download" title="Download">⬇️
+        </a>
         {% endif %}
     </summary>
     <div class="upload" id="upload-{{ upload.short_hash }}"></div>

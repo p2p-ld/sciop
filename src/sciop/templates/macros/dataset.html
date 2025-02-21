@@ -1,9 +1,9 @@
 {% from "macros/model-table.html" import model_table %}
-{% macro dataset_row(dataset, current_account, config) %}
+{% macro dataset_row(dataset, current_account, config, header_start=1) %}
 <div class="dataset" id="dataset-{{ dataset.slug }}">
     <div class="dataset-topmatter topmatter">
         <div class="dataset-header header">
-            <h2 class="dataset-title">{{ dataset.title }} </h2>
+            <h{{ header_start }} class="dataset-title">{{ dataset.title }} </h{{ header_start }}>
             <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
             <p class="dataset-publisher">{{ dataset.publisher }}</p>
             <a class="dataset-homepage" href="{{ dataset.homepage }}">{{ dataset.homepage }}</a>
@@ -55,13 +55,21 @@
                 {% if dataset.dataset_created_at %}
                 <tr>
                     <td class="infobox-key">Dataset Created</td>
-                    <td class="infobox-value">{{ dataset.dataset_created_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                    <td class="infobox-value">
+                        <time datetime="{{ dataset.dataset_created_at.strftime('%y-%m-%d %H:%M') }}Z">
+                        {{ dataset.dataset_created_at.strftime("%y-%m-%d %H:%M") }} UTC
+                        </time>
+                    </td>
                 </tr>
                 {% endif %}
                 {% if dataset.dataset_updated_at %}
                 <tr>
                     <td class="infobox-key">Dataset Last Updated</td>
-                    <td class="infobox-value">{{ dataset.dataset_updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                    <td class="infobox-value">
+                        <time datetime="{{ dataset.dataset_updated_at.strftime('%y-%m-%d %H:%M') }}Z">
+                            {{ dataset.dataset_updated_at.strftime("%y-%m-%d %H:%M") }} UTC
+                        </time>
+                    </td>
                 </tr>
                 {% endif %}
                 {% if dataset.last_seen_at %}
@@ -78,7 +86,11 @@
                 {% endif %}
                 <tr>
                     <td class="infobox-key">Submitted</td>
-                    <td class="infobox-value">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                    <td class="infobox-value">
+                        <time datetime="{{ dataset.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+                            {{ dataset.created_at.strftime("%y-%m-%d %H:%M") }} UTC
+                        </time>
+                    </td>
                 </tr>
                 <tr>
                     <td class="infobox-key">Record Last Updated</td>
@@ -93,7 +105,7 @@
     </p>
 
     {% if dataset.urls | length > 0 %}
-    <h3>URLs</h3>
+    <h{{ header_start + 1 }}>URLs</h{{ header_start + 1 }}>
 
     <ul class="url-list">
         {% for url in dataset.urls %}
@@ -104,7 +116,7 @@
     </ul>
     {% endif %}
 
-    <h3>Uploads</h3>
+    <h{{ header_start + 1 }}>Uploads</h{{ header_start + 1 }}>
 
     {% if dataset.enabled %}
     <div id="dataset-uploads-container" class="uploads-container container">
@@ -114,7 +126,7 @@
         >
             <span class="htmx-indicator search-indicator" id="uploads-indicator">
                 <span>Loading dataset uploads...</span>
-                <img src="/static/img/rings.svg"/>
+                <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
             </span>
         </div>
     </div>
@@ -142,15 +154,22 @@
              hx-get="/datasets/{{ dataset.slug }}/partial"
              hx-trigger="click once"
              hx-target="#dataset-{{ dataset.slug }}">
-        <span class="collapsible-marker"></span>
+        <span class="collapsible-marker" aria-label="Expand/Collapse"></span>
         <span class="dataset-slug item-link"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
         <span class="dataset-title">{{ dataset.title }}</span>
-        <span class="dataset-timestamp timestamp">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}</span>
+        <time class="dataset-timestamp timestamp" datetime="{{dataset.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+            {{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}
+        </time>
         {% if review %}
         <button class="button approve-button success-button"
+                role="button"
+                aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it visible on the site"
+                aria-controls="dataset-collapsible-{{ dataset.slug }}"
                 hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve
         </button>
         <button class="button deny-button success-button caution"
+                aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
+                aria-controls="dataset-collapsible-{{ dataset.slug }}"
                 hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/deny">Deny
         </button>
         {% endif %}

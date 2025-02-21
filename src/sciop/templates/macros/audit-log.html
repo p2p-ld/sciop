@@ -31,7 +31,9 @@
       </td>
     {% endif %}
     <td class="timestamp">
-      {{ entry.created_at.strftime("%y-%m-%d %H:%M") }}
+      <time datetime="{{ entry.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+        {{ entry.created_at.strftime("%y-%m-%d %H:%M") }}
+      </time>
     </td>
 </tr>
 {% endmacro %}
