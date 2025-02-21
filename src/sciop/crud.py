@@ -60,7 +60,9 @@ def create_dataset(
         for e in dataset_create.external_identifiers
     ]
     parts = [
-        create_dataset_part(session=session, dataset_part=part, commit=False)
+        create_dataset_part(
+            session=session, account=current_account, dataset_part=part, commit=False
+        )
         for part in dataset_create.parts
     ]
 
@@ -91,22 +93,23 @@ def create_dataset_part(
     *,
     session: Session,
     dataset_part: DatasetPartCreate,
-    dataset: Dataset,
-    account: Account,
+    dataset: Dataset | None = None,
+    account: Account | None = None,
     commit: bool = True,
 ) -> DatasetPart:
     paths = [DatasetPath(path=str(path)) for path in dataset_part.paths]
+    enabled = bool(account) and account.has_scope("submit")
     part = DatasetPart.model_validate(
         dataset_part,
         update={
             "paths": paths,
             "dataset": dataset,
             "account": account,
-            "enabled": account.has_scope("submit"),
+            "enabled": enabled,
         },
     )
+    session.add(part)
     if commit:
-        session.add(part)
         session.commit()
         session.refresh(part)
     return part

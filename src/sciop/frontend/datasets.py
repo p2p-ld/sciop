@@ -1,6 +1,7 @@
 from typing import Annotated
+from typing import Literal as L
 
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
@@ -62,6 +63,17 @@ async def dataset_partial(request: Request, dataset: RequireDataset):
 async def dataset_parts(request: Request, dataset: RequireDataset):
     return templates.TemplateResponse(
         request, "partials/dataset-parts.html", {"dataset": dataset, "parts": dataset.parts}
+    )
+
+
+@datasets_router.get("/{dataset_slug}/parts/add", response_class=HTMLResponse)
+async def dataset_part_add_partial(
+    request: Request,
+    dataset: RequireDataset,
+    mode: Annotated[L["bulk"] | L["one"], Query()] = "one",
+):
+    return templates.TemplateResponse(
+        request, "partials/dataset-part-add.html", {"dataset": dataset, "mode": mode}
     )
 
 
@@ -159,5 +171,5 @@ async def dataset_part_uploads(
     uploads = crud.get_uploads(dataset=part, session=session)
     return templates.TemplateResponse(
         "partials/dataset-uploads.html",
-        {"request": request, "config": config, "uploads": uploads},
+        {"request": request, "uploads": uploads},
     )

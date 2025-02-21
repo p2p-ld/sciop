@@ -136,7 +136,8 @@
 {% endmacro %}
 
 {% macro inner_model_form(id, model, exclude = []) %}
-{% for field_name, field in model.model_fields.items() if field_name not in exclude and field.json_schema_extra.get('input_type', None) != 'none' %}
+{% for field_name, field in model.model_fields.items() if field_name not in exclude %}
+{% if not field.json_schema_extra or field.json_schema_extra and field.json_schema_extra.get('input_type', None) != 'none' %}
 <div class="form-item">
     <label for="{{ id }}-{{ field_name }}" class="form-label">
         {% if field.title %}
@@ -147,6 +148,8 @@
     </label>
     {{ form_field(field, field_name, id) }}
 </div>
+{% else %}
+{% endif %}
 {% endfor %}
 {% endmacro %}
 

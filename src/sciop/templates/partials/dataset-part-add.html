@@ -1,0 +1,27 @@
+{% from "macros/model-form.html" import model_form %}
+{% set id_n = range(1, 1024) | random | string %}
+{% set form_id = "dataset-" + dataset.slug + "-part-add-" + id_n  %}
+<div class="input-container" id="{{ form_id }}-container">
+{% if mode=="one" %}
+{{ model_form(id=form_id, model=models.DatasetPartCreate) }}
+{% else %}
+<p class="description part-bulk-add-description">
+  Add multiple parts, one per line, where each line will become the part slug.
+</p>
+<form id="{{ form_id }}">
+  <label for="{{ form_id }}-parts">Part Slugs</label>
+  <textarea id="{{ form_id }}-parts" name="parts"></textarea>
+</form>
+{% endif %}
+<div class="button-row">
+    <button
+        class="form-button"
+        type="submit"
+        name="dataset"
+        hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/parts"
+        hx-include="#{{ form_id }}"
+        hx-target="#{{ form_id }}-container"
+        hx-ext="form-json"
+    >Submit</button>
+</div>
+  </div>

@@ -10,7 +10,7 @@ from starlette.responses import Response
 from sciop import crud
 from sciop.api.deps import (
     CurrentAccount,
-    RequireAccount,
+    RequireCurrentAccount,
     RequireDataset,
     RequireDatasetPart,
     RequireEnabledDataset,
@@ -156,8 +156,8 @@ async def part_show_bulk(dataset: RequireDataset, account: CurrentAccount) -> li
 
 @datasets_router.post("/{dataset_slug}/parts")
 async def part_create_bulk(
-    parts: Annotated[list[SlugStr] | list[DatasetPartCreate], Body()],
-    account: RequireAccount,
+    parts: Annotated[list[SlugStr] | list[DatasetPartCreate] | DatasetPartCreate, Body()],
+    account: RequireCurrentAccount,
     dataset: RequireDataset,
     session: SessionDep,
 ) -> list[DatasetPartRead]:
@@ -167,9 +167,11 @@ async def part_create_bulk(
     Either a list of `part_slugs` with no paths, or a list of slugs with paths
     """
     # casting to strs first is cheaper than pydantic before we have validated existence
+    if not isinstance(parts, list):
+        parts = [parts]
     slugs = [p if isinstance(p, str) else p.part_slug for p in parts]
     stmt = select(DatasetPart.part_slug).join(Dataset).filter(DatasetPart.part_slug.in_(slugs))
-    print(stmt.compile(dialect="sqlite"))
+    print(stmt.compile())
     existing_parts = session.exec(stmt).all()
     if existing_parts:
         raise HTTPException(
@@ -208,7 +210,7 @@ async def part_show(
 async def part_create_one(
     dataset_slug: str,
     part_slug: str,
-    account: RequireAccount,
+    account: RequireCurrentAccount,
     dataset: RequireDataset,
     session: SessionDep,
     paths: list[str] | None = None,

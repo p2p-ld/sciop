@@ -50,3 +50,18 @@
   <div class="dataset-part" id="dataset-part-{{ dataset.slug }}-{{ part.part_slug }}"></div>
 </details>
 {% endmacro %}
+
+{% macro add_parts(dataset) %}
+<div class="button-group add-parts-buttons" id="dataset-{{ dataset.slug }}-parts-add" >
+  <button type="button" class="button add-one-button"
+    hx-get="/datasets/{{ dataset.slug }}/parts/add"
+    hx-target="#dataset-{{ dataset.slug }}-parts"
+    hx-swap="beforeend"
+  >Add One</button>
+  <button type="button" class="button add-bulk-button"
+    hx-get="/datasets/{{ dataset.slug }}/parts/add_bulk"
+    hx-target="#dataset-{{ dataset.slug }}-parts"
+    hx-swap="beforeend"
+  >Add Bulk</button>
+</div>
+{% endmacro %}

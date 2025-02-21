@@ -380,9 +380,9 @@ class DatasetPart(DatasetPartBase, TableMixin, table=True):
 
     dataset_part_id: IDField = Field(None, primary_key=True)
     dataset_id: Optional[int] = Field(None, foreign_key="dataset.dataset_id")
-    dataset: Dataset = Relationship(back_populates="parts")
+    dataset: Optional[Dataset] = Relationship(back_populates="parts")
     account_id: Optional[int] = Field(None, foreign_key="account.account_id")
-    account: Account = Relationship(back_populates="dataset_parts")
+    account: Optional[Account] = Relationship(back_populates="dataset_parts")
     uploads: list["Upload"] = Relationship(back_populates="dataset_part")
     paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
     enabled: bool = False
