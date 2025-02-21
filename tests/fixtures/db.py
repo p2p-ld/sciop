@@ -19,9 +19,9 @@ def create_tables(monkeypatch_session: "MonkeyPatch", monkeypatch_config: None) 
 def session(monkeypatch: MonkeyPatch) -> Session:
     from sciop import db
     from sciop.api import deps
+    from sciop.app import app
     from sciop.db import engine, get_session, maker
     from sciop.frontend import templates
-    from sciop.main import app
 
     connection = engine.connect()
 

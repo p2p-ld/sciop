@@ -19,8 +19,8 @@ from webdriver_manager.firefox import GeckoDriverManager
 @pytest.fixture()
 def client(session: Session) -> TestClient:
     """Client that runs the lifespan actions"""
+    from sciop.app import app
     from sciop.db import get_session
-    from sciop.main import app
 
     def get_session_override() -> Session:
         return session
@@ -33,8 +33,8 @@ def client(session: Session) -> TestClient:
 @pytest.fixture()
 def client_lifespan(session: Session) -> TestClient:
     """Client that runs the lifespan actions"""
+    from sciop.app import app
     from sciop.db import get_session
-    from sciop.main import app
 
     def get_session_override() -> Session:
         return session
@@ -79,8 +79,8 @@ class Server_(Server):
 
 @pytest.fixture()
 async def run_server(session: Session) -> Server_:
+    from sciop.app import app
     from sciop.db import get_session
-    from sciop.main import app
 
     def get_session_override() -> Session:
         return session
