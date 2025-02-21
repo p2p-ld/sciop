@@ -14,10 +14,10 @@ nav.navbar {
     flex-grow: 2;
   }
 
-  h2 {
+  .site-title {
     margin: 0em 1em;
-    font-family: var(--font-mono);
     font-size: 1.5em;
+    font-weight: bold;
   }
 
   .nav-button {
@@ -66,46 +66,62 @@ nav.navbar {
   /* Ripped off from https://codepen.io/alvarotrigo/pen/zYPydpB */
   .toggle-switch {
     position: relative;
-    width: 2em;
-    margin-right: 0.5em;
+    margin-right: 1em;
 
     input {
       position: absolute;
       display: none;
     }
 
-    label.toggle-container {
+    button.toggle-container {
       position: relative;
       display: block;
-      width: 100%;
-      height: 1em;
-      background-color: var(--color-dark-background);
-      border-radius: 0.5em;
+      width: 3.25em;
+      height: 1.75em;
+      background-color: transparent;
+      border-radius: 0.875em;
       cursor: pointer;
       border: 1px solid var(--color-light-background);
+      overflow: hidden;
+      box-shadow: 0 0 0 var(--color-primary-darker-1);
+      transition: box-shadow 0.3s;
+
+      &:hover {
+        box-shadow: 2px 2px 0 var(--color-primary-darker-1);
+        .slider-text {
+          color: var(--color-light-background)
+        }
+      }
     }
 
     label.aria {
       display: none;
     }
 
+
     .slider {
-      position: absolute;
+      top: 0;
+      left: 0;
+      position: static;
       width: 100%;
       height: 100%;
       border-radius: .5em;
       transition: 0.3s;
+      pointer-events: none;
+
+      font-size: 0.8em;
     }
 
     .slider::before {
+      font-size: 1rem;
       content: "";
       position: absolute;
-      top: .13em;
-      left: .16em;
-      width: .75em;
-      height: .75em;
+      top: .26em;
+      left: .26em;
+      width: .85em;
+      height: .85em;
       border-radius: 50%;
-      box-shadow: inset .28em -0.2em 0px 0px var(--color-light-background);
+      box-shadow: inset .18em -0.1em 0px 0px var(--color-light-background);
       background-color: var(--color-dark-background);
       transition: 0.3s;
     }
@@ -114,20 +130,99 @@ nav.navbar {
       transition: none !important;
     }
 
-    label.toggle-container:has(input:checked) {
+    .slider-text {
+      font-family: var(--font-mono);
+      font-size: 0.8em;
+      text-align: right;
+      top: -.25em;
+      right: 0.35em;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: .5em;
+      transition: 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      color: var(--color-link);
+      text-wrap: nowrap;
+
+      .spacer {
+        width: 1em;
+      }
+    }
+
+    button[aria-pressed="true"] {
       border: 1px solid var(--color-dark-background);
     }
 
-    input:checked ~ .slider {
+    button[aria-pressed="false"] ~ .slider {
       background-color: var(--color-light-background);
     }
 
-    input:checked ~ .slider::before {
-      transform: translateX(.95em);
-      background-color: var(--color-dark-background);
-      box-shadow: none;
+    button[aria-pressed="true"] {
+      .slider-text {
+        transform: translateX(2.80em) translateY(0.2em);
+        color: var(--color-primary-darker-1);
+        &:hover {
+          color: var(--color-dark-background);
+        }
+      }
+    }
+    .slider:has(+ button[aria-pressed="true"]) {
+      &::before {
+        transform: translateX(1.35em);
+        background-color: var(--color-dark-background);
+        box-shadow: none;
+        box-sizing: border-box;
+      }
     }
 
+    .beam {
+      width: 0em;
+      outline: 1px solid transparent;
+      transform: translateX(0);
+    }
+    button[aria-pressed="true"] ~ .beam {
+      height: 0.06em;
+      width: 0.25em;
+      right: 0.55em;
+      top: 0.65em;
+      background-color: var(--color-dark-background);
+      position: absolute;
+      outline: 1px solid var(--color-light-background);
+      transition: transform 0.5s, outline 0.5s;
+      transition-delay: 0.4s;
+    }
+
+    #beam-1, #beam-2, #beam-3, #beam-4, #beam-5, #beam-6, #beam-7 {
+      transform: rotate(0deg) translatex(0px);
+    }
+
+    --beam-offset: 0.65em;
+    button[aria-pressed="true"] {
+      & ~ #beam-1 {
+        transform: rotate(0deg) translateX(var(--beam-offset));
+      }
+      & ~ #beam-2 {
+        transform: rotate(45deg) translateX(var(--beam-offset));
+      }
+      & ~ #beam-3 {
+        transform: rotate(90deg) translateX(var(--beam-offset));
+      }
+      & ~ #beam-4 {
+        transform: rotate(135deg) translateX(var(--beam-offset));
+      }
+      & ~ #beam-5 {
+        transform: rotate(315deg) translateX(var(--beam-offset));
+      }
+      & ~ #beam-6 {
+        transform: rotate(225deg) translateX(var(--beam-offset));
+      }
+      & ~ #beam-7 {
+        transform: rotate(270deg) translateX(var(--beam-offset));
+      }
+    }
   }
 }
 

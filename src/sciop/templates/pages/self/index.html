@@ -1,7 +1,7 @@
 {% extends "layouts/default.html" %}
 {% block content %}
 {% include "includes/self-tabs.html" %}
-<h2>Hello {{ current_account.username }}</h2>
+<h1>Hello {{ current_account.username }}</h1>
 
 Scopes:
 {% for scope in current_account.scopes %}

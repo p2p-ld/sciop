@@ -50,6 +50,23 @@ button,
       }
     }
   }
+
+  &:disabled {
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--color-background),
+      var(--color-background) 5px,
+      var(--color-disabled) 5px,
+      var(--color-disabled) 7px
+    );
+    box-shadow: unset;
+    border-color: var(--color-border-deemphasized);
+    color: var(--color-deemphasized);
+
+    &:hover {
+      border-color: var(--color-border-deemphasized);
+    }
+  }
 }
 
 .search-container {
@@ -74,6 +91,7 @@ button,
   font-family: var(--font-mono);
 
   button {
+    font-size: 1.1em;
     border: unset;
     color: var(--color-primary-shade-1);
     background-color: unset;
@@ -93,11 +111,7 @@ button,
 
   span {
     color: var(--color-text-deemphasized);
-    font-size: 0.85em;
-  }
-
-  .pagination-ellipses {
-    margin: 0 0.5em;
+    font-size: 1em;
   }
 
   .pagination-total {
@@ -119,23 +133,33 @@ button,
 .collapsible {
   padding: 0.25em 0.5em;
   border: 1px solid var(--color-border-deemphasized);
-
+  cursor: pointer;
   summary {
     align-items: center;
   }
 }
 
-.collapsible:not([open]) {
-  .collapsible-marker::before {
+.collapsible:not([open])  {
+  & > summary .collapsible-marker::before {
     content: "+";
+  }
+
+  &:hover {
+    border-left: 1px solid var(--color-link);
+    .collapsible-marker::before {
+      color: var(--color-link);
+      transition: color 0.1s;
+    }
   }
 }
 
 .collapsible[open] {
   padding-bottom: 1em;
+  border-left: 1px solid var(--color-link);
 
-  .collapsible-marker::before {
+  & > summary .collapsible-marker::before {
     content: "-";
+    color: var(--color-link);
   }
 
   summary {

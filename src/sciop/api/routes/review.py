@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, HTTPException, Response
 
 from sciop import crud
 from sciop.api.deps import (
@@ -78,6 +78,8 @@ async def deny_upload(
 async def suspend_account(
     username: str, account: RequireAccount, session: SessionDep, current_account: RequireAdmin
 ) -> SuccessResponse:
+    if account.id == current_account.id:
+        raise HTTPException(403, "You cannot suspend yourself")
     session.delete(account)
     session.commit()
     crud.log_moderation_action(
@@ -121,6 +123,8 @@ async def revoke_account_scope(
     account: RequireAccount,
     session: SessionDep,
 ):
+    if current_account.id == account.id and scope_name == "admin":
+        raise HTTPException(403, "You cannot revoke admin privileges from yourself")
     if scope := account.get_scope(scope_name):
         account.scopes.remove(scope)
         session.add(account)

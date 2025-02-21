@@ -44,6 +44,8 @@ test = [
     "webdriver-manager>=4.0.2",
     "selenium>=4.28.1",
     "pytest-asyncio>=0.25.3",
+    "beautifulsoup4>=4.13.3",
+    "lxml>=5.3.1",
 ]
 dev = [
     "sciop[test]",
@@ -135,6 +137,8 @@ fixable = ["ALL"]
 [tool.ruff.lint.per-file-ignores]
 "**/{api,frontend}/*" = ["ANN201"]
 "tests/**/test_*" = ["ANN001", "ANN201", "F841"]
+"tests/conftest.py" = ["F403", "E402"]
+"tests/fixtures/**/*" = ["F403"]
 
 [tool.black]
 target-version = ['py311', 'py312', 'py313']
@@ -143,3 +147,6 @@ line-length = 100
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = """
+  selenium: tests that use the selenium webdriver
+"""

@@ -1,7 +1,9 @@
 {% from 'macros/upload.html' import upload_collapsible %}
 <div id="upload-review-panel" class="review-panel"
      hx-get="/self/review/uploads"
-     hx-trigger="response from:.success-button">
+     hx-trigger="response from:.success-button"
+     aria-live="polite" aria-relevant="removals"
+>
 {% if items | length == 0 %}
     <span>No uploads to review :)</span>
 {% else %}

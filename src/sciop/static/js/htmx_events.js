@@ -63,12 +63,39 @@ htmx.on("htmx:beforeOnLoad", (evt) => {
 // Close buttons on modals
 htmx.on("htmx:afterSwap", (evt) => {
   if (evt.detail.xhr.status<400){ return }
+  let modal = evt.detail.target.querySelector(".error-modal");
+  let landmarks = document.querySelectorAll("header, main, footer");
   let buttons = [...evt.detail.target.querySelectorAll(".close-button")];
   buttons.forEach((b) => {
     b.addEventListener("click", () => {
       let target = document.querySelector(b.getAttribute('data-target'));
+      landmarks.forEach((e) => {
+        e.setAttribute("aria-hidden", "false");
+        e.removeAttribute("inert")
+      });
+      modal.setAttribute("aria-modal", "false");
+      modal.setAttribute("hidden", "");
       target.remove();
-  })})
+    });
+    document.addEventListener("keyup", (evt) => {
+    if (evt.key==="Escape") {
+      let target = document.querySelector(b.getAttribute('data-target'));
+      target.remove();
+      evt.source.removeEventListener('click', arguments.callee);
+    }
+    });
+  })
+  if (buttons.length > 0){
+    console.log(modal)
+    landmarks.forEach((e) => {
+      e.setAttribute("aria-hidden", "true");
+      e.setAttribute('inert', '')
+    })
+    modal.setAttribute("aria-modal","true");
+    modal.removeAttribute("hidden")
+    modal.focus();
+  }
+
 })
 
 // Token input field

@@ -15,7 +15,6 @@ from sciop.api.deps import (
     SessionDep,
 )
 from sciop.api.routes.upload import upload_torrent
-from sciop.config import config
 from sciop.frontend.templates import jinja, templates
 from sciop.models import Dataset, DatasetRead, UploadCreate
 
@@ -23,12 +22,8 @@ datasets_router = APIRouter(prefix="/datasets")
 
 
 @datasets_router.get("/", response_class=HTMLResponse)
-async def datasets(request: Request, account: CurrentAccount, session: SessionDep):
-    datasets = crud.get_approved_datasets(session=session)
-    return templates.TemplateResponse(
-        "pages/datasets.html",
-        {"request": request, "config": config, "current_account": account, "datasets": datasets},
-    )
+async def datasets(request: Request):
+    return templates.TemplateResponse(request, "pages/datasets.html")
 
 
 @datasets_router.get("/search")
@@ -55,17 +50,12 @@ async def dataset_show(
             status_code=404,
             detail=f"No such dataset {dataset_slug} exists",
         )
-    return templates.TemplateResponse(
-        "pages/dataset.html",
-        {"request": request, "config": config, "current_account": account, "dataset": dataset},
-    )
+    return templates.TemplateResponse(request, "pages/dataset.html", {"dataset": dataset})
 
 
 @datasets_router.get("/{dataset_slug}/partial", response_class=HTMLResponse)
 async def dataset_partial(request: Request, dataset: RequireDataset):
-    return templates.TemplateResponse(
-        "partials/dataset.html", {"dataset": dataset, "request": request}
-    )
+    return templates.TemplateResponse(request, "partials/dataset.html", {"dataset": dataset})
 
 
 @datasets_router.get("/{dataset_slug}/parts", response_class=HTMLResponse)
@@ -78,15 +68,15 @@ async def dataset_parts(request: Request, dataset: RequireDataset):
 @datasets_router.get("/{dataset_slug}/uploads", response_class=HTMLResponse)
 async def dataset_uploads(
     dataset_slug: str,
-    account: CurrentAccount,
     dataset: RequireDataset,
     session: SessionDep,
     request: Request,
 ):
     uploads = crud.get_uploads(dataset=dataset, session=session)
     return templates.TemplateResponse(
+        request,
         "partials/dataset-uploads.html",
-        {"request": request, "config": config, "uploads": uploads, "dataset": dataset},
+        {"uploads": uploads, "dataset": dataset},
     )
 
 
@@ -107,10 +97,7 @@ async def dataset_upload_start(
             detail=f"Dataset {dataset_slug} is not enabled for upload",
         )
 
-    return templates.TemplateResponse(
-        "partials/upload-start.html",
-        {"request": request, "config": config, "current_account": account, "dataset": dataset},
-    )
+    return templates.TemplateResponse(request, "partials/upload-start.html", {"dataset": dataset})
 
 
 @datasets_router.post("/{dataset_slug}/upload/torrent", response_class=HTMLResponse)
@@ -137,11 +124,9 @@ async def dataset_upload_torrent(
     created_torrent = await upload_torrent(account=account, file=file, session=session)
 
     return templates.TemplateResponse(
+        request,
         "partials/upload-complete.html",
         {
-            "request": request,
-            "config": config,
-            "current_account": account,
             "dataset": dataset,
             "torrent": created_torrent,
             "model": UploadCreate,

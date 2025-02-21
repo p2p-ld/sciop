@@ -12,8 +12,8 @@
     --font-sans: "Work Sans", "Helvetica Neue", "Segoe UI", "Helvetica", "Roboto", sans-serif;
     --font-mono: "Anonymous Pro", "Fira Code", "Courier New", "Courier", monospace;
 
+  --width-container: 750px;
   --breakpoint-tablet: 700px;
-
 }
 /* Put all themed vars in body so that we can switch vars on dark mode */
 body {
@@ -23,6 +23,7 @@ body {
   --color-text-deemphasized: color-mix(in srgb, var(--color-text) 85%, var(--color-background));
   --color-background: var(--color-dark-background);
   --color-background-shade: color-mix(in lch, var(--color-background) 90%, var(--color-light-background));
+  --color-background-deemphasized: color-mix(in lch, var(--color-background) 60%, black);
   --color-link: lch(72% 90 309);
   --color-primary-contrast: #eee;
   --color-primary-shade-1: color-mix(in lch, var(--color-primary) 75%, white);
@@ -30,6 +31,8 @@ body {
   --color-primary-shade-3: color-mix(in lch, var(--color-primary) 50%, white);
   --color-primary-darker-1: color-mix(in lch, var(--color-primary) 80%, var(--color-dark-background));
   --color-border-deemphasized: #333;
+  --color-deemphasized: #888;
+  --color-disabled: #404040;
   --color-caution: red;
   --color-caution-darker-1: color-mix(in lch, var(--color-caution) 80%, var(--color-dark-background));
   --color-caution-contrast: var(--color-primary-contrast);
@@ -40,8 +43,9 @@ body {
     --color-primary: lch(59.5% 85.81 315.18);
     --color-text: #000;
     --color-background: var(--color-light-background);
-    --color-background-shade: color-mix(in lch, var(--color-background) 90%, var(--color-dark-background));
-
+    --color-background-shade: color-mix(in lch, var(--color-background) 95%, var(--color-dark-background));
+    --color-background-deemphasized: color-mix(in lch, var(--color-background) 96%, var(--color-dark-background));
+    --color-border-deemphasized: #aaa;
     --color-link: lch(55.05% 102.93 317.74);
     --color-primary-contrast: #000;
     /*--color-primary-shade-1: color-mix(in lch, var(--color-primary) 75%, black);*/

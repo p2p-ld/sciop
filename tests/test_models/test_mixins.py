@@ -5,7 +5,7 @@ from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 from sciop.models import Dataset
 from sciop.models.mixin import EnumTableMixin
-from tests.conftest import TMP_DIR
+from tests.fixtures import TMP_DIR
 
 
 def test_full_text_search():

@@ -2,9 +2,9 @@
 {% block content %}
 {% include "includes/self-tabs.html" %}
 <div class="page-header">
-  <h2>Accounts</h2>
+  <h1>Admin</h1>
   <span class="htmx-indicator loading-indicator" id="accounts-loading-indicator">
-      <img src="/static/img/rings.svg"/>
+      <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
   </span>
 </div>
 <div class="container flex-container column">
@@ -19,7 +19,7 @@
     >
   </div>
 
-  <div id="accounts-table">
+  <div id="accounts-table" aria-live="polite">
   </div>
 </div>
 

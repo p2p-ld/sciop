@@ -1,8 +1,8 @@
 {% extends "layouts/default.html" %}
 {% block content %}
 {% include "includes/self-tabs.html" %}
-<h2>Review</h2>
-<h3>Datasets</h3>
+<h1>Review</h1>
+<h2>Datasets</h2>
 
 <div id="dataset-review-container" class="review-container">
     <div
@@ -12,12 +12,12 @@
     >
         <span class="htmx-indicator search-indicator" id="review-datasets-indicator">
             <span>Loading datasets...</span>
-            <img src="/static/img/rings.svg"/>
+            <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
         </span>
     </div>
 </div>
 
-<h3>uploads</h3>
+<h2>uploads</h2>
 
 <div id="upload-review-container"  class="review-container">
     <div
@@ -26,7 +26,7 @@
     >
         <span class="htmx-indicator search-indicator" id="review-uploads-indicator">
             <span>Loading uploads...</span>
-            <img src="/static/img/rings.svg"/>
+            <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
         </span>
     </div>
 </div>

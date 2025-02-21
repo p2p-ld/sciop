@@ -2,9 +2,9 @@
 
 {% block content %}
 <div class="page-header">
-  <h2>Datasets</h2>
+  <h1>Datasets</h1>
   <span class="htmx-indicator loading-indicator" id="datasets-loading-indicator">
-      <img src="/static/img/rings.svg"/>
+      <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
   </span>
 </div>
 <div class="container flex-container column">
@@ -19,7 +19,7 @@
     >
   </div>
 
-  <div id="datasets-table">
+  <div id="datasets-table" aria-live="polite">
   </div>
 </div>
 
