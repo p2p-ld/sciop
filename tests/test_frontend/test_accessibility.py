@@ -39,3 +39,24 @@ def test_headers(client, page, default_db, admin_auth_header):
         diff = [header_levels[i] - header_levels[i - 1] for i in range(1, len(header_levels))]
         one_or_below = [d <= 1 for d in diff]
         assert all(one_or_below)
+
+
+@pytest.mark.skip(reason="not implemented")
+def test_all_images_have_alt():
+    """TODO"""
+    pass
+
+
+@pytest.mark.skip(reason="not implemented")
+def test_feedback_modals_take_focus():
+    """TODO"""
+    pass
+
+
+@pytest.mark.skip(reason="not implemented")
+def test_buttons_have_labels():
+    """
+    TODO
+    Any buttons that have non-character symbols in them like < or emoji have a label
+    """
+    pass
