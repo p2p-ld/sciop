@@ -111,7 +111,7 @@ def log_console_width(monkeypatch: "MonkeyPatch") -> None:
 
 @pytest.fixture(scope="session")
 def client() -> TestClient:
-    from sciop.main import app
+    from sciop.app import app
 
     with TestClient(app) as client:
         yield client
@@ -151,7 +151,7 @@ class Server_(Server):
 
 @pytest.fixture(scope="session")
 async def run_server() -> Server_:
-    from sciop.main import app
+    from sciop.app import app
 
     config = Config(
         app=app,
