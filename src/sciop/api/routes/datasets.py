@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Form, HTTPException
+from fastapi import APIRouter, Body, Form, HTTPException
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import select
@@ -10,7 +10,9 @@ from starlette.responses import Response
 from sciop import crud
 from sciop.api.deps import (
     CurrentAccount,
+    RequireAccount,
     RequireDataset,
+    RequireDatasetPart,
     RequireEnabledDataset,
     RequireUploader,
     SessionDep,
@@ -19,10 +21,14 @@ from sciop.middleware import limiter
 from sciop.models import (
     Dataset,
     DatasetCreate,
+    DatasetPart,
+    DatasetPartCreate,
+    DatasetPartRead,
     DatasetRead,
     Upload,
     UploadCreate,
 )
+from sciop.types import SlugStr
 
 datasets_router = APIRouter(prefix="/datasets")
 
@@ -140,9 +146,84 @@ async def datasets_create_upload_form(
     return created_upload
 
 
-# @datasets_router.post("/form")
-# def datasets_create_form(
-#
-# )
+@datasets_router.get("/{dataset_slug}/parts")
+async def part_show_bulk(dataset: RequireDataset, account: CurrentAccount) -> list[DatasetPartRead]:
+    if account and account.has_scope("review"):
+        return dataset.parts
+    else:
+        return [p for p in dataset.parts if p.enabled]
 
-# Annotated[DatasetCreate, Form()] |
+
+@datasets_router.post("/{dataset_slug}/parts")
+async def part_create_bulk(
+    parts: Annotated[list[SlugStr] | list[DatasetPartCreate], Body()],
+    account: RequireAccount,
+    dataset: RequireDataset,
+    session: SessionDep,
+) -> list[DatasetPartRead]:
+    """
+    Create dataset parts in bulk
+
+    Either a list of `part_slugs` with no paths, or a list of slugs with paths
+    """
+    # casting to strs first is cheaper than pydantic before we have validated existence
+    slugs = [p if isinstance(p, str) else p.part_slug for p in parts]
+    stmt = select(DatasetPart.part_slug).join(Dataset).filter(DatasetPart.part_slug.in_(slugs))
+    print(stmt.compile(dialect="sqlite"))
+    existing_parts = session.exec(stmt).all()
+    if existing_parts:
+        raise HTTPException(
+            400,
+            detail=f"Dataset parts for {dataset.slug} with the following slugs already exist: "
+            f"{existing_parts}",
+        )
+
+    # now we create the models after we know it's fine to do
+    parts = [DatasetPartCreate(part_slug=p) if isinstance(p, str) else p for p in parts]
+
+    created_parts = [
+        crud.create_dataset_part(
+            session=session, dataset_part=p, dataset=dataset, account=account, commit=False
+        )
+        for p in parts
+    ]
+    session.commit()
+    created_parts = [session.refresh(p) for p in created_parts]
+    return created_parts
+
+
+@datasets_router.get("/{dataset_slug}/parts/{part_slug}")
+async def part_show(
+    dataset_slug: str, part_slug: str, account: CurrentAccount, part: RequireDatasetPart
+) -> DatasetPartRead:
+    if not part.enabled and (not account or not account.has_scope("review")):
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such dataset part {dataset_slug}/{part_slug} exists!",
+        )
+    return part
+
+
+@datasets_router.post("/{dataset_slug}/parts/{part_slug}")
+async def part_create_one(
+    dataset_slug: str,
+    part_slug: str,
+    account: RequireAccount,
+    dataset: RequireDataset,
+    session: SessionDep,
+    paths: list[str] | None = None,
+) -> DatasetPartRead:
+    """create a single dataset part"""
+    existing_part = crud.get_dataset_part(
+        session=session, dataset_slug=dataset_slug, dataset_part_slug=part_slug
+    )
+    if existing_part:
+        raise HTTPException(400, f"Dataset part {part_slug} for {dataset_slug} already exists!")
+    created_part = (
+        DatasetPartCreate(part_slug=part_slug, paths=paths)
+        if paths
+        else DatasetPartCreate(part_slug=part_slug)
+    )
+    return crud.create_dataset_part(
+        session=session, dataset=dataset, account=account, dataset_part=created_part
+    )

@@ -137,6 +137,9 @@ button,
   summary {
     align-items: center;
   }
+  div {
+    cursor: unset;
+  }
 }
 
 .collapsible:not([open])  {

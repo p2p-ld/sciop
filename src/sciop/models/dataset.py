@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Self
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union
 
-from pydantic import TypeAdapter, field_validator, model_validator
+from pydantic import TypeAdapter, computed_field, field_validator, model_validator
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -22,10 +22,11 @@ from sciop.types import (
     SlugStr,
     SourceType,
     Threat,
+    UsernameStr,
 )
 
 if TYPE_CHECKING:
-    from sciop.models import AuditLog, Tag, Upload
+    from sciop.models import AuditLog, Tag, Upload, UploadRead
 
 
 class DatasetBase(SQLModel):
@@ -261,10 +262,10 @@ class DatasetCreate(DatasetBase):
 
 
 class DatasetRead(DatasetBase, TableReadMixin):
-    uploads: list["Upload"] = Field(default_factory=list)
+    uploads: list["UploadRead"] = Field(default_factory=list)
     external_sources: list["ExternalSource"] = Field(default_factory=list)
     external_identifiers: list["ExternalIdentifierRead"] = Field(default_factory=list)
-    urls: list["DatasetURL"] = Field(default_factory=list)
+    urls: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     scrape_status: ScrapeStatus
     enabled: bool
@@ -272,6 +273,10 @@ class DatasetRead(DatasetBase, TableReadMixin):
     @field_validator("tags", mode="before")
     def collapse_tags(cls, val: list["Tag"]) -> list[str]:
         return [tag.tag for tag in val]
+
+    @field_validator("urls", mode="before")
+    def collapse_urls(cls, val: list["DatasetURL"]) -> list[str]:
+        return [url.url for url in val]
 
     @field_validator("tags", mode="after")
     def sort_list(cls, val: list[Any]) -> list[Any]:
@@ -361,6 +366,12 @@ class DatasetPartBase(SQLModel):
         max_length=256,
         index=True,
     )
+    description: Optional[EscapedStr] = Field(
+        None,
+        title="Description",
+        description="Additional information about this part",
+        max_length=4096,
+    )
 
 
 class DatasetPart(DatasetPartBase, TableMixin, table=True):
@@ -370,8 +381,11 @@ class DatasetPart(DatasetPartBase, TableMixin, table=True):
     dataset_part_id: IDField = Field(None, primary_key=True)
     dataset_id: Optional[int] = Field(None, foreign_key="dataset.dataset_id")
     dataset: Dataset = Relationship(back_populates="parts")
+    account_id: Optional[int] = Field(None, foreign_key="account.account_id")
+    account: Account = Relationship(back_populates="dataset_parts")
     uploads: list["Upload"] = Relationship(back_populates="dataset_part")
     paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
+    enabled: bool = False
 
 
 class DatasetPartCreate(DatasetPartBase):
@@ -394,13 +408,22 @@ class DatasetPartCreate(DatasetPartBase):
 
 
 class DatasetPartRead(DatasetPartBase):
-    dataset: Dataset
-    uploads: list["Upload"] = Field(default_factory=list)
+    dataset: DatasetRead
+    uploads: list["UploadRead"] = Field(default_factory=list)
+    account: UsernameStr
 
-    @property
+    @computed_field
     def absolute_slug(self) -> str:
         """Slug joined by / with the parent dataset slug"""
         return "/".join([self.dataset.slug, self.part_slug])
+
+    @field_validator("account", mode="before")
+    def account_to_username(cls, account: Union["Account", str]) -> str:
+        from sciop.models import Account
+
+        if isinstance(account, Account):
+            account = account.username
+        return account
 
 
 class DatasetPath(TableMixin, table=True):

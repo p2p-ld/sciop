@@ -33,10 +33,12 @@ from sciop.models.torrent import (
     TorrentFileRead,
     TrackerInTorrent,
 )
-from sciop.models.upload import Upload, UploadCreate
+from sciop.models.upload import Upload, UploadCreate, UploadRead
 
 Dataset.model_rebuild()
 DatasetRead.model_rebuild()
+DatasetPart.model_rebuild()
+DatasetPartRead.model_rebuild()
 
 __all__ = [
     "Account",
@@ -74,4 +76,5 @@ __all__ = [
     "TrackerInTorrent",
     "Upload",
     "UploadCreate",
+    "UploadRead",
 ]

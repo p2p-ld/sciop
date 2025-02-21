@@ -88,10 +88,23 @@ def create_dataset(
 
 
 def create_dataset_part(
-    *, session: Session, dataset_part: DatasetPartCreate, commit: bool = True
+    *,
+    session: Session,
+    dataset_part: DatasetPartCreate,
+    dataset: Dataset,
+    account: Account,
+    commit: bool = True,
 ) -> DatasetPart:
     paths = [DatasetPath(path=str(path)) for path in dataset_part.paths]
-    part = DatasetPart.model_validate(dataset_part, update={"paths": paths})
+    part = DatasetPart.model_validate(
+        dataset_part,
+        update={
+            "paths": paths,
+            "dataset": dataset,
+            "account": account,
+            "enabled": account.has_scope("submit"),
+        },
+    )
     if commit:
         session.add(part)
         session.commit()
