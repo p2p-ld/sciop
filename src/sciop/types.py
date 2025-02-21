@@ -135,3 +135,4 @@ class ExternalIdentifierType(StrEnum):
     qid: Annotated[QID_TYPE, "Wikidata Identifier"] = "qid"
     rrid: Annotated[str, "Research Resource Identifier"] = "rrid"
     urn: Annotated[str, "Uniform Resource Name"] = "urn"
+    uri: Annotated[str, "Uniform Resource Identifier"] = "uri"

@@ -13,9 +13,11 @@ from sciop.api.deps import SessionDep
 from sciop.config import config
 from sciop.models.dataset import Dataset
 
+BIBO = Namespace("http://purl.org/ontology/bibo/")
 TAGS = Namespace(f"{config.base_url}/id/tag/")
 DSID = Namespace(f"{config.base_url}/id/datasets/")
 DSPG = Namespace(f"{config.base_url}/datasets/")
+SCIOP = Namespace("https://sciop.net/ns#")
 
 rdf_router = APIRouter(prefix="/rdf")
 
@@ -28,8 +30,10 @@ class Graph(RGraph):
 
     def __init__(self, *av: Tuple, **kw: Dict) -> None:
         super().__init__(*av, **kw)
+        self.namespace_manager.bind("bibo", BIBO)
         self.namespace_manager.bind("tags", TAGS)
         self.namespace_manager.bind("dset", DSID)
+        self.namespace_manager.bind("sciop", SCIOP)
 
 
 def serialise_graph(g: Graph, format: str) -> Response:
@@ -75,6 +79,11 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
         g.add((DSID[d.slug], DCAT["distribution"], n))
         g.add((n, RDF["type"], DCAT["Distribution"]))
         g.add((n, DCAT["downloadURL"], URIRef(u.url)))
+    for i in d.external_identifiers:
+        g.add((DSID[d.slug], DCTERMS["identifier"], Literal(i.identifier)))
+        g.add((DSID[d.slug], SCIOP[i.type], URIRef(i.uri)))
+        if i.type in ("doi", "isbn", "issn"):
+            g.add((DSID[d.slug], BIBO[i.type], Literal(i.identifier)))
     for u in d.uploads:
         if not u.enabled:
             continue

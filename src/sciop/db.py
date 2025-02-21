@@ -282,7 +282,9 @@ def _generate_upload(
 
 
 def _generate_dataset(fake: "Faker") -> "DatasetCreate":
-    from sciop.models import DatasetCreate
+    from random import randint
+
+    from sciop.models import DatasetCreate, ExternalIdentifierCreate
 
     title = fake.unique.bs()
     slug = title.lower().replace(" ", "-")
@@ -297,4 +299,10 @@ def _generate_dataset(fake: "Faker") -> "DatasetCreate":
         source="web",
         urls=[fake.url() for _ in range(3)],
         tags=[f for f in [fake.word().lower() for _ in range(3)] if len(f) > 2],
+        external_identifiers=[
+            ExternalIdentifierCreate(
+                type="doi",
+                identifier=f"10.{randint(1000,9999)}/{fake.word().lower()}.{randint(10000,99999)}",
+            )
+        ],
     )
