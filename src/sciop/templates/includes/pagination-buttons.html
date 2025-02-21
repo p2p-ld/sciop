@@ -19,12 +19,14 @@
 <button hx-get="{{ request.url.include_query_params(page=1) }}"
         hx-target="{{ swap_target }}"
         hx-swap="outerHTML"
+        aria-label="First page"
    class="pagination-link first-link {% if page == 1 %}disabled{% endif %}" >
   &lt;&lt;
 </button>
 <button hx-get="{{ request.url.include_query_params(page=page-1) }}"
         hx-target="{{ swap_target }}"
         hx-swap="outerHTML"
+        aria-label="Previous page"
    class="pagination-link back-link {% if page == 1 %}disabled{% endif %}" >
   &lt;
 </button>
@@ -47,12 +49,14 @@
 <button hx-get="{{ request.url.include_query_params(page=page+1) }}"
         hx-target="{{ swap_target }}"
         hx-swap="outerHTML"
+        aria-label="Next page"
  class="pagination-link forward-link {% if page == pages %}disabled{% endif %}" >
 &gt;
 </button>
 <button hx-get="{{ request.url.include_query_params(page=pages) }}"
         hx-target="{{ swap_target }}"
         hx-swap="outerHTML"
+        aria-label="Last page"
  class="pagination-link end-link {% if page == pages %}disabled{% endif %}" >
 &gt;&gt;
 </button>

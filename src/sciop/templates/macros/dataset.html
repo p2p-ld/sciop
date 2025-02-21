@@ -55,13 +55,21 @@
                 {% if dataset.dataset_created_at %}
                 <tr>
                     <td class="infobox-key">Dataset Created</td>
-                    <td class="infobox-value">{{ dataset.dataset_created_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                    <td class="infobox-value">
+                        <time datetime="{{ dataset.dataset_created_at.strftime('%y-%m-%d %H:%M') }}Z">
+                        {{ dataset.dataset_created_at.strftime("%y-%m-%d %H:%M") }} UTC
+                        </time>
+                    </td>
                 </tr>
                 {% endif %}
                 {% if dataset.dataset_updated_at %}
                 <tr>
                     <td class="infobox-key">Dataset Last Updated</td>
-                    <td class="infobox-value">{{ dataset.dataset_updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                    <td class="infobox-value">
+                        <time datetime="{{ dataset.dataset_updated_at.strftime('%y-%m-%d %H:%M') }}Z">
+                            {{ dataset.dataset_updated_at.strftime("%y-%m-%d %H:%M") }} UTC
+                        </time>
+                    </td>
                 </tr>
                 {% endif %}
                 {% if dataset.last_seen_at %}
@@ -78,7 +86,11 @@
                 {% endif %}
                 <tr>
                     <td class="infobox-key">Submitted</td>
-                    <td class="infobox-value">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                    <td class="infobox-value">
+                        <time datetime="{{ dataset.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+                            {{ dataset.created_at.strftime("%y-%m-%d %H:%M") }} UTC
+                        </time>
+                    </td>
                 </tr>
                 <tr>
                     <td class="infobox-key">Record Last Updated</td>
@@ -142,10 +154,12 @@
              hx-get="/datasets/{{ dataset.slug }}/partial"
              hx-trigger="click once"
              hx-target="#dataset-{{ dataset.slug }}">
-        <span class="collapsible-marker"></span>
+        <span class="collapsible-marker" aria-label="Expand/Collapse"></span>
         <span class="dataset-slug item-link"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
         <span class="dataset-title">{{ dataset.title }}</span>
-        <span class="dataset-timestamp timestamp">{{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}</span>
+        <time class="dataset-timestamp timestamp" datetime="{{dataset.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+            {{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}
+        </time>
         {% if review %}
         <button class="button approve-button success-button"
                 role="button"

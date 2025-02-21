@@ -40,11 +40,19 @@
                 </tr>
                 <tr>
                     <td class="infobox-key">Created</td>
-                    <td class="infobox-value">{{ upload.created_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                    <td class="infobox-value">
+                        <time datetime="{{ upload.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+                        {{ upload.created_at.strftime("%y-%m-%d %H:%M") }} UTC
+                        </time>
+                    </td>
                 </tr>
                 <tr>
                     <td class="infobox-key">Updated</td>
-                    <td class="infobox-value">{{ upload.updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
+                    <td class="infobox-value">
+                        <time datetime="{{ upload.updated_at.strftime('%y-%m-%d %H:%M') }}Z">
+                        {{ upload.updated_at.strftime("%y-%m-%d %H:%M") }} UTC
+                        </time>
+                    </td>
                 </tr>
             </table>
         </div>
@@ -86,7 +94,9 @@
         </span>
         <span class="upload-title title">{{ upload.file_name }}</span>
         <span class="upload-size size">{{ upload.human_size }}</span>
-        <span class="upload-timestamp timestamp">{{ upload.created_at.strftime("%y-%m-%d %H:%M") }}</span>
+        <time class="upload-timestamp timestamp" datetime="{{ upload.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+            {{ upload.created_at.strftime("%y-%m-%d %H:%M") }}
+        </time>
         {% if review %}
         <button class="button approve-button success-button"
                 role="button"
