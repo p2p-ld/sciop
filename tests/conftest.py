@@ -14,7 +14,7 @@ from .fixtures import *
 from .fixtures import TMP_DIR, TORRENT_DIR
 
 
-def pytest_session_finished(session: pytest.Session) -> None:
+def pytest_sessionfinish(session: pytest.Session) -> None:
     global mpatch
     mpatch.undo()
 
