@@ -39,6 +39,8 @@ class Upload(UploadBase, TableMixin, table=True):
     )
     enabled: bool = False
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
+    seeders: Optional[int] = 0
+    leechers: Optional[int] = 0
 
     @property
     def human_size(self) -> str:
@@ -72,6 +74,11 @@ class Upload(UploadBase, TableMixin, table=True):
     def rss_description(self) -> str:
         """String to be used in the RSS description for this upload"""
         return f"Description: {self.description}\n\nMethod: {self.method}"
+
+    @property
+    def get_seeders_count(self) -> int:
+        print(self.torrent.trackers[0].url)
+        return self.torrent.trackers[0].url
 
 
 class UploadRead(UploadBase, TableReadMixin):

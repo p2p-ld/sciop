@@ -39,6 +39,14 @@
                     <td class="infobox-value">{{ upload.torrent.human_piece_size }}</td>
                 </tr>
                 <tr>
+                    <td class="infobox-key">Seeders</td>
+                    <td class="infobox-value">{{ upload.get_seeders_count }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Leechers</td>
+                    <td class="infobox-value">{{ upload.leechers }}</td>
+                </tr>
+                <tr>
                     <td class="infobox-key">Created</td>
                     <td class="infobox-value">{{ upload.created_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
                 </tr>
