@@ -24,6 +24,7 @@ from sciop.middleware import (
     security_headers,
 )
 from sciop.services import build_docs
+from sciop.scheduler import get_scheduler
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"
@@ -33,6 +34,7 @@ from sciop.services import build_docs
 async def lifespan(app: FastAPI) -> Generator[None, None, None]:
     create_tables()
     build_docs()
+    # get_scheduler()
     yield
 
 

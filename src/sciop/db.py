@@ -33,6 +33,10 @@ def get_session() -> Generator[Session, None, None]:
     #     session.close()
 
 
+def get_engine() -> Engine:
+    return engine
+
+
 def create_tables(engine: Engine = engine) -> None:
     """
     Create tables and stamps with an alembic version
