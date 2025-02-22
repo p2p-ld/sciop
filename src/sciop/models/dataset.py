@@ -393,8 +393,9 @@ class DatasetPartCreate(DatasetPartBase):
         default_factory=list,
         title="Paths",
         description="A list of paths that this part should contain, "
-        "if the part is not a single file.",
+        "if the part is not a single file. One path per line.",
         max_length=128,
+        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
     )
 
     @field_validator("paths", mode="before")

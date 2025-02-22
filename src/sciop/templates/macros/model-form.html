@@ -138,7 +138,7 @@
 {% macro inner_model_form(id, model, exclude = []) %}
 {% for field_name, field in model.model_fields.items() if field_name not in exclude %}
 {% if not field.json_schema_extra or field.json_schema_extra and field.json_schema_extra.get('input_type', None) != 'none' %}
-<div class="form-item">
+<div class="form-item" data-field-name="{{ field_name }}">
     <label for="{{ id }}-{{ field_name }}" class="form-label">
         {% if field.title %}
             {{ field.title }}

@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, TypedDict
 
 from fastapi import APIRouter, Body, Form, HTTPException
 from fastapi_pagination import Page
@@ -17,6 +17,7 @@ from sciop.api.deps import (
     RequireUploader,
     SessionDep,
 )
+from sciop.frontend.templates import jinja
 from sciop.middleware import limiter
 from sciop.models import (
     Dataset,
@@ -155,23 +156,30 @@ async def part_show_bulk(dataset: RequireDataset, account: CurrentAccount) -> li
 
 
 @datasets_router.post("/{dataset_slug}/parts")
-async def part_create_bulk(
+@jinja.hx("partials/dataset-part.html")
+async def part_create(
     parts: Annotated[list[SlugStr] | list[DatasetPartCreate] | DatasetPartCreate, Body()],
     account: RequireCurrentAccount,
     dataset: RequireDataset,
     session: SessionDep,
+    request: Request,
 ) -> list[DatasetPartRead]:
     """
-    Create dataset parts in bulk
+    Create dataset part or multiple parts
 
-    Either a list of `part_slugs` with no paths, or a list of slugs with paths
+    Either a single DatasetPart, a list of DatasetParts, or a list of `part_slugs` with no paths.
+
+    If a string, assumed to be a newline separated list of slugs
+    (e.g. as submitted by a textinput form)
     """
-    # casting to strs first is cheaper than pydantic before we have validated existence
-    if not isinstance(parts, list):
+    if isinstance(parts, str):
+        parts = [p.strip() for p in parts.split("\n") if p.strip()]
+    elif not isinstance(parts, list):
         parts = [parts]
+    # casting to strs first is cheaper than pydantic before we have validated existence
+
     slugs = [p if isinstance(p, str) else p.part_slug for p in parts]
     stmt = select(DatasetPart.part_slug).join(Dataset).filter(DatasetPart.part_slug.in_(slugs))
-    print(stmt.compile())
     existing_parts = session.exec(stmt).all()
     if existing_parts:
         raise HTTPException(
@@ -182,7 +190,6 @@ async def part_create_bulk(
 
     # now we create the models after we know it's fine to do
     parts = [DatasetPartCreate(part_slug=p) if isinstance(p, str) else p for p in parts]
-
     created_parts = [
         crud.create_dataset_part(
             session=session, dataset_part=p, dataset=dataset, account=account, commit=False
@@ -190,8 +197,39 @@ async def part_create_bulk(
         for p in parts
     ]
     session.commit()
-    created_parts = [session.refresh(p) for p in created_parts]
-    return created_parts
+    for p in created_parts:
+        session.refresh(p)
+    if "hx-request" in request.headers:
+        return {"parts": created_parts, "dataset": dataset}
+    else:
+        return created_parts
+
+
+@datasets_router.post("/{dataset_slug}/parts_bulk", include_in_schema=False)
+@jinja.hx("partials/dataset-part.html")
+async def _part_create_bulk(
+    parts: Annotated[TypedDict("parts", {"parts": str}), Body()],
+    account: RequireCurrentAccount,
+    dataset: RequireDataset,
+    session: SessionDep,
+    request: Request,
+) -> list[DatasetPartRead]:
+    """
+    Special method for creating bulk parts from form input,
+    which fastAPI doesn't handle as body input.
+
+    Not intended to be part of the public API.
+    """
+    parts = parts["parts"]
+    parts = [p.strip() for p in parts.split("\n") if p.strip()]
+    return await part_create(
+        parts,
+        account=account,
+        dataset=dataset,
+        session=session,
+        request=request,
+        __hx_request=request,
+    )
 
 
 @datasets_router.get("/{dataset_slug}/parts/{part_slug}")

@@ -59,7 +59,7 @@
     hx-swap="beforeend"
   >Add One</button>
   <button type="button" class="button add-bulk-button"
-    hx-get="/datasets/{{ dataset.slug }}/parts/add_bulk"
+    hx-get="/datasets/{{ dataset.slug }}/parts/add?mode=bulk"
     hx-target="#dataset-{{ dataset.slug }}-parts"
     hx-swap="beforeend"
   >Add Bulk</button>
