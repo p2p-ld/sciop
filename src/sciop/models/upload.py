@@ -5,6 +5,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
+from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixin import TableMixin, TableReadMixin
 from sciop.types import EscapedStr, IDField, InputType
 
@@ -32,8 +33,9 @@ class Upload(UploadBase, TableMixin, table=True):
     upload_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
     dataset: Dataset = Relationship(back_populates="uploads")
-    dataset_part_id: Optional[int] = Field(default=None, foreign_key="dataset_part.dataset_part_id")
-    dataset_part: DatasetPart = Relationship(back_populates="uploads")
+    dataset_parts: list[DatasetPart] = Relationship(
+        back_populates="uploads", link_model=UploadDatasetPartLink
+    )
     account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: Account = Relationship(back_populates="submissions")
     torrent: Optional["TorrentFile"] = Relationship(

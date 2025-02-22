@@ -359,6 +359,14 @@ class ExternalIdentifierRead(ExternalIdentifierBase):
     pass
 
 
+class UploadDatasetPartLink(SQLModel, table=True):
+    __tablename__ = "upload_dataset_part_link"
+    dataset_part_id: Optional[int] = Field(
+        default=None, foreign_key="dataset_part.dataset_part_id", primary_key=True
+    )
+    upload_id: Optional[int] = Field(default=None, foreign_key="upload.upload_id", primary_key=True)
+
+
 class DatasetPartBase(SQLModel):
     part_slug: SlugStr = Field(
         title="Part Slug",
@@ -383,7 +391,9 @@ class DatasetPart(DatasetPartBase, TableMixin, table=True):
     dataset: Optional[Dataset] = Relationship(back_populates="parts")
     account_id: Optional[int] = Field(None, foreign_key="account.account_id")
     account: Optional[Account] = Relationship(back_populates="dataset_parts")
-    uploads: list["Upload"] = Relationship(back_populates="dataset_part")
+    uploads: list["Upload"] = Relationship(
+        back_populates="dataset_parts", link_model=UploadDatasetPartLink
+    )
     paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
     enabled: bool = False
 
