@@ -26,6 +26,7 @@ class Scopes(StrEnum):
     upload = "upload"
     review = "review"
     admin = "admin"
+    root = "root"
 
 
 class AccountScopeLink(TableMixin, table=True):

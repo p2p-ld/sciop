@@ -19,7 +19,7 @@
         <span class="account-scopes tokens">
         {% if review %}
             {% for scope_name in models.Scopes.__members__.values() %}
-                {% set disabled=current_account and current_account.username == account.username and scope_name == "admin" %}
+                {% set disabled=(current_account and (current_account.username == account.username or not current_account.get_scope("root"))  and scope_name == "admin" )or scope_name == "root" %}
                 {% if account.has_scope(scope_name) %}
                     <button
                         class="toggle-button checked"
