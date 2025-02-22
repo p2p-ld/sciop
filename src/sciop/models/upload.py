@@ -39,8 +39,8 @@ class Upload(UploadBase, TableMixin, table=True):
     )
     enabled: bool = False
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
-    seeders: int = 0
-    leechers: int = 0
+    seeders: Optional[int] = None
+    leechers: Optional[int] = None
 
     @property
     def human_size(self) -> str:
