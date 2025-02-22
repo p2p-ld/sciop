@@ -32,7 +32,7 @@
 
 {% macro dataset_part_collapsible(part, dataset, current_account, config) %}
 <details class="collapsible dataset-part-collapsible"
-         id="dataset-part-collapsible-{{ dataset.slug}}-{{ part.part_slug }}">
+         id="dataset-part-collapsible-{{ dataset.slug }}-{{ part.part_slug }}">
   <summary
       class="collapsible-summary"
       hx-get="/datasets/{{ dataset.slug }}/{{ part.part_slug }}/partial"
@@ -44,6 +44,17 @@
       <a href="/datasets/{{ dataset.slug }}/{{ part.part_slug }}">
         {{ part.part_slug }}
       </a>
+    </span>
+    <time class="dataset-part-timestamp timestamp" datetime="{{part.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+            {{ part.created_at.strftime("%y-%m-%d %H:%M") }}
+      </time>
+    <span class="color-strip primary">
+
+    <input type="checkbox" class="upload-part-checkbox" name="{{ part.part_slug }}"
+           id="dataset-part-{{ dataset.slug }}-{{ part.part_slug }}-upload-checkbox"
+           aria-label="Include this dataset part in a batch upload"
+           form="dataset-parts-{{ dataset.slug }}-batch-upload-form"
+    >
     </span>
 
   </summary>

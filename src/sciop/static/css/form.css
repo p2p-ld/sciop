@@ -143,3 +143,51 @@ div.dataset-parts-add-container {
     border: 1px solid var(--color-border-deemphasized);
     padding: 1em;
 }
+
+.color-strip {
+    --strip-color: var(--color-primary);
+    --strip-color-contrast: var(--color-primary-contrast);
+    margin-left: -0.25em;
+    margin-right: -0.25em;
+    display: flex;
+
+    background-color: var(--strip-color);
+
+    &.primary {
+        --strip-color: var(--color-primary);
+        --strip-color-contrast: var(--color-primary-contrast);
+    }
+
+    input[type="checkbox"]{
+        /*font-size: 1.1em;*/
+        width: 1.5em;
+        height: 1.5em;
+        padding: 0;
+        /*font-size: 0.8em;*/
+        appearance:none;
+          text-align: center;
+  display: table-cell;
+  vertical-align: middle;
+        background-color: var(--color-background);
+        &:hover {
+            border: 1px solid color-mix(in lch, var(--strip-color) 50%, var(--strip-color-contrast));
+        }
+
+        &:checked {
+            background-color: var(--strip-color);
+        }
+        &:checked:after {
+          content: '\2713';
+          color: var(--strip-color-contrast);
+        }
+    }
+}
+
+summary .color-strip {
+    margin-top: -0.25em;
+    margin-bottom: -0.25em;
+    height: calc(100% + 0.5em);
+
+    justify-content: center;
+    align-items: center;
+}

@@ -210,7 +210,9 @@ def create_upload(
 
 def get_uploads(*, session: Session, dataset: Dataset | DatasetPart) -> list[Upload]:
     if isinstance(dataset, DatasetPart):
-        statement = select(Upload).where(Upload.dataset_part == dataset)
+        statement = select(Upload).where(
+            Upload.dataset_parts.any(dataset_part_id=dataset.dataset_part_id)
+        )
     else:
         statement = select(Upload).where(Upload.dataset == dataset)
     uploads = session.exec(statement).all()
@@ -253,3 +255,7 @@ def log_moderation_action(
     session.commit()
     session.refresh(db_item)
     return db_item
+
+
+def check_existing_dataset_parts(*, dataset: Dataset):
+    raise NotImplementedError("todo")
