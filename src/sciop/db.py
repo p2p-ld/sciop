@@ -32,6 +32,9 @@ def get_session() -> Generator[Session, None, None]:
     # finally:
     #     session.close()
 
+def get_engine() -> Engine:
+    return engine
+
 
 def create_tables(engine: Engine = engine) -> None:
     """
