@@ -1,0 +1,56 @@
+/*
+ * Adding some adjustments to accomodate smaller screens in
+ * its own file instead of attaching the responsive fixes directly to
+ * the respective elements' rules.
+ */
+
+@media only screen and (max-width: 768px) {
+  nav.navbar .cta-wrapper {
+	width: 100%;
+
+	& > *:first-child {
+	  margin-left: auto;
+	}
+  }
+
+  .page-container {
+    width: 100%;
+	padding: 0 1em;
+	box-sizing: border-box;
+  }
+
+  .datasets-table,
+  .uploads-table,
+  .accounts-table {
+
+    .table-head,
+    .dataset-collapsible > .collapsible-summary,
+    .upload-collapsible > .collapsible-summary,
+    .account-collapsible > .collapsible-summary {
+		display: flex;
+		flex-wrap: wrap;
+
+		& > span {
+		  line-height: 28px;
+		  align-self: baseline;
+		}
+
+		& *:last-child {
+		 margin-left: auto;
+		}
+	  }
+
+	& .collapsible-marker {
+	  width: 1em;
+	}
+	& .dataset-slug {
+	  width: calc(100% - 2em);
+	}
+  }
+
+  .topmatter {
+	.header, .infobox {
+	  flex-basis: 100%;
+	}
+  }
+}
