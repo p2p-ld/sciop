@@ -139,9 +139,13 @@ button,
 .collapsible {
   padding: 0.25em 0.5em;
   border: 1px solid var(--color-border-deemphasized);
+  border-bottom: none;
   cursor: pointer;
   summary {
     align-items: center;
+  }
+  &:last-child {
+	  border-bottom: 1px solid var(--color-border-deemphasized);
   }
 }
 
