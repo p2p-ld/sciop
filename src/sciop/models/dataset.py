@@ -326,6 +326,23 @@ class ExternalIdentifierBase(SQLModel):
     type: ExternalIdentifierType
     identifier: str = Field(max_length=512)
 
+    @property
+    def uri(self) -> str:
+        if self.type in ("ark"):
+            return f"{self.type}:{self.identifier}"
+        elif self.type == "cid":
+            return f"https://dweb.link/ipfs/{self.identifier}"
+        elif self.type == "doi":
+            return f"https://doi.org/{self.identifier}"
+        elif self.type == "isni":
+            return f"https://isni.org/isni/{self.identifier}"
+        elif self.type == "issn":
+            return f"https://urn.issn.org/urn:issn:{self.identifier}"
+        elif self.type == "isbn":
+            return f"urn:{self.type}:{self.identifier}"
+        elif self.type in ("purl", "urn", "uri"):
+            return self.identifier
+
 
 class ExternalIdentifier(ExternalIdentifierBase, TableMixin, table=True):
     __tablename__ = "external_identifier"

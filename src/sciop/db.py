@@ -2,6 +2,7 @@ import importlib.resources
 import random
 from datetime import UTC, datetime
 from pathlib import Path
+from random import randint
 from typing import TYPE_CHECKING, Generator, Optional
 
 from alembic import command
@@ -286,7 +287,7 @@ def _generate_upload(
 def _generate_dataset(fake: "Faker") -> "DatasetCreate":
     from faker import Faker
 
-    from sciop.models import DatasetCreate, DatasetPartCreate
+    from sciop.models import DatasetCreate, DatasetPartCreate, ExternalIdentifierCreate
 
     dataset_fake = Faker()
 
@@ -312,5 +313,11 @@ def _generate_dataset(fake: "Faker") -> "DatasetCreate":
         source="web",
         urls=[fake.url() for _ in range(3)],
         tags=[f for f in [fake.word().lower() for _ in range(3)] if len(f) > 2],
+        external_identifiers=[
+            ExternalIdentifierCreate(
+                type="doi",
+                identifier=f"10.{randint(1000,9999)}/{fake.word().lower()}.{randint(10000,99999)}",
+            )
+        ],
         parts=parts,
     )
