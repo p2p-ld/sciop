@@ -1,17 +1,19 @@
-from typing import Annotated
+from typing import Annotated, Optional
 from typing import Literal as L
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlmodel import select
+from sqlmodel import Session, select
+from starlette.datastructures import QueryParams
 
 from sciop import crud
 from sciop.api.deps import (
     CurrentAccount,
     RequireDataset,
     RequireDatasetPart,
+    RequireEnabledDataset,
     RequireUploader,
     SessionDep,
 )
@@ -92,57 +94,59 @@ async def dataset_uploads(
     )
 
 
+def _parts_from_query(
+    query: QueryParams, dataset: Dataset, session: Session
+) -> Optional[list[str]]:
+    parts = list(query.keys())
+    if parts:
+        existing_parts = crud.check_existing_dataset_parts(
+            session=session, dataset=dataset, part_slugs=parts
+        )
+        if extra_parts := set(parts) - set(existing_parts):
+            raise HTTPException(404, f"Parts do not exist: {extra_parts}")
+        return parts
+    else:
+        return None
+
+
 @datasets_router.get("/{dataset_slug}/upload/start", response_class=HTMLResponse)
 async def dataset_upload_start(
-    dataset_slug: str, account: RequireUploader, session: SessionDep, request: Request
+    dataset_slug: str,
+    account: RequireUploader,
+    session: SessionDep,
+    dataset: RequireEnabledDataset,
+    request: Request,
 ):
-    """Partial to allow an initial upload and validation of a torrent file"""
-    dataset = crud.get_dataset(session=session, dataset_slug=dataset_slug)
-    if not dataset:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No such dataset {dataset_slug} exists",
-        )
-    if not dataset.enabled:
-        raise HTTPException(
-            status_code=401,
-            detail=f"Dataset {dataset_slug} is not enabled for upload",
-        )
+    """
+    Partial to allow an initial upload and validation of a torrent file
 
-    return templates.TemplateResponse(request, "partials/upload-start.html", {"dataset": dataset})
+    Query parameters are assumed to be dataset parts, annoyingly passed like
+    `part-slug=on&part-slug-2=on`, so we just interpret the keys
+    """
+    parts = _parts_from_query(query=request.query_params, dataset=dataset, session=session)
+    return templates.TemplateResponse(
+        request, "partials/upload-start.html", {"dataset": dataset, "parts": parts}
+    )
 
 
 @datasets_router.post("/{dataset_slug}/upload/torrent", response_class=HTMLResponse)
 async def dataset_upload_torrent(
     dataset_slug: str,
+    dataset: RequireEnabledDataset,
     file: Annotated[UploadFile, File()],
     account: RequireUploader,
     session: SessionDep,
     request: Request,
 ):
     """Validate and create a torrent file,"""
-    dataset = crud.get_dataset(session=session, dataset_slug=dataset_slug)
-    if not dataset:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No such dataset {dataset_slug} exists",
-        )
-    if not dataset.enabled:
-        raise HTTPException(
-            status_code=401,
-            detail=f"Dataset {dataset_slug} is not enabled for upload",
-        )
 
     created_torrent = await upload_torrent(account=account, file=file, session=session)
+    parts = _parts_from_query(query=request.query_params, dataset=dataset, session=session)
 
     return templates.TemplateResponse(
         request,
         "partials/upload-complete.html",
-        {
-            "dataset": dataset,
-            "torrent": created_torrent,
-            "model": UploadCreate,
-        },
+        {"dataset": dataset, "torrent": created_torrent, "model": UploadCreate, "parts": parts},
     )
 
 

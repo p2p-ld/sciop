@@ -7,7 +7,7 @@ from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
 from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixin import TableMixin, TableReadMixin
-from sciop.types import EscapedStr, IDField, InputType
+from sciop.types import EscapedStr, IDField, InputType, SlugStr
 
 
 class UploadBase(SQLModel):
@@ -89,4 +89,9 @@ class UploadCreate(UploadBase):
 
     torrent_short_hash: str = Field(
         max_length=8, min_length=8, description="Short hash of the torrent file"
+    )
+    part_slugs: Optional[list[SlugStr]] = Field(
+        default=None,
+        title="Dataset Parts",
+        description="Parts of a dataset that this upload corresponds to",
     )

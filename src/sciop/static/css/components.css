@@ -176,7 +176,7 @@ button,
     color: var(--color-link);
   }
 
-  summary {
+  & > summary {
     margin-bottom: 0.5em;
   }
 }
@@ -192,7 +192,7 @@ button,
 
 #error-modal-container {
   display: none;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -225,5 +225,13 @@ button,
       padding: 1em;
     }
   }
+}
+
+.surface {
+  padding: 1em;
+  border-radius: 1em;
+  background-color: var(--color-background-shade);
+  border: 1px solid var(--color-border-deemphasized);
+
 }
 

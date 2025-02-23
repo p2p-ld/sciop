@@ -270,3 +270,7 @@ table {
     }
   }
 }
+
+.model-table {
+  text-align: left;
+}

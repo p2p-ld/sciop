@@ -1,4 +1,6 @@
 {% from 'macros/dataset-part.html' import dataset_part_collapsible, add_parts %}
+
+<div id="dataset-{{dataset.slug}}-parts-upload-container"></div>
 <div id="dataset-{{dataset.slug}}-parts" class="dataset-parts dataset-parts-table collapsible-table">
 {% if parts | length == 0 %}
   <span>No dataset parts</span>
@@ -14,7 +16,12 @@
       {% if review %}<span></span><span></span>
       {% else %}
       <div class="upload-batch-button">
-        <form id="dataset-parts-{{ dataset.slug }}-batch-upload-form" class="color-strip primary">
+        <form id="dataset-parts-{{ dataset.slug }}-batch-upload-form"
+              class="color-strip primary"
+              hx-get="/datasets/{{ dataset.slug }}/upload/start"
+              hx-target="#dataset-{{dataset.slug}}-parts-upload-container"
+              hx-ext="form-json"
+        >
           <button class="angled-button button upload-button" type="submit">Upload</button>
         </form>
       </div>

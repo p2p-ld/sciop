@@ -143,7 +143,7 @@ async def datasets_create_upload_form(
         account=account,
         session=session,
     )
-    response.headers["HX-Refresh"] = "true"
+    response.headers["HX-Redirect"] = f"/uploads/{created_upload.short_hash}"
     return created_upload
 
 
@@ -178,9 +178,9 @@ async def part_create(
         parts = [parts]
     # casting to strs first is cheaper than pydantic before we have validated existence
 
-    slugs = [p if isinstance(p, str) else p.part_slug for p in parts]
-    stmt = select(DatasetPart.part_slug).join(Dataset).filter(DatasetPart.part_slug.in_(slugs))
-    existing_parts = session.exec(stmt).all()
+    existing_parts = crud.check_existing_dataset_parts(
+        session=session, dataset=dataset, part_slugs=parts
+    )
     if existing_parts:
         raise HTTPException(
             400,

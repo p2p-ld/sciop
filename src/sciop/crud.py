@@ -134,6 +134,18 @@ def get_dataset_part(
     return part
 
 
+def get_dataset_parts(
+    *, session: Session, dataset_slug: str, dataset_part_slugs: list[str]
+) -> Optional[list[DatasetPart]]:
+    statement = (
+        select(DatasetPart)
+        .join(Dataset)
+        .filter(DatasetPart.part_slug.in_(dataset_part_slugs), Dataset.slug == dataset_slug)
+    )
+    parts = session.exec(statement).all()
+    return parts
+
+
 def get_approved_datasets(*, session: Session) -> list[Dataset]:
     statement = select(Dataset).where(Dataset.enabled == True)
     return session.exec(statement).all()
@@ -193,15 +205,18 @@ def create_upload(
     torrent = get_torrent_from_short_hash(
         session=session, short_hash=created_upload.torrent_short_hash
     )
-    db_obj = Upload.model_validate(
-        created_upload,
-        update={
-            "torrent": torrent,
-            "account": account,
-            "dataset": dataset,
-            "short_hash": created_upload.torrent_short_hash,
-        },
-    )
+    update = {
+        "torrent": torrent,
+        "account": account,
+        "dataset": dataset,
+        "short_hash": created_upload.torrent_short_hash,
+    }
+    if created_upload.part_slugs:
+        update["dataset_parts"] = get_dataset_parts(
+            session=session, dataset_slug=dataset.slug, dataset_part_slugs=created_upload.part_slugs
+        )
+
+    db_obj = Upload.model_validate(created_upload, update=update)
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
@@ -257,5 +272,22 @@ def log_moderation_action(
     return db_item
 
 
-def check_existing_dataset_parts(*, dataset: Dataset):
-    raise NotImplementedError("todo")
+def check_existing_dataset_parts(
+    *, session: Session, dataset: Dataset, part_slugs: list[str | DatasetPartCreate]
+) -> Optional[list[str]]:
+    """
+    Check whether any of a list of dataset parts exist in the database,
+    returning a list of slugs that do exist, if any.
+    ``None`` otherwise.
+    """
+    slugs = [p if isinstance(p, str) else p.part_slug for p in part_slugs]
+    stmt = (
+        select(DatasetPart.part_slug)
+        .join(Dataset)
+        .filter(DatasetPart.dataset == dataset, DatasetPart.part_slug.in_(slugs))
+    )
+    existing_parts = session.exec(stmt).all()
+    if not existing_parts:
+        return None
+    else:
+        return existing_parts

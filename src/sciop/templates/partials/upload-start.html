@@ -1,7 +1,18 @@
-<span>Make sure you have read the <a href="/upload/guide">upload guide</a> for how to create your torrent!</span>
+<div class="surface">
+<p>Creating upload for <span class="token">{{ dataset.slug }}</span></p>
+{% if parts %}
+<p>Parts:</p>
+<ul class="font-mono">
+{% for part in parts %}
+<li>{{ part }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<span>Make sure you have read the <a href="/docs/uploading">upload guide</a> for how to create your torrent!</span>
 
 <form id='upload-form' name="file" hx-encoding='multipart/form-data'
-      hx-post='/datasets/{{ dataset.slug }}/upload/torrent'
+      hx-post="/datasets/{{ dataset.slug }}/upload/torrent{% if parts %}?{{ parts | join('=on&') }}=on{% endif %}"
     hx-swap="outerHTML">
     <input type='file' name='file'>
     <button type="submit">
@@ -10,7 +21,6 @@
     <progress id='progress' value='0' max='100'></progress>
 </form>
 <script>
-    htmx.on('#upload-form', 'htmx:xhr:progress', function(evt) {
-      htmx.find('#progress').setAttribute('value', evt.detail.loaded/evt.detail.total * 100)
-    });
+
 </script>
+</div>
