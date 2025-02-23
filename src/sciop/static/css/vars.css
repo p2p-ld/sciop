@@ -1,7 +1,7 @@
 /* Root vars that are needed in both themes */
 :root {
     --color-dark-background: rgba(23, 23, 26, 1);
-    --color-light-background: #eee;
+    --color-light-background: lch(99.25% 3.6 199.47);
     --color-threat-unknown: var(--color-background-shade);
     --color-threat-indefinite: lch(56.05% 49.39 256.63);
     --color-threat-watchlist: lch(58.97% 76.96 59.37);
@@ -42,7 +42,7 @@ body {
   &.light-theme {
     --color-primary: lch(75.67% 48.81 313.27);
     --color-text: #000;
-    --color-background: lch(99.25% 3.6 199.47);
+    --color-background: var(--color-light-background);
     --color-background-shade: color-mix(in lch, var(--color-background) 95%, var(--color-dark-background));
     --color-background-deemphasized: color-mix(in lch, var(--color-background) 96%, var(--color-dark-background));
     --color-border-deemphasized: #aaa;
