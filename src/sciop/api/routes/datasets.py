@@ -22,7 +22,6 @@ from sciop.middleware import limiter
 from sciop.models import (
     Dataset,
     DatasetCreate,
-    DatasetPart,
     DatasetPartCreate,
     DatasetPartRead,
     DatasetRead,
