@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional
 
 from pydantic import field_validator
 from sqlalchemy.orm import relationship
+from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.mixin import EnumTableMixin, SearchableMixin, TableMixin
@@ -31,6 +32,8 @@ class Scopes(StrEnum):
 
 class AccountScopeLink(TableMixin, table=True):
     __tablename__ = "account_scope_link"
+    __table_args__ = (UniqueConstraint("account_id", "scope_id", name="_account_scope_uc"),)
+
     account_id: Optional[int] = Field(
         default=None, foreign_key="account.account_id", primary_key=True
     )
