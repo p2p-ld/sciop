@@ -48,6 +48,12 @@ button,
         background-color: var(--color-background);
         border-color: var(--color-primary);
       }
+
+      &:disabled {
+        &:hover {
+          border-color: var(--color-border-deemphasized);
+        }
+      }
     }
     &.checked {
       &:disabled {
@@ -71,7 +77,7 @@ button,
     color: var(--color-deemphasized);
 
     &:hover {
-      border-color: var(--color-border-deemphasized);
+      border-color: unset;
     }
   }
 }
