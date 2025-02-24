@@ -1,33 +1,18 @@
 <nav class="navbar">
-    <a href="/" class="site-title redacted">SciOp</a>
-    <a href="/datasets" class="nav-link">Datasets</a>
-    <a href="/feeds" class="nav-link">Feeds</a>
-    <a href="/docs" class="nav-link">Docs</a>
+  <a href="/" class="site-title redacted">SciOp</a>
+  <a href="/datasets" class="nav-link">Datasets</a>
+  <a href="/feeds" class="nav-link">Feeds</a>
+  <a href="/docs" class="nav-link">Docs</a>
 
-    <div class="spacer"></div>
-    <span id="option-darkmode" class="toggle-switch">
-        <span id="option-darkmode-slider" class="slider preload" aria-hidden="true"></span>
-        <button aria-label="Toggle the theme to light mode"
-                id="theme-button"
-                type=button
-                class="toggle-container"
-                aria-pressed="false"
-        >
-            <span class="slider-text" aria-hidden="true">sun&nbsp;&nbsp;&nbsp;moon</span>
-        </button>
-        <span class="beam" id="beam-1" aria-hidden="true"></span>
-        <span class="beam" id="beam-2" aria-hidden="true"></span>
-        <span class="beam" id="beam-3" aria-hidden="true"></span>
-        <span class="beam" id="beam-4" aria-hidden="true"></span>
-        <span class="beam" id="beam-5" aria-hidden="true"></span>
-        <span class="beam" id="beam-6" aria-hidden="true"></span>
-        <span class="beam" id="beam-7" aria-hidden="true"></span>
+  <div class="spacer"></div>
 
-    </span>
-    <a class="nav-button outline" href="/request">Request/Add Dataset</a>
-    {% if current_account %}
-    <a href="/self" class="nav-button">{{ current_account.username }}</a>
-    {% else %}
-    <a href="/login" class="nav-button">Login</a>
-    {% endif %}
+	<div class="cta-wrapper">
+    {% include "includes/theme-toggle.html" %}
+		<a class="nav-button outline" href="/request">Add Dataset</a>
+		{% if current_account %}
+		<a href="/self" class="nav-button">{{ current_account.username }}</a>
+		{% else %}
+		<a href="/login" class="nav-button">Login</a>
+		{% endif %}
+	</div>
 </nav>
