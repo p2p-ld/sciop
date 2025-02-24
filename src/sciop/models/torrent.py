@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 import humanize
+from pydantic import field_validator
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.config import config
@@ -115,5 +116,13 @@ class TorrentFileCreate(TorrentFileBase):
 
 
 class TorrentFileRead(TorrentFileBase):
-    files: list[FileInTorrentRead]
-    trackers: list[TrackerInTorrentRead]
+    files: list[str]
+    trackers: list[str]
+
+    @field_validator("files", mode="before")
+    def flatten_files(cls, val: list[FileInTorrentRead]) -> list[str]:
+        return [v.path for v in val]
+
+    @field_validator("trackers", mode="before")
+    def flatten_trackers(cls, val: list[TrackerInTorrentRead]) -> list[str]:
+        return [v.url for v in val]

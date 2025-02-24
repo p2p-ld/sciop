@@ -4,10 +4,12 @@ import os
 import socket
 import time
 from threading import Thread
+from typing import Callable as C
 
 import pytest
 from selenium import webdriver
 from selenium.common import WebDriverException
+from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from sqlmodel import Session
@@ -98,17 +100,18 @@ async def run_server(session: Session) -> Server_:
 
 
 @pytest.fixture()
-async def driver(run_server: Server_) -> webdriver.Firefox:
+async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriver.Firefox:
     if os.environ.get("IN_CI", False):
         executable_path = "/snap/bin/firefox.geckodriver"
     else:
         executable_path = GeckoDriverManager().install()
     options = FirefoxOptions()
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--headless")
+    if not request.config.getoption("--show-browser"):
+        options.add_argument("--headless")
+        options.headless = True
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-gpu")
-    options.headless = True
     options.add_argument("--window-size=1920,1080")
     _service = FirefoxService(executable_path=executable_path)
     try:
@@ -119,6 +122,38 @@ async def driver(run_server: Server_) -> webdriver.Firefox:
 
         yield browser
 
-        browser.close()
     except WebDriverException as e:
-        pytest.skip(str(e))
+        if os.environ.get("IN_CI", False):
+            pytest.skip(str(e))
+        else:
+            raise e
+    finally:
+        if "browser" in locals():
+            browser.close()
+            browser.quit()
+
+
+@pytest.fixture()
+async def driver_as_admin(driver: webdriver.Firefox, admin_auth_header: dict) -> webdriver.Firefox:
+    driver.get("http://127.0.0.1:8080/login")
+    username = driver.find_element(By.ID, "username")
+    username.send_keys("admin")
+    password = driver.find_element(By.ID, "password")
+    password.send_keys("adminadmin12")
+    submit = driver.find_element(By.ID, "login-button")
+    submit.click()
+    return driver
+
+
+@pytest.fixture()
+async def driver_as_user(driver: webdriver.Firefox, account: C) -> webdriver.Firefox:
+    """Driver as a regular user with no privs"""
+    _ = account(username="user", password="userpassword123")
+    driver.get("http://127.0.0.1:8080/login")
+    username = driver.find_element(By.ID, "username")
+    username.send_keys("user")
+    password = driver.find_element(By.ID, "password")
+    password.send_keys("userpassword123")
+    submit = driver.find_element(By.ID, "login-button")
+    submit.click()
+    return driver

@@ -4,7 +4,7 @@
 {{ model_table(id="torrent-table", model=torrent) }}
 
 <form id='upload-form' class="form">
-    {{ inner_model_form(id="upload-form", model=model, exclude=["torrent_short_hash"]) }}
+    {{ inner_model_form(id="upload-form", model=model, exclude=["torrent_short_hash", "part_slugs"]) }}
     <div class="form-item">
         <label for="upload-form-torrent_short_hash" class="form-label">Torrent Short Hash</label>
         <input id="upload-form-torrent_short_hash"
@@ -14,6 +14,11 @@
                value="{{ torrent.short_hash }}"
                readonly="readonly">
     </div>
+    {% if parts %}
+    {% for part in parts %}
+    <input name="part_slugs" value="{{ part }}" type="hidden" readonly="readonly">
+    {% endfor %}
+    {% endif %}
 
 </form>
 
@@ -21,7 +26,7 @@
     class="form-button"
     type="submit"
     name="upload"
-    hx-post='{{ config.api_prefix }}/datasets/{{ dataset.slug }}/uploads/form'
+    hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/uploads/form{% if parts %}?{{ parts | join('=on&') }}=on{% endif %}"
     hx-include="#upload-form"
 >Submit</button>
 

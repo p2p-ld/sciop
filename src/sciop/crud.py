@@ -9,6 +9,9 @@ from sciop.models import (
     AuditLog,
     Dataset,
     DatasetCreate,
+    DatasetPart,
+    DatasetPartCreate,
+    DatasetPath,
     DatasetURL,
     ExternalIdentifier,
     FileInTorrent,
@@ -56,6 +59,12 @@ def create_dataset(
         ExternalIdentifier(type=e.type, identifier=e.identifier)
         for e in dataset_create.external_identifiers
     ]
+    parts = [
+        create_dataset_part(
+            session=session, account=current_account, dataset_part=part, commit=False
+        )
+        for part in dataset_create.parts
+    ]
 
     existing_tags = session.exec(select(Tag).filter(Tag.tag.in_(dataset_create.tags))).all()
     existing_tag_str = set([e.tag for e in existing_tags])
@@ -71,6 +80,7 @@ def create_dataset(
             "urls": urls,
             "tags": tags,
             "external_identifiers": external_identifiers,
+            "parts": parts,
         },
     )
     session.add(db_obj)
@@ -79,11 +89,61 @@ def create_dataset(
     return db_obj
 
 
+def create_dataset_part(
+    *,
+    session: Session,
+    dataset_part: DatasetPartCreate,
+    dataset: Dataset | None = None,
+    account: Account | None = None,
+    commit: bool = True,
+) -> DatasetPart:
+    paths = [DatasetPath(path=str(path)) for path in dataset_part.paths]
+    enabled = bool(account) and account.has_scope("submit")
+    part = DatasetPart.model_validate(
+        dataset_part,
+        update={
+            "paths": paths,
+            "dataset": dataset,
+            "account": account,
+            "enabled": enabled,
+        },
+    )
+    session.add(part)
+    if commit:
+        session.commit()
+        session.refresh(part)
+    return part
+
+
 def get_dataset(*, session: Session, dataset_slug: str) -> Dataset | None:
     """Get a dataset by its slug"""
     statement = select(Dataset).where(Dataset.slug == dataset_slug)
     session_dataset = session.exec(statement).first()
     return session_dataset
+
+
+def get_dataset_part(
+    *, session: Session, dataset_slug: str, dataset_part_slug: str
+) -> Optional[DatasetPart]:
+    statement = (
+        select(DatasetPart)
+        .join(Dataset)
+        .filter(DatasetPart.part_slug == dataset_part_slug, Dataset.slug == dataset_slug)
+    )
+    part = session.exec(statement).first()
+    return part
+
+
+def get_dataset_parts(
+    *, session: Session, dataset_slug: str, dataset_part_slugs: list[str]
+) -> Optional[list[DatasetPart]]:
+    statement = (
+        select(DatasetPart)
+        .join(Dataset)
+        .filter(DatasetPart.part_slug.in_(dataset_part_slugs), Dataset.slug == dataset_slug)
+    )
+    parts = session.exec(statement).all()
+    return parts
 
 
 def get_approved_datasets(*, session: Session) -> list[Dataset]:
@@ -145,23 +205,31 @@ def create_upload(
     torrent = get_torrent_from_short_hash(
         session=session, short_hash=created_upload.torrent_short_hash
     )
-    db_obj = Upload.model_validate(
-        created_upload,
-        update={
-            "torrent": torrent,
-            "account": account,
-            "dataset": dataset,
-            "short_hash": created_upload.torrent_short_hash,
-        },
-    )
+    update = {
+        "torrent": torrent,
+        "account": account,
+        "dataset": dataset,
+        "short_hash": created_upload.torrent_short_hash,
+    }
+    if created_upload.part_slugs:
+        update["dataset_parts"] = get_dataset_parts(
+            session=session, dataset_slug=dataset.slug, dataset_part_slugs=created_upload.part_slugs
+        )
+
+    db_obj = Upload.model_validate(created_upload, update=update)
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     return db_obj
 
 
-def get_uploads(*, dataset: Dataset, session: Session) -> list[Upload]:
-    statement = select(Upload).where(Upload.dataset == dataset)
+def get_uploads(*, session: Session, dataset: Dataset | DatasetPart) -> list[Upload]:
+    if isinstance(dataset, DatasetPart):
+        statement = select(Upload).where(
+            Upload.dataset_parts.any(dataset_part_id=dataset.dataset_part_id)
+        )
+    else:
+        statement = select(Upload).where(Upload.dataset == dataset)
     uploads = session.exec(statement).all()
     return uploads
 
@@ -202,3 +270,24 @@ def log_moderation_action(
     session.commit()
     session.refresh(db_item)
     return db_item
+
+
+def check_existing_dataset_parts(
+    *, session: Session, dataset: Dataset, part_slugs: list[str | DatasetPartCreate]
+) -> Optional[list[str]]:
+    """
+    Check whether any of a list of dataset parts exist in the database,
+    returning a list of slugs that do exist, if any.
+    ``None`` otherwise.
+    """
+    slugs = [p if isinstance(p, str) else p.part_slug for p in part_slugs]
+    stmt = (
+        select(DatasetPart.part_slug)
+        .join(Dataset)
+        .filter(DatasetPart.dataset == dataset, DatasetPart.part_slug.in_(slugs))
+    )
+    existing_parts = session.exec(stmt).all()
+    if not existing_parts:
+        return None
+    else:
+        return existing_parts

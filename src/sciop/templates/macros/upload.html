@@ -8,6 +8,18 @@
                     {{ upload.dataset.slug }}
                 </a>
             </span>
+            {% if upload.dataset_parts %}
+            <h{{ header_start + 1}} class="dataset-parts">For Dataset Parts</h{{ header_start + 1}}>
+            <ul>
+                {% for part in upload.dataset_parts %}
+                <li>
+                   <a href="/datasets/{{upload.dataset.slug}}">{{upload.dataset.slug}}</a>
+                    /
+                   <a href="/datasets/{{upload.dataset.slug}}/{{part.part_slug}}">{{part.part_slug}}</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
             <h{{ header_start + 1}} class="description">Description</h{{ header_start + 1}}>
             <p>{{ upload.description }}</p>
             <h{{ header_start + 1}} class="method">Method</h{{ header_start + 1}}>

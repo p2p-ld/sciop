@@ -151,3 +151,7 @@ function init_token_input(){
   })
 }
 init_token_input();
+
+htmx.on('#upload-form', 'htmx:xhr:progress', function(evt) {
+  htmx.find('#progress').setAttribute('value', evt.detail.loaded/evt.detail.total * 100)
+});

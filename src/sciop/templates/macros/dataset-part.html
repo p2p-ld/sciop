@@ -1,0 +1,78 @@
+{% macro dataset_part_row(part, dataset, current_account, config) %}
+<div class="dataset-part" id="dataset-part-{{ dataset.slug }}-{{ part.part_slug }}">
+  <h2 class="dataset-title">{{ part.part_slug }} </h2>
+  <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>/
+  <span class="dataset-part-slug token">
+    <a href="/datasets/{{dataset.slug}}/{{ part.part_slug }}">{{ part.part_slug}}</a>
+  </span>
+
+  {% if part.paths %}
+  <h3>Paths</h3>
+  <pre class="path-list">
+{%- for path in part.paths -%}
+<code class="font-mono">{{ path.path | string }}</code>
+{% endfor -%}
+  </pre>
+  {% endif %}
+
+  <h3>Uploads</h3>
+  <div id="dataset-part-{{ dataset.slug }}-{{ part.part_slug }}-uploads-container" class="uploads-container container">
+      <div
+          hx-get="/datasets/{{ dataset.slug }}/{{ part.part_slug }}/uploads"
+          hx-trigger="load"
+      >
+          <span class="htmx-indicator search-indicator" id="uploads-indicator">
+              <span>Loading dataset part uploads...</span>
+              <img src="/static/img/rings.svg"/>
+          </span>
+      </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro dataset_part_collapsible(part, dataset, current_account, config) %}
+<details class="collapsible dataset-part-collapsible"
+         id="dataset-part-collapsible-{{ dataset.slug }}-{{ part.part_slug }}">
+  <summary
+      class="collapsible-summary"
+      hx-get="/datasets/{{ dataset.slug }}/{{ part.part_slug }}/partial"
+      hx-trigger="click once"
+      hx-target="#dataset-part-{{ dataset.slug }}-{{ part.part_slug }}"
+  >
+    <span class="collapsible-marker"></span>
+    <span class="dataset-slug item-link">
+      <a href="/datasets/{{ dataset.slug }}/{{ part.part_slug }}">
+        {{ part.part_slug }}
+      </a>
+    </span>
+    <time class="dataset-part-timestamp timestamp" datetime="{{part.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+            {{ part.created_at.strftime("%y-%m-%d %H:%M") }}
+      </time>
+    <span class="color-strip primary">
+
+    <input type="checkbox" class="upload-part-checkbox" name="{{ part.part_slug }}"
+           id="dataset-part-{{ dataset.slug }}-{{ part.part_slug }}-upload-checkbox"
+           aria-label="Include this dataset part in a batch upload"
+           form="dataset-parts-{{ dataset.slug }}-batch-upload-form"
+    >
+    </span>
+
+  </summary>
+  <div class="dataset-part" id="dataset-part-{{ dataset.slug }}-{{ part.part_slug }}"></div>
+</details>
+{% endmacro %}
+
+{% macro add_parts(dataset) %}
+<div class="button-group add-parts-buttons" id="dataset-{{ dataset.slug }}-parts-add" >
+  <button type="button" class="button add-one-button"
+    hx-get="/datasets/{{ dataset.slug }}/parts/add"
+    hx-target="#dataset-{{ dataset.slug }}-parts"
+    hx-swap="beforeend"
+  >Add One</button>
+  <button type="button" class="button add-bulk-button"
+    hx-get="/datasets/{{ dataset.slug }}/parts/add?mode=bulk"
+    hx-target="#dataset-{{ dataset.slug }}-parts"
+    hx-swap="beforeend"
+  >Add Bulk</button>
+</div>
+{% endmacro %}

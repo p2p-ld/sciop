@@ -1,3 +1,4 @@
+import argparse
 import contextlib
 import sys
 
@@ -14,6 +15,12 @@ from sqlmodel import Session, create_engine
 
 from .fixtures import *
 from .fixtures import TMP_DIR, TORRENT_DIR
+
+
+def pytest_addoption(parser: argparse.ArgumentParser) -> None:
+    parser.addoption(
+        "--show-browser", action="store_true", default=False, help="Show browser in selenium tests"
+    )
 
 
 def pytest_sessionfinish(session: pytest.Session) -> None:

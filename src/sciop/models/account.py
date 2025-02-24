@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from sciop.models import (
         AuditLog,
         Dataset,
+        DatasetPart,
         ExternalSource,
         TorrentFile,
         Upload,
@@ -91,6 +92,7 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
         link_model=AccountScopeLink,
     )
     datasets: list["Dataset"] = Relationship(back_populates="account")
+    dataset_parts: list["DatasetPart"] = Relationship(back_populates="account")
     submissions: list["Upload"] = Relationship(back_populates="account")
     external_submissions: list["ExternalSource"] = Relationship(back_populates="account")
     torrents: list["TorrentFile"] = Relationship(back_populates="account")

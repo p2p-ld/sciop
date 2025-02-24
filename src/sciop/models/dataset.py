@@ -1,9 +1,11 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Self
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union
 
-from pydantic import TypeAdapter, field_validator, model_validator
+from pydantic import TypeAdapter, computed_field, field_validator, model_validator
+from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
+from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS
 from sciop.models.account import Account
 from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
 from sciop.models.tag import DatasetTagLink
@@ -14,15 +16,17 @@ from sciop.types import (
     IDField,
     InputType,
     MaxLenURL,
+    PathLike,
     Scarcity,
     ScrapeStatus,
     SlugStr,
     SourceType,
     Threat,
+    UsernameStr,
 )
 
 if TYPE_CHECKING:
-    from sciop.models import AuditLog, Tag, Upload
+    from sciop.models import AuditLog, Tag, Upload, UploadRead
 
 
 class DatasetBase(SQLModel):
@@ -163,6 +167,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     scrape_status: ScrapeStatus = "unknown"
     enabled: bool = False
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
+    parts: list["DatasetPart"] = Relationship(back_populates="dataset")
 
 
 class DatasetCreate(DatasetBase):
@@ -204,25 +209,16 @@ class DatasetCreate(DatasetBase):
         },
         max_length=32,
     )
+    parts: list["DatasetPartCreate"] = Field(
+        default_factory=list,
+        title="Part(s)",
+        schema_extra={"json_schema_extra": {"input_type": InputType.none}},
+    )
 
     @field_validator("urls", "tags", mode="before")
     def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
         """Split lists of strings given as one entry per line"""
-        if isinstance(value, str):
-            if not value or value == "":
-                return []
-            value = value.splitlines()
-        elif isinstance(value, list) and len(value) == 1:
-            if "\n" in value[0]:
-                value = value[0].splitlines()
-            elif value[0] == "":
-                return []
-        elif value is None:
-            return []
-
-        # filter empty strings
-        value = [v for v in value if v and v.strip()]
-        return value
+        return _split_lines(value)
 
     @field_validator("tags", "tags", mode="before")
     def split_commas(cls, value: str | list[str]) -> Optional[list[str]]:
@@ -259,12 +255,17 @@ class DatasetCreate(DatasetBase):
             value = None
         return value
 
+    @field_validator("slug", mode="after")
+    def not_reserved_slug(cls, slug: str) -> str:
+        assert slug not in DATASET_RESERVED_SLUGS, f"slug {slug} is reserved"
+        return slug
+
 
 class DatasetRead(DatasetBase, TableReadMixin):
-    uploads: list["Upload"] = Field(default_factory=list)
+    uploads: list["UploadRead"] = Field(default_factory=list)
     external_sources: list["ExternalSource"] = Field(default_factory=list)
     external_identifiers: list["ExternalIdentifierRead"] = Field(default_factory=list)
-    urls: list["DatasetURL"] = Field(default_factory=list)
+    urls: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     scrape_status: ScrapeStatus
     enabled: bool
@@ -272,6 +273,10 @@ class DatasetRead(DatasetBase, TableReadMixin):
     @field_validator("tags", mode="before")
     def collapse_tags(cls, val: list["Tag"]) -> list[str]:
         return [tag.tag for tag in val]
+
+    @field_validator("urls", mode="before")
+    def collapse_urls(cls, val: list["DatasetURL"]) -> list[str]:
+        return [url.url for url in val]
 
     @field_validator("tags", mode="after")
     def sort_list(cls, val: list[Any]) -> list[Any]:
@@ -284,6 +289,7 @@ class DatasetURL(SQLModel, table=True):
     dataset_url_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
     dataset: Optional[Dataset] = Relationship(back_populates="urls")
+
     url: MaxLenURL
 
 
@@ -368,3 +374,108 @@ class ExternalIdentifierCreate(ExternalIdentifierBase):
 
 class ExternalIdentifierRead(ExternalIdentifierBase):
     pass
+
+
+class UploadDatasetPartLink(SQLModel, table=True):
+    __tablename__ = "upload_dataset_part_link"
+    dataset_part_id: Optional[int] = Field(
+        default=None, foreign_key="dataset_part.dataset_part_id", primary_key=True
+    )
+    upload_id: Optional[int] = Field(default=None, foreign_key="upload.upload_id", primary_key=True)
+
+
+class DatasetPartBase(SQLModel):
+    part_slug: SlugStr = Field(
+        title="Part Slug",
+        description="Unique identifier for this dataset part",
+        max_length=256,
+        index=True,
+    )
+    description: Optional[EscapedStr] = Field(
+        None,
+        title="Description",
+        description="Additional information about this part",
+        max_length=4096,
+    )
+
+
+class DatasetPart(DatasetPartBase, TableMixin, table=True):
+    __tablename__ = "dataset_part"
+    __table_args__ = (UniqueConstraint("dataset_id", "part_slug", name="_dataset_part_slug_uc"),)
+
+    dataset_part_id: IDField = Field(None, primary_key=True)
+    dataset_id: Optional[int] = Field(None, foreign_key="dataset.dataset_id")
+    dataset: Optional[Dataset] = Relationship(back_populates="parts")
+    account_id: Optional[int] = Field(None, foreign_key="account.account_id")
+    account: Optional[Account] = Relationship(back_populates="dataset_parts")
+    uploads: list["Upload"] = Relationship(
+        back_populates="dataset_parts", link_model=UploadDatasetPartLink
+    )
+    paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
+    enabled: bool = False
+
+
+class DatasetPartCreate(DatasetPartBase):
+    paths: list[PathLike] = Field(
+        default_factory=list,
+        title="Paths",
+        description="A list of paths that this part should contain, "
+        "if the part is not a single file. One path per line.",
+        max_length=128,
+        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+    )
+
+    @field_validator("paths", mode="before")
+    def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
+        return _split_lines(value)
+
+    @field_validator("part_slug", mode="after")
+    def not_reserved_slug(cls, slug: str) -> str:
+        assert slug not in DATASET_PART_RESERVED_SLUGS, f"slug {slug} is reserved"
+        return slug
+
+
+class DatasetPartRead(DatasetPartBase):
+    dataset: DatasetRead
+    uploads: list["UploadRead"] = Field(default_factory=list)
+    account: UsernameStr
+
+    @computed_field
+    def absolute_slug(self) -> str:
+        """Slug joined by / with the parent dataset slug"""
+        return "/".join([self.dataset.slug, self.part_slug])
+
+    @field_validator("account", mode="before")
+    def account_to_username(cls, account: Union["Account", str]) -> str:
+        from sciop.models import Account
+
+        if isinstance(account, Account):
+            account = account.username
+        return account
+
+
+class DatasetPath(TableMixin, table=True):
+    __tablename__ = "dataset_path"
+
+    dataset_path_id: IDField = Field(None, primary_key=True)
+    dataset_part_id: Optional[int] = Field(None, foreign_key="dataset_part.dataset_part_id")
+    dataset_part: DatasetPart = Relationship(back_populates="paths")
+    path: str = Field(max_length=1024)
+
+
+def _split_lines(value: str | list[str]) -> Optional[list[str]]:
+    if isinstance(value, str):
+        if not value or value == "":
+            return []
+        value = value.splitlines()
+    elif isinstance(value, list) and len(value) == 1:
+        if "\n" in value[0]:
+            value = value[0].splitlines()
+        elif value[0] == "":
+            return []
+    elif value is None:
+        return []
+
+    # filter empty strings
+    value = [v for v in value if v and v.strip()]
+    return value

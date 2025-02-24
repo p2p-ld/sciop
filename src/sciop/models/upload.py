@@ -4,9 +4,10 @@ from urllib.parse import urljoin
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.config import config
-from sciop.models import Account, AuditLog, Dataset, TorrentFile
+from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
+from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixin import TableMixin, TableReadMixin
-from sciop.types import EscapedStr, IDField, InputType
+from sciop.types import EscapedStr, IDField, InputType, SlugStr
 
 
 class UploadBase(SQLModel):
@@ -32,6 +33,9 @@ class Upload(UploadBase, TableMixin, table=True):
     upload_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
     dataset: Dataset = Relationship(back_populates="uploads")
+    dataset_parts: list[DatasetPart] = Relationship(
+        back_populates="uploads", link_model=UploadDatasetPartLink
+    )
     account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
     account: Account = Relationship(back_populates="submissions")
     torrent: Optional["TorrentFile"] = Relationship(
@@ -87,4 +91,9 @@ class UploadCreate(UploadBase):
 
     torrent_short_hash: str = Field(
         max_length=8, min_length=8, description="Short hash of the torrent file"
+    )
+    part_slugs: Optional[list[SlugStr]] = Field(
+        default=None,
+        title="Dataset Parts",
+        description="Parts of a dataset that this upload corresponds to",
     )

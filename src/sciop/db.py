@@ -1,5 +1,8 @@
 import importlib.resources
+import random
 from datetime import UTC, datetime
+from pathlib import Path
+from random import randint
 from typing import TYPE_CHECKING, Generator, Optional
 
 from alembic import command
@@ -290,12 +293,23 @@ def _generate_upload(
 
 
 def _generate_dataset(fake: "Faker") -> "DatasetCreate":
-    from random import randint
+    from faker import Faker
 
-    from sciop.models import DatasetCreate, ExternalIdentifierCreate
+    from sciop.models import DatasetCreate, DatasetPartCreate, ExternalIdentifierCreate
+
+    dataset_fake = Faker()
 
     title = fake.unique.bs()
     slug = title.lower().replace(" ", "-")
+
+    parts = []
+    base_path = Path(fake.unique.file_path(depth=2, extension=tuple()))
+
+    for i in range(random.randint(1, 5)):
+        part_slug = base_path / dataset_fake.unique.file_name(extension="")
+        paths = [str(part_slug / dataset_fake.unique.file_name()) for i in range(5)]
+        part = DatasetPartCreate(part_slug=str(part_slug), paths=paths)
+        parts.append(part)
 
     return DatasetCreate(
         slug=slug,
@@ -313,4 +327,5 @@ def _generate_dataset(fake: "Faker") -> "DatasetCreate":
                 identifier=f"10.{randint(1000,9999)}/{fake.word().lower()}.{randint(10000,99999)}",
             )
         ],
+        parts=parts,
     )

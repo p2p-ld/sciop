@@ -1,7 +1,7 @@
 {% from 'macros/upload.html' import upload_collapsible %}
 <div id="dataset-uploads-panel" class="uploads-table panel">
     {% if uploads | length == 0 %}
-    <span>No uploads for this dataset</span>
+    <span>No uploads for this dataset or dataset part</span>
     {% else %}
     <table>
         {% for upload in uploads %}

@@ -3,7 +3,17 @@
     {% for key, value in model.model_dump(exclude=exclude).items() %}
     <tr>
         <th id="{{ id }}-{{ key }}-key" class="model-table-key">{{ key }}</th>
-        <th id="{{ id }}-{{ key }}-value" class="model-table-value">{{ value }}</th>
+        <td id="{{ id }}-{{ key }}-value" class="model-table-value">
+            {% if value.__class__.__name__ == "list" %}
+            <ul>
+                {% for subitem in value %}
+                <li>{{subitem}}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            {{ value }}
+            {% endif %}
+        </td>
     </tr>
     {% endfor %}
 </table>
