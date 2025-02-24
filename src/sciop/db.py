@@ -123,6 +123,16 @@ def create_seed_data() -> None:
     fake = Faker()
 
     with maker() as session:
+        admin = crud.get_account(username="admin", session=session)
+        if not admin:
+            admin = crud.create_account(
+                account_create=AccountCreate(username="admin", password="adminadmin12"),
+                session=session,
+            )
+        admin.scopes = [Scope.get_item(Scopes.admin.value, session)]
+        session.add(admin)
+        session.refresh(admin)
+
         uploader = crud.get_account(username="uploader", session=session)
         if not uploader:
             uploader = crud.create_account(
