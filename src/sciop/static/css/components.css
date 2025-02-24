@@ -51,7 +51,8 @@ button,
     }
     &.checked {
       &:disabled {
-        box-shadow: 2px 2px 0 var(--color-deemphasized);
+        border-color: var(--color-primary);
+        box-shadow: 2px 2px 0 var(--color-primary-darker-1);
       }
     }
 
