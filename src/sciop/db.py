@@ -265,12 +265,13 @@ def _generate_upload(
     torrent.generate()
     short_hash = name[0:8] if len(name) >= 8 else f"{name:x>8}"
     hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
-    hash_data = bytes(hash_data)
+    hash_data = hash_data.encode("utf-8")
 
     created_torrent = TorrentFileCreate(
         file_name=f"__{name}__.torrent",
         v1_infohash=hashlib.sha1(hash_data).hexdigest(),
         v2_infohash=hashlib.sha256(hash_data).hexdigest(),
+        version="hybrid",
         short_hash=short_hash,
         total_size=16384 * 4,
         piece_size=16384,

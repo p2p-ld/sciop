@@ -107,7 +107,7 @@ def account(
         scopes = [] if scopes is None else [Scope.get_item(s, session=session_) for s in scopes]
         default_account.update(kwargs)
 
-        account_ = crud.get_account(session=session_, username=kwargs["username"])
+        account_ = crud.get_account(session=session_, username=default_account["username"])
         if not account_:
             account_ = AccountCreate(**default_account)
             account_ = crud.create_account(session=session, account_create=account_)
@@ -308,7 +308,9 @@ def root_auth_header(root_token: "Token") -> dict[L["Authorization"], str]:
 def get_auth_header(client: "TestClient") -> C[[str, str], dict[L["Authorization"], str]]:
     from sciop.config import config
 
-    def _get_auth_header(username: str, password: str) -> dict[L["Authorization"], str]:
+    def _get_auth_header(
+        username: str = "default", password: str = "averystrongpassword123"
+    ) -> dict[L["Authorization"], str]:
         response = client.post(
             config.api_prefix + "/login",
             data={"username": username, "password": password},
