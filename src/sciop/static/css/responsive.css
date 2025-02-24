@@ -36,8 +36,11 @@
 				align-self: baseline;
 			}
 
-			& *:last-child {
+			& *:last-child:not(.success-button) {
 			 margin-left: auto;
+			}
+			& button:first-of-type {
+				margin-left: auto;
 			}
 	  }
 
@@ -71,6 +74,14 @@
 		}
 		.pagination-total {
 			margin: auto;
+		}
+	}
+
+	nav.tabs {
+
+		a.tab-link {
+			padding-left: unset;
+			padding-right: unset;
 		}
 	}
 }
