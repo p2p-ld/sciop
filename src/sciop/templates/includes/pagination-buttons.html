@@ -15,6 +15,7 @@
 {% endif %}
 
 {% if pages > 1 %}
+<div class="pagination-container">
 <div class="pagination-links">
 <button hx-get="{{ request.url.include_query_params(page=1) }}"
         hx-target="{{ swap_target }}"
@@ -60,6 +61,7 @@
  class="pagination-link end-link {% if page == pages %}disabled{% endif %}" >
 &gt;&gt;
 </button>
+</div>
 <span class="pagination-total">
 {{ ((page-1) * size) + 1 }}-{{ [page * size, total] | min }} of {{ total }}
 </span>

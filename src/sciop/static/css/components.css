@@ -94,8 +94,11 @@ button,
 
 }
 
-.pagination-links {
+.pagination-container {
   margin-bottom: 1em;
+}
+
+.pagination-links {
   display: flex;
   flex-direction: row;
   gap: 0.5em;
@@ -104,16 +107,16 @@ button,
   font-family: var(--font-mono);
 
   button {
-	padding: 0 6px;
+	  padding: 0 6px;
     font-size: 1.1em;
-	line-height: 32px;
-	min-width: 32px;
+	  line-height: 32px;
+	  min-width: 32px;
     border: unset;
     color: var(--color-primary-shade-1);
     background-color: unset;
     box-shadow: unset;
     border: 1px solid transparent;
-	cursor: pointer;
+	  cursor: pointer;
 
     &:hover {
       border: 1px solid var(--color-primary);
@@ -123,7 +126,6 @@ button,
       background-color: var(--color-primary);
       color: var(--color-primary-contrast);
     }
-
   }
 
   span {
