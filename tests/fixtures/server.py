@@ -123,10 +123,14 @@ async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriv
         yield browser
 
     except WebDriverException as e:
-        pytest.skip(str(e))
+        if os.environ.get("IN_CI", False):
+            pytest.skip(str(e))
+        else:
+            raise e
     finally:
         if "browser" in locals():
             browser.close()
+            browser.quit()
 
 
 @pytest.fixture()

@@ -174,6 +174,7 @@ async def dataset_part_uploads(
 ):
     uploads = crud.get_uploads(dataset=part, session=session)
     return templates.TemplateResponse(
+        request,
         "partials/dataset-uploads.html",
-        {"request": request, "uploads": uploads},
+        {"uploads": uploads},
     )
