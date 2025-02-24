@@ -1,13 +1,13 @@
 from hashlib import blake2b
 from pathlib import Path
 
-from fastapi import APIRouter, UploadFile
-from torf import Torrent
+from fastapi import APIRouter, HTTPException, UploadFile
 
 from sciop import crud
 from sciop.api.deps import RequireUploader, SessionDep
 from sciop.models import (
     FileInTorrentCreate,
+    Torrent,
     TorrentFileCreate,
     TorrentFileRead,
 )
@@ -30,22 +30,20 @@ async def upload_torrent(
     """
     torrent = Torrent.read_stream(file.file)
     torrent.validate()
-    await file.seek(0)
-    hash = _hash_file(file)
-    existing_torrent = crud.get_torrent_from_file_hash(session=session, hash=hash)
+    existing_torrent = crud.get_torrent_from_infohash(
+        session=session, v1=torrent.infohash, v2=torrent.v2_infohash
+    )
     if existing_torrent:
-        # FIXME: Handle duplicate torrent files
-        # raise HTTPException(
-        #     status_code=400,
-        #     detail="An identical torrent file already exists!",
-        # )
-        pass
+        raise HTTPException(
+            status_code=400,
+            detail="An identical torrent file already exists!",
+        )
 
     created_torrent = TorrentFileCreate(
         file_name=file.filename,
-        file_hash=hash,
-        infohash=torrent.infohash,
-        short_hash=hash[0:8],
+        v1_infohash=torrent.infohash,
+        v2_infohash=torrent.v2_infohash,
+        version=torrent.torrent_version,
         total_size=torrent.size,
         piece_size=torrent.piece_size,
         files=[FileInTorrentCreate(path=str(_file), size=_file.size) for _file in torrent.files],

@@ -173,8 +173,15 @@ def get_review_uploads(*, session: Session) -> list[Upload]:
     return uploads
 
 
-def get_torrent_from_file_hash(*, hash: str, session: Session) -> Optional[TorrentFile]:
-    statement = select(TorrentFile).where(TorrentFile.file_hash == hash)
+def get_torrent_from_infohash(
+    *, session: Session, v1: str, v2: Optional[str] = None
+) -> Optional[TorrentFile]:
+    if v2:
+        statement = select(TorrentFile).filter(
+            (TorrentFile.v1_infohash == v1) | (TorrentFile.v2_infohash == v2)
+        )
+    else:
+        statement = select(TorrentFile).filter(TorrentFile.v1_infohash == v1)
     value = session.exec(statement).first()
     return value
 

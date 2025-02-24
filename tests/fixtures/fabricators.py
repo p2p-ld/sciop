@@ -1,3 +1,4 @@
+import hashlib
 import random
 from collections.abc import Callable as C
 from pathlib import Path
@@ -8,7 +9,6 @@ import pytest
 from faker import Faker
 from sqlmodel import Session
 from starlette.testclient import TestClient
-from torf import Torrent
 
 from sciop import crud
 from sciop.models import (
@@ -19,6 +19,7 @@ from sciop.models import (
     Scope,
     Scopes,
     Token,
+    Torrent,
     TorrentFile,
     TorrentFileCreate,
     Upload,
@@ -65,10 +66,14 @@ def default_upload() -> dict:
 @pytest.fixture
 def default_torrentfile() -> dict:
     files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
+    hash_data = "".join([str(f) for f in files])
+    hash_data = hash_data.encode("utf-8")
     return {
         "file_name": "default.torrent",
         "file_hash": "abcdefghijklmnop",
-        "infohash": "fiuwhgliauherliuh",
+        "v1_infohash": hashlib.sha1(hash_data).hexdigest(),
+        "v2_infohash": hashlib.sha256(hash_data).hexdigest(),
+        "version": "hybrid",
         "short_hash": "defaultt",  # needs to be 8 chars lol
         "total_size": sum(f["size"] for f in files),
         "piece_size": 16384,
