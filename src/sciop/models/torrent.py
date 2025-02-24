@@ -124,12 +124,20 @@ class TorrentFileBase(SQLModel):
     @property
     def download_path(self) -> str:
         """Path beneath the root"""
-        return f"/torrents/{self. short_hash}/{self.file_name}"
+        return f"/torrents/{self.infohash}/{self.file_name}"
+
+    @property
+    def infohash(self) -> str:
+        """The v2 infohash, if present, else the v1 infohash"""
+        if self.v2_infohash:
+            return self.v2_infohash
+        else:
+            return self.v1_infohash
 
     @property
     def filesystem_path(self) -> Path:
         """Location of where this torrent is or should be on the filesystem"""
-        return config.torrent_dir / self.short_hash / self.file_name
+        return config.torrent_dir / self.infohash / self.file_name
 
     @property
     def human_size(self) -> str:

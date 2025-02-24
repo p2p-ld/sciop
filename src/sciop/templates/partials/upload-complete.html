@@ -4,14 +4,14 @@
 {{ model_table(id="torrent-table", model=torrent) }}
 
 <form id='upload-form' class="form">
-    {{ inner_model_form(id="upload-form", model=model, exclude=["torrent_short_hash", "part_slugs"]) }}
+    {{ inner_model_form(id="upload-form", model=model, exclude=["torrent_infohash", "part_slugs"]) }}
     <div class="form-item">
-        <label for="upload-form-torrent_short_hash" class="form-label">Torrent Short Hash</label>
-        <input id="upload-form-torrent_short_hash"
+        <label for="upload-form-torrent_infohash" class="form-label">Torrent Infohash</label>
+        <input id="upload-form-torrent_infohash"
                class="form-input"
                type="text"
-               name="torrent_short_hash"
-               value="{{ torrent.short_hash }}"
+               name="torrent_infohash"
+               value="{{ torrent.infohash }}"
                readonly="readonly">
     </div>
     {% if parts %}

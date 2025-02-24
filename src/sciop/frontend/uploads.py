@@ -40,15 +40,15 @@ async def uploads_search(query: str = None, session: SessionDep = None) -> Page[
     return paginate(conn=session, query=stmt)
 
 
-@uploads_router.get("/{short_hash}", response_class=HTMLResponse)
+@uploads_router.get("/{infohash}", response_class=HTMLResponse)
 async def upload_show(
-    short_hash: str, account: CurrentAccount, session: SessionDep, request: Request
+    infohash: str, account: CurrentAccount, session: SessionDep, request: Request
 ):
-    upload = crud.get_upload_from_short_hash(session=session, short_hash=short_hash)
+    upload = crud.get_upload_from_infohash(session=session, infohash=infohash)
     if not upload:
         raise HTTPException(
             status_code=404,
-            detail=f"No such upload {short_hash} exists",
+            detail=f"No such upload {infohash} exists",
         )
     return templates.TemplateResponse(
         request,
@@ -57,6 +57,6 @@ async def upload_show(
     )
 
 
-@uploads_router.get("/{short_hash}/partial", response_class=HTMLResponse)
+@uploads_router.get("/{infohash}/partial", response_class=HTMLResponse)
 async def upload_partial(request: Request, upload: RequireUpload):
     return templates.TemplateResponse(request, "partials/upload.html", {"upload": upload})

@@ -1,4 +1,3 @@
-
 import pytest
 from torf._errors import MetainfoError
 
