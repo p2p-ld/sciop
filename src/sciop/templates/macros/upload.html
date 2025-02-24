@@ -32,7 +32,7 @@
             </p>
             <table class="infobox-table">
                 <tr>
-                    <td colspan="2" class="infobox-subhead">{{ upload.torrent.file_name }}</td>
+                    <td colspan="2" class="infobox-subhead wrap">{{ upload.torrent.file_name }}</td>
                 </tr>
                 <tr>
                     <td class="infobox-key">Size</td>
@@ -49,6 +49,26 @@
                 <tr>
                     <td class="infobox-key">Piece size</td>
                     <td class="infobox-value">{{ upload.torrent.human_piece_size }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Version</td>
+                    <td class="infobox-value">{{ upload.torrent.version }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Short Hash</td>
+                    <td class="infobox-value">
+                        <a class="token" href="/uploads/{{ upload.torrent.short_hash }}">
+                            {{ upload.torrent.short_hash }}
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">v1 Infohash</td>
+                    <td class="infobox-value wrap">{{ upload.torrent.v1_infohash }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">v2 Infohash</td>
+                    <td class="infobox-value wrap">{{ upload.torrent.v2_infohash }}</td>
                 </tr>
                 <tr>
                     <td class="infobox-key">Created</td>

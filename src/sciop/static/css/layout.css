@@ -148,10 +148,7 @@ table {
   flex-wrap: wrap;
 
   .header {
-    flex-basis: 60%;
-  }
-  .infobox {
-    flex-basis: 40%
+    flex-grow: 1;
   }
 }
 
