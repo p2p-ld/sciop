@@ -96,13 +96,19 @@ button,
 
 .pagination-container {
   margin-bottom: 1em;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  .pagination-total {
+    margin-left: auto;
+  }
 }
 
 .pagination-links {
   display: flex;
   flex-direction: row;
   gap: 0.5em;
-  width: 100%;
   align-items: center;
   font-family: var(--font-mono);
 
@@ -131,10 +137,6 @@ button,
   span {
     color: var(--color-text-deemphasized);
     font-size: 1em;
-  }
-
-  .pagination-total {
-    margin-left: auto;
   }
 }
 

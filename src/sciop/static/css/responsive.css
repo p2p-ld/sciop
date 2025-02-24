@@ -65,6 +65,7 @@
 		flex-wrap: wrap;
 
 		.pagination-links {
+			width: 100%;
 			justify-content: space-evenly;
 			gap: 0;
 		}
