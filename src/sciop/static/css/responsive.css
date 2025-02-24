@@ -6,17 +6,17 @@
 
 @media only screen and (max-width: 768px) {
   nav.navbar .cta-wrapper {
-	width: 100%;
+		width: 100%;
 
-	& > *:first-child {
-	  margin-left: auto;
-	}
+		& > *:first-child {
+			margin-left: auto;
+		}
   }
 
   .page-container {
     width: 100%;
-	padding: 0 1em;
-	box-sizing: border-box;
+		padding: 0 0.5em;
+		box-sizing: border-box;
   }
 
   .datasets-table,
@@ -27,30 +27,61 @@
     .dataset-collapsible > .collapsible-summary,
     .upload-collapsible > .collapsible-summary,
     .account-collapsible > .collapsible-summary {
+			display: flex;
+			flex-wrap: wrap;
+			grid-column-gap: 0.5em;
+
+			& > span {
+				line-height: 28px;
+				align-self: baseline;
+			}
+
+			& *:last-child:not(.success-button) {
+			 margin-left: auto;
+			}
+			& button:first-of-type {
+				margin-left: auto;
+			}
+	  }
+
+		& .collapsible-marker {
+			width: 1em;
+		}
+		& .dataset-slug {
+			width: calc(100% - 2em);
+		}
+  }
+
+	.collapsible-table {
+		display: flex;
+		flex-direction: column;
+	}
+
+  .topmatter {
+		.header, .infobox {
+			flex-basis: 100%;
+		}
+  }
+
+	.pagination-container {
 		display: flex;
 		flex-wrap: wrap;
 
-		& > span {
-		  line-height: 28px;
-		  align-self: baseline;
+		.pagination-links {
+			width: 100%;
+			justify-content: space-evenly;
+			gap: 0;
 		}
-
-		& *:last-child {
-		 margin-left: auto;
+		.pagination-total {
+			margin: auto;
 		}
-	  }
+	}
 
-	& .collapsible-marker {
-	  width: 1em;
-	}
-	& .dataset-slug {
-	  width: calc(100% - 2em);
-	}
-  }
+	nav.tabs {
 
-  .topmatter {
-	.header, .infobox {
-	  flex-basis: 100%;
+		a.tab-link {
+			padding-left: unset;
+			padding-right: unset;
+		}
 	}
-  }
 }
