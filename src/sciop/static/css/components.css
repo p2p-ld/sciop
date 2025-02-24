@@ -104,12 +104,16 @@ button,
   font-family: var(--font-mono);
 
   button {
+	padding: 0 6px;
     font-size: 1.1em;
+	line-height: 32px;
+	min-width: 32px;
     border: unset;
     color: var(--color-primary-shade-1);
     background-color: unset;
     box-shadow: unset;
     border: 1px solid transparent;
+	cursor: pointer;
 
     &:hover {
       border: 1px solid var(--color-primary);
@@ -144,14 +148,18 @@ button,
 }
 
 .collapsible {
-  padding: 0.25em 0.5em;
+  /*padding: 0.25em 0.5em;*/
   border: 1px solid var(--color-border-deemphasized);
   border-bottom: none;
   cursor: pointer;
   summary {
     align-items: center;
+    padding: 0.25em 0.5em;
   }
-  &:last-child {
+  summary + * { /* sorry ... */
+	padding: 0.25em 0.5em;
+  }
+  &:last-of-type {
 	  border-bottom: 1px solid var(--color-border-deemphasized);
   }
 }
@@ -174,13 +182,14 @@ button,
   padding-bottom: 1em;
   border-left: 1px solid var(--color-link);
 
-  & > summary .collapsible-marker::before {
-    content: "-";
-    color: var(--color-link);
-  }
-
-  summary {
+  & > summary {
     margin-bottom: 0.5em;
+	background: var(--color-background-deemphasized);
+
+	.collapsible-marker::before {
+	  content: "-";
+	  color: var(--color-link);
+	}
   }
 }
 
