@@ -8,6 +8,7 @@ TMP_DIR = Path(__file__).parents[1] / "__tmp__"
 TMP_DIR.mkdir(exist_ok=True)
 TORRENT_DIR = TMP_DIR / "torrents"
 TORRENT_DIR.mkdir(exist_ok=True)
+DATA_DIR = Path(__file__).parents[1] / "data"
 
 
 @pytest.fixture

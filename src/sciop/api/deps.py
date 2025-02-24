@@ -141,22 +141,22 @@ def require_dataset_part(
 RequireDatasetPart = Annotated[DatasetPart, Depends(require_dataset_part)]
 
 
-def require_upload(short_hash: str, session: SessionDep) -> Upload:
-    upload = crud.get_upload_from_short_hash(session=session, short_hash=short_hash)
+def require_upload(infohash: str, session: SessionDep) -> Upload:
+    upload = crud.get_upload_from_infohash(session=session, infohash=infohash)
     if not upload:
         raise HTTPException(
             status_code=404,
-            detail=f"No such upload {short_hash} exists!",
+            detail=f"No such upload {infohash} exists!",
         )
     return upload
 
 
-def require_enabled_upload(short_hash: str, session: SessionDep) -> Upload:
-    upload = require_upload(short_hash, session)
+def require_enabled_upload(infohash: str, session: SessionDep) -> Upload:
+    upload = require_upload(infohash, session)
     if not upload.enabled:
         raise HTTPException(
             status_code=401,
-            detail=f"Upload {short_hash} is not enabled",
+            detail=f"Upload {infohash} is not enabled",
         )
     return upload
 

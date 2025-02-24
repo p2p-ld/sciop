@@ -65,3 +65,7 @@
 .bold {
     font-weight: bold;
 }
+
+.wrap {
+    overflow-wrap: anywhere;
+}

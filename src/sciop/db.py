@@ -190,14 +190,14 @@ def create_seed_data() -> None:
         session.commit()
         session.refresh(approved_dataset)
 
-        approved_upload = crud.get_upload_from_short_hash(session=session, short_hash="abcdefgh")
+        approved_upload = crud.get_upload_from_infohash(session=session, infohash="abcdefgh")
         if not approved_upload:
             approved_upload = _generate_upload("abcdefgh", uploader, approved_dataset, session)
         approved_upload.enabled = True
         session.add(approved_upload)
         session.commit()
 
-        unapproved_upload = crud.get_upload_from_short_hash(session=session, short_hash="unapprov")
+        unapproved_upload = crud.get_upload_from_infohash(session=session, infohash="unapprov")
         if not unapproved_upload:
             unapproved_upload = _generate_upload(
                 "unapproved", uploader, unapproved_dataset, session
@@ -242,10 +242,12 @@ def ensure_root(session: Session) -> Optional["Account"]:
 def _generate_upload(
     name: str, uploader: "Account", dataset: "Dataset", session: Session
 ) -> "Upload":
-    from torf import Torrent
+    import hashlib
+    import random
+    import string
 
     from sciop import crud
-    from sciop.models import FileInTorrentCreate, TorrentFileCreate, UploadCreate
+    from sciop.models import FileInTorrentCreate, Torrent, TorrentFileCreate, UploadCreate
 
     torrent_file = config.torrent_dir / f"__{name}__"
     with open(torrent_file, "wb") as tfile:
@@ -261,13 +263,14 @@ def _generate_upload(
         piece_size=16384,
     )
     torrent.generate()
-    short_hash = name[0:8] if len(name) >= 8 else f"{name:x>8}"
+    hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
+    hash_data = hash_data.encode("utf-8")
 
     created_torrent = TorrentFileCreate(
         file_name=f"__{name}__.torrent",
-        file_hash="abcdefghijklmnop",
-        infohash="fiuwhgliauherliuh",
-        short_hash=short_hash,
+        v1_infohash=hashlib.sha1(hash_data).hexdigest(),
+        v2_infohash=hashlib.sha256(hash_data).hexdigest(),
+        version="hybrid",
         total_size=16384 * 4,
         piece_size=16384,
         torrent_size=64,
@@ -283,7 +286,7 @@ def _generate_upload(
     upload = UploadCreate(
         method="I downloaded it",
         description="Its all here bub",
-        torrent_short_hash=short_hash,
+        torrent_infohash=created_torrent.infohash,
     )
 
     created_upload = crud.create_upload(

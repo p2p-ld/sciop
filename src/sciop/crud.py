@@ -173,8 +173,40 @@ def get_review_uploads(*, session: Session) -> list[Upload]:
     return uploads
 
 
-def get_torrent_from_file_hash(*, hash: str, session: Session) -> Optional[TorrentFile]:
-    statement = select(TorrentFile).where(TorrentFile.file_hash == hash)
+def get_torrent_from_infohash(
+    *,
+    session: Session,
+    infohash: Optional[str] = None,
+    v1: Optional[str] = None,
+    v2: Optional[str] = None,
+) -> Optional[TorrentFile]:
+    """
+    Get a torrent from one of its infohashes.
+
+    If the generic ``infohash`` is passed, it can be v1, v2, or the short hash.
+    Otherwise, v1 and v2 can be passed, individually or together.
+    """
+    if infohash:
+        if len(infohash) == 8:
+            return get_torrent_from_short_hash(short_hash=infohash, session=session)
+        elif len(infohash) == 40:
+            v1 = infohash
+        elif len(infohash) == 64:
+            v2 = infohash
+        else:
+            raise ValueError("Infohash is not a short hash, v1, or v2 infohash")
+
+    if v1 and v2:
+        statement = select(TorrentFile).filter(
+            (TorrentFile.v1_infohash == v1) | (TorrentFile.v2_infohash == v2)
+        )
+    elif v1:
+        statement = select(TorrentFile).filter(TorrentFile.v1_infohash == v1)
+    elif v2:
+        statement = select(TorrentFile).filter(TorrentFile.v2_infohash == v2)
+    else:
+        raise ValueError("Either a v1 or a v2 infohash must be passed")
+
     value = session.exec(statement).first()
     return value
 
@@ -202,14 +234,12 @@ def create_torrent(
 def create_upload(
     *, session: Session, created_upload: UploadCreate, account: Account, dataset: Dataset
 ) -> Upload:
-    torrent = get_torrent_from_short_hash(
-        session=session, short_hash=created_upload.torrent_short_hash
-    )
+    torrent = get_torrent_from_infohash(session=session, infohash=created_upload.torrent_infohash)
     update = {
         "torrent": torrent,
         "account": account,
         "dataset": dataset,
-        "short_hash": created_upload.torrent_short_hash,
+        "infohash": created_upload.torrent_infohash,
     }
     if created_upload.part_slugs:
         update["dataset_parts"] = get_dataset_parts(
@@ -244,6 +274,26 @@ def get_upload_from_short_hash(*, session: Session, short_hash: str) -> Optional
     statement = select(Upload).join(TorrentFile).filter(TorrentFile.short_hash == short_hash)
     upload = session.exec(statement).first()
     return upload
+
+
+def get_upload_from_infohash(*, infohash: str, session: Session) -> Optional[Upload]:
+    """
+    Get a torrent from one of its infohashes.
+
+    If the generic ``infohash`` is passed, it can be v1, v2, or the short hash.
+    Otherwise, v1 and v2 can be passed, individually or together.
+    """
+    if len(infohash) == 8:
+        return get_upload_from_short_hash(short_hash=infohash, session=session)
+    elif len(infohash) == 40:
+        statement = select(Upload).join(TorrentFile).filter(TorrentFile.v1_infohash == infohash)
+    elif len(infohash) == 64:
+        statement = select(Upload).join(TorrentFile).filter(TorrentFile.v2_infohash == infohash)
+    else:
+        raise ValueError("Infohash is not a short hash, v1, or v2 infohash")
+
+    value = session.exec(statement).first()
+    return value
 
 
 def log_moderation_action(

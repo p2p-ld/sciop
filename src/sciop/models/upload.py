@@ -75,6 +75,10 @@ class Upload(UploadBase, TableMixin, table=True):
         return self.torrent.short_hash
 
     @property
+    def infohash(self) -> str:
+        return self.torrent.infohash
+
+    @property
     def rss_description(self) -> str:
         """String to be used in the RSS description for this upload"""
         return f"Description: {self.description}\n\nMethod: {self.method}"
@@ -89,8 +93,8 @@ class UploadRead(UploadBase, TableReadMixin):
 class UploadCreate(UploadBase):
     """Dataset upload for creation, excludes the enabled param"""
 
-    torrent_short_hash: str = Field(
-        max_length=8, min_length=8, description="Short hash of the torrent file"
+    torrent_infohash: str = Field(
+        min_length=40, max_length=64, description="Infohash of the torrent file, v1 or v2"
     )
     part_slugs: Optional[list[SlugStr]] = Field(
         default=None,

@@ -48,9 +48,9 @@ async def deny_dataset(
     return SuccessResponse(success=True)
 
 
-@review_router.post("/uploads/{short_hash}/approve")
+@review_router.post("/uploads/{infohash}/approve")
 async def approve_upload(
-    short_hash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
+    infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
 ) -> SuccessResponse:
     upload.enabled = True
     session.add(upload)
@@ -62,9 +62,9 @@ async def approve_upload(
     return SuccessResponse(success=True)
 
 
-@review_router.post("/uploads/{short_hash}/deny")
+@review_router.post("/uploads/{infohash}/deny")
 async def deny_upload(
-    short_hash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
+    infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
 ) -> SuccessResponse:
     session.delete(upload)
     session.commit()

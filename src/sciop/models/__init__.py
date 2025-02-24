@@ -28,6 +28,7 @@ from sciop.models.tag import DatasetTagLink, Tag
 from sciop.models.torrent import (
     FileInTorrent,
     FileInTorrentCreate,
+    Torrent,
     TorrentFile,
     TorrentFileCreate,
     TorrentFileRead,
@@ -68,6 +69,7 @@ __all__ = [
     "Tag",
     "Token",
     "TokenPayload",
+    "Torrent",
     "TorrentFeed",
     "TorrentFile",
     "TorrentFileCreate",
