@@ -1,13 +1,8 @@
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal, Optional, Self
 
 from platformdirs import PlatformDirs
-from pydantic import (
-    BaseModel,
-    Field,
-    computed_field,
-    field_validator,
-)
+from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _default_userdir = Path().home() / ".config" / "mio"
@@ -133,6 +128,23 @@ class Config(BaseSettings):
     torrent_dir: Path = Path(_dirs.user_data_dir) / "torrents"
     """Directory to store uploaded torrents"""
     csp: CSPConfig = CSPConfig()
+    root_user: str = "root"
+    """
+    Default root user created on first run.
+    """
+    root_password: Optional[str] = "rootroot1234"
+    """
+    Default root password for root user created on first run.
+    
+    When `env==prod`, this password *must* be supplied on first run explicitly
+    via an environment variable (`SCIOP_ROOT_PASSWORD`) or via the .env file.
+    This password must *not* be equal to the default.
+    
+    After the account is created,
+    this value can be removed from the environment variables and .env files.
+    
+    This value is set to `None` by `db.ensure_root` when the program is started normally.    
+    """
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -173,6 +185,15 @@ class Config(BaseSettings):
         """Ensure parent directory exists"""
         value.parent.mkdir(exist_ok=True, parents=True)
         return value
+
+    @model_validator(mode="after")
+    def root_password_not_default_in_prod(self) -> Self:
+        """When env == prod, root_password can't be equal to the default"""
+        if self.env == "prod":
+            assert (
+                self.root_password != self.model_fields["root_password"].default
+            ), "root_password cannot be equal to the default in prod, and must be set explicitly"
+        return self
 
 
 config = Config()
