@@ -11,7 +11,7 @@ from sciop.api.deps import (
     ValidScope,
 )
 from sciop.frontend.templates import jinja
-from sciop.models import ModerationAction, Scope, SuccessResponse, Scopes
+from sciop.models import ModerationAction, Scope, SuccessResponse
 
 review_router = APIRouter()
 
@@ -97,9 +97,11 @@ async def grant_account_scope(
     account: RequireAccount,
     session: SessionDep,
 ):
-    if scope_name == "root" and (not current_account.get_scope('root') or account.account_id == current_account.account_id):
+    if scope_name == "root" and (
+        not current_account.get_scope("root") or account.account_id == current_account.account_id
+    ):
         raise HTTPException(403, "The root scope can only be modified by roots. ")
-    if not current_account.get_scope('root') and scope_name == "admin":
+    if not current_account.get_scope("root") and scope_name == "admin":
         raise HTTPException(403, "Only root can change admin permissions.")
     if not account.has_scope(scope_name):
         account.scopes.append(Scope.get_item(scope_name, session))
@@ -128,9 +130,10 @@ async def revoke_account_scope(
     session: SessionDep,
 ):
     if scope_name == "root" and (
-            not current_account.get_scope('root') or account.account_id == current_account.account_id):
+        not current_account.get_scope("root") or account.account_id == current_account.account_id
+    ):
         raise HTTPException(403, "The root scope can only be modified by roots. ")
-    if not current_account.get_scope('root') and scope_name == "admin":
+    if not current_account.get_scope("root") and scope_name == "admin":
         raise HTTPException(403, "Only root can change admin permissions.")
     if scope := account.get_scope(scope_name):
         account.scopes.remove(scope)
