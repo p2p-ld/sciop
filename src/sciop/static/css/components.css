@@ -52,10 +52,17 @@ button,
         background-color: var(--color-background);
         border-color: var(--color-primary);
       }
+
+      &:disabled {
+        &:hover {
+          border-color: var(--color-border-deemphasized);
+        }
+      }
     }
     &.checked {
       &:disabled {
-        box-shadow: 2px 2px 0 var(--color-deemphasized);
+        border-color: var(--color-primary);
+        box-shadow: 2px 2px 0 var(--color-primary-darker-1);
       }
     }
 
@@ -81,7 +88,7 @@ button,
     color: var(--color-deemphasized);
 
     &:hover {
-      border-color: var(--color-border-deemphasized);
+      border-color: unset;
     }
   }
 }
@@ -150,12 +157,16 @@ button,
 .collapsible {
   padding: 0.25em 0.5em;
   border: 1px solid var(--color-border-deemphasized);
+  border-bottom: none;
   cursor: pointer;
   summary {
     align-items: center;
   }
   div {
     cursor: unset;
+  }
+  &:last-child {
+	  border-bottom: 1px solid var(--color-border-deemphasized);
   }
 }
 
