@@ -7,9 +7,9 @@ collecting at-risk data in torrent rss feeds
 
 These instructions are for executing the `sciop` tool.
 
-*TODO: what does the sciop tool do and why would you want to run your own instance?*
-
 ## Installing Dependencies
+
+### With pip
 
 Make a python virtual environment and activate it:
 
@@ -24,6 +24,12 @@ Install dependencies and then sciop itself in-place as an editable requirement:
 
     pip install -e .
 
+### With PDM
+
+Install dependencies, automatically creating a virtual environment by default
+
+    pdm install
+
 ## Running SciOp
 
 Create a configuration starting from the sample:
@@ -31,11 +37,22 @@ Create a configuration starting from the sample:
     cp .env.sample .env
     $EDITOR .env
 
-**NB: the `secret_key` field must be a securely-generated random hex value. This is specified in the template `.env` file.**
+Two fields *must* be set:
+- `SCIOP_ENV`: one of `dev`, `test` or `prod`. 
+  One should *only* make a sciop instance publicly available in `prod` mode.
+  `dev` mode is for local development purposes, as is `test`.
+  You must ensure that you do not re-use the same db between a `dev`/`test` and `prod`
+  instance, e.g. if the `SCIOP_DB` location is explicitly set to something other than the defaults.
+- `SCIOP_SECRET_KEY`: must be a securely-generated random hex value.
+  A key can be generated with `openssl rand -hex 32`.
 
-Run sciop:
+### With pip
 
     sciop
+
+### With pdm
+
+    pdm run start
 
 # Contributing
 
