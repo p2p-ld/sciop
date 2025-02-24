@@ -67,6 +67,12 @@ RequireCurrentAccount = Annotated[Account, Depends(require_current_account)]
 CurrentAccount = Annotated[Optional[Account], Depends(get_current_account)]
 
 
+def require_current_active_root(current_account: RequireCurrentAccount) -> Account:
+    if not current_account.has_scope("root"):
+        raise HTTPException(status_code=403, detail="Account must be root")
+    return current_account
+
+
 def require_current_active_admin(current_account: RequireCurrentAccount) -> Account:
     if not current_account.has_scope("admin"):
         raise HTTPException(status_code=403, detail="Account must be admin")
@@ -74,17 +80,18 @@ def require_current_active_admin(current_account: RequireCurrentAccount) -> Acco
 
 
 def require_current_active_reviewer(current_account: RequireCurrentAccount) -> Account:
-    if not current_account.has_scope("review", "admin"):
+    if not current_account.has_scope("review"):
         raise HTTPException(status_code=403, detail="Account must be reviewer")
     return current_account
 
 
 def require_current_active_uploader(current_account: RequireCurrentAccount) -> Account:
-    if not current_account.has_scope("upload", "admin"):
+    if not current_account.has_scope("upload"):
         raise HTTPException(status_code=403, detail="Account must be reviewer")
     return current_account
 
 
+RequireRoot = Annotated[Account, Depends(require_current_active_root)]
 RequireAdmin = Annotated[Account, Depends(require_current_active_admin)]
 RequireReviewer = Annotated[Account, Depends(require_current_active_reviewer)]
 RequireUploader = Annotated[Account, Depends(require_current_active_uploader)]

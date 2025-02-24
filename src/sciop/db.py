@@ -51,7 +51,9 @@ def create_tables(engine: Engine = engine) -> None:
     # ensuring our migration metadata is correct!
     ensure_alembic_version()
 
-    models.Scope.ensure_enum_values(next(get_session()))
+    with maker() as session:
+        models.Scope.ensure_enum_values(session=session)
+        ensure_root(session=session)
 
     create_seed_data()
 
@@ -121,8 +123,15 @@ def create_seed_data() -> None:
     fake = Faker()
 
     with maker() as session:
-        # session = get_session()
-        create_admin(session)
+        admin = crud.get_account(username="admin", session=session)
+        if not admin:
+            admin = crud.create_account(
+                account_create=AccountCreate(username="admin", password="adminadmin12"),
+                session=session,
+            )
+        admin.scopes = [Scope.get_item(Scopes.admin.value, session)]
+        session.add(admin)
+        session.refresh(admin)
 
         uploader = crud.get_account(username="uploader", session=session)
         if not uploader:
@@ -207,25 +216,24 @@ def create_seed_data() -> None:
             session.commit()
 
 
-def create_admin(session: Session) -> Optional["Account"]:
-    if config.env not in ("dev", "test"):
-        return
-
+def ensure_root(session: Session) -> Optional["Account"]:
     from sciop import crud
     from sciop.models import AccountCreate, Scope, Scopes
 
-    admin = crud.get_account(username="admin", session=session)
-    if not admin:
-        admin = crud.create_account(
-            account_create=AccountCreate(username="admin", password="adminadmin12"),
+    root = crud.get_account(username=config.root_user, session=session)
+    if not root:
+        root = crud.create_account(
+            account_create=AccountCreate(username=config.root_user, password=config.root_password),
             session=session,
         )
+        scopes = [Scope.get_item(a_scope, session) for a_scope in Scopes.__members__.values()]
+        root.scopes = scopes
+        session.add(root)
+        session.commit()
+        session.refresh(root)
 
-    scopes = [Scope.get_item(a_scope, session) for a_scope in Scopes.__members__.values()]
-    admin.scopes = scopes
-    session.add(admin)
-    session.commit()
-    session.refresh(admin)
+    config.root_password = None
+    return root
 
 
 def _generate_upload(

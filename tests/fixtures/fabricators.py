@@ -119,9 +119,18 @@ def account(
 @pytest.fixture
 def admin_user(account: C[..., "Account"]) -> "Account":
     yield account(
-        scopes=[Scopes.admin, Scopes.upload, Scopes.review],
+        scopes=[Scopes.admin, Scopes.upload, Scopes.review, Scopes.submit],
         username="admin",
         password="adminadmin12",
+    )
+
+
+@pytest.fixture
+def root_user(account: C[..., "Account"]) -> "Account":
+    yield account(
+        scopes=[Scopes.root, Scopes.admin, Scopes.upload, Scopes.review, Scopes.submit],
+        username="root",
+        password="rootroot1234",
     )
 
 
@@ -264,8 +273,47 @@ def admin_token(client: "TestClient", admin_user: "Account", session: Session) -
 
 
 @pytest.fixture
+def root_token(client: "TestClient", root_user: "Account", session: Session) -> "Token":
+    from sciop.config import config
+    from sciop.models import Token
+
+    session.add(root_user)
+    session.commit()
+
+    response = client.post(
+        config.api_prefix + "/login",
+        data={"username": "root", "password": "rootroot1234"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    yield Token(**response.json())
+
+
+@pytest.fixture
 def admin_auth_header(admin_token: "Token") -> dict[L["Authorization"], str]:
     yield {"Authorization": f"Bearer {admin_token.access_token}"}
+
+
+@pytest.fixture
+def root_auth_header(root_token: "Token") -> dict[L["Authorization"], str]:
+    yield {"Authorization": f"Bearer {root_token.access_token}"}
+
+
+@pytest.fixture
+def get_auth_header(client: "TestClient") -> C[[str, str], dict[L["Authorization"], str]]:
+    from sciop.config import config
+
+    def _get_auth_header(username: str, password: str) -> dict[L["Authorization"], str]:
+        response = client.post(
+            config.api_prefix + "/login",
+            data={"username": username, "password": password},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert response.status_code == 200
+        token = Token(**response.json())
+        return {"Authorization": f"Bearer {token.access_token}"}
+
+    return _get_auth_header
 
 
 @pytest.fixture()
