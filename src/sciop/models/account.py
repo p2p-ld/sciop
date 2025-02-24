@@ -44,8 +44,34 @@ class AccountBase(SQLModel):
     username: UsernameStr = Field(unique=True)
 
     def has_scope(self, *args: str | Scopes) -> bool:
-        """Check if an account has a given scope."""
+        """
+        Check if an account has a given scope.
+
+        Multiple scopes can be provided as *args,
+        return ``True`` if the account has any of the provided scopes.
+
+        ``root`` and ``admin`` scopes are treated specially:
+        - ``root`` accounts have all scopes
+        - ``admin`` accounts have all scopes except root
+
+        As a result, one should never need to include ``admin`` and ``root``
+        in compound scope checks, and they can only ever be used by themselves
+        """
+        if len(args) > 1 and ("root" in args or "admin" in args):
+            raise ValueError(
+                "root and admin in has_scope checks can only be used by themselves. "
+                "They implicitly have all other scopes."
+            )
+
         has_scopes = [scope.scope.value for scope in self.scopes]
+
+        if "root" in has_scopes:
+            # root has all scopes implicitly
+            return True
+        elif "admin" in has_scopes and "root" not in args:
+            # admin has all scopes except root implicitly
+            return True
+
         return any([scope in has_scopes for scope in args])
 
     def get_scope(self, scope: str) -> Optional["Scope"]:

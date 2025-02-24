@@ -99,7 +99,7 @@ async def grant_account_scope(
 ):
     if scope_name == "root":
         if not current_account.get_scope("root"):
-            raise HTTPException(403, "The root scope can only be modified by roots.")
+            raise HTTPException(403, "Only root can change root permissions.")
         elif account.account_id == current_account.account_id:
             raise HTTPException(403, "You already have root permissions.")
     elif scope_name == "admin" and not current_account.get_scope("root"):
@@ -133,7 +133,7 @@ async def revoke_account_scope(
 ):
     if scope_name == "root":
         if not current_account.get_scope("root"):
-            raise HTTPException(403, "The root scope can only be modified by roots.")
+            raise HTTPException(403, "Only root can change root permissions.")
         elif account.account_id == current_account.account_id:
             raise HTTPException(403, "You cannot remove root scope from yourself.")
     elif scope_name == "admin" and not current_account.get_scope("root"):
