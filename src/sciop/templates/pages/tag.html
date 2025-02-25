@@ -1,0 +1,35 @@
+{% extends "layouts/default.html" %}
+{% block content %}
+<h1>{{ tag.tag }}</h1>
+
+<h2>Datasets</h2>
+
+<div id="dataset-tag-container" class="dataset-container">
+    <div
+        hx-get="/tags/{{ tag.tag }}/datasets"
+        hx-trigger="load"
+        hx-swap="outerHTML"
+    >
+        <span class="htmx-indicator search-indicator" id="tag-datasets-indicator">
+            <span>Loading datasets...</span>
+            <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+        </span>
+    </div>
+</div>
+
+<h2>Uploads</h2>
+
+<div id="upload-tag-container" class="upload-container">
+    <div
+        hx-get="/tags/{{ tag.tag }}/uploads"
+        hx-trigger="load"
+        hx-swap="outerHTML"
+    >
+        <span class="htmx-indicator search-indicator" id="tag-uploads-indicator">
+            <span>Loading uploads...</span>
+            <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+        </span>
+    </div>
+</div>
+
+{% endblock %}

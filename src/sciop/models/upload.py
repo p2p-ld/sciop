@@ -80,8 +80,31 @@ class Upload(UploadBase, TableMixin, table=True):
 
     @property
     def rss_description(self) -> str:
-        """String to be used in the RSS description for this upload"""
-        return f"Description: {self.description}\n\nMethod: {self.method}"
+        """
+        String to be used in the RSS description for this upload
+
+        Todo: dump all model details here programmatically instead of hardcoded like this
+        """
+        return f"""
+            <p>
+            <strong>Dataset:</strong> 
+              <a href="{config.base_url}/datasets/{self.dataset.slug}">
+                {config.base_url}/datasets/{self.dataset.slug}
+              </a>
+            </p>
+            <p>
+            <strong>Upload:</strong> 
+              <a href="{config.base_url}/uploads/{self.infohash}">
+              {config.base_url}/uploads/{self.infohash}
+              </a>
+            </p>
+            <p>
+            <strong>Description:</strong> {self.description}
+            </p>
+            <p>
+            <strong>Method:</strong> {self.method}
+            </p>
+        """
 
 
 class UploadRead(UploadBase, TableReadMixin):

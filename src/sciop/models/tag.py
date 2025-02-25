@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
-from sqlmodel import Field, Relationship
+from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.mixin import ListlikeMixin, TableMixin
 from sciop.types import IDField, SlugStr
@@ -23,3 +23,9 @@ class Tag(ListlikeMixin, table=True):
     tag_id: IDField = Field(default=None, primary_key=True)
     datasets: list["Dataset"] = Relationship(back_populates="tags", link_model=DatasetTagLink)
     tag: SlugStr = Field(max_length=32, unique=True)
+
+
+class TagSummary(SQLModel):
+    tag: SlugStr = Field(max_length=32)
+    n_datasets: int = Field(0)
+    n_uploads: int = Field(0)

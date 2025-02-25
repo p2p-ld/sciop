@@ -12,6 +12,7 @@ from sciop import crud
 from sciop.api.deps import SessionDep
 from sciop.config import config
 from sciop.models.dataset import Dataset
+from sciop.types import ctype_to_suffix, suffix_to_ctype
 
 BIBO = Namespace("http://purl.org/ontology/bibo/")
 TAGS = Namespace(f"{config.base_url}/id/tag/")
@@ -160,16 +161,6 @@ async def tag_graph(tag: str, suffix: str, session: SessionDep) -> Response:
 
 
 ## Content-type autonegotiation plumbing
-suffix_to_ctype = {
-    "html": "text/html",
-    "xhtml": "application/xhtml+xml",
-    "rss": "application/rss+xml",
-    "ttl": "text/turtle",
-    "rdf": "application/rdf+xml",
-    "nt": "text/n-triples",
-    "js": "application/json",
-}
-ctype_to_suffix = {v: k for k, v in suffix_to_ctype.items()}
 
 id_router = APIRouter(prefix="/id")
 

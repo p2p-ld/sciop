@@ -1,0 +1,50 @@
+<div id="tag-page" class="tag-page page">
+{% with swap_target="#tag-page" %}
+  {% include 'includes/pagination-buttons.html' %}
+{% endwith %}
+  <table id="tag-table-inner">
+    <tr id="tag-table-head" class="table-head">
+      <th class="col-tag">
+        tag
+      </th>
+
+
+      <th class="col-count col-datasets">
+        # Datasets
+      </th>
+      <th class="col-count col-uploads">
+        # Uploads
+      </th>
+      <th class="col-metadata">
+        metadata
+      </th>
+      <th class="col-feed">
+        feed
+      </th>
+    </tr>
+{% for item in items %}
+    <tr id="tag-{{ item.tag }}">
+
+      <td class="tag"><a class="token" href="/tags/{{ item.tag }}">{{ item.tag }}</a></td>
+
+
+      <td class="count number col-datasets font-mono">{{ item.n_datasets }}</td>
+      <td class="count number col-uploads font-mono">{{ item.n_uploads }}</td>
+      <td class="col-metadata">
+
+        {%- for suffix in types.suffix_to_ctype.keys() if suffix not in ["rss","html", "xhtml"] -%}
+        <a href="/rdf/tag/{{ item.tag }}.{{suffix}}">{{ suffix }}</a>{{"|" if not loop.last}}
+        {%- endfor -%}
+      </td>
+      <td class="col-feed">
+        <a href="/rss/tags/{{ item.tag }}.rss" class="feed-link icon-link">
+          <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+        </a>
+      </td>
+    </tr>
+{% endfor %}
+  </table>
+{% with swap_target="#tag-page" %}
+  {% include 'includes/pagination-buttons.html' %}
+{% endwith %}
+</div>

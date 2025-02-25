@@ -4,8 +4,8 @@
     --color-light-background: lch(99.25% 3.6 199.47);
     --color-threat-unknown: var(--color-background-shade);
     --color-threat-indefinite: lch(56.05% 49.39 256.63);
-    --color-threat-watchlist: lch(58.97% 76.96 59.37);
-    --color-threat-endangered: lch(47.26% 75.67 14.74);
+    --color-threat-watchlist: #FCCC0A;
+    --color-threat-endangered: #FF6319;
     --color-threat-takedown_issued: lch(47.26% 75.67 14.74);
     --color-threat-extinct: var(--color-background-shade);
 
@@ -35,6 +35,7 @@ body {
   --color-disabled: #404040;
   --color-caution: red;
   --color-caution-darker-1: color-mix(in lch, var(--color-caution) 80%, var(--color-dark-background));
+  --color-alert: var(--color-threat-watchlist);
   --color-caution-contrast: var(--color-primary-contrast);
 
 
