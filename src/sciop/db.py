@@ -214,7 +214,13 @@ def create_seed_data() -> None:
                 dataset = crud.create_dataset(session=session, dataset_create=generated_dataset)
                 dataset.dataset_created_at = datetime.now(UTC)
                 dataset.dataset_updated_at = datetime.now(UTC)
-                dataset.enabled = True
+                dataset.enabled = random.random() > 0.1
+                dataset.uploads = [
+                    _generate_upload(
+                        fake.word(), uploader=uploader, dataset=dataset, session=session
+                    )
+                    for _ in range(random.randint(1, 3))
+                ]
                 session.add(dataset)
             session.commit()
 
@@ -242,6 +248,9 @@ def ensure_root(session: Session) -> Optional["Account"]:
 def _generate_upload(
     name: str, uploader: "Account", dataset: "Dataset", session: Session
 ) -> "Upload":
+    from faker import Faker
+
+    fake = Faker()
     import hashlib
     import random
     import string
@@ -249,9 +258,9 @@ def _generate_upload(
     from sciop import crud
     from sciop.models import FileInTorrentCreate, Torrent, TorrentFileCreate, UploadCreate
 
-    torrent_file = config.torrent_dir / f"__{name}__"
+    torrent_file = config.torrent_dir / fake.file_name(extension="torrent")
     with open(torrent_file, "wb") as tfile:
-        tfile.write(b"0" * 16384 * 4)
+        tfile.write(b"0" * 16384)
 
     file_size = torrent_file.stat().st_size
 
@@ -267,7 +276,7 @@ def _generate_upload(
     hash_data = hash_data.encode("utf-8")
 
     created_torrent = TorrentFileCreate(
-        file_name=f"__{name}__.torrent",
+        file_name=torrent_file.name,
         v1_infohash=hashlib.sha1(hash_data).hexdigest(),
         v2_infohash=hashlib.sha256(hash_data).hexdigest(),
         version="hybrid",
@@ -299,6 +308,7 @@ def _generate_dataset(fake: "Faker") -> "DatasetCreate":
     from faker import Faker
 
     from sciop.models import DatasetCreate, DatasetPartCreate, ExternalIdentifierCreate
+    from sciop.types import AccessType, Scarcity, Threat
 
     dataset_fake = Faker()
 
@@ -322,6 +332,10 @@ def _generate_dataset(fake: "Faker") -> "DatasetCreate":
         description=fake.text(1000),
         priority="low",
         source="web",
+        source_available=random.choice([True, False]),
+        source_access=random.choice(list(AccessType.__members__.values())),
+        threat=random.choice(list(Threat.__members__.values())),
+        scarcity=random.choice(list(Scarcity.__members__.values())),
         urls=[fake.url() for _ in range(3)],
         tags=[f for f in [fake.word().lower() for _ in range(3)] if len(f) > 2],
         external_identifiers=[

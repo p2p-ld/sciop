@@ -240,6 +240,7 @@ def create_upload(
         "account": account,
         "dataset": dataset,
         "infohash": created_upload.torrent_infohash,
+        "enabled": account.has_scope("upload"),
     }
     if created_upload.part_slugs:
         update["dataset_parts"] = get_dataset_parts(
@@ -264,8 +265,17 @@ def get_uploads(*, session: Session, dataset: Dataset | DatasetPart) -> list[Upl
     return uploads
 
 
-def get_uploads_from_tag(*, session: Session, tag: str) -> list[Upload]:
-    statement = select(Upload).join(Dataset).where(Dataset.tags.any(tag=tag))
+def get_uploads_from_tag(
+    *, session: Session, tag: str, approved: Optional[bool] = None
+) -> list[Upload]:
+    if approved is not None:
+        statement = (
+            select(Upload)
+            .join(Dataset)
+            .where(Dataset.tags.any(tag=tag), Upload.enabled == approved)
+        )
+    else:
+        statement = select(Upload).join(Dataset).where(Dataset.tags.any(tag=tag))
     uploads = session.exec(statement).all()
     return uploads
 
@@ -341,3 +351,9 @@ def check_existing_dataset_parts(
         return None
     else:
         return existing_parts
+
+
+def get_tag(*, session: Session, tag: str) -> Optional[Tag]:
+    statement = select(Tag).where(Tag.tag == tag)
+    tag = session.exec(statement).first()
+    return tag

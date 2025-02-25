@@ -1,4 +1,5 @@
 {% from "macros/model-table.html" import model_table %}
+{% from "macros/tag.html" import feed_link %}
 {% macro dataset_row(dataset, current_account, config, header_start=1) %}
 <div class="dataset" id="dataset-{{ dataset.slug }}">
     <div class="dataset-topmatter topmatter">
@@ -6,16 +7,13 @@
             <h{{ header_start }} class="dataset-title">{{ dataset.title }} </h{{ header_start }}>
             <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
             <p class="dataset-publisher">{{ dataset.publisher }}</p>
+            {%- if dataset.homepage %}
             <a class="dataset-homepage" href="{{ dataset.homepage }}">{{ dataset.homepage }}</a>
+            {% endif %}
             {% if dataset.tags %}
             <div class="tag-group">
                 {% for tag in dataset.tags %}
-                <span class="tag-item">
-                    <span class="tag token">{{ tag.tag }}</span>
-                    <a class="rss-link" href="/rss/tag/{{ tag.tag }}.rss">
-                        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
-                    </a>
-                </span>
+                {{ feed_link(tag=tag.tag) }}
                 {% endfor %}
             </div>
             {% endif %}
@@ -24,6 +22,16 @@
             <span class="dataset-threat-label">Threat</span>
             <p class="dataset-threat threat-{{ dataset.threat.value }}">{{dataset.threat.value}}</p>
             <table class="infobox-table">
+                {% if dataset.account %}
+                <tr>
+                    <td class="infobox-key">Submitted By</td>
+                    <td class="infobox-value">
+                        <a href="/accounts/{{ dataset.account.username }}">
+                            {{ dataset.account.username }}
+                        </a>
+                    </td>
+                </tr>
+                {% endif %}
                 <tr>
                     <td class="infobox-key">Scrape Status</td>
                     <td class="infobox-value">{{ dataset.scrape_status.value }}</td>
@@ -162,7 +170,7 @@
 </div>
 {% endmacro %}
 
-{% macro dataset_collapsible(dataset, review = False, config = None) %}
+{% macro dataset_collapsible(dataset, review = False, config = None, types= None) %}
 <details class="collapsible dataset-collapsible" id="dataset-collapsible-{{ dataset.slug }}">
     <summary class="collapsible-summary"
              hx-get="/datasets/{{ dataset.slug }}/partial"
@@ -171,6 +179,13 @@
         <span class="collapsible-marker" aria-label="Expand/Collapse"></span>
         <span class="dataset-slug item-link"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
         <span class="dataset-title">{{ dataset.title }}</span>
+        {% if dataset.threat != "unknown" %}
+        <span class="dataset-threat threat-dot threat-{{ dataset.threat }}"
+              title="{{ dataset.threat }}: {{ types.Threat.__annotations__[dataset.threat].__metadata__[-1] }}"
+        ></span>
+        {% else %}
+            <span></span>
+        {% endif %}
         <time class="dataset-timestamp timestamp" datetime="{{dataset.created_at.strftime('%y-%m-%d %H:%M') }}Z">
             {{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}
         </time>

@@ -26,6 +26,11 @@ async def index(request: Request):
     )
 
 
+@index_router.get("/feeds", response_class=HTMLResponse)
+async def feeds(request: Request):
+    return templates.TemplateResponse(request, "pages/feeds.html")
+
+
 @index_router.get("/login", response_class=HTMLResponse)
 async def login(request: Request):
     return templates.TemplateResponse(request, "pages/login.html")

@@ -1,0 +1,13 @@
+{% macro feed_link(tag, href=None) %}
+<span class="tag-item">
+    <a href="/tags/{{ tag }}" class="tag-link">
+       <span class="tag token">{{ tag }}</span>
+    </a>
+    <a class="rss-link icon-link" href="/rss/tag/{{ tag }}.rss">
+        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+    </a>
+    <a class="rdf-link icon-link" href="/rdf/tag/{{ tag }}.ttl">
+        <img class="icon rdf-icon" src="/static/img/rdf.svg" alt="RDF triplet icon, three connected nodes"/>
+    </a>
+</span>
+{% endmacro %}

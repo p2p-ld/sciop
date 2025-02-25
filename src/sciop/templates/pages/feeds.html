@@ -1,0 +1,85 @@
+{% extends "layouts/default.html" %}
+{% block content %}
+<h1>Feeds</h1>
+
+RSS Feeds of torrents that can be subscribed to with qBittorrent or other
+RSS-capable clients.
+
+<h2>Index Feeds</h2>
+
+<div class="index-feeds">
+  <a class="rss-link icon-link" href="/rss/all.rss">
+    <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+  </a><strong>All</strong>: All enabled uploads
+
+  <details>
+  <summary><strong>Source Status</strong>: Whether the source is available</summary>
+  <ul>
+    <li>
+      <a class="rss-link icon-link" href="/rss/source/available.rss">
+      <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+      </a><strong>Available</strong>: Datasets whose source is known to be available.
+      <p class="admonition-note">Note: this is the default for uploaded datasets, and is not guaranteed to be accurate</p>
+    </li>
+    <li>
+      <a class="rss-link icon-link" href="/rss/source/unavailable.rss">
+      <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+      </a><strong>Unavailable</strong>: Datasets whose source is known to be unavailable
+    </li>
+  </ul>
+  </details>
+  <details>
+  <summary><strong>Scarcity</strong>: An estimate of how rare a dataset is</summary>
+  <ul>
+    {% for key, val in types.Scarcity.__members__.items() %}
+    <li>
+      <a class="rss-link icon-link" href="/rss/scarcity/{{ key }}.rss">
+      <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+      </a><strong>{{ key }}</strong>: {% if types.Scarcity.__annotations__[key] %}
+        {{ types.Scarcity.__annotations__[key].__metadata__[-1] }}
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  </details>
+
+  <details>
+  <summary><strong>Threat</strong>: An estimate of how likely this dataset is to be memoryholed</summary>
+  <ul>
+    {% for key, val in types.Threat.__members__.items() %}
+    <li>
+      <a class="rss-link icon-link" href="/rss/threat/{{ key }}.rss">
+      <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+      </a><strong>{{ key }}</strong>: {% if types.Threat.__annotations__[key] %}
+        {{ types.Threat.__annotations__[key].__metadata__[-1] }}
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  </details>
+</div>
+
+<div class="page-header">
+  <h2>Tags</h2>
+  <span class="htmx-indicator loading-indicator" id="tags-loading-indicator">
+      <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+  </span>
+</div>
+
+<div class="container flex-container column">
+  <div class="row search-container" >
+    <input class="form-control search-input enter-trigger" type="search"
+           name="query" placeholder="Begin Typing To Search..."
+           hx-get="{{ config.api_prefix }}/tags/search"
+           hx-trigger="input changed delay:250ms, load, enterKeyUp"
+           hx-target="#tags-table"
+           hx-indicator="#tags-loading-indicator"
+           hx-swap="innerHTML"
+    >
+  </div>
+
+  <div id="tags-table" class="tags-table" aria-live="polite">
+  </div>
+</div>
+
+{% endblock %}

@@ -141,3 +141,15 @@ class ExternalIdentifierType(StrEnum):
     urn: Annotated[str, "Uniform Resource Name"] = "urn"
     uri: Annotated[str, "Uniform Resource Identifier"] = "uri"
     orcid: Annotated[str, "Open Researcher and Contributor ID"] = "orcid"
+
+
+suffix_to_ctype = {
+    "html": "text/html",
+    "xhtml": "application/xhtml+xml",
+    "rss": "application/rss+xml",
+    "ttl": "text/turtle",
+    "rdf": "application/rdf+xml",
+    "nt": "text/n-triples",
+    "js": "application/json",
+}
+ctype_to_suffix = {v: k for k, v in suffix_to_ctype.items()}

@@ -69,3 +69,73 @@
 .wrap {
     overflow-wrap: anywhere;
 }
+
+.number {
+    text-align: right;
+}
+
+.threat-indefinite {
+  background-color: var(--color-threat-indefinite);
+}
+.threat-watchlist {
+  background-color: var(--color-threat-watchlist);
+}
+.threat-endangered {
+  background-color: var(--color-threat-endangered);
+}
+.threat-takedown_issued {
+  background-color: var(--color-threat-takedown_issued);
+}
+.threat-extinct {
+    background-color: var(--color-text);
+    color: var(--color-background);
+}
+
+.threat-dot {
+    width: 1em;
+    height: 1em;
+    border-radius: 1em;
+    &::before {
+        content: "";
+        height: 1em;
+        width: 1em;
+        border-radius: 1em;
+        display: block;
+    }
+
+
+    &.threat-indefinite {
+        background-color: transparent;
+        border: 1px solid var(--color-threat-indefinite);
+    }
+    &.threat-watchlist {
+        background-color: transparent;
+        border: 1px solid var(--color-threat-watchlist);
+        &::before {
+            box-shadow: inset .2em 0 0 0 var(--color-threat-watchlist)
+        }
+    }
+
+    &.threat-endangered {
+        background-color: var(--color-threat-endangered);
+        border: 1px solid var(--color-threat-endangered);
+        &::before {
+            box-shadow: inset -0.3em 0 0 0 var(--color-background);
+        }
+    }
+
+    &.threat-takedown_issued {
+       border: 1px solid var(--color-threat-takedown_issued);
+    }
+
+    &.threat-extinct {
+        border: 1px solid var(--color-text);
+        background: repeating-linear-gradient(
+          -45deg,
+          var(--color-background),
+          var(--color-background) 2px,
+          var(--color-text) 2px,
+          var(--color-text) 3px
+        );
+    }
+}

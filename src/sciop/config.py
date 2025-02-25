@@ -204,6 +204,15 @@ class Config(BaseSettings):
             value["db"] = DEFAULT_DB_LOCATIONS[value["env"]]
         return value
 
+    @model_validator(mode="before")
+    def explicit_base_url_in_prod(cls, value: dict) -> dict:
+        """if env is prod, base_url must be set explicitly"""
+        if value.get("env", "") == "prod":
+            assert (
+                "base_url" in value
+            ), "A base_url must be explicitly set when running in `prod` mode"
+        return value
+
     @model_validator(mode="after")
     def root_password_not_default_in_prod(self) -> Self:
         """When env == prod, root_password can't be equal to the default"""

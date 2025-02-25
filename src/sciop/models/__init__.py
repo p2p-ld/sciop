@@ -24,7 +24,7 @@ from sciop.models.dataset import (
 )
 from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
 from sciop.models.rss import TorrentFeed, TorrentItem
-from sciop.models.tag import DatasetTagLink, Tag
+from sciop.models.tag import DatasetTagLink, Tag, TagSummary
 from sciop.models.torrent import (
     FileInTorrent,
     FileInTorrentCreate,
@@ -67,6 +67,7 @@ __all__ = [
     "Scopes",
     "SuccessResponse",
     "Tag",
+    "TagSummary",
     "Token",
     "TokenPayload",
     "Torrent",

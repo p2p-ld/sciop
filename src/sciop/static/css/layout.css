@@ -73,11 +73,11 @@ table {
 /* --- Datasets layout --- */
 
 .datasets-table {
-  --item-cols: 1em minmax(12em, 2fr) 7fr 7em;
+  --item-cols: 1em minmax(12em, 2fr) 7fr 1em 7em;
   display: grid;
 
   &.review {
-    --item-cols: 1em minmax(12em, 2fr) 7fr 7em 4em 4em;
+    --item-cols: 1em minmax(12em, 2fr) 7fr 1em 7em 4em 4em;
   }
 }
 
@@ -142,6 +142,7 @@ table {
   }
 }
 
+
 .topmatter {
   display: flex;
   flex-direction: row;
@@ -190,19 +191,6 @@ table {
     font-weight: bold;
     text-align: center;
     margin: 0 0 0 0;
-
-    &.threat-indefinite {
-      background-color: var(--color-threat-indefinite);
-    }
-    &.threat-watchlist {
-      background-color: var(--color-threat-watchlist);
-    }
-    &.threat-endangered {
-      background-color: var(--color-threat-endangered);
-    }
-    &.threat-takedown_issued {
-      background-color: var(--color-threat-takedown_issued);
-    }
   }
 }
 
@@ -269,6 +257,29 @@ table {
   }
 }
 
+.tag-group {
+  margin: 0.5em 0;
+  display: flex;
+  gap: 0.25em;
+}
+
 .model-table {
   text-align: left;
+}
+
+.tags-table {
+  table {
+    width: 100%;
+  }
+
+  td.col-metadata {
+    font-family: var(--font-mono);
+  }
+
+  td.col-metadata, th.col-feed, td.col-feed {
+    text-align: center;
+    width: 1%;
+    text-wrap: nowrap;
+  }
+
 }

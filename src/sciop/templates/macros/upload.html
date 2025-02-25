@@ -35,6 +35,14 @@
                     <td colspan="2" class="infobox-subhead wrap">{{ upload.torrent.file_name }}</td>
                 </tr>
                 <tr>
+                    <td class="infobox-key">Uploaded By</td>
+                    <td class="infobox-value">
+                        <a href="/accounts/{{ upload.account.username }}">
+                            {{ upload.account.username }}
+                        </a>
+                    </td>
+                </tr>
+                <tr>
                     <td class="infobox-key">Size</td>
                     <td class="infobox-value">{{ upload.human_size }}</td>
                 </tr>

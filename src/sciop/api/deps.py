@@ -11,7 +11,7 @@ from sciop import crud
 from sciop.api.auth import ALGORITHM
 from sciop.config import config
 from sciop.db import get_session
-from sciop.models import Account, Dataset, DatasetPart, Scopes, TokenPayload, Upload
+from sciop.models import Account, Dataset, DatasetPart, Scopes, Tag, TokenPayload, Upload
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 
@@ -176,6 +176,19 @@ def require_account(username: str, session: SessionDep) -> Account:
 
 
 RequireAccount = Annotated[Account, Depends(require_account)]
+
+
+def require_tag(tag: str, session: SessionDep) -> Tag:
+    existing_tag = crud.get_tag(session=session, tag=tag)
+    if not tag:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such tag {tag} exists!",
+        )
+    return existing_tag
+
+
+RequireTag = Annotated[Tag, Depends(require_tag)]
 
 
 def valid_scope(scope_name: str | Scopes) -> Scopes:

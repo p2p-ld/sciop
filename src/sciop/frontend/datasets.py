@@ -33,7 +33,7 @@ async def datasets(request: Request):
 @jinja.hx("partials/datasets.html")
 async def datasets_search(query: str = None, session: SessionDep = None) -> Page[DatasetRead]:
     if not query or len(query) < 3:
-        stmt = select(Dataset).where(Dataset.enabled == True).order_by(Dataset.created_at)
+        stmt = select(Dataset).where(Dataset.enabled == True).order_by(Dataset.created_at.desc())
     else:
         stmt = (
             select(Dataset)
