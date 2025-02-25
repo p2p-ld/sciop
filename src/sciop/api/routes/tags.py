@@ -37,7 +37,8 @@ async def tags_search(query: str = None, session: SessionDep = None) -> Page[Tag
             Tag.tag.like(f"%{query}%"),
             Dataset.tags.any(Tag.tag.like(f"%{query}%")),
             Dataset.enabled == True,
-        ).order_by(text("n_uploads DESC"))
+        )
+        .order_by(text("n_uploads DESC"))
     )
 
     count_stmt = select(func.count(Tag.tag_id)).filter(Tag.tag.like(f"%{query}%"))
