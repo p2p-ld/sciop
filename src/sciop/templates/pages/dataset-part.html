@@ -1,5 +1,6 @@
 {% extends "layouts/default.html" %}
 {% from "macros/dataset-part.html" import dataset_part_row %}
+{% block title %}{{ dataset.slug }} :: {{ part.part_slug }}{% endblock %}
 {% block content %}
 
 {{ dataset_part_row(part, dataset, current_account, config) }}

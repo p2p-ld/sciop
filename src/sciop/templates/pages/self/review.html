@@ -1,7 +1,8 @@
 {% extends "layouts/default.html" %}
+{% block title %}Review{% endblock %}
 {% block content %}
 {% include "includes/self-tabs.html" %}
-<h1>Review</h1>
+<h1>{{ self.title() }}</h1>
 <h2>Datasets</h2>
 
 <div id="dataset-review-container" class="review-container">

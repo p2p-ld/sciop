@@ -1,6 +1,7 @@
 {% extends "layouts/default.html" %}
+{% block title %}Feeds{% endblock %}
 {% block content %}
-<h1>Feeds</h1>
+<h1>{{ self.title() }}</h1>
 
 RSS Feeds of torrents that can be subscribed to with qBittorrent or other
 RSS-capable clients.

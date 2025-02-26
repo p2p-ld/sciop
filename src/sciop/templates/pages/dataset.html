@@ -1,5 +1,6 @@
 {% extends "layouts/default.html" %}
 {% from "macros/dataset.html" import dataset_row %}
+{% block title %}{{ dataset.title }}{% endblock %}
 {% block content %}
 
 {{ dataset_row(dataset, current_account, config, header_start=1) }}
