@@ -5,6 +5,7 @@ from mkdocs import config as mkdocs_config
 from mkdocs.commands import build
 
 from sciop.config import config
+from sciop.logging import init_logger
 
 
 def _find_mkdocs_config() -> Path:
@@ -20,6 +21,11 @@ def build_docs() -> None:
     https://github.com/mkdocs/mkdocs/blob/7e4892ab2dd4a52efd95a9de407eee63310e0780/mkdocs/__main__.py#L280
     """
     config_file = _find_mkdocs_config()
+    if not config_file.exists():
+        logger = init_logger("services.docs")
+        logger.warning("Docs could not be built, no mkdocs config was found at %s", config_file)
+        return
+
     cfg = mkdocs_config.load_config(config_file=str(config_file))
 
     dirty = False
