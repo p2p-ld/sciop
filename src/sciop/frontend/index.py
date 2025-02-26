@@ -6,7 +6,7 @@ from sciop.api.deps import CurrentAccount
 from sciop.const import STATIC_DIR
 from sciop.frontend.templates import templates
 from sciop.models import DatasetCreate
-from sciop.scheduler import add_job, print_job
+from sciop.scheduler import add_job, print_job, interval, do_not_run, remove_all_jobs
 
 index_router = APIRouter()
 
@@ -14,7 +14,10 @@ index_router = APIRouter()
 @index_router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     # temp place for a printer
-    add_job(print_job, msg = "EVERY SINGLE SECOND", seconds=1)
+    # add_job(print_job, msg = "EVERY FIVE SECONDS ANOTHER DATASET DISAPPEARS, BUT WITH YOUR HELP", seconds = 5, num = 10)
+    # add_job(print_job, 'interval', {}, "Just an arg, love, just an arg!", seconds = 10)
+    interval(print_job, "Just a little arg, why, just a wee little arg!", 765, seconds=10)
+    remove_all_jobs()
     try:
         short_hash = sciop.__version__.split("+")[1]
     except IndexError:
