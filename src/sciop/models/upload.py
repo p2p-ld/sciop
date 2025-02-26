@@ -30,13 +30,15 @@ class UploadBase(SQLModel):
 
 
 class Upload(UploadBase, TableMixin, table=True):
+    __tablename__ = "uploads"
+
     upload_id: IDField = Field(default=None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
+    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
     dataset: Dataset = Relationship(back_populates="uploads")
     dataset_parts: list[DatasetPart] = Relationship(
         back_populates="uploads", link_model=UploadDatasetPartLink
     )
-    account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
+    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
     account: Account = Relationship(back_populates="submissions")
     torrent: Optional["TorrentFile"] = Relationship(
         back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}

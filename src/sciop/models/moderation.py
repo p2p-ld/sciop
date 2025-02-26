@@ -36,9 +36,9 @@ class ModerationAction(StrEnum):
     """Suspend an account"""
 
 
-_actor_id = Column(Integer, ForeignKey("account.account_id"), nullable=True)
+_actor_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True)
 _target_account_id = Column(
-    Integer, ForeignKey("account.account_id", ondelete="SET NULL"), nullable=True
+    Integer, ForeignKey("accounts.account_id", ondelete="SET NULL"), nullable=True
 )
 
 
@@ -64,13 +64,13 @@ class AuditLog(TableMixin, table=True):
     action: ModerationAction = Field(description="The action taken")
 
     target_dataset_id: Optional[int] = Field(
-        default=None, foreign_key="dataset.dataset_id", ondelete="SET NULL"
+        default=None, foreign_key="datasets.dataset_id", ondelete="SET NULL"
     )
     target_dataset: Optional["Dataset"] = Relationship(
         back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
     )
     target_upload_id: Optional[int] = Field(
-        default=None, foreign_key="upload.upload_id", ondelete="SET NULL"
+        default=None, foreign_key="uploads.upload_id", ondelete="SET NULL"
     )
     target_upload: Optional["Upload"] = Relationship(
         back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
@@ -105,6 +105,6 @@ class AuditLogRead(SQLModel):
 class Report(TableMixin, table=True):
     """Reports of items and accounts"""
 
-    __tablename__ = "report"
+    __tablename__ = "reports"
 
     report_id: IDField = Field(None, primary_key=True)

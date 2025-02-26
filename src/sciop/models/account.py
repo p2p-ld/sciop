@@ -32,13 +32,13 @@ class Scopes(StrEnum):
 
 
 class AccountScopeLink(TableMixin, table=True):
-    __tablename__ = "account_scope_link"
+    __tablename__ = "account_scope_links"
     __table_args__ = (UniqueConstraint("account_id", "scope_id", name="_account_scope_uc"),)
 
     account_id: Optional[int] = Field(
-        default=None, foreign_key="account.account_id", primary_key=True
+        default=None, foreign_key="accounts.account_id", primary_key=True
     )
-    scope_id: Optional[int] = Field(default=None, foreign_key="scope.scope_id", primary_key=True)
+    scope_id: Optional[int] = Field(default=None, foreign_key="scopes.scope_id", primary_key=True)
 
 
 class AccountBase(SQLModel):
@@ -82,6 +82,7 @@ class AccountBase(SQLModel):
 
 
 class Account(AccountBase, TableMixin, SearchableMixin, table=True):
+    __tablename__ = "accounts"
     __searchable__ = ["username"]
 
     account_id: IDField = Field(default=None, primary_key=True)
@@ -144,6 +145,7 @@ class AccountRead(AccountBase):
 
 
 class Scope(TableMixin, EnumTableMixin, table=True):
+    __tablename__ = "scopes"
     __enum_column_name__ = "scope"
 
     scope_id: IDField = Field(None, primary_key=True)
