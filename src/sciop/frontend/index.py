@@ -6,7 +6,6 @@ from sciop.api.deps import CurrentAccount
 from sciop.const import STATIC_DIR
 from sciop.frontend.templates import templates
 from sciop.models import DatasetCreate
-from sciop.scheduler import add_job, print_job
 
 index_router = APIRouter()
 
@@ -14,7 +13,6 @@ index_router = APIRouter()
 @index_router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     # temp place for a printer
-    add_job(print_job, msg='yay')
     try:
         short_hash = sciop.__version__.split("+")[1]
     except IndexError:
