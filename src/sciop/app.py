@@ -23,7 +23,7 @@ from sciop.middleware import (
     limiter,
     security_headers,
 )
-from sciop.services import build_docs
+from sciop.services.docs import build_docs
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"
