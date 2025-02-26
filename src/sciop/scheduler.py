@@ -10,23 +10,19 @@ from sqlmodel import Session
 from sqlalchemy.engine.base import Engine
 
 from sciop.db import get_engine
+from sciop.logging import init_logger
 
 # buddy, they don't even let _me_ download the car
 
+logger = init_logger('scheduling')
+
 engine = get_engine()
 
-class TriggerAlias(StrEnum):
-    Date = 'date'
-    Interval = 'interval'
-    Cron = 'cron'
-    CalendarInterval = 'calendarinterval'
-
-
 def create_scheduler(engine: Engine = engine) -> AsyncIOScheduler:
+    logger.debug(f"Using SQL engine for scheduler: {engine}")
     jobstores = {"default": MemoryJobStore(), "sql": SQLAlchemyJobStore(engine=engine)}
+    logger.debug(f"Initializing AsyncIOScheduler w/ jobstores: {jobstores}")
     scheduler = AsyncIOScheduler(jobstores=jobstores)
-    print("HELLO I AM CREATE SCHEDULER, I AM CALLED BUT ONCE")
-    print(scheduler)
     return scheduler
 
 
@@ -42,9 +38,20 @@ def start_scheduler() -> None:
 # I don't love it until I can find where the aliases are, but
 # https://apscheduler.readthedocs.io/en/latest/modules/schedulers/base.html
 # some string values are allowed, others are probably not.  I wish I could 
-def add_job(func: Callable, trigger: str | TriggerAlias | BaseTrigger = 'interval', *args, **kwargs) -> Job:
-    print(args, kwargs)
-    return scheduler.add_job(func, 'interval', seconds=1, args=args, kwargs=kwargs)
+def add_job(func: Callable, trigger: str | BaseTrigger = 'interval', *args, **kwargs) -> Job:
+    func_kwargs = {}
+    # we do our best to parse out the function kwargs, but no guarantee.
+    for param in func.__annotations__.keys():
+        if param in kwargs.keys():
+            func_kwargs[param] = kwargs.pop(param)
+    logger.debug(f"""Adding job to scheduler: 
+                   job:            {func}
+                   job kwargs:     {func_kwargs}
+                   trigger:        {trigger}
+                   trigger args:   {args}
+                   trigger kwargs: {kwargs}
+    """)
+    return scheduler.add_job(func, trigger=trigger, kwargs=func_kwargs, *args, **kwargs)
 
 def print_job(msg: str, num: int = 0) -> None:
-    print(f"TALES FROM SCIOP: {num}:{msg}")
+    logger.info(f"PRINT: {num}:{msg}")
