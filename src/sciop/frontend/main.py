@@ -14,7 +14,7 @@ from sciop.frontend.tags import tags_router
 from sciop.frontend.test import test_router
 from sciop.frontend.uploads import uploads_router
 
-frontend_router = APIRouter(dependencies=[Depends(add_htmx_response_trigger)])
+frontend_router = APIRouter(dependencies=[Depends(add_htmx_response_trigger)], tags=["frontend"])
 frontend_router.include_router(index_router)
 frontend_router.include_router(accounts_router)
 frontend_router.include_router(autocomplete_router)

@@ -53,13 +53,13 @@ class Torrent(Torrent_):
 class FileInTorrent(TableMixin, table=True):
     """A file within a torrent file"""
 
-    __tablename__ = "file_in_torrent"
+    __tablename__ = "files_in_torrent"
 
     file_in_torrent_id: IDField = Field(None, primary_key=True)
     path: EscapedStr = Field(description="Path of file within torrent", max_length=1024)
     size: int = Field(description="Size in bytes")
 
-    torrent_id: Optional[int] = Field(default=None, foreign_key="torrent_file.torrent_file_id")
+    torrent_id: Optional[int] = Field(default=None, foreign_key="torrent_files.torrent_file_id")
     torrent: Optional["TorrentFile"] = Relationship(back_populates="files")
 
     @property
@@ -79,12 +79,12 @@ class FileInTorrentRead(FileInTorrentCreate):
 class TrackerInTorrent(TableMixin, table=True):
     """A tracker within a torrent file"""
 
-    __tablename__ = "tracker_in_torrent"
+    __tablename__ = "trackers_in_torrent"
 
     tracker_in_torrent_id: IDField = Field(None, primary_key=True)
     url: MaxLenURL = Field(description="Tracker announce url")
 
-    torrent_id: Optional[int] = Field(default=None, foreign_key="torrent_file.torrent_file_id")
+    torrent_id: Optional[int] = Field(default=None, foreign_key="torrent_files.torrent_file_id")
     torrent: Optional["TorrentFile"] = Relationship(back_populates="trackers")
 
 
@@ -155,12 +155,12 @@ class TorrentFileBase(SQLModel):
 
 
 class TorrentFile(TorrentFileBase, TableMixin, table=True):
-    __tablename__ = "torrent_file"
+    __tablename__ = "torrent_files"
 
     torrent_file_id: IDField = Field(None, primary_key=True)
-    account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
+    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
     account: "Account" = Relationship(back_populates="torrents")
-    upload_id: Optional[int] = Field(default=None, foreign_key="upload.upload_id")
+    upload_id: Optional[int] = Field(default=None, foreign_key="uploads.upload_id")
     upload: Optional["Upload"] = Relationship(back_populates="torrent")
     files: list["FileInTorrent"] = Relationship(back_populates="torrent")
     trackers: list["TrackerInTorrent"] = Relationship(back_populates="torrent")

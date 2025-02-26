@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Request, Response
+from sqlmodel import select
 
 from sciop import crud
 from sciop.api.deps import (
@@ -11,7 +12,9 @@ from sciop.api.deps import (
     ValidScope,
 )
 from sciop.frontend.templates import jinja
+from sciop.middleware import limiter
 from sciop.models import ModerationAction, Scope, SuccessResponse
+from sciop.models.mixin import _Friedolin
 
 review_router = APIRouter()
 
@@ -154,3 +157,13 @@ async def revoke_account_scope(
     return SuccessResponse(
         success=True, extra={"username": account.username, "scope_name": scope_name}
     )
+
+
+@review_router.get(
+    "/freidolin",
+)
+@limiter.limit("1/7days")
+async def freidolin(request: Request, response: Response, session: SessionDep) -> _Friedolin:
+    """use it wisely"""
+    data = session.exec(select(_Friedolin)).first()
+    return data

@@ -150,6 +150,7 @@ class DatasetBase(SQLModel):
 
 
 class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
+    __tablename__ = "datasets"
     __searchable__ = ["title", "slug", "publisher", "homepage", "description"]
 
     dataset_id: IDField = Field(None, primary_key=True)
@@ -162,7 +163,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
         sa_relationship_kwargs={"lazy": "selectin"},
         link_model=DatasetTagLink,
     )
-    account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
+    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
     account: Optional["Account"] = Relationship(back_populates="datasets")
     scrape_status: ScrapeStatus = "unknown"
     enabled: bool = False
@@ -284,10 +285,10 @@ class DatasetRead(DatasetBase, TableReadMixin):
 
 
 class DatasetURL(SQLModel, table=True):
-    __tablename__ = "dataset_url"
+    __tablename__ = "dataset_urls"
 
     dataset_url_id: IDField = Field(default=None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
+    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
     dataset: Optional[Dataset] = Relationship(back_populates="urls")
 
     url: MaxLenURL
@@ -309,12 +310,12 @@ class ExternalSourceBase(SQLModel):
 
 
 class ExternalSource(ExternalSourceBase, TableMixin, table=True):
-    __tablename__ = "external_source"
+    __tablename__ = "external_sources"
 
     external_source_id: IDField = Field(None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
+    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
     dataset: Dataset = Relationship(back_populates="external_sources")
-    account_id: Optional[int] = Field(default=None, foreign_key="account.account_id")
+    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
     account: Optional[Account] = Relationship(back_populates="external_submissions")
 
 
@@ -345,10 +346,10 @@ class ExternalIdentifierBase(SQLModel):
 
 
 class ExternalIdentifier(ExternalIdentifierBase, TableMixin, table=True):
-    __tablename__ = "external_identifier"
+    __tablename__ = "external_identifiers"
 
     external_identifier_id: IDField = Field(None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.dataset_id")
+    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
     dataset: Dataset = Relationship(back_populates="external_identifiers")
 
 
@@ -377,11 +378,13 @@ class ExternalIdentifierRead(ExternalIdentifierBase):
 
 
 class UploadDatasetPartLink(SQLModel, table=True):
-    __tablename__ = "upload_dataset_part_link"
+    __tablename__ = "upload_dataset_part_links"
     dataset_part_id: Optional[int] = Field(
-        default=None, foreign_key="dataset_part.dataset_part_id", primary_key=True
+        default=None, foreign_key="dataset_parts.dataset_part_id", primary_key=True
     )
-    upload_id: Optional[int] = Field(default=None, foreign_key="upload.upload_id", primary_key=True)
+    upload_id: Optional[int] = Field(
+        default=None, foreign_key="uploads.upload_id", primary_key=True
+    )
 
 
 class DatasetPartBase(SQLModel):
@@ -400,13 +403,13 @@ class DatasetPartBase(SQLModel):
 
 
 class DatasetPart(DatasetPartBase, TableMixin, table=True):
-    __tablename__ = "dataset_part"
+    __tablename__ = "dataset_parts"
     __table_args__ = (UniqueConstraint("dataset_id", "part_slug", name="_dataset_part_slug_uc"),)
 
     dataset_part_id: IDField = Field(None, primary_key=True)
-    dataset_id: Optional[int] = Field(None, foreign_key="dataset.dataset_id")
+    dataset_id: Optional[int] = Field(None, foreign_key="datasets.dataset_id")
     dataset: Optional[Dataset] = Relationship(back_populates="parts")
-    account_id: Optional[int] = Field(None, foreign_key="account.account_id")
+    account_id: Optional[int] = Field(None, foreign_key="accounts.account_id")
     account: Optional[Account] = Relationship(back_populates="dataset_parts")
     uploads: list["Upload"] = Relationship(
         back_populates="dataset_parts", link_model=UploadDatasetPartLink
@@ -455,10 +458,10 @@ class DatasetPartRead(DatasetPartBase):
 
 
 class DatasetPath(TableMixin, table=True):
-    __tablename__ = "dataset_path"
+    __tablename__ = "dataset_paths"
 
     dataset_path_id: IDField = Field(None, primary_key=True)
-    dataset_part_id: Optional[int] = Field(None, foreign_key="dataset_part.dataset_part_id")
+    dataset_part_id: Optional[int] = Field(None, foreign_key="dataset_parts.dataset_part_id")
     dataset_part: DatasetPart = Relationship(back_populates="paths")
     path: str = Field(max_length=1024)
 

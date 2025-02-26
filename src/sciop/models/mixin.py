@@ -1,9 +1,10 @@
+import contextlib
 import sys
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Optional, Self, get_origin
 
-from sqlalchemy import Column, Table, event
+from sqlalchemy import CheckConstraint, Column, Connection, Table, event
 from sqlmodel import Field, Session, SQLModel, select, text
 
 from sciop.types import IDField
@@ -266,3 +267,24 @@ class ListlikeMixin(SQLModel):
         return session.exec(
             select(cls).where(getattr(cls, cls.__value_column_name__) == value)
         ).first()
+
+
+class _FriedolinType(StrEnum):
+    friedolin = "friedolin"
+
+
+class _Friedolin(SQLModel, table=True):
+    __tablename__ = "friedolin"
+    friedolin: _FriedolinType = Field(
+        "friedolin",
+        primary_key=True,
+        unique=True,
+        sa_column_args=[CheckConstraint(text("friedolin = 'friedolin'"))],
+    )
+
+
+@event.listens_for(_Friedolin.__table__, "after_create")
+def _make_friedolin(target: Table, connection: Connection, **kwargs: Any) -> None:
+    with contextlib.suppress(Exception):
+        # this can fail and we literally don't care
+        connection.execute(target.insert().values(friedolin="friedolin"))
