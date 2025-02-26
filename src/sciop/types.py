@@ -15,7 +15,7 @@ IDField: TypeAlias = Optional[Annotated[int, Gt(0)]]
 EscapedStr: TypeAlias = Annotated[str, AfterValidator(escape)]
 SlugStr: TypeAlias = Annotated[str, AfterValidator(slugify)]
 UsernameStr: TypeAlias = Annotated[
-    str, Field(min_length=3, max_length=64, pattern=USERNAME_PATTERN)
+    str, Field(min_length=1, max_length=64, pattern=USERNAME_PATTERN)
 ]
 AnyUrlTypeAdapter = TypeAdapter(AnyUrl)
 MaxLenURL = Annotated[
