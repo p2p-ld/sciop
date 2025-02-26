@@ -38,20 +38,25 @@ def start_scheduler() -> None:
 # I don't love it until I can find where the aliases are, but
 # https://apscheduler.readthedocs.io/en/latest/modules/schedulers/base.html
 # some string values are allowed, others are probably not.  I wish I could 
-def add_job(func: Callable, trigger: str | BaseTrigger = 'interval', *args, **kwargs) -> Job:
-    func_kwargs = {}
-    # we do our best to parse out the function kwargs, but no guarantee.
-    for param in func.__annotations__.keys():
-        if param in kwargs.keys():
-            func_kwargs[param] = kwargs.pop(param)
+def add_job(func: Callable, trigger: str | BaseTrigger = 'interval', scheduler_kwargs = {}, *args, **kwargs) -> Job:
+    # A little convenience parsing for those who do not want to use the explicit scheduler_kwargs
+    # I'm not married to this; if we think it's a hassle, we can just get rid of it.
+    del_key = []
+    for kwarg in kwargs.keys():
+        if kwarg not in func.__annotations__.keys():
+            scheduler_kwargs[kwarg] = kwargs[kwarg]
+            del_key.append(kwarg)
+    # You can't mutate while you're iterating!
+    for key in del_key:
+        del(kwargs[key])
     logger.debug(f"""Adding job to scheduler: 
                    job:            {func}
-                   job kwargs:     {func_kwargs}
+                   job args:       {args}
+                   job kwargs:     {kwargs}
                    trigger:        {trigger}
-                   trigger args:   {args}
-                   trigger kwargs: {kwargs}
+                   trigger kwargs: {scheduler_kwargs}
     """)
-    return scheduler.add_job(func, trigger=trigger, kwargs=func_kwargs, *args, **kwargs)
+    return scheduler.add_job(func, trigger=trigger, kwargs=kwargs, **scheduler_kwargs)
 
 def print_job(msg: str, num: int = 0) -> None:
     logger.info(f"PRINT: {num}:{msg}")
