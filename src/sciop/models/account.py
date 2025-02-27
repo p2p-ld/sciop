@@ -42,7 +42,7 @@ class AccountScopeLink(TableMixin, table=True):
 
 
 class AccountBase(SQLModel):
-    username: UsernameStr = Field(unique=True)
+    username: UsernameStr
 
     def has_scope(self, *args: str | Scopes) -> bool:
         """
@@ -162,8 +162,3 @@ class Token(SQLModel):
 # Contents of JWT token
 class TokenPayload(SQLModel):
     sub: str | None = None
-
-
-class NewPassword(SQLModel):
-    token: str
-    new_password: str = Field(min_length=8, max_length=64)

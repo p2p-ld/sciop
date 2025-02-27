@@ -13,7 +13,7 @@ def test_register_bogus_username(username, client: TestClient):
     """
     response = client.post(
         config.api_prefix + "/register",
-        data={"username": username, "password": "super sick password1"},
+        data={"username": username, "password": "super sick password123"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
 

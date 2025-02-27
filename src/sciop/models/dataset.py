@@ -42,7 +42,7 @@ class DatasetBase(SQLModel):
     slug: SlugStr = Field(
         title="Dataset Slug",
         description="""
-    Short, computer readable name for dataset.
+    Short, computer readable identifier for dataset.
     The acronym or abbreviation of the dataset name, e.g. for the NOAA
     "Fundamental Climate Data Record - Mean Layer Temperature NOAA"
     use "fcdr-mlt-noaa". Converted to a slugified string.
@@ -66,8 +66,9 @@ class DatasetBase(SQLModel):
         None,
         title="Homepage",
         description="""
-    The index/landing page that describes this dataset
-    (but isn't necessarily the direct link to the data itself), if any. 
+    The index/landing page that describes this dataset, if any. 
+    If the dataset has multiple associated URLs, if e.g. an index page with metadata
+    is different from the download URL, add ths index here and additional URLs below.
     """,
     )
     description: Optional[EscapedStr] = Field(
@@ -107,6 +108,7 @@ class DatasetBase(SQLModel):
         title="Source Available",
         description="""
         Whether the canonical source of this dataset is still available.
+        Default true unless known to be taken down.
         """,
     )
     last_seen_at: Optional[datetime] = Field(
@@ -125,7 +127,7 @@ class DatasetBase(SQLModel):
         title="Source Access",
         description="""
     How the canonical source can be accessed, whether it needs credentials
-    or is intended to be public
+    or is intended to be public.
     """,
     )
     scarcity: Scarcity = Field(
@@ -391,6 +393,7 @@ class DatasetPartBase(SQLModel):
     part_slug: SlugStr = Field(
         title="Part Slug",
         description="Unique identifier for this dataset part",
+        min_length=1,
         max_length=256,
         index=True,
     )
@@ -424,7 +427,7 @@ class DatasetPartCreate(DatasetPartBase):
         title="Paths",
         description="A list of paths that this part should contain, "
         "if the part is not a single file. One path per line.",
-        max_length=128,
+        max_length=2048,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
     )
 
