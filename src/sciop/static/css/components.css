@@ -26,7 +26,7 @@ button,
   padding: 0.1em 0.5em;
 
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: var(--color-primary);
     color: var(--color-primary-contrast);
   }
@@ -36,7 +36,7 @@ button,
     color: var(--color-caution);
     box-shadow: 2px 2px 0 var(--color-caution-darker-1);
 
-    &:hover {
+    &:hover:not(:disabled) {
       background-color: var(--color-caution);
       color: var(--color-caution-contrast);
     }
@@ -86,10 +86,6 @@ button,
     box-shadow: unset;
     border-color: var(--color-border-deemphasized);
     color: var(--color-deemphasized);
-
-    &:hover {
-      border-color: unset;
-    }
   }
 }
 

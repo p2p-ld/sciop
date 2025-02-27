@@ -106,6 +106,18 @@ def test_self_suspend(client, admin_auth_header):
     assert "cannot suspend yourself" in response.text
 
 
+@pytest.mark.parametrize("account_type", ("admin", "root"))
+def test_no_admin_suspend(client, account, get_auth_header, account_type, admin_user, root_user):
+    account_ = account(scopes=["admin"], username="new_admin", password="passywordy123")
+    auth_header = get_auth_header(username="new_admin", password="passywordy123")
+    response = client.delete(
+        config.api_prefix + f"/accounts/{account_type}",
+        headers=auth_header,
+    )
+    assert response.status_code == 403
+    assert "Admins can't can't ban other admins" in response.text
+
+
 def test_no_double_scope(session, client, account, admin_auth_header):
     """
     A scope can't be assigned twice, and the grant scope method is idempotent
