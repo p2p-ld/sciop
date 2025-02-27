@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Literal, Optional, Self
 
 from platformdirs import PlatformDirs
-from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
+from pydantic import BaseModel, Field, SecretStr, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _default_userdir = Path().home() / ".config" / "mio"
@@ -117,7 +117,7 @@ class Config(BaseSettings):
 
     base_url: str = "http://localhost:8000"
     """Root URL where the site is hosted"""
-    secret_key: str
+    secret_key: SecretStr
     db: Optional[Path]
     """
     Defaults:
@@ -143,7 +143,7 @@ class Config(BaseSettings):
     """
     Default root user created on first run.
     """
-    root_password: Optional[str] = "rootroot1234"
+    root_password: Optional[SecretStr] = "rootroot1234"
     """
     Default root password for root user created on first run.
     
