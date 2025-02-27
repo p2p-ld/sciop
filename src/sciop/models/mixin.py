@@ -279,7 +279,9 @@ class _Friedolin(SQLModel, table=True):
         "friedolin",
         primary_key=True,
         unique=True,
-        sa_column_args=[CheckConstraint(text("friedolin = 'friedolin'"))],
+        sa_column_args=[
+            CheckConstraint(text("friedolin = 'friedolin'"), name="the_friedolin_constraint")
+        ],
     )
 
 

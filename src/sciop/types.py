@@ -6,8 +6,9 @@ from pathlib import Path
 from typing import Annotated, Optional, TypeAlias
 
 from annotated_types import Gt, MaxLen
-from pydantic import AfterValidator, AnyUrl, BeforeValidator, Field, TypeAdapter
+from pydantic import AfterValidator, AnyUrl, BeforeValidator, TypeAdapter
 from slugify import slugify
+from sqlmodel import Field
 
 USERNAME_PATTERN = re.compile(r"^[\w-]+$")
 
@@ -15,7 +16,10 @@ IDField: TypeAlias = Optional[Annotated[int, Gt(0)]]
 EscapedStr: TypeAlias = Annotated[str, AfterValidator(escape)]
 SlugStr: TypeAlias = Annotated[str, AfterValidator(slugify)]
 UsernameStr: TypeAlias = Annotated[
-    str, Field(min_length=1, max_length=64, pattern=USERNAME_PATTERN)
+    str,
+    Field(
+        title="username", min_length=1, max_length=64, regex=USERNAME_PATTERN.pattern, unique=True
+    ),
 ]
 AnyUrlTypeAdapter = TypeAdapter(AnyUrl)
 MaxLenURL = Annotated[
@@ -121,11 +125,11 @@ def _strip_doi_prefix(val: str) -> str:
     return val
 
 
-ARK_TYPE: TypeAlias = Annotated[str, Field(pattern=ARK_PATTERN)]
-DOI_TYPE: TypeAlias = Annotated[str, BeforeValidator(_strip_doi_prefix), Field(pattern=DOI_PATTERN)]
-ISNI_TYPE: TypeAlias = Annotated[str, Field(pattern=ISNI_PATTERN)]
-ISSN_TYPE: TypeAlias = Annotated[str, Field(pattern=ISSN_PATTERN)]
-QID_TYPE: TypeAlias = Annotated[str, Field(pattern=QID_PATTERN)]
+ARK_TYPE: TypeAlias = Annotated[str, Field(regex=ARK_PATTERN)]
+DOI_TYPE: TypeAlias = Annotated[str, BeforeValidator(_strip_doi_prefix), Field(regex=DOI_PATTERN)]
+ISNI_TYPE: TypeAlias = Annotated[str, Field(regex=ISNI_PATTERN)]
+ISSN_TYPE: TypeAlias = Annotated[str, Field(regex=ISSN_PATTERN)]
+QID_TYPE: TypeAlias = Annotated[str, Field(regex=QID_PATTERN)]
 
 
 class ExternalIdentifierType(StrEnum):

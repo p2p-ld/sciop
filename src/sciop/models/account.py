@@ -42,7 +42,7 @@ class AccountScopeLink(TableMixin, table=True):
 
 
 class AccountBase(SQLModel):
-    username: UsernameStr = Field(unique=True)
+    username: UsernameStr
 
     def has_scope(self, *args: str | Scopes) -> bool:
         """
