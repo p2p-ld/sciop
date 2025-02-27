@@ -167,7 +167,7 @@ RequireEnabledUpload = Annotated[Upload, Depends(require_enabled_upload)]
 
 def require_account(username: str, session: SessionDep) -> Account:
     account = crud.get_account(session=session, username=username)
-    if not username:
+    if not account:
         raise HTTPException(
             status_code=404,
             detail=f"No such account {username} exists!",

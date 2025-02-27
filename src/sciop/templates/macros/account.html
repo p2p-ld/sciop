@@ -20,8 +20,8 @@
         {% if review %}
             {% for scope_name in models.Scopes.__members__.values() %}
                 {% set disabled=(current_account and
-                    (current_account.get_scope("root") and (scope_name == "root" or scope_name == "admin") and (current_account.username == account.username)) or
-                    (((not current_account.get_scope("root")) and (current_account.get_scope("admin")) and (scope_name == "root" or scope_name == "admin"))))
+                    (current_account.has_scope("root") and (scope_name == "root" or scope_name == "admin") and (current_account.username == account.username)) or
+                    (((not current_account.has_scope("root")) and (current_account.has_scope("admin")) and (scope_name == "root" or scope_name == "admin"))))
                 %}
                 {% if account.has_scope(scope_name) %}
                     <button
@@ -56,7 +56,7 @@
             {{ account.created_at.strftime("%y-%m-%d %H:%M") }}
         </time>
         {% if review %}
-        {% set suspend_disabled=current_account and current_account.username == account.username %}
+        {% set suspend_disabled=not current_account or not current_account.can_suspend(account) %}
         <button class="button suspend-button success-button caution"
                 hx-delete="{{ config.api_prefix }}/accounts/{{ account.username }}"
                 {% if suspend_disabled %}disabled{% endif %}
