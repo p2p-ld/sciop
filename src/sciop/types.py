@@ -5,21 +5,31 @@ from os import PathLike as PathLike_
 from pathlib import Path
 from typing import Annotated, Optional, TypeAlias
 
-from annotated_types import Gt, MaxLen
+from annotated_types import Gt, MaxLen, MinLen
 from pydantic import AfterValidator, AnyUrl, BeforeValidator, TypeAdapter
 from slugify import slugify
 from sqlmodel import Field
 
 USERNAME_PATTERN = re.compile(r"^[\w-]+$")
 
+
+def _validate_username(username: str) -> str:
+    assert USERNAME_PATTERN.fullmatch(
+        username
+    ), f"{username} is not a valid username, must match {USERNAME_PATTERN.pattern}"
+    return username
+
+
 IDField: TypeAlias = Optional[Annotated[int, Gt(0)]]
 EscapedStr: TypeAlias = Annotated[str, AfterValidator(escape)]
 SlugStr: TypeAlias = Annotated[str, AfterValidator(slugify)]
 UsernameStr: TypeAlias = Annotated[
     str,
-    Field(
-        title="username", min_length=1, max_length=64, regex=USERNAME_PATTERN.pattern, unique=True
-    ),
+    MinLen(1),
+    MaxLen(64),
+    # Need a specific functional validator because sqlmodel regex validation is busted
+    AfterValidator(_validate_username),
+    Field(regex=USERNAME_PATTERN.pattern, unique=True),
 ]
 AnyUrlTypeAdapter = TypeAdapter(AnyUrl)
 MaxLenURL = Annotated[
