@@ -64,16 +64,21 @@ class AccountBase(SQLModel):
                 "They implicitly have all other scopes."
             )
 
-        has_scopes = [scope.scope.value for scope in self.scopes]
+        str_args = [arg.scope.value if hasattr(arg, "scope") else arg for arg in args]
+        str_scopes = [
+            a_scope.scope.value if hasattr(a_scope, "scope") else a_scope for a_scope in self.scopes
+        ]
 
-        if "root" in has_scopes:
+        has_scopes = [scope.scope for scope in self.scopes]
+
+        if "root" in str_scopes:
             # root has all scopes implicitly
             return True
-        elif "admin" in has_scopes and "root" not in args:
+        elif "admin" in str_scopes and "root" not in args:
             # admin has all scopes except root implicitly
             return True
 
-        return any([scope in has_scopes for scope in args])
+        return any([scope in has_scopes for scope in str_args])
 
     def get_scope(self, scope: str) -> Optional["Scope"]:
         """Get the scope object from its name, returning None if not present"""
@@ -111,6 +116,16 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
             primaryjoin="Account.account_id == AuditLog.target_account_id",
         ),
     )
+
+    def can_suspend(self, account: "Account") -> bool:
+        """Whether this account can suspend another account"""
+        if not self.has_scope("admin"):
+            return False
+
+        return not (
+            self.username == account.username
+            or (not self.has_scope("root") and account.has_scope("admin"))
+        )
 
 
 class AccountCreate(AccountBase):

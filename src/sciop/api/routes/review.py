@@ -83,6 +83,8 @@ async def suspend_account(
 ) -> SuccessResponse:
     if account.id == current_account.id:
         raise HTTPException(403, "You cannot suspend yourself")
+    if account.has_scope("admin") and not current_account.has_scope("root"):
+        raise HTTPException(403, "Admins can't can't ban other admins or roots")
     session.delete(account)
     session.commit()
     crud.log_moderation_action(
