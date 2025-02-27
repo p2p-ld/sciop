@@ -4,6 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
+from sciop import models  # noqa: F401
 from sciop.config import config as sciop_config
 
 # this is the Alembic Config object, which provides
