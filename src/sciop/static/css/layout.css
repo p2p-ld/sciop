@@ -260,7 +260,8 @@ table {
 .tag-group {
   margin: 0.5em 0;
   display: flex;
-  gap: 0.25em;
+  gap: 0.5em;
+  flex-wrap: wrap;
 }
 
 .model-table {
