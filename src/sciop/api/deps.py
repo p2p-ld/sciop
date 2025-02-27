@@ -43,7 +43,7 @@ TokenDep = Annotated[str, Depends(reusable_oauth2)]
 def require_current_account(session: SessionDep, token: TokenDep) -> Account:
 
     try:
-        payload = jwt.decode(token, config.secret_key, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, config.secret_key.get_secret_value(), algorithms=[ALGORITHM])
         token_data = TokenPayload(**payload)
     except (InvalidTokenError, ValidationError) as e:
         raise HTTPException(

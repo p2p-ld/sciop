@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
@@ -114,20 +114,21 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
 
 
 class AccountCreate(AccountBase):
-    password: str = Field(min_length=12, max_length=64)
+    password: SecretStr = Field(min_length=12, max_length=64)
 
     @field_validator("password", mode="after")
-    def has_digits(cls, val: str) -> str:
+    def has_digits(cls, val: SecretStr) -> SecretStr:
         """Has at least two digits, and password not exclusively digits"""
-        n_digits = len(re.findall(r"\d{1}", val))
+        str_val = val.get_secret_value() if isinstance(val, SecretStr) else val
+        n_digits = len(re.findall(r"\d{1}", str_val))
 
         assert n_digits >= 2, "Passwords must have at least two digits"
-        assert n_digits <= len(val) - 2, "Passwords must have at least two non-digit characters"
+        assert n_digits <= len(str_val) - 2, "Passwords must have at least two non-digit characters"
 
         return val
 
     @field_validator("password", mode="after")
-    def normalize_unicode(cls, val: str) -> str:
+    def normalize_unicode(cls, val: SecretStr) -> SecretStr:
         """
         Normalize passwords to form C
 
@@ -136,7 +137,7 @@ class AccountCreate(AccountBase):
         https://www.unicode.org/reports/tr15/#Stability_of_Normalized_Forms
         https://www.rfc-editor.org/rfc/rfc8265#section-4.2
         """
-        return unicodedata.normalize("NFC", val)
+        return SecretStr(unicodedata.normalize("NFC", val.get_secret_value()))
 
 
 class AccountRead(AccountBase):
