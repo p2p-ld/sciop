@@ -130,7 +130,7 @@ QID_PATTERN = r"^Q\d+$"
 
 def _strip_doi_prefix(val: str) -> str:
     val = val.strip()
-    val = re.sub(r"^https://doi\.org/", "", val)
+    val = re.sub(r"^https?://(:?dx\.)?doi\.org/", "", val)
     val = re.sub(r"^doi:[/]{,2}", "", val)
     return val
 
