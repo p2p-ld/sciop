@@ -2,6 +2,7 @@ from typing import Optional
 from urllib.parse import urljoin
 
 from sqlalchemy import event
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -113,6 +114,16 @@ class Upload(UploadBase, TableMixin, table=True):
             <strong>Method:</strong> {self.method}
             </p>
         """
+
+    @hybrid_property
+    def is_visible(self) -> bool:
+        """Whether the dataset should be displayed and included in feeds"""
+        return self.is_approved and not self.is_removed
+
+    @hybrid_property
+    def needs_review(self) -> bool:
+        """Whether a dataset needs to be reviewed"""
+        return not self.is_approved and not self.is_removed
 
 
 @event.listens_for(Upload.is_removed, "set")

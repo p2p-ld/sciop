@@ -41,8 +41,8 @@ async def approve_dataset(
 async def deny_dataset(
     dataset_slug: str, account: RequireReviewer, session: SessionDep, dataset: RequireDataset
 ) -> SuccessResponse:
-
-    session.delete(dataset)
+    dataset.is_removed = True
+    session.add(dataset)
     session.commit()
 
     crud.log_moderation_action(
@@ -69,7 +69,8 @@ async def approve_upload(
 async def deny_upload(
     infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
 ) -> SuccessResponse:
-    session.delete(upload)
+    upload.is_removed = True
+    session.add(upload)
     session.commit()
     crud.log_moderation_action(
         session=session, actor=account, action=ModerationAction.deny, target=upload
@@ -85,7 +86,8 @@ async def suspend_account(
         raise HTTPException(403, "You cannot suspend yourself")
     if account.has_scope("admin") and not current_account.has_scope("root"):
         raise HTTPException(403, "Admins can't can't ban other admins or roots")
-    session.delete(account)
+    account.is_suspended = True
+    session.add(account)
     session.commit()
     crud.log_moderation_action(
         session=session, actor=current_account, action=ModerationAction.suspend, target=account

@@ -124,6 +124,23 @@ RequireDataset = Annotated[Dataset, Depends(require_dataset)]
 RequireApprovedDataset = Annotated[Dataset, Depends(require_approved_dataset)]
 
 
+def require_visible_dataset(dataset: RequireDataset, current_account: CurrentAccount) -> Dataset:
+    if dataset.is_visible or not (
+        dataset.is_removed
+        and current_account
+        and (
+            current_account.has_scope("review")
+            or (dataset.account and current_account.account_id == dataset.account.account_id)
+        )
+    ):
+        return dataset
+    else:
+        raise HTTPException(404)
+
+
+RequireVisibleDataset = Annotated[Dataset, Depends(require_visible_dataset)]
+
+
 def require_dataset_part(
     dataset_slug: str, dataset_part_slug: str, session: SessionDep
 ) -> DatasetPart:
@@ -139,6 +156,25 @@ def require_dataset_part(
 
 
 RequireDatasetPart = Annotated[DatasetPart, Depends(require_dataset_part)]
+
+
+def require_visible_dataset_part(
+    part: RequireDatasetPart, current_account: CurrentAccount
+) -> DatasetPart:
+    if part.is_visible or not (
+        part.is_removed
+        and current_account
+        and (
+            current_account.has_scope("review")
+            or (part.account and current_account.account_id == part.account.account_id)
+        )
+    ):
+        return part
+    else:
+        raise HTTPException(404)
+
+
+RequireVisibleDatasetPart = Annotated[DatasetPart, Depends(require_visible_dataset_part)]
 
 
 def require_upload(infohash: str, session: SessionDep) -> Upload:
@@ -165,9 +201,26 @@ RequireUpload = Annotated[Upload, Depends(require_upload)]
 RequireApprovedUpload = Annotated[Upload, Depends(require_approved_upload)]
 
 
+def require_visible_upload(upload: RequireUpload, current_account: CurrentAccount) -> Upload:
+    if upload.is_visible or not (
+        upload.is_removed
+        and current_account
+        and (
+            current_account.has_scope("review")
+            or (upload.account and current_account.account_id == upload.account.account_id)
+        )
+    ):
+        return upload
+    else:
+        raise HTTPException(404)
+
+
+RequireVisibleUpload = Annotated[Upload, Depends(require_visible_upload)]
+
+
 def require_account(username: str, session: SessionDep) -> Account:
     account = crud.get_account(session=session, username=username)
-    if not account:
+    if not account or account.is_suspended:
         raise HTTPException(
             status_code=404,
             detail=f"No such account {username} exists!",

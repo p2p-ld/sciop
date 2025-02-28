@@ -18,7 +18,7 @@ uploads_router = APIRouter(prefix="/uploads")
 
 @uploads_router.get("/", response_class=HTMLResponse)
 async def uploads(request: Request, session: SessionDep):
-    uploads = crud.get_approved_uploads(session=session)
+    uploads = crud.get_visible_uploads(session=session)
     return templates.TemplateResponse(
         request,
         "pages/uploads.html",
@@ -30,11 +30,11 @@ async def uploads(request: Request, session: SessionDep):
 @jinja.hx("partials/uploads.html")
 async def uploads_search(query: str = None, session: SessionDep = None) -> Page[DatasetRead]:
     if not query or len(query) < 3:
-        stmt = select(Dataset).where(Dataset.is_approved == True).order_by(Dataset.created_at)
+        stmt = select(Dataset).where(Dataset.is_visible == True).order_by(Dataset.created_at)
     else:
         stmt = (
             select(Dataset)
-            .where(Dataset.is_approved == True)
+            .where(Dataset.is_visible == True)
             .filter(Dataset.dataset_id.in_(Dataset.search_statement(query)))
         )
     return paginate(conn=session, query=stmt)

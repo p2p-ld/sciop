@@ -20,7 +20,7 @@ MAX_FEED_ITEMS = 500
 async def all_feed(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
-        .filter(Upload.is_approved == True)
+        .filter(Upload.is_visible == True)
         .order_by(Upload.created_at.desc())
         .limit(500)
     )
@@ -36,7 +36,7 @@ async def all_feed(session: SessionDep) -> RSSResponse:
 
 @rss_router.get("/tag/{tag}.rss")
 async def tag_feed(tag: str, session: SessionDep) -> RSSResponse:
-    uploads = crud.get_uploads_from_tag(session=session, tag=tag)
+    uploads = crud.get_uploads_from_tag(session=session, tag=tag, visible=True)
     if not uploads:
         raise HTTPException(404, detail=f"No uploads found for tag {tag}")
     feed = TorrentFeed.from_uploads(
@@ -54,7 +54,7 @@ async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
         stmt = (
             select(Upload)
             .join(Dataset)
-            .filter(Upload.is_approved == True, Dataset.source_available == True)
+            .filter(Upload.is_visible == True, Dataset.source_available == True)
             .order_by(Upload.created_at.desc())
             .limit(MAX_FEED_ITEMS)
         )
@@ -62,7 +62,7 @@ async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
         stmt = (
             select(Upload)
             .join(Dataset)
-            .filter(Upload.is_approved == True, Dataset.source_available == False)
+            .filter(Upload.is_visible == True, Dataset.source_available == False)
             .order_by(Upload.created_at.desc())
             .limit(MAX_FEED_ITEMS)
         )
@@ -85,7 +85,7 @@ async def scarcity_feed(scarcity: str, session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .join(Dataset)
-        .filter(Upload.is_approved == True, Dataset.scarcity == scarcity)
+        .filter(Upload.is_visible == True, Dataset.scarcity == scarcity)
         .order_by(Upload.created_at.desc())
         .limit(MAX_FEED_ITEMS)
     )
@@ -106,7 +106,7 @@ async def threat_feed(threat: str, session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .join(Dataset)
-        .filter(Upload.is_approved == True, Dataset.threat == threat)
+        .filter(Upload.is_visible == True, Dataset.threat == threat)
         .order_by(Upload.created_at.desc())
         .limit(MAX_FEED_ITEMS)
     )

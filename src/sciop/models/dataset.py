@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union
 from annotated_types import MaxLen
 from pydantic import TypeAdapter, computed_field, field_validator, model_validator
 from sqlalchemy import event
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
@@ -210,6 +211,17 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     is_removed: bool = Field(
         False, description="Whether the dataset has been, for all practical purposes, deleted."
     )
+
+    # TODO: https://github.com/fastapi/sqlmodel/issues/299#issuecomment-2223569400
+    @hybrid_property
+    def is_visible(self) -> bool:
+        """Whether the dataset should be displayed and included in feeds"""
+        return self.is_approved and not self.is_removed
+
+    @hybrid_property
+    def needs_review(self) -> bool:
+        """Whether a dataset needs to be reviewed"""
+        return not self.is_approved and not self.is_removed
 
 
 @event.listens_for(Dataset.is_removed, "set")
@@ -478,6 +490,16 @@ class DatasetPart(DatasetPartBase, TableMixin, table=True):
     is_removed: bool = Field(
         False, description="Whether the dataset part has been, for all practical purposes, deleted."
     )
+
+    @hybrid_property
+    def is_visible(self) -> bool:
+        """Whether the dataset should be displayed and included in feeds"""
+        return self.is_approved and not self.is_removed
+
+    @hybrid_property
+    def needs_review(self) -> bool:
+        """Whether a dataset needs to be reviewed"""
+        return not self.is_approved and not self.is_removed
 
 
 @event.listens_for(DatasetPart.is_removed, "set")

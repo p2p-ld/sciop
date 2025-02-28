@@ -20,7 +20,7 @@ async def tags_show() -> Page[Tag]:
 async def tags_search(query: str = None, session: SessionDep = None) -> Page[TagSummary]:
     subq = (
         select(func.count(Upload.upload_id))
-        .filter(Dataset.dataset_id == Upload.dataset_id, Upload.is_approved == True)
+        .filter(Dataset.dataset_id == Upload.dataset_id, Upload.is_visible == True)
         .correlate(Dataset)
         .scalar_subquery()
     )
@@ -36,7 +36,7 @@ async def tags_search(query: str = None, session: SessionDep = None) -> Page[Tag
         .filter(
             Tag.tag.like(f"%{query}%"),
             Dataset.tags.any(Tag.tag.like(f"%{query}%")),
-            Dataset.is_approved == True,
+            Dataset.is_visible == True,
         )
         .order_by(text("n_uploads DESC"))
     )

@@ -64,3 +64,13 @@ def test_add_part_unauth(driver_as_user, default_db):
     and then it is shown as being disabled
     """
     pass
+
+
+@pytest.mark.skip()
+def test_no_include_unapproved():
+    pass
+
+
+@pytest.mark.skip()
+def test_no_include_removed():
+    pass

@@ -143,3 +143,18 @@ def test_no_double_scope(session, client, account, admin_auth_header):
     session.refresh(account_)
     assert account_.has_scope("review")
     assert len(account_.scopes) == 1
+
+
+@pytest.mark.skip()
+def test_deny_dataset_no_delete():
+    pass
+
+
+@pytest.mark.skip()
+def test_deny_dataset_part_no_delete():
+    pass
+
+
+@pytest.mark.skip()
+def test_suspend_account_no_delete():
+    pass
