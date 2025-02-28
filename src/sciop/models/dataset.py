@@ -1,11 +1,17 @@
+import hashlib
+import re
 from datetime import datetime
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union
 
+from annotated_types import MaxLen
 from pydantic import TypeAdapter, computed_field, field_validator, model_validator
+from sqlalchemy import event
+from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel.main import FieldInfo
 
-from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS
+from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PREFIX_LEN
 from sciop.models.account import Account
 from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
 from sciop.models.tag import DatasetTagLink
@@ -28,6 +34,30 @@ from sciop.types import (
 if TYPE_CHECKING:
     from sciop.models import AuditLog, Tag, Upload, UploadRead
 
+PREFIX_PATTERN = re.compile(r"\w{6}-[A-Z]{3}_\S+")
+
+
+def _add_prefix(val: str, timestamp: datetime, key: str) -> str:
+    # underscores can only get in slugs through prefix events
+    if "__" in val:
+        return val
+    hasher = hashlib.blake2b(digest_size=3)
+    hasher.update(timestamp.isoformat().encode("utf-8"))
+    hash = hasher.hexdigest()
+    return f"{hash}-{key.upper()}__{val}"
+
+
+def _remove_prefix(val: str) -> str:
+    if "__" in val:
+        return val.split("__")[1]
+    else:
+        return val
+
+
+def _prefixed_len(info: FieldInfo) -> int:
+    max_len = [md for md in info.metadata if isinstance(md, MaxLen)][0]
+    return max_len.max_length + PREFIX_LEN
+
 
 class DatasetBase(SQLModel):
     title: EscapedStr = Field(
@@ -47,8 +77,6 @@ class DatasetBase(SQLModel):
     "Fundamental Climate Data Record - Mean Layer Temperature NOAA"
     use "fcdr-mlt-noaa". Converted to a slugified string.
     """,
-        unique=True,
-        index=True,
         min_length=2,
         max_length=128,
     )
@@ -155,6 +183,12 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     __tablename__ = "datasets"
     __searchable__ = ["title", "slug", "publisher", "homepage", "description"]
 
+    slug: SlugStr = Field(
+        unique=True,
+        index=True,
+        min_length=2,
+        max_length=_prefixed_len(DatasetBase.model_fields["slug"]),
+    )
     dataset_id: IDField = Field(None, primary_key=True)
     uploads: list["Upload"] = Relationship(back_populates="dataset")
     external_sources: list["ExternalSource"] = Relationship(back_populates="dataset")
@@ -168,11 +202,26 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
     account: Optional["Account"] = Relationship(back_populates="datasets")
     scrape_status: ScrapeStatus = "unknown"
+    audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
+    parts: list["DatasetPart"] = Relationship(back_populates="dataset")
     is_approved: bool = Field(
         False, description="Whether this dataset has been reviewed and is now visible"
     )
-    audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
-    parts: list["DatasetPart"] = Relationship(back_populates="dataset")
+    is_removed: bool = Field(
+        False, description="Whether the dataset has been, for all practical purposes, deleted."
+    )
+
+
+@event.listens_for(Dataset.is_removed, "set")
+def _datset_prefix_on_removal(
+    target: Dataset, value: bool, oldvalue: bool, initiator: AttributeEventToken
+) -> None:
+    """Add or remove a prefix when removal state is toggled"""
+    if value:
+        # add prefix
+        target.slug = _add_prefix(target.slug, target.created_at, "REM")
+    else:
+        target.slug = _remove_prefix(target.slug)
 
 
 class DatasetCreate(DatasetBase):
@@ -267,6 +316,7 @@ class DatasetCreate(DatasetBase):
 
 
 class DatasetRead(DatasetBase, TableReadMixin):
+    slug: SlugStr = Field(min_length=2, max_length=_prefixed_len(DatasetBase.model_fields["slug"]))
     uploads: list["UploadRead"] = Field(default_factory=list)
     external_sources: list["ExternalSource"] = Field(default_factory=list)
     external_identifiers: list["ExternalIdentifierRead"] = Field(default_factory=list)
@@ -329,7 +379,7 @@ class ExternalIdentifierBase(SQLModel):
     """
 
     type: ExternalIdentifierType
-    identifier: str = Field(max_length=512)
+    identifier: str = Field(min_length=1, max_length=512)
 
     @property
     def uri(self) -> str:
@@ -397,7 +447,6 @@ class DatasetPartBase(SQLModel):
         description="Unique identifier for this dataset part",
         min_length=1,
         max_length=256,
-        index=True,
     )
     description: Optional[EscapedStr] = Field(
         None,
@@ -411,6 +460,11 @@ class DatasetPart(DatasetPartBase, TableMixin, table=True):
     __tablename__ = "dataset_parts"
     __table_args__ = (UniqueConstraint("dataset_id", "part_slug", name="_dataset_part_slug_uc"),)
 
+    part_slug: SlugStr = Field(
+        index=True,
+        min_length=1,
+        max_length=_prefixed_len(DatasetPartBase.model_fields["part_slug"]),
+    )
     dataset_part_id: IDField = Field(None, primary_key=True)
     dataset_id: Optional[int] = Field(None, foreign_key="datasets.dataset_id")
     dataset: Optional[Dataset] = Relationship(back_populates="parts")
@@ -421,6 +475,21 @@ class DatasetPart(DatasetPartBase, TableMixin, table=True):
     )
     paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
     is_approved: bool = False
+    is_removed: bool = Field(
+        False, description="Whether the dataset part has been, for all practical purposes, deleted."
+    )
+
+
+@event.listens_for(DatasetPart.is_removed, "set")
+def _part_prefix_on_removal(
+    target: DatasetPart, value: bool, oldvalue: bool, initiator: AttributeEventToken
+) -> None:
+    """Add or remove a prefix when removal state is toggled"""
+    if value:
+        # add prefix
+        target.part_slug = _add_prefix(target.part_slug, target.created_at, "REM")
+    else:
+        target.part_slug = _remove_prefix(target.part_slug)
 
 
 class DatasetPartCreate(DatasetPartBase):

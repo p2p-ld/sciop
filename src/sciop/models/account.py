@@ -116,6 +116,7 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
             primaryjoin="Account.account_id == AuditLog.target_account_id",
         ),
     )
+    is_suspended: bool = False
 
     def can_suspend(self, account: "Account") -> bool:
         """Whether this account can suspend another account"""

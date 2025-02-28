@@ -1,6 +1,8 @@
 from typing import Optional
 from urllib.parse import urljoin
 
+from sqlalchemy import event
+from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.config import config
@@ -43,10 +45,14 @@ class Upload(UploadBase, TableMixin, table=True):
     torrent: Optional["TorrentFile"] = Relationship(
         back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
     )
-    is_approved: bool = False
+
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
     seeders: Optional[int] = None
     leechers: Optional[int] = None
+    is_approved: bool = False
+    is_removed: bool = Field(
+        False, description="Whether the Upload has been, for all practical purposes, deleted."
+    )
 
     @property
     def human_size(self) -> str:
@@ -107,6 +113,19 @@ class Upload(UploadBase, TableMixin, table=True):
             <strong>Method:</strong> {self.method}
             </p>
         """
+
+
+@event.listens_for(Upload.is_removed, "set")
+def _upload_remove_torrent(
+    target: Upload, value: bool, oldvalue: bool, initiator: AttributeEventToken
+) -> None:
+    """Remove an associated torrent when the"""
+    if value and target.torrent:
+        from sciop.db import get_session
+
+        with next(get_session()) as session:
+            session.delete(target.torrent)
+            session.commit()
 
 
 class UploadRead(UploadBase, TableReadMixin):
