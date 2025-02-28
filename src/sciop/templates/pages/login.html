@@ -1,4 +1,9 @@
 {% extends "layouts/default.html" %}
+{% block head %}
+{% with title = "Login" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
 {% block content %}
 <div class="login-form-container">
 <h1>Login</h1>

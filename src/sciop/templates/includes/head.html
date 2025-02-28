@@ -4,7 +4,13 @@
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<meta name="description" content="Preserving Public Information"/>
 	<meta name="keywords" content="" />
-	<title>SciOp - Public Information Preservation</title>
+	<title>
+	    {% if title %}
+		{{ title }} - SciOp
+	    {% else %}
+		SciOp - Public Information Preservation
+	    {% endif %}
+	</title>
 	<!-- <link rel="shortcut icon" href=""> -->
 	<!-- custom - css include -->
 	<link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">

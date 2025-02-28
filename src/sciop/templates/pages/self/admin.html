@@ -1,4 +1,9 @@
 {% extends "layouts/default.html" %}
+{% block head %}
+{% with title = "Admin" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
 {% block content %}
 {% include "includes/self-tabs.html" %}
 <div class="page-header">
