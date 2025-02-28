@@ -208,8 +208,8 @@ def create_seed_data() -> None:
 
         # generate a bunch of approved datasets to test pagination
         n_datasets = session.exec(select(func.count(Dataset.dataset_id))).one()
-        if n_datasets < 500:
-            for _ in range(500):
+        if n_datasets < 200:
+            for _ in range(200):
                 generated_dataset = _generate_dataset(fake)
                 dataset = crud.create_dataset(session=session, dataset_create=generated_dataset)
                 dataset.dataset_created_at = datetime.now(UTC)

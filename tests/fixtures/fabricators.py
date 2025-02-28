@@ -172,7 +172,7 @@ def torrent(default_torrent: dict, tmp_path: Path) -> C[P, Torrent]:
 
     def _torrent(**kwargs: P.kwargs) -> Torrent:
         default_torrent.update(kwargs)
-        file_in_torrent = Path(kwargs["path"])
+        file_in_torrent = Path(default_torrent["path"])
         if not file_in_torrent.is_absolute():
             file_in_torrent = tmp_path / file_in_torrent
         with open(file_in_torrent, "wb") as f:

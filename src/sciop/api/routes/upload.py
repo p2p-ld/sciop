@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, UploadFile
 
 from sciop import crud
 from sciop.api.deps import RequireUploader, SessionDep
+from sciop.logging import init_logger
 from sciop.models import (
     FileInTorrentCreate,
     Torrent,
@@ -13,6 +14,7 @@ from sciop.models import (
 )
 
 upload_router = APIRouter(prefix="/upload")
+upload_logger = init_logger("api.upload")
 
 
 def _hash_file(file: UploadFile) -> str:
@@ -28,6 +30,7 @@ async def upload_torrent(
     """
     Upload a torrent file prior to creating a Dataset upload
     """
+    upload_logger.debug("Processing torrent file")
     torrent = Torrent.read_stream(file.file)
     torrent.validate()
     existing_torrent = crud.get_torrent_from_infohash(
@@ -39,6 +42,20 @@ async def upload_torrent(
             detail="An identical torrent file already exists!",
         )
 
+    trackers = [tracker for tier in torrent.trackers for tracker in tier]
+    if len(trackers) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "msg": (
+                    "Uploaded torrents must contain at least one tracker. "
+                    'See the <a href="/docs/uploading/trackers/#default-trackers">'
+                    "default trackers list.</a>"
+                ),
+                "raw_html": True,
+            },
+        )
+
     created_torrent = TorrentFileCreate(
         file_name=file.filename,
         v1_infohash=torrent.infohash,
@@ -46,10 +63,11 @@ async def upload_torrent(
         version=torrent.torrent_version,
         total_size=torrent.size,
         piece_size=torrent.piece_size,
-        files=[FileInTorrentCreate(path=str(_file), size=_file.size) for _file in torrent.files],
-        trackers=[tracker for tier in torrent.trackers for tracker in tier],
+        files=[FileInTorrentCreate(path=_file.path, size=_file.size) for _file in torrent.files],
+        trackers=trackers,
     )
 
+    upload_logger.debug("Writing torrent file to disk")
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
     await file.seek(0)
     with open(created_torrent.filesystem_path, "wb") as f:
@@ -57,7 +75,7 @@ async def upload_torrent(
         f.write(data)
 
     created_torrent.torrent_size = Path(created_torrent.filesystem_path).stat().st_size
-
+    upload_logger.debug("Creating torrent file in db")
     created_torrent = crud.create_torrent(
         session=session, created_torrent=created_torrent, account=account
     )

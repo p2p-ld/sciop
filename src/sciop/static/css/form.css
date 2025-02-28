@@ -144,6 +144,23 @@ div.dataset-parts-add-container {
     padding: 1em;
 }
 
+form.upload-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+
+    .status-bar{
+        display: flex;
+        flex-direction: row;
+        gap: 1em;
+
+        progress {
+            flex-grow: 1;
+        }
+    }
+}
+
 .color-strip {
     --strip-color: var(--color-primary);
     --strip-color-contrast: var(--color-primary-contrast);

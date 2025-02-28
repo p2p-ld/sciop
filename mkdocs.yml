@@ -10,6 +10,8 @@ nav:
   - index.md
   - Scraper's Guide:
     - Checksums: scraping/checksums.md
+  - Uploading:
+    - Trackers: uploading/trackers.md
   - API: /docs/api
 
 theme:
@@ -29,11 +31,16 @@ theme:
   features:
     - navigation.tabs
     - navigation.path
+    - content.code.copy
 
 
 # this will get overridden by {config.public_url} + '/docs/'
 # when built by the app
 site_url: https://sciop.net/docs/
+
+markdown_extensions:
+  - pymdownx.snippets:
+      base_path: ["docs/"]
 
 
 

@@ -30,6 +30,7 @@ body {
   --color-primary-shade-2: color-mix(in lch, var(--color-primary) 65%, white);
   --color-primary-shade-3: color-mix(in lch, var(--color-primary) 50%, white);
   --color-primary-darker-1: color-mix(in lch, var(--color-primary) 80%, var(--color-dark-background));
+  --color-border: #666;
   --color-border-deemphasized: #333;
   --color-deemphasized: #888;
   --color-disabled: #404040;
