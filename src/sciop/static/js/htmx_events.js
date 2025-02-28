@@ -152,6 +152,11 @@ function init_token_input(){
 }
 init_token_input();
 
-htmx.on('#upload-form', 'htmx:xhr:progress', function(evt) {
-  htmx.find('#progress').setAttribute('value', evt.detail.loaded/evt.detail.total * 100)
-});
+function init_upload_progress() {
+  let upload_form = document.querySelector("#upload-form");
+  if (upload_form === null){return}
+  htmx.on('#upload-form', 'htmx:xhr:progress', function (evt) {
+    htmx.find('#progress').setAttribute('value', evt.detail.loaded / evt.detail.total * 100)
+  });
+}
+init_upload_progress()
