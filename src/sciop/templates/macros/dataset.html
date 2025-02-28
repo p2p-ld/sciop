@@ -126,7 +126,7 @@
 
     <h{{ header_start + 1 }}>Uploads</h{{ header_start + 1 }}>
 
-    {% if dataset.enabled %}
+    {% if dataset.is_approved %}
     <div id="dataset-uploads-container" class="uploads-container container">
         <div
             hx-get="/datasets/{{ dataset.slug }}/uploads"
@@ -141,7 +141,7 @@
     {% endif %}
 
     <div class="upload-button">
-    {% if not dataset.enabled %}
+    {% if not dataset.is_approved %}
         {% if current_account and current_account.has_scope("review") %}
         <button class="button success-button" id="approve-button"
                 hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve this dataset</button>

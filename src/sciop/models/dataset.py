@@ -168,7 +168,9 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
     account: Optional["Account"] = Relationship(back_populates="datasets")
     scrape_status: ScrapeStatus = "unknown"
-    enabled: bool = False
+    is_approved: bool = Field(
+        False, description="Whether this dataset has been reviewed and is now visible"
+    )
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
     parts: list["DatasetPart"] = Relationship(back_populates="dataset")
 
@@ -271,7 +273,7 @@ class DatasetRead(DatasetBase, TableReadMixin):
     urls: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
     scrape_status: ScrapeStatus
-    enabled: bool
+    is_approved: bool
 
     @field_validator("tags", mode="before")
     def collapse_tags(cls, val: list["Tag"]) -> list[str]:
@@ -418,7 +420,7 @@ class DatasetPart(DatasetPartBase, TableMixin, table=True):
         back_populates="dataset_parts", link_model=UploadDatasetPartLink
     )
     paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
-    enabled: bool = False
+    is_approved: bool = False
 
 
 class DatasetPartCreate(DatasetPartBase):

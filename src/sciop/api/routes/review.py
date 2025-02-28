@@ -27,7 +27,7 @@ async def approve_dataset(
     dataset: RequireDataset,
     response: Response,
 ) -> SuccessResponse:
-    dataset.enabled = True
+    dataset.is_approved = True
     session.add(dataset)
     session.commit()
 
@@ -55,7 +55,7 @@ async def deny_dataset(
 async def approve_upload(
     infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
 ) -> SuccessResponse:
-    upload.enabled = True
+    upload.is_approved = True
     session.add(upload)
     session.commit()
 

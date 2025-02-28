@@ -19,7 +19,10 @@ MAX_FEED_ITEMS = 500
 @rss_router.get("/all.rss")
 async def all_feed(session: SessionDep) -> RSSResponse:
     stmt = (
-        select(Upload).filter(Upload.enabled == True).order_by(Upload.created_at.desc()).limit(500)
+        select(Upload)
+        .filter(Upload.is_approved == True)
+        .order_by(Upload.created_at.desc())
+        .limit(500)
     )
     uploads = session.exec(stmt).all()
     feed = TorrentFeed.from_uploads(
@@ -51,7 +54,7 @@ async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
         stmt = (
             select(Upload)
             .join(Dataset)
-            .filter(Upload.enabled == True, Dataset.source_available == True)
+            .filter(Upload.is_approved == True, Dataset.source_available == True)
             .order_by(Upload.created_at.desc())
             .limit(MAX_FEED_ITEMS)
         )
@@ -59,7 +62,7 @@ async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
         stmt = (
             select(Upload)
             .join(Dataset)
-            .filter(Upload.enabled == True, Dataset.source_available == False)
+            .filter(Upload.is_approved == True, Dataset.source_available == False)
             .order_by(Upload.created_at.desc())
             .limit(MAX_FEED_ITEMS)
         )
@@ -82,7 +85,7 @@ async def scarcity_feed(scarcity: str, session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .join(Dataset)
-        .filter(Upload.enabled == True, Dataset.scarcity == scarcity)
+        .filter(Upload.is_approved == True, Dataset.scarcity == scarcity)
         .order_by(Upload.created_at.desc())
         .limit(MAX_FEED_ITEMS)
     )
@@ -103,7 +106,7 @@ async def threat_feed(threat: str, session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .join(Dataset)
-        .filter(Upload.enabled == True, Dataset.threat == threat)
+        .filter(Upload.is_approved == True, Dataset.threat == threat)
         .order_by(Upload.created_at.desc())
         .limit(MAX_FEED_ITEMS)
     )

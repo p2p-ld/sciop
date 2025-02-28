@@ -107,21 +107,21 @@ def require_dataset(dataset_slug: str, session: SessionDep) -> Dataset:
     return dataset
 
 
-def require_enabled_dataset(dataset_slug: str, session: SessionDep) -> Dataset:
+def require_approved_dataset(dataset_slug: str, session: SessionDep) -> Dataset:
     """
-    Require that a dataset exists and is enabled
+    Require that a dataset exists and is is_approved
     """
     dataset = require_dataset(dataset_slug, session)
-    if not dataset.enabled:
+    if not dataset.is_approved:
         raise HTTPException(
             status_code=401,
-            detail=f"Dataset {dataset_slug} not enabled for uploads",
+            detail=f"Dataset {dataset_slug} not approved for uploads",
         )
     return dataset
 
 
 RequireDataset = Annotated[Dataset, Depends(require_dataset)]
-RequireEnabledDataset = Annotated[Dataset, Depends(require_enabled_dataset)]
+RequireApprovedDataset = Annotated[Dataset, Depends(require_approved_dataset)]
 
 
 def require_dataset_part(
@@ -151,18 +151,18 @@ def require_upload(infohash: str, session: SessionDep) -> Upload:
     return upload
 
 
-def require_enabled_upload(infohash: str, session: SessionDep) -> Upload:
+def require_approved_upload(infohash: str, session: SessionDep) -> Upload:
     upload = require_upload(infohash, session)
-    if not upload.enabled:
+    if not upload.is_approved:
         raise HTTPException(
             status_code=401,
-            detail=f"Upload {infohash} is not enabled",
+            detail=f"Upload {infohash} is not approved",
         )
     return upload
 
 
 RequireUpload = Annotated[Upload, Depends(require_upload)]
-RequireEnabledUpload = Annotated[Upload, Depends(require_enabled_upload)]
+RequireApprovedUpload = Annotated[Upload, Depends(require_approved_upload)]
 
 
 def require_account(username: str, session: SessionDep) -> Account:

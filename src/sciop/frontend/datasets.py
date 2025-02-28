@@ -11,9 +11,9 @@ from starlette.datastructures import QueryParams
 from sciop import crud
 from sciop.api.deps import (
     CurrentAccount,
+    RequireApprovedDataset,
     RequireDataset,
     RequireDatasetPart,
-    RequireEnabledDataset,
     RequireUploader,
     SessionDep,
 )
@@ -33,11 +33,13 @@ async def datasets(request: Request):
 @jinja.hx("partials/datasets.html")
 async def datasets_search(query: str = None, session: SessionDep = None) -> Page[DatasetRead]:
     if not query or len(query) < 3:
-        stmt = select(Dataset).where(Dataset.enabled == True).order_by(Dataset.created_at.desc())
+        stmt = (
+            select(Dataset).where(Dataset.is_approved == True).order_by(Dataset.created_at.desc())
+        )
     else:
         stmt = (
             select(Dataset)
-            .where(Dataset.enabled == True)
+            .where(Dataset.is_approved == True)
             .filter(Dataset.dataset_id.in_(Dataset.search_statement(query)))
         )
     return paginate(conn=session, query=stmt)
@@ -114,7 +116,7 @@ async def dataset_upload_start(
     dataset_slug: str,
     account: RequireUploader,
     session: SessionDep,
-    dataset: RequireEnabledDataset,
+    dataset: RequireApprovedDataset,
     request: Request,
 ):
     """
@@ -132,7 +134,7 @@ async def dataset_upload_start(
 @datasets_router.post("/{dataset_slug}/upload/torrent", response_class=HTMLResponse)
 async def dataset_upload_torrent(
     dataset_slug: str,
-    dataset: RequireEnabledDataset,
+    dataset: RequireApprovedDataset,
     file: Annotated[UploadFile, File()],
     account: RequireUploader,
     session: SessionDep,

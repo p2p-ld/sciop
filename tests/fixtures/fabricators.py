@@ -149,7 +149,7 @@ def dataset(
     default_dataset: dict, session: Session
 ) -> C[Concatenate[bool, Session | None, P], Dataset]:
     def _dataset(
-        enabled: bool = True, session_: Session | None = None, **kwargs: P.kwargs
+        is_approved: bool = True, session_: Session | None = None, **kwargs: P.kwargs
     ) -> Dataset:
         if session_ is None:
             session_ = session
@@ -157,7 +157,7 @@ def dataset(
 
         created = DatasetCreate(**default_dataset)
         dataset = crud.create_dataset(session=session_, dataset_create=created)
-        dataset.enabled = enabled
+        dataset.is_approved = is_approved
         session_.add(dataset)
         session_.commit()
         session_.flush()
@@ -228,7 +228,7 @@ def upload(
     Concatenate[bool, TorrentFile | None, Account | None, Dataset | None, Session | None, P], Upload
 ]:
     def _upload(
-        enabled: bool = True,
+        is_approved: bool = True,
         torrentfile_: TorrentFile | None = None,
         account_: Account | None = None,
         dataset_: Dataset | None = None,
@@ -242,7 +242,7 @@ def upload(
         if torrentfile_ is None:
             torrentfile_ = torrentfile(account_=account_, session_=session_)
         if dataset_ is None:
-            dataset_ = dataset(enabled=True, session=session_)
+            dataset_ = dataset(is_approved=True, session=session_)
 
         default_upload.update(kwargs)
         if "torrent_infohash" not in kwargs:
@@ -251,7 +251,7 @@ def upload(
         created = crud.create_upload(
             session=session_, created_upload=created, dataset=dataset_, account=account_
         )
-        created.enabled = enabled
+        created.is_approved = is_approved
         session_.add(created)
         session_.commit()
         session_.refresh(created)
@@ -339,8 +339,8 @@ def default_db(
     )
     uploader = account(scopes=[Scopes.upload], session_=session, username="uploader")
     tfile = torrentfile(account_=uploader, session_=session)
-    dataset_ = dataset(enabled=True, session_=session)
+    dataset_ = dataset(is_approved=True, session_=session)
     upload_ = upload(
-        enabled=True, torrentfile_=tfile, account_=uploader, dataset_=dataset_, session_=session
+        is_approved=True, torrentfile_=tfile, account_=uploader, dataset_=dataset_, session_=session
     )
     yield admin, uploader, tfile, dataset_, upload_

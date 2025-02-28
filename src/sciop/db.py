@@ -164,7 +164,7 @@ def create_seed_data() -> None:
                     tags=["unapproved", "test", "aaa", "bbb"],
                 ),
             )
-        unapproved_dataset.enabled = False
+        unapproved_dataset.is_approved = False
         session.add(unapproved_dataset)
 
         approved_dataset = crud.get_dataset(dataset_slug="approved", session=session)
@@ -185,7 +185,7 @@ def create_seed_data() -> None:
                     tags=["approved", "test", "aaa", "bbb", "ccc"],
                 ),
             )
-        approved_dataset.enabled = True
+        approved_dataset.is_approved = True
         session.add(approved_dataset)
         session.commit()
         session.refresh(approved_dataset)
@@ -193,7 +193,7 @@ def create_seed_data() -> None:
         approved_upload = crud.get_upload_from_infohash(session=session, infohash="abcdefgh")
         if not approved_upload:
             approved_upload = _generate_upload("abcdefgh", uploader, approved_dataset, session)
-        approved_upload.enabled = True
+        approved_upload.is_approved = True
         session.add(approved_upload)
         session.commit()
 
@@ -202,7 +202,7 @@ def create_seed_data() -> None:
             unapproved_upload = _generate_upload(
                 "unapproved", uploader, unapproved_dataset, session
             )
-        unapproved_upload.enabled = False
+        unapproved_upload.is_approved = False
         session.add(unapproved_upload)
         session.commit()
 
@@ -214,7 +214,7 @@ def create_seed_data() -> None:
                 dataset = crud.create_dataset(session=session, dataset_create=generated_dataset)
                 dataset.dataset_created_at = datetime.now(UTC)
                 dataset.dataset_updated_at = datetime.now(UTC)
-                dataset.enabled = random.random() > 0.1
+                dataset.is_approved = random.random() > 0.1
                 dataset.uploads = [
                     _generate_upload(
                         fake.word(), uploader=uploader, dataset=dataset, session=session

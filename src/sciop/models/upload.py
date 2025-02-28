@@ -43,7 +43,7 @@ class Upload(UploadBase, TableMixin, table=True):
     torrent: Optional["TorrentFile"] = Relationship(
         back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
     )
-    enabled: bool = False
+    is_approved: bool = False
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
     seeders: Optional[int] = None
     leechers: Optional[int] = None
@@ -116,7 +116,7 @@ class UploadRead(UploadBase, TableReadMixin):
 
 
 class UploadCreate(UploadBase):
-    """Dataset upload for creation, excludes the enabled param"""
+    """Dataset upload for creation, excludes the is_approved param"""
 
     torrent_infohash: str = Field(
         min_length=40, max_length=64, description="Infohash of the torrent file, v1 or v2"

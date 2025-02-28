@@ -10,10 +10,10 @@ from starlette.responses import Response
 from sciop import crud
 from sciop.api.deps import (
     CurrentAccount,
+    RequireApprovedDataset,
     RequireCurrentAccount,
     RequireDataset,
     RequireDatasetPart,
-    RequireEnabledDataset,
     RequireUploader,
     SessionDep,
 )
@@ -105,7 +105,7 @@ async def dataset_show(dataset: RequireDataset) -> DatasetRead:
 async def datasets_create_upload(
     upload: UploadCreate,
     dataset_slug: str,
-    dataset: RequireEnabledDataset,
+    dataset: RequireApprovedDataset,
     account: RequireUploader,
     session: SessionDep,
 ) -> Upload:
@@ -127,7 +127,7 @@ async def datasets_create_upload(
 async def datasets_create_upload_form(
     upload: Annotated[UploadCreate, Form()],
     dataset_slug: str,
-    dataset: RequireEnabledDataset,
+    dataset: RequireApprovedDataset,
     account: RequireUploader,
     session: SessionDep,
     response: Response,
@@ -149,7 +149,7 @@ async def part_show_bulk(dataset: RequireDataset, account: CurrentAccount) -> li
     if account and account.has_scope("review"):
         return dataset.parts
     else:
-        return [p for p in dataset.parts if p.enabled]
+        return [p for p in dataset.parts if p.is_approved]
 
 
 @datasets_router.post("/{dataset_slug}/parts")
@@ -233,7 +233,7 @@ async def _part_create_bulk(
 async def part_show(
     dataset_slug: str, part_slug: str, account: CurrentAccount, part: RequireDatasetPart
 ) -> DatasetPartRead:
-    if not part.enabled and (not account or not account.has_scope("review")):
+    if not part.is_approved and (not account or not account.has_scope("review")):
         raise HTTPException(
             status_code=404,
             detail=f"No such dataset part {dataset_slug}/{part_slug} exists!",

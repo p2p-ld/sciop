@@ -86,7 +86,7 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
         if i.type in ("doi", "isbn", "issn"):
             g.add((DSID[d.slug], BIBO[i.type], Literal(i.identifier)))
     for u in d.uploads:
-        if not u.enabled:
+        if not u.is_approved:
             continue
         n = BNode()
         g.add((DSID[d.slug], DCAT["distribution"], n))
@@ -121,7 +121,7 @@ async def dataset_graph(slug: str, suffix: str, session: SessionDep) -> Response
     if suffix not in suffix_to_ctype:
         raise HTTPException(404, detail=f"No such serialisation: {suffix}")
     d = crud.get_dataset(session=session, dataset_slug=slug)
-    if d is None or not d.enabled:
+    if d is None or not d.is_approved:
         raise HTTPException(404, detail=f"No such dataset: {slug}")
     g = Graph()
     dataset_to_rdf(g, d)
