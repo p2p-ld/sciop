@@ -11,14 +11,21 @@
 
 <span>Make sure you have read the <a href="/docs/uploading">upload guide</a> for how to create your torrent!</span>
 
-<form id='upload-form' name="file" hx-encoding='multipart/form-data'
+<form id='{{ dataset.slug }}-upload-form' class="upload-form" name="file" hx-encoding='multipart/form-data'
       hx-post="/datasets/{{ dataset.slug }}/upload/torrent{% if parts %}?{{ parts | join('=on&') }}=on{% endif %}"
-    hx-swap="outerHTML">
+      hx-indicator="#{{ dataset.slug }}-upload-indicator"
+      hx-swap="outerHTML">
     <input type='file' name='file'>
-    <button type="submit">
-        Upload
-    </button>
-    <progress id='progress' value='0' max='100'></progress>
+    <div class="status-bar">
+        <button type="submit" class="form-button">
+            Upload
+        </button>
+        <progress id='progress' value='0' max='100' aria-label="Upload progress"></progress>
+
+        <span class="htmx-indicator loading-indicator" id="{{ dataset.slug }}-upload-indicator">
+          <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+        </span>
+    </div>
 </form>
 <script>
 

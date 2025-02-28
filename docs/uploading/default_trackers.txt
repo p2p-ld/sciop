@@ -1,0 +1,9 @@
+udp://opentracker.io:6969/announce
+udp://tracker.opentrackr.org:1337/announce
+udp://open.demonii.com:1337/announce
+udp://open.stealth.si:80/announce
+udp://tracker.torrent.eu.org:451/announce
+udp://tracker-udp.gbitt.info:80/announce
+udp://explodie.org:6969/announce
+udp://discord.heihachi.pw:6969/announce
+udp://bt.ktrackers.com:6666/announce

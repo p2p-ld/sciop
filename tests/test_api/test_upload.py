@@ -1,3 +1,5 @@
+import io
+
 import pytest
 from torf._errors import MetainfoError
 
@@ -55,3 +57,25 @@ def test_upload_torrent_infohash(
         if "v2_infohash" in hashes:
             assert created["v2_infohash"] == hashes["v2_infohash"]
         assert created["version"] == version
+
+
+@pytest.mark.parametrize("hx_request", [True, False])
+def test_upload_trackerless(client, uploader, get_auth_header, torrent, hx_request):
+    header = get_auth_header()
+    if hx_request:
+        header["HX-Request"] = "true"
+    torrent_ = torrent(trackers=[])
+    stream = io.BytesIO()
+    torrent_.write_stream(stream)
+    with stream as f:
+        response = client.post(
+            config.api_prefix + "/upload/torrent", headers=header, files={"file": f}
+        )
+        assert response.status_code == 400
+        if hx_request:
+            assert response.headers["hx-retarget"] == "#error-modal-container"
+            assert "text/html" in response.headers["content-type"]
+            assert "must contain at least one tracker" in response.text
+        else:
+            msg = response.json()
+            assert "must contain at least one tracker" in msg["detail"]["msg"]

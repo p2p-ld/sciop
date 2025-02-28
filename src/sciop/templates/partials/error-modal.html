@@ -10,6 +10,10 @@
             data-target="#error-modal-{{ id_n }}">close</button>
   </div>
   <div class="modal-body">
-    {{ detail }}
+    {% if raw_html %}
+    {{ msg | safe }}
+    {% else %}
+    {{ msg }}
+    {% endif %}
   </div>
 </div>

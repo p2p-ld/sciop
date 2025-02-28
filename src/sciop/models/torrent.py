@@ -1,7 +1,9 @@
 import hashlib
+import os
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Self
+from typing import TYPE_CHECKING, Any, Generator, Optional, Self
 
 import bencodepy
 import humanize
@@ -24,9 +26,25 @@ class TorrentVersion(StrEnum):
     hybrid = "hybrid"
 
 
+@dataclass
+class _File:
+    path: os.PathLike[str]
+    size: int
+
+
+def _to_str(val: str | bytes) -> str:
+    if isinstance(val, bytes):
+        return val.decode("utf-8", errors="replace")
+    elif isinstance(val, str):
+        return val
+    else:
+        return str(val)
+
+
 class Torrent(Torrent_):
     """
     Subclass of :class:`torf.Torrent` that can compute v2 infohashes
+    and not spend literally eons processing torrent files
     """
 
     @property
@@ -49,6 +67,40 @@ class Torrent(Torrent_):
         else:
             raise ValueError("Unsure what version this torrent is, likely invalid")
 
+    @property
+    def files(self) -> Generator[_File, None, None]:
+        """
+        Override of the ridiculously inefficient file listing method in torf
+        """
+        info = self.metainfo["info"]
+        if self.mode == "singlefile":
+            yield _File(path=_to_str(info.get("name", b"")), size=self.size)
+        elif self.mode == "multifile":
+
+            basedir = _to_str(info.get("name", b""))
+            for fileinfo in info["files"]:
+                yield _File(
+                    path=os.path.join(
+                        basedir, *(_to_str(file_part) for file_part in fileinfo["path"])
+                    ),
+                    size=fileinfo["length"],
+                )
+
+    @files.setter
+    def files(self, files: Any) -> None:
+        super(Torrent, self.__class__).files.fset(self, files)
+
+    @property
+    def n_files(self) -> int:
+        if self.mode == "singlefile":
+            return 1
+        else:
+            return len(self.metainfo["info"]["files"])
+
+    def _filters_changed(self, _: Any) -> None:
+        """Make this a no-op because it's wildly expensive"""
+        pass
+
 
 class FileInTorrent(TableMixin, table=True):
     """A file within a torrent file"""
@@ -59,7 +111,9 @@ class FileInTorrent(TableMixin, table=True):
     path: EscapedStr = Field(description="Path of file within torrent", max_length=1024)
     size: int = Field(description="Size in bytes")
 
-    torrent_id: Optional[int] = Field(default=None, foreign_key="torrent_files.torrent_file_id")
+    torrent_id: Optional[int] = Field(
+        default=None, foreign_key="torrent_files.torrent_file_id", ondelete="CASCADE"
+    )
     torrent: Optional["TorrentFile"] = Relationship(back_populates="files")
 
     @property
@@ -68,7 +122,7 @@ class FileInTorrent(TableMixin, table=True):
 
 
 class FileInTorrentCreate(SQLModel):
-    path: EscapedStr = Field(max_length=1024)
+    path: str = Field(max_length=4096)
     size: int
 
 
@@ -84,7 +138,9 @@ class TrackerInTorrent(TableMixin, table=True):
     tracker_in_torrent_id: IDField = Field(None, primary_key=True)
     url: MaxLenURL = Field(description="Tracker announce url")
 
-    torrent_id: Optional[int] = Field(default=None, foreign_key="torrent_files.torrent_file_id")
+    torrent_id: Optional[int] = Field(
+        default=None, foreign_key="torrent_files.torrent_file_id", ondelete="CASCADE"
+    )
     torrent: Optional["TorrentFile"] = Relationship(back_populates="trackers")
 
 
@@ -162,8 +218,8 @@ class TorrentFile(TorrentFileBase, TableMixin, table=True):
     account: "Account" = Relationship(back_populates="torrents")
     upload_id: Optional[int] = Field(default=None, foreign_key="uploads.upload_id")
     upload: Optional["Upload"] = Relationship(back_populates="torrent")
-    files: list["FileInTorrent"] = Relationship(back_populates="torrent")
-    trackers: list["TrackerInTorrent"] = Relationship(back_populates="torrent")
+    files: list["FileInTorrent"] = Relationship(back_populates="torrent", cascade_delete=True)
+    trackers: list["TrackerInTorrent"] = Relationship(back_populates="torrent", cascade_delete=True)
     short_hash: str = Field(
         min_length=8,
         max_length=8,
@@ -189,7 +245,7 @@ class TorrentFileCreate(TorrentFileBase):
 
 class TorrentFileRead(TorrentFileBase):
     files: list[str]
-    trackers: list[str]
+    trackers: list[str] = Field(min_length=1, max_length=128)
     short_hash: str = Field(
         None,
         min_length=8,

@@ -25,6 +25,11 @@ button,
   transition: all .2s;
   padding: 0.1em 0.5em;
 
+  &.form-button {
+    padding: 0.25em 2em;
+    font-size: 1.25em;
+  }
+
 
   &:hover:not(:disabled) {
     background-color: var(--color-primary);
@@ -211,7 +216,7 @@ button,
 .htmx-indicator{
   opacity:0;
 }
-.htmx-request .htmx-indicator{
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator{
   opacity:1;
   transition: opacity 200ms ease-in;
 }
@@ -359,3 +364,22 @@ body.light-theme .tag-item .rss-icon {
     margin: 0.5em 0;
   }
 }
+
+progress {
+  height: 2em;
+  background-color: var(--color-background);
+  border-radius: 5px;
+  border-color: var(--color-border);
+  -webkit-appearance:none;
+}
+
+progress::-webkit-progress-bar,
+progress::-moz-progress-bar {
+    background: repeating-linear-gradient(
+        90deg,
+        var(--color-primary) ,
+        var(--color-primary) 10px,
+        var(--color-background) 10px,
+        var(--color-background) 13px
+    );
+  }
