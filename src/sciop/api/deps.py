@@ -87,7 +87,7 @@ def require_current_active_reviewer(current_account: RequireCurrentAccount) -> A
 
 def require_current_active_uploader(current_account: RequireCurrentAccount) -> Account:
     if not current_account.has_scope("upload"):
-        raise HTTPException(status_code=403, detail="Account must be reviewer")
+        raise HTTPException(status_code=403, detail="Account must be uploader")
     return current_account
 
 
