@@ -132,7 +132,7 @@ class Config(BaseSettings):
     port: int = 8000
     env: Literal["dev", "prod", "test"]
     public_url: str = "http://localhost"
-    token_expire_minutes: int = 30
+    token_expire_minutes: int = 60 * 24  # AKA 1 day
     api_prefix: str = "/api/v1"
     upload_limit: int = 2**20
     """in bytes"""
