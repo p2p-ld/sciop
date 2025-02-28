@@ -1,5 +1,9 @@
 {% extends "layouts/default.html" %}
-{% block title %}{{ account.username }}{% endblock %}
+{% block head %}
+{% with title = account.username + " - Account" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
 {% block content %}
 <h1>{{ account.username }}</h1>
 

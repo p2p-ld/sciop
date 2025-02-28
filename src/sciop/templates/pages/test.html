@@ -1,6 +1,10 @@
 {% extends "layouts/default.html" %}
 {% from "macros/model-form.html" import model_form %}
-{% block title %}Test page{% endblock %}
+{% block head %}
+{% with title = "Test page" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
 {% block content %}
 <h2>Test page</h2>
 

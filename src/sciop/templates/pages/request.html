@@ -1,8 +1,12 @@
 {% extends "layouts/default.html" %}
 {% from "macros/model-form.html" import model_form %}
-{% block title %}Request/Add a Dataset{% endblock %}
+{% block head %}
+{% with title = "Request/Add a Dataset" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
 {% block content %}
-<h2>{{ self.title() }}</h2>
+<h2>Request/Add a Dataset</h2>
 
 <p>
 Dataset requests can be submitted anonymously, but please create an account and log in

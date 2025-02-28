@@ -2,16 +2,7 @@
 <html lang="en">
     <head>
 	{% block head %}
-	{% include "includes/head/meta.html" %}
-	{% include "includes/head/icons.html" %}
-
-	<title>SciOp :: {% block title %}Public Information Preservation{% endblock %}</title>
-
-	<link rel="manifest" href="/static/site.webmanifest">
-	<meta name="htmx-config"
-				content='{"selfRequestsOnly": true, "allowScriptTags": false, "includeIndicatorStyles": false, "allowEval": false}'>
-	<link rel="stylesheet" type="text/css" href="/static/css/style.css" nonce="{{ nonce }}">
-	<script src="/static/js/theme.js" nonce="{{ nonce }}"></script>
+	{% include "includes/head.html" %}
 	{% endblock head %}
     </head>
 

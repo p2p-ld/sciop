@@ -1,6 +1,10 @@
 {% extends "layouts/default.html" %}
 {% from "macros/upload.html" import upload_row %}
-{% block title %}{{ upload.dataset.slug }}/{{ upload.short_hash }}{% endblock %}
+{% block head %}
+{% with title = upload.short_hash + " - Upload" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
 {% block content %}
 {{ upload_row(upload, current_account, config, header_start=1) }}
 {% endblock %}
