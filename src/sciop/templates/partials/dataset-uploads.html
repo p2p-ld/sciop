@@ -4,7 +4,7 @@
     <span>No uploads for this dataset or dataset part</span>
     {% else %}
     <table>
-        {% for upload in uploads %}
+        {% for upload in uploads if upload.visible_to(current_account) %}
         {{ upload_collapsible(upload, config=config) }}
         {% endfor %}
     </table>

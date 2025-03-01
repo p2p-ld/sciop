@@ -27,7 +27,7 @@
       </div>
       {% endif %}
     </div>
-  {% for part in parts %}
+  {% for part in parts if part.visible_to(current_account) %}
   {{ dataset_part_collapsible(part, dataset, current_account, config) }}
   {% endfor %}
 {% endif %}
