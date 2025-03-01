@@ -5,6 +5,10 @@
   <span class="dataset-part-slug token">
     <a href="/datasets/{{dataset.slug}}/{{ part.part_slug }}">{{ part.part_slug}}</a>
   </span>
+  {% if current_account and (part.needs_review and current_account.has_scope("review")) %}
+  <p class="font-mono">review status: unapproved</p>
+  <div >{{ review_buttons(dataset, part, config) }}</div></td>
+  {% endif %}
 
   {% if part.paths %}
   <h3>Paths</h3>
@@ -31,7 +35,7 @@
 {% endmacro %}
 
 {% macro dataset_part_collapsible(part, dataset, current_account, config) %}
-<details class="collapsible dataset-part-collapsible"
+<details class="collapsible dataset-part-collapsible{% if not part.is_approved %} unapproved{% endif %}""
          id="dataset-part-collapsible-{{ dataset.slug }}-{{ part.part_slug }}">
   <summary
       class="collapsible-summary"
@@ -75,4 +79,18 @@
     hx-swap="beforeend"
   >Add Bulk</button>
 </div>
+{% endmacro %}
+
+{% macro review_buttons(dataset, part, config) %}
+<button class="button approve-button success-button"
+        role="button"
+        aria-roledescription="Approves the item indicated by aria-controls, removing it from the list and making it visible on the site"
+        aria-controls="dataset-part-collapsible-{{ dataset.slug }}-{{ part.part_slug }}"
+        hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/{{ part.part_slug }}/approve">Approve
+</button>
+<button class="button deny-button success-button caution"
+        aria-roledescription="Denies the item indicated by aria-controls, removing it from the list and deleting it"
+        aria-controls="dataset-part-collapsible-{{ dataset.slug }}-{{ part.part_slug }}"
+        hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/{{ part.part_slug }}/deny">Deny
+</button>
 {% endmacro %}

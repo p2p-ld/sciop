@@ -340,6 +340,8 @@ def log_moderation_action(
 
     if isinstance(target, Dataset):
         audit_kwargs["target_dataset"] = target
+    elif isinstance(target, DatasetPart):
+        audit_kwargs["target_dataset_part"] = target
     elif isinstance(target, Upload):
         audit_kwargs["target_upload"] = target
     elif isinstance(target, Account):

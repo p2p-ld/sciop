@@ -10,7 +10,7 @@ from sciop.models.mixin import TableMixin
 from sciop.types import IDField
 
 if TYPE_CHECKING:
-    from sciop.models import Account, AccountRead, Dataset, Upload
+    from sciop.models import Account, AccountRead, Dataset, DatasetPart, Upload
 
 
 class ModerationAction(StrEnum):
@@ -67,6 +67,12 @@ class AuditLog(TableMixin, table=True):
         default=None, foreign_key="datasets.dataset_id", ondelete="SET NULL"
     )
     target_dataset: Optional["Dataset"] = Relationship(
+        back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    target_dataset_part_id: Optional[int] = Field(
+        default=None, foreign_key="dataset_parts.dataset_part_id", ondelete="SET NULL"
+    )
+    target_dataset_part: Optional["DatasetPart"] = Relationship(
         back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
     )
     target_upload_id: Optional[int] = Field(

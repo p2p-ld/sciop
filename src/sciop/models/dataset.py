@@ -59,7 +59,7 @@ def _prefixed_len(info: FieldInfo) -> int:
     return max_len.max_length + PREFIX_LEN
 
 
-class DatasetBase(SQLModel):
+class DatasetBase(ModerableMixin):
     title: EscapedStr = Field(
         title="Title",
         description="""
@@ -179,7 +179,7 @@ class DatasetBase(SQLModel):
     )
 
 
-class Dataset(DatasetBase, TableMixin, SearchableMixin, ModerableMixin, table=True):
+class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     __tablename__ = "datasets"
     __searchable__ = ["title", "slug", "publisher", "homepage", "description"]
 
@@ -468,10 +468,7 @@ class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, table=True):
         back_populates="dataset_parts", link_model=UploadDatasetPartLink
     )
     paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
-    is_approved: bool = False
-    is_removed: bool = Field(
-        False, description="Whether the dataset part has been, for all practical purposes, deleted."
-    )
+    audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset_part")
 
 
 @event.listens_for(DatasetPart.is_removed, "set")

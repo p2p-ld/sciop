@@ -49,10 +49,6 @@ class Upload(UploadBase, TableMixin, ModerableMixin, table=True):
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
     seeders: Optional[int] = None
     leechers: Optional[int] = None
-    is_approved: bool = False
-    is_removed: bool = Field(
-        False, description="Whether the Upload has been, for all practical purposes, deleted."
-    )
 
     @property
     def human_size(self) -> str:

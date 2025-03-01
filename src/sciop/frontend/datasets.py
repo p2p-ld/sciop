@@ -10,6 +10,7 @@ from starlette.datastructures import QueryParams
 
 from sciop import crud
 from sciop.api.deps import (
+    CurrentAccount,
     RequireUploader,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
@@ -29,13 +30,19 @@ async def datasets(request: Request):
 
 @datasets_router.get("/search")
 @jinja.hx("partials/datasets.html")
-async def datasets_search(query: str = None, session: SessionDep = None) -> Page[DatasetRead]:
+async def datasets_search(
+    query: str = None, session: SessionDep = None, current_account: CurrentAccount = None
+) -> Page[DatasetRead]:
     if not query or len(query) < 3:
-        stmt = select(Dataset).where(Dataset.is_visible == True).order_by(Dataset.created_at.desc())
+        stmt = (
+            select(Dataset)
+            .where(Dataset.visible_to(current_account) == True)
+            .order_by(Dataset.created_at.desc())
+        )
     else:
         stmt = (
             select(Dataset)
-            .where(Dataset.is_visible == True)
+            .where(Dataset.visible_to(current_account) == True)
             .filter(Dataset.dataset_id.in_(Dataset.search_statement(query)))
         )
     return paginate(conn=session, query=stmt)

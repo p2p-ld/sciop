@@ -94,6 +94,14 @@
                         </time>
                     </td>
                 </tr>
+                {% if current_account and current_account.has_scope("review") and not upload.is_approved %}
+                <tr>
+                    <td colspan="2">
+                        <p class="infobox-subhead font-mono">review status: unapproved</p>
+                        <div class="infobox-row">{{ review_buttons(upload, config) }}</div>
+                    </td>
+                </tr>
+                {% endif %}
             </table>
         </div>
 
@@ -120,7 +128,8 @@
 {% endmacro %}
 
 {% macro upload_collapsible(upload, review=False, config = None) %}
-<details class="collapsible upload-collapsible" id="upload-collapsible-{{ upload.upload_id }}">
+<details id="upload-collapsible-{{ upload.upload_id }}"
+         class="collapsible upload-collapsible{% if not upload.is_approved %} unapproved{% endif %}">
     <summary class="collapsible-summary"
              hx-get="/uploads/{{ upload.infohash }}/partial"
              hx-trigger="click once"
@@ -138,18 +147,7 @@
             {{ upload.created_at.strftime("%y-%m-%d %H:%M") }}
         </time>
         {% if review %}
-        <button class="button approve-button success-button"
-                role="button"
-                aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it available for download"
-                aria-controls="upload-collapsible-{{ upload.upload_id }}"
-                hx-post="{{ config.api_prefix }}/uploads/{{ upload.infohash }}/approve">Approve
-        </button>
-        <button class="button deny-button success-button caution"
-                role="button"
-                aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
-                aria-controls="upload-collapsible-{{ upload.upload_id }}"
-                hx-post="{{ config.api_prefix }}/uploads/{{ upload.infohash }}/deny">Deny
-        </button>
+        {{ review_buttons(upload, config) }}
         {% else %}
         <a class="icon-link download-link" href="{{ upload.download_path }}" aria-label="Download" title="Download">⬇️
         </a>
@@ -157,4 +155,19 @@
     </summary>
     <div class="upload" id="upload-{{ upload.infohash }}"></div>
 </details>
+{% endmacro %}
+
+{% macro review_buttons(upload, config) %}
+<button class="button approve-button success-button"
+        role="button"
+        aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it available for download"
+        aria-controls="upload-collapsible-{{ upload.upload_id }}"
+        hx-post="{{ config.api_prefix }}/uploads/{{ upload.infohash }}/approve">Approve
+</button>
+<button class="button deny-button success-button caution"
+        role="button"
+        aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
+        aria-controls="upload-collapsible-{{ upload.upload_id }}"
+        hx-post="{{ config.api_prefix }}/uploads/{{ upload.infohash }}/deny">Deny
+</button>
 {% endmacro %}

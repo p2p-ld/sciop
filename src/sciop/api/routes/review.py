@@ -6,6 +6,7 @@ from sciop.api.deps import (
     RequireAccount,
     RequireAdmin,
     RequireDataset,
+    RequireDatasetPart,
     RequireReviewer,
     RequireUpload,
     SessionDep,
@@ -47,6 +48,39 @@ async def deny_dataset(
 
     crud.log_moderation_action(
         session=session, actor=account, action=ModerationAction.deny, target=dataset
+    )
+    return SuccessResponse(success=True)
+
+
+@review_router.post("/datasets/{dataset_slug}/{dataset_part_slug}/approve")
+async def approve_dataset_part(
+    dataset_slug: str,
+    account: RequireReviewer,
+    session: SessionDep,
+    dataset: RequireDataset,
+    part: RequireDatasetPart,
+    response: Response,
+) -> SuccessResponse:
+    part.is_approved = True
+    session.add(part)
+    session.commit()
+
+    crud.log_moderation_action(
+        session=session, actor=account, action=ModerationAction.approve, target=part
+    )
+    return SuccessResponse(success=True)
+
+
+@review_router.post("/datasets/{dataset_slug}/{dataset_part_slug}/deny")
+async def deny_dataset_part(
+    account: RequireReviewer, session: SessionDep, dataset: RequireDataset, part: RequireDatasetPart
+) -> SuccessResponse:
+    part.is_removed = True
+    session.add(part)
+    session.commit()
+
+    crud.log_moderation_action(
+        session=session, actor=account, action=ModerationAction.deny, target=part
     )
     return SuccessResponse(success=True)
 
