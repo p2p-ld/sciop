@@ -56,7 +56,8 @@ def create_tables(engine: Engine = engine) -> None:
 
     with maker() as session:
         models.Scope.ensure_enum_values(session=session)
-        ensure_root(session=session)
+        if config.env != "test":
+            ensure_root(session=session)
 
     create_seed_data()
 
@@ -146,6 +147,24 @@ def create_seed_data() -> None:
         session.add(uploader)
         session.refresh(uploader)
 
+        # generate a bunch of approved datasets to test pagination
+        n_datasets = session.exec(select(func.count(Dataset.dataset_id))).one()
+        if n_datasets < 200:
+            for _ in range(200):
+                generated_dataset = _generate_dataset(fake)
+                dataset = crud.create_dataset(session=session, dataset_create=generated_dataset)
+                dataset.dataset_created_at = datetime.now(UTC)
+                dataset.dataset_updated_at = datetime.now(UTC)
+                dataset.is_approved = random.random() > 0.1
+                dataset.uploads = [
+                    _generate_upload(
+                        fake.word(), uploader=uploader, dataset=dataset, session=session
+                    )
+                    for _ in range(random.randint(1, 3))
+                ]
+                session.add(dataset)
+            session.commit()
+
         unapproved_dataset = crud.get_dataset(dataset_slug="unapproved", session=session)
         if not unapproved_dataset:
             unapproved_dataset = crud.create_dataset(
@@ -190,6 +209,30 @@ def create_seed_data() -> None:
         session.commit()
         session.refresh(approved_dataset)
 
+        removed_dataset = crud.get_dataset(dataset_slug="removed", session=session)
+        if not removed_dataset:
+            removed_dataset = crud.create_dataset(
+                session=session,
+                dataset_create=DatasetCreate(
+                    slug="removed",
+                    title="Example removed Dataset with Upload",
+                    publisher="Another Agency",
+                    homepage="https://example.com",
+                    description="A removed dataset",
+                    dataset_created_at=datetime.now(UTC),
+                    dataset_updated_at=datetime.now(UTC),
+                    source="web",
+                    urls=["https://example.com/3", "https://example.com/4"],
+                    tags=["approved", "test", "aaa", "bbb", "ccc"],
+                ),
+            )
+        removed_dataset.is_approved = True
+        removed_dataset.is_removed = True
+
+        session.add(removed_dataset)
+        session.commit()
+        session.refresh(removed_dataset)
+
         approved_upload = crud.get_upload_from_infohash(session=session, infohash="abcdefgh")
         if not approved_upload:
             approved_upload = _generate_upload("abcdefgh", uploader, approved_dataset, session)
@@ -202,27 +245,18 @@ def create_seed_data() -> None:
             unapproved_upload = _generate_upload(
                 "unapproved", uploader, unapproved_dataset, session
             )
+
         unapproved_upload.is_approved = False
         session.add(unapproved_upload)
         session.commit()
 
-        # generate a bunch of approved datasets to test pagination
-        n_datasets = session.exec(select(func.count(Dataset.dataset_id))).one()
-        if n_datasets < 200:
-            for _ in range(200):
-                generated_dataset = _generate_dataset(fake)
-                dataset = crud.create_dataset(session=session, dataset_create=generated_dataset)
-                dataset.dataset_created_at = datetime.now(UTC)
-                dataset.dataset_updated_at = datetime.now(UTC)
-                dataset.is_approved = random.random() > 0.1
-                dataset.uploads = [
-                    _generate_upload(
-                        fake.word(), uploader=uploader, dataset=dataset, session=session
-                    )
-                    for _ in range(random.randint(1, 3))
-                ]
-                session.add(dataset)
-            session.commit()
+        removed_upload = crud.get_upload_from_infohash(session=session, infohash="removed1")
+        if not removed_upload:
+            removed_upload = _generate_upload("removed1", uploader, approved_dataset, session)
+
+        removed_upload.is_removed = True
+        session.add(removed_upload)
+        session.commit()
 
 
 def ensure_root(session: Session) -> Optional["Account"]:
@@ -258,7 +292,7 @@ def _generate_upload(
     from sciop import crud
     from sciop.models import FileInTorrentCreate, Torrent, TorrentFileCreate, UploadCreate
 
-    torrent_file = config.torrent_dir / fake.file_name(extension="torrent")
+    torrent_file = config.torrent_dir / (name + str(fake.file_name(extension="torrent")))
     with open(torrent_file, "wb") as tfile:
         tfile.write(b"0" * 16384)
 

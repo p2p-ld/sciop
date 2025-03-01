@@ -132,6 +132,8 @@ ignore = [
     "D107",
     # Equality comparisons to ``True``, which are valid in sqlalchemy
     "E712",
+    # Sometimes expanding if/else is simpler
+    "SIM114",
 ]
 
 fixable = ["ALL"]

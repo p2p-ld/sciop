@@ -7,7 +7,7 @@ def test_remove_torrent_on_removal(upload, session):
     """
     Marking an upload as removed deletes its torrent file
     """
-    ul: Upload = upload()
+    ul: Upload = upload(session=session)
     torrent_id = ul.torrent.torrent_file_id
     torrent_file = ul.torrent.filesystem_path
     assert torrent_file.exists()

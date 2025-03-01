@@ -78,7 +78,7 @@ async def dataset_uploads(
     session: SessionDep,
     request: Request,
 ):
-    uploads = crud.get_uploads(dataset=dataset, session=session)
+    uploads = crud.get_visible_uploads(dataset=dataset, session=session)
     return templates.TemplateResponse(
         request,
         "partials/dataset-uploads.html",
@@ -170,7 +170,7 @@ async def dataset_part_partial(
 async def dataset_part_uploads(
     request: Request, dataset_slug: str, part: RequireVisibleDatasetPart, session: SessionDep
 ):
-    uploads = crud.get_uploads(dataset=part, session=session)
+    uploads = crud.get_visible_uploads(dataset=part, session=session)
     return templates.TemplateResponse(
         request,
         "partials/dataset-uploads.html",

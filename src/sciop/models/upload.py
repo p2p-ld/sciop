@@ -2,14 +2,13 @@ from typing import Optional
 from urllib.parse import urljoin
 
 from sqlalchemy import event
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
 from sciop.models.dataset import UploadDatasetPartLink
-from sciop.models.mixin import TableMixin, TableReadMixin
+from sciop.models.mixin import ModerableMixin, TableMixin, TableReadMixin
 from sciop.types import EscapedStr, IDField, InputType, SlugStr
 
 
@@ -32,7 +31,7 @@ class UploadBase(SQLModel):
     )
 
 
-class Upload(UploadBase, TableMixin, table=True):
+class Upload(UploadBase, TableMixin, ModerableMixin, table=True):
     __tablename__ = "uploads"
 
     upload_id: IDField = Field(default=None, primary_key=True)
@@ -115,16 +114,6 @@ class Upload(UploadBase, TableMixin, table=True):
             </p>
         """
 
-    @hybrid_property
-    def is_visible(self) -> bool:
-        """Whether the dataset should be displayed and included in feeds"""
-        return self.is_approved and not self.is_removed
-
-    @hybrid_property
-    def needs_review(self) -> bool:
-        """Whether a dataset needs to be reviewed"""
-        return not self.is_approved and not self.is_removed
-
 
 @event.listens_for(Upload.is_removed, "set")
 def _upload_remove_torrent(
@@ -135,7 +124,8 @@ def _upload_remove_torrent(
         from sciop.db import get_session
 
         with next(get_session()) as session:
-            session.delete(target.torrent)
+            torrent = session.merge(target.torrent)
+            session.delete(torrent)
             session.commit()
 
 

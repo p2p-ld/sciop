@@ -54,7 +54,7 @@ async def uploads(request: Request, account: RequireCurrentAccount):
 @self_router.get("/review/datasets", response_class=HTMLResponse)
 @jinja.hx("partials/review-datasets.html")
 async def review_datasets(account: RequireReviewer, session: SessionDep) -> Page[Dataset]:
-    stmt = select(Dataset).where(Dataset.is_visible == False)
+    stmt = select(Dataset).where(Dataset.needs_review == True)
     return paginate(conn=session, query=stmt)
 
 
@@ -63,7 +63,7 @@ async def review_datasets(account: RequireReviewer, session: SessionDep) -> Page
 async def review_uploads(
     request: Request, account: RequireReviewer, session: SessionDep
 ) -> Page[Upload]:
-    stmt = select(Upload).where(Upload.is_visible == False)
+    stmt = select(Upload).where(Upload.needs_review == True)
     return paginate(conn=session, query=stmt)
 
 

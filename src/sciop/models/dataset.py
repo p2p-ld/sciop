@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union
 from annotated_types import MaxLen
 from pydantic import TypeAdapter, computed_field, field_validator, model_validator
 from sqlalchemy import event
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
@@ -14,7 +13,7 @@ from sqlmodel.main import FieldInfo
 
 from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PREFIX_LEN
 from sciop.models.account import Account
-from sciop.models.mixin import SearchableMixin, TableMixin, TableReadMixin
+from sciop.models.mixin import ModerableMixin, SearchableMixin, TableMixin, TableReadMixin
 from sciop.models.tag import DatasetTagLink
 from sciop.types import (
     AccessType,
@@ -180,7 +179,7 @@ class DatasetBase(SQLModel):
     )
 
 
-class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
+class Dataset(DatasetBase, TableMixin, SearchableMixin, ModerableMixin, table=True):
     __tablename__ = "datasets"
     __searchable__ = ["title", "slug", "publisher", "homepage", "description"]
 
@@ -205,23 +204,6 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     scrape_status: ScrapeStatus = "unknown"
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
     parts: list["DatasetPart"] = Relationship(back_populates="dataset")
-    is_approved: bool = Field(
-        False, description="Whether this dataset has been reviewed and is now visible"
-    )
-    is_removed: bool = Field(
-        False, description="Whether the dataset has been, for all practical purposes, deleted."
-    )
-
-    # TODO: https://github.com/fastapi/sqlmodel/issues/299#issuecomment-2223569400
-    @hybrid_property
-    def is_visible(self) -> bool:
-        """Whether the dataset should be displayed and included in feeds"""
-        return self.is_approved and not self.is_removed
-
-    @hybrid_property
-    def needs_review(self) -> bool:
-        """Whether a dataset needs to be reviewed"""
-        return not self.is_approved and not self.is_removed
 
 
 @event.listens_for(Dataset.is_removed, "set")
@@ -468,7 +450,7 @@ class DatasetPartBase(SQLModel):
     )
 
 
-class DatasetPart(DatasetPartBase, TableMixin, table=True):
+class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, table=True):
     __tablename__ = "dataset_parts"
     __table_args__ = (UniqueConstraint("dataset_id", "part_slug", name="_dataset_part_slug_uc"),)
 
@@ -490,16 +472,6 @@ class DatasetPart(DatasetPartBase, TableMixin, table=True):
     is_removed: bool = Field(
         False, description="Whether the dataset part has been, for all practical purposes, deleted."
     )
-
-    @hybrid_property
-    def is_visible(self) -> bool:
-        """Whether the dataset should be displayed and included in feeds"""
-        return self.is_approved and not self.is_removed
-
-    @hybrid_property
-    def needs_review(self) -> bool:
-        """Whether a dataset needs to be reviewed"""
-        return not self.is_approved and not self.is_removed
 
 
 @event.listens_for(DatasetPart.is_removed, "set")

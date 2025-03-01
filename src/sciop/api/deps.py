@@ -53,6 +53,8 @@ def require_current_account(session: SessionDep, token: TokenDep) -> Account:
     account = session.get(Account, token_data.sub)
     if not account:
         raise HTTPException(status_code=404, detail="User not found")
+    elif account.is_suspended:
+        raise HTTPException(status_code=403, detail="Account is suspended")
     return account
 
 
