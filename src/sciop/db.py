@@ -147,6 +147,15 @@ def create_seed_data() -> None:
         session.add(uploader)
         session.refresh(uploader)
 
+        rando = crud.get_account(username="rando", session=session)
+        if not rando:
+            rando = crud.create_account(
+                account_create=AccountCreate(username="rando", password="randorando123"),
+                session=session,
+            )
+        session.add(rando)
+        session.refresh(rando)
+
         # generate a bunch of approved datasets to test pagination
         n_datasets = session.exec(select(func.count(Dataset.dataset_id))).one()
         if n_datasets < 200:
@@ -156,12 +165,18 @@ def create_seed_data() -> None:
                 dataset.dataset_created_at = datetime.now(UTC)
                 dataset.dataset_updated_at = datetime.now(UTC)
                 dataset.is_approved = random.random() > 0.1
+                dataset.account = rando
                 dataset.uploads = [
                     _generate_upload(
                         fake.word(), uploader=uploader, dataset=dataset, session=session
                     )
                     for _ in range(random.randint(1, 3))
                 ]
+                for upload in dataset.uploads:
+                    upload.is_approved = random.random() > 0.5
+                for part in dataset.parts:
+                    part.account = rando
+                    part.is_approved = random.random() > 0.5
                 session.add(dataset)
             session.commit()
 

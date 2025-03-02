@@ -75,12 +75,16 @@ class Upload(UploadBase, TableMixin, ModerableMixin, table=True):
         return self.torrent.file_name
 
     @property
-    def short_hash(self) -> str:
-        return self.torrent.short_hash
+    def short_hash(self) -> Optional[str]:
+        if self.torrent:
+            return self.torrent.short_hash
+        return None
 
     @property
-    def infohash(self) -> str:
-        return self.torrent.infohash
+    def infohash(self) -> Optional[str]:
+        if self.torrent:
+            return self.torrent.infohash
+        return None
 
     @property
     def rss_description(self) -> str:

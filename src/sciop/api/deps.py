@@ -41,6 +41,8 @@ TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 
 def require_current_account(session: SessionDep, token: TokenDep) -> Account:
+    if not token:
+        raise HTTPException(302, detail="Not authorized", headers={"Location": "/login"})
 
     try:
         payload = jwt.decode(token, config.secret_key.get_secret_value(), algorithms=[ALGORITHM])
@@ -52,9 +54,11 @@ def require_current_account(session: SessionDep, token: TokenDep) -> Account:
         ) from e
     account = session.get(Account, token_data.sub)
     if not account:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(302, detail="Not authorized", headers={"Location": "/login"})
     elif account.is_suspended:
-        raise HTTPException(status_code=403, detail="Account is suspended")
+        raise HTTPException(
+            status_code=403, detail="Account is suspended", headers={"HX-Redirect": "/login"}
+        )
     return account
 
 
@@ -127,14 +131,7 @@ RequireApprovedDataset = Annotated[Dataset, Depends(require_approved_dataset)]
 
 
 def require_visible_dataset(dataset: RequireDataset, current_account: CurrentAccount) -> Dataset:
-    if dataset.is_visible or not (
-        dataset.is_removed
-        and current_account
-        and (
-            current_account.has_scope("review")
-            or (dataset.account and current_account.account_id == dataset.account.account_id)
-        )
-    ):
+    if dataset.visible_to(current_account):
         return dataset
     else:
         raise HTTPException(404)
@@ -163,14 +160,7 @@ RequireDatasetPart = Annotated[DatasetPart, Depends(require_dataset_part)]
 def require_visible_dataset_part(
     part: RequireDatasetPart, current_account: CurrentAccount
 ) -> DatasetPart:
-    if part.is_visible or not (
-        part.is_removed
-        and current_account
-        and (
-            current_account.has_scope("review")
-            or (part.account and current_account.account_id == part.account.account_id)
-        )
-    ):
+    if part.visible_to(current_account):
         return part
     else:
         raise HTTPException(404)
@@ -204,14 +194,7 @@ RequireApprovedUpload = Annotated[Upload, Depends(require_approved_upload)]
 
 
 def require_visible_upload(upload: RequireUpload, current_account: CurrentAccount) -> Upload:
-    if upload.is_visible or not (
-        upload.is_removed
-        and current_account
-        and (
-            current_account.has_scope("review")
-            or (upload.account and current_account.account_id == upload.account.account_id)
-        )
-    ):
+    if upload.visible_to(current_account):
         return upload
     else:
         raise HTTPException(404)
@@ -221,6 +204,7 @@ RequireVisibleUpload = Annotated[Upload, Depends(require_visible_upload)]
 
 
 def require_account(username: str, session: SessionDep) -> Account:
+    """Require an existing, non-suspended account"""
     account = crud.get_account(session=session, username=username)
     if not account or account.is_suspended:
         raise HTTPException(
@@ -230,7 +214,19 @@ def require_account(username: str, session: SessionDep) -> Account:
     return account
 
 
+def require_any_account(username: str, session: SessionDep) -> Account:
+    """Require any account, even if it is suspended"""
+    account = crud.get_account(session=session, username=username)
+    if not account:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such account {username} exists!",
+        )
+    return account
+
+
 RequireAccount = Annotated[Account, Depends(require_account)]
+RequireAnyAccount = Annotated[Account, Depends(require_any_account)]
 
 
 def require_tag(tag: str, session: SessionDep) -> Tag:

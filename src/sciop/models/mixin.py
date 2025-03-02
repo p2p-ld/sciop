@@ -10,7 +10,7 @@ from sqlalchemy import CheckConstraint, Column, ColumnElement, Connection, Table
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlmodel import Field, Session, SQLModel, select, text
 
-from sciop.types import IDField
+from sciop.types import IDField, InputType
 
 if TYPE_CHECKING:
     from sqlalchemy import Connection, Table, TextClause
@@ -282,10 +282,14 @@ class ModerableMixin(SQLModel):
     """
 
     is_approved: bool = Field(
-        False, description="Whether this item has been reviewed and is now visible"
+        False,
+        description="Whether this item has been reviewed and is now visible",
+        schema_extra={"json_schema_extra": {"input_type": InputType.none}},
     )
     is_removed: bool = Field(
-        False, description="Whether the item has been, for all practical purposes, deleted."
+        False,
+        description="Whether the item has been, for all practical purposes, deleted.",
+        schema_extra={"json_schema_extra": {"input_type": InputType.none}},
     )
 
     model_config = ConfigDict(ignored_types=(hybrid_method, hybrid_property))

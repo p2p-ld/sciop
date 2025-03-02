@@ -1,15 +1,11 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import select
 
 from sciop import crud
-from sciop.api.deps import (
-    CurrentAccount,
-    RequireUpload,
-    SessionDep,
-)
+from sciop.api.deps import CurrentAccount, RequireUpload, RequireVisibleUpload, SessionDep
 from sciop.frontend.templates import jinja, templates
 from sciop.models import Dataset, DatasetRead
 
@@ -42,14 +38,12 @@ async def uploads_search(query: str = None, session: SessionDep = None) -> Page[
 
 @uploads_router.get("/{infohash}", response_class=HTMLResponse)
 async def upload_show(
-    infohash: str, account: CurrentAccount, session: SessionDep, request: Request
+    infohash: str,
+    account: CurrentAccount,
+    session: SessionDep,
+    request: Request,
+    upload: RequireVisibleUpload,
 ):
-    upload = crud.get_upload_from_infohash(session=session, infohash=infohash)
-    if not upload:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No such upload {infohash} exists",
-        )
     return templates.TemplateResponse(
         request,
         "pages/upload.html",

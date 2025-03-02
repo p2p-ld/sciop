@@ -5,6 +5,7 @@ from sciop import crud
 from sciop.api.deps import (
     RequireAccount,
     RequireAdmin,
+    RequireAnyAccount,
     RequireDataset,
     RequireDatasetPart,
     RequireReviewer,
@@ -112,7 +113,7 @@ async def deny_upload(
     return SuccessResponse(success=True)
 
 
-@review_router.delete("/accounts/{username}")
+@review_router.post("/accounts/{username}/suspend")
 async def suspend_account(
     username: str, account: RequireAccount, session: SessionDep, current_account: RequireAdmin
 ) -> SuccessResponse:
@@ -125,6 +126,23 @@ async def suspend_account(
     session.commit()
     crud.log_moderation_action(
         session=session, actor=current_account, action=ModerationAction.suspend, target=account
+    )
+    return SuccessResponse(success=True)
+
+
+@review_router.post("/accounts/{username}/restore")
+async def restore_account(
+    username: str, account: RequireAnyAccount, session: SessionDep, current_account: RequireAdmin
+) -> SuccessResponse:
+    if account.id == current_account.id:
+        raise HTTPException(403, "You cannot restore yourself")
+    if account.has_scope("admin") and not current_account.has_scope("root"):
+        raise HTTPException(403, "Admins can't can't restore other admins or roots")
+    account.is_suspended = False
+    session.add(account)
+    session.commit()
+    crud.log_moderation_action(
+        session=session, actor=current_account, action=ModerationAction.restore, target=account
     )
     return SuccessResponse(success=True)
 

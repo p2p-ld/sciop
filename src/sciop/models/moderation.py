@@ -34,6 +34,8 @@ class ModerationAction(StrEnum):
     """Decrement trust value"""
     suspend = "suspend"
     """Suspend an account"""
+    restore = "restore"
+    """Restore a suspended account"""
 
 
 _actor_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True)

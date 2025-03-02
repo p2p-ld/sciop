@@ -99,7 +99,10 @@ def account(
     default_account: dict, session: Session
 ) -> C[Concatenate[list[Scopes] | None, Session | None, P], "Account"]:
     def _account(
-        scopes: list[Scopes] = None, session_: Session | None = None, **kwargs: P.kwargs
+        scopes: list[Scopes] = None,
+        is_suspended: bool = False,
+        session_: Session | None = None,
+        **kwargs: P.kwargs,
     ) -> Account:
         if not session_:
             session_ = session
@@ -112,6 +115,7 @@ def account(
             account_ = AccountCreate(**kwargs)
             account_ = crud.create_account(session=session, account_create=account_)
         account_.scopes = scopes
+        account_.is_suspended = is_suspended
         session_.add(account_)
         session_.commit()
         session_.flush()
@@ -162,7 +166,10 @@ def dataset(
     default_dataset: dict, session: Session
 ) -> C[Concatenate[bool, Session | None, P], Dataset]:
     def _dataset(
-        is_approved: bool = True, session_: Session | None = None, **kwargs: P.kwargs
+        is_approved: bool = True,
+        is_removed: bool = False,
+        session_: Session | None = None,
+        **kwargs: P.kwargs,
     ) -> Dataset:
         if session_ is None:
             session_ = session
@@ -171,6 +178,7 @@ def dataset(
         created = DatasetCreate(**kwargs)
         dataset = crud.create_dataset(session=session_, dataset_create=created)
         dataset.is_approved = is_approved
+        dataset.is_removed = is_removed
         session_.add(dataset)
         session_.commit()
         session_.flush()
@@ -214,6 +222,14 @@ def torrentfile(
             session_ = session
         if account_ is None:
             account_ = account(scopes=[Scopes.upload], session_=session_, username="uploader")
+
+        files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
+        hash_data = "".join([str(f) for f in files])
+        hash_data = hash_data.encode("utf-8")
+        if "v1_infohash" not in kwargs:
+            kwargs["v1_infohash"] = hashlib.sha1(hash_data).hexdigest()
+        if "v2_infohash" not in kwargs:
+            kwargs["v2_infohash"] = hashlib.sha256(hash_data).hexdigest()
 
         kwargs = {**default_torrentfile, **kwargs}
         file_in_torrent = tmp_path / "default.bin"

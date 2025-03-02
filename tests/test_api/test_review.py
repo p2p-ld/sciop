@@ -1,7 +1,8 @@
 import pytest
+from sqlmodel import select
 
 from sciop.config import config
-from sciop.models import Scopes
+from sciop.models import AuditLog, DatasetPart, Scopes
 
 
 @pytest.mark.parametrize("scope", Scopes.__members__.values())
@@ -98,8 +99,8 @@ def test_self_suspend(client, admin_auth_header):
     """
     Accounts should not be able to suspend themselves
     """
-    response = client.delete(
-        config.api_prefix + "/accounts/admin",
+    response = client.post(
+        config.api_prefix + "/accounts/admin/suspend",
         headers=admin_auth_header,
     )
     assert response.status_code == 403
@@ -110,8 +111,8 @@ def test_self_suspend(client, admin_auth_header):
 def test_no_admin_suspend(client, account, get_auth_header, account_type, admin_user, root_user):
     account_ = account(scopes=["admin"], username="new_admin", password="passywordy123")
     auth_header = get_auth_header(username="new_admin", password="passywordy123")
-    response = client.delete(
-        config.api_prefix + f"/accounts/{account_type}",
+    response = client.post(
+        config.api_prefix + f"/accounts/{account_type}/suspend",
         headers=auth_header,
     )
     assert response.status_code == 403
@@ -145,16 +146,83 @@ def test_no_double_scope(session, client, account, admin_auth_header):
     assert len(account_.scopes) == 1
 
 
-@pytest.mark.skip()
-def test_deny_dataset_no_delete():
-    pass
+def test_deny_dataset_no_delete(client, dataset, session, admin_auth_header):
+    ds_ = dataset(slug="unapproved", is_approved=False)
+    res = client.post(f"{config.api_prefix}/datasets/{ds_.slug}/deny", headers=admin_auth_header)
+    assert res.status_code == 200
+    session.refresh(ds_)
+    assert ds_.is_removed
+    assert "REM" in ds_.slug
+    log = session.exec(select(AuditLog)).first()
+    assert log.target_dataset is ds_
+    assert log.action == "deny"
 
 
-@pytest.mark.skip()
-def test_deny_dataset_part_no_delete():
-    pass
+def test_deny_dataset_part_no_delete(client, dataset, session, admin_auth_header):
+    ds_ = dataset(slug="unapproved", is_approved=True)
+    ds_.parts.append(DatasetPart(part_slug="unapproved-part"))
+    session.add(ds_)
+    session.commit()
+    res = client.post(
+        f"{config.api_prefix}/datasets/{ds_.slug}/unapproved-part/deny", headers=admin_auth_header
+    )
+    assert res.status_code == 200
+    session.refresh(ds_)
+    part = ds_.parts[0]
+    assert part.is_removed
+    assert "REM" in part.part_slug
+    log = session.exec(select(AuditLog)).first()
+    assert log.target_dataset_part is part
+    assert log.action == "deny"
 
 
-@pytest.mark.skip()
-def test_suspend_account_no_delete():
-    pass
+def test_deny_upload_no_delete(client, upload, session, admin_auth_header):
+    ul = upload(is_approved=False)
+    res = client.post(f"{config.api_prefix}/uploads/{ul.infohash}/deny", headers=admin_auth_header)
+    assert res.status_code == 200
+    session.refresh(ul)
+    assert ul.is_removed
+    assert ul.infohash is None
+    log = session.exec(select(AuditLog)).first()
+    assert log.target_upload is ul
+    assert log.action == "deny"
+
+
+def test_suspend_account_no_delete(client, account, session, admin_auth_header):
+    acc = account()
+    res = client.post(
+        f"{config.api_prefix}/accounts/{acc.username}/suspend", headers=admin_auth_header
+    )
+    assert res.status_code == 200
+    session.refresh(acc)
+    assert acc.is_suspended
+    log = session.exec(select(AuditLog)).first()
+    assert log.target_account is acc
+    assert log.action == "suspend"
+
+
+def test_suspended_accounts_cant_unsuspend(
+    client, account, session, root_auth_header, get_auth_header
+):
+    """Suspended accounts cant use stale tokens to give scopes or unban themselves"""
+
+    acc = account(scopes=["admin"])
+    smurf = account(username="smurf")
+    acc_header = get_auth_header(username=acc.username)
+
+    res = client.post(
+        f"{config.api_prefix}/accounts/{acc.username}/suspend", headers=root_auth_header
+    )
+    assert res.status_code == 200
+    session.refresh(acc)
+    assert acc.is_suspended
+
+    res = client.post(f"{config.api_prefix}/accounts/{acc.username}/restore", headers=acc_header)
+    assert res.status_code == 403
+    session.refresh(acc)
+    assert acc.is_suspended
+
+    res = client.put(f"{config.api_prefix}/accounts/smurf/scopes/review", headers=acc_header)
+    assert res.status_code == 403
+    session.refresh(smurf)
+    assert not smurf.has_scope("review")
