@@ -2,10 +2,13 @@ from hashlib import blake2b
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile
+from starlette.requests import Request
+from starlette.responses import Response
 
 from sciop import crud
-from sciop.api.deps import RequireUploader, SessionDep
+from sciop.api.deps import RequireCurrentAccount, SessionDep
 from sciop.logging import init_logger
+from sciop.middleware import limiter
 from sciop.models import (
     FileInTorrentCreate,
     Torrent,
@@ -24,8 +27,13 @@ def _hash_file(file: UploadFile) -> str:
 
 
 @upload_router.post("/torrent")
+@limiter.limit("60/minute;1000/hour")
 async def upload_torrent(
-    account: RequireUploader, file: UploadFile, session: SessionDep
+    request: Request,
+    response: Response,
+    account: RequireCurrentAccount,
+    file: UploadFile,
+    session: SessionDep,
 ) -> TorrentFileRead:
     """
     Upload a torrent file prior to creating a Dataset upload

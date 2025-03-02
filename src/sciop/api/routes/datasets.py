@@ -12,7 +12,6 @@ from sciop.api.deps import (
     CurrentAccount,
     RequireCurrentAccount,
     RequireDataset,
-    RequireUploader,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
     SessionDep,
@@ -106,7 +105,7 @@ async def datasets_create_upload(
     upload: UploadCreate,
     dataset_slug: str,
     dataset: RequireVisibleDataset,
-    account: RequireUploader,
+    account: RequireCurrentAccount,
     session: SessionDep,
 ) -> Upload:
     """Create an upload of a dataset"""
@@ -128,7 +127,7 @@ async def datasets_create_upload_form(
     upload: Annotated[UploadCreate, Form()],
     dataset_slug: str,
     dataset: RequireVisibleDataset,
-    account: RequireUploader,
+    account: RequireCurrentAccount,
     session: SessionDep,
     response: Response,
 ) -> Upload:

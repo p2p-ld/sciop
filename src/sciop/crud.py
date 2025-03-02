@@ -258,6 +258,7 @@ def create_upload(
         )
 
     db_obj = Upload.model_validate(created_upload, update=update)
+    db_obj.is_approved = account.has_scope("upload")
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)

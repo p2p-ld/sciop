@@ -153,17 +153,11 @@
     {% endif %}
 
     <div class="upload-button">
-    {% if not dataset.is_approved %}
-        {% if current_account and current_account.has_scope("review") %}
-        <button class="button success-button" id="approve-button"
-                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve this dataset</button>
-        {% else %}
-        <span>Dataset must be reviewed before uploads can be added</span>
-        {% endif %}
-    {% elif current_account and  current_account.has_scope("upload") %}
-        <button class="button" id="upload-button" hx-get="/datasets/{{dataset.slug}}/upload/start" hx-swap="outerHTML">Upload
+        <button class="button" id="upload-button"
+                hx-get="/datasets/{{dataset.slug}}/upload/start"
+                hx-swap="outerHTML">
+            Upload
         </button>
-    {% endif %}
     </div>
 
     <h3>Parts</h3>

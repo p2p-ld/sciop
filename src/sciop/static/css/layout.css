@@ -308,3 +308,9 @@ table {
   }
 
 }
+
+.scrollable {
+  max-height: 50vh;
+  overflow-y: scroll;
+  padding-right: 1em;
+}
