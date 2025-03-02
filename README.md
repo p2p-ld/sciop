@@ -102,7 +102,25 @@ alembic -c ./src/sciop/migrations/alembic.ini revision -m "{migration-slug}" --a
 
 Where `{migration-slug}` is some description of the changes made in the migration.
 
+The migration generator compares the current state of the ORM models to the current state of the database,
+so the database must be equal to the state at the last migration. 
 
+To get a clean database, before you generate the migration,
+remove your development database and create a new one using alembic
+
+```
+alembic -c ./src/sciop/migrations/alembic.ini upgrade head
+```
+
+Then generate the migration with the command above.
+
+Migrations can be tested with pytest
+
+```
+python -m pytest tests/test_migrations.py
+# or
+pdm run pytest tests/test_migrations.py
+```
 
 # License
 [EUPL v1.2](./LICENSE)

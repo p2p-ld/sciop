@@ -37,6 +37,8 @@ target_metadata = SQLModel.metadata
 def include_name(name, type_, parent_names):
     if type_ == "table":
         return "__search" not in name
+    else:
+        return True
 
 
 def run_migrations_offline() -> None:
@@ -61,6 +63,7 @@ def run_migrations_offline() -> None:
         include_schemas=True,
         include_name=include_name,
         dialect_opts={"paramstyle": "named"},
+        render_as_batch=True,
     )
 
     with context.begin_transaction():
@@ -91,6 +94,7 @@ def run_migrations_online() -> None:
             compare_type=True,
             include_schemas=True,
             include_name=include_name,
+            render_as_batch=True,
         )
 
         with context.begin_transaction():
