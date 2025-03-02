@@ -74,8 +74,6 @@ async def uploads(
         .where(Upload.visible_to(account) == True, Upload.account == account)
         .order_by(Upload.created_at.desc())
     )
-    res = session.execute(stmt).all()
-    print(res[0][0].torrent)
     return paginate(conn=session, query=stmt)
 
 

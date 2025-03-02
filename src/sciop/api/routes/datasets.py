@@ -33,8 +33,13 @@ datasets_router = APIRouter(prefix="/datasets")
 
 
 @datasets_router.get("/")
-async def datasets(session: SessionDep) -> Page[DatasetRead]:
-    return paginate(session, select(Dataset).order_by(Dataset.created_at))
+async def datasets(session: SessionDep, current_account: CurrentAccount) -> Page[DatasetRead]:
+    return paginate(
+        session,
+        select(Dataset)
+        .where(Dataset.visible_to(current_account) == True)
+        .order_by(Dataset.created_at),
+    )
 
 
 @datasets_router.post("/")
@@ -145,10 +150,7 @@ async def datasets_create_upload_form(
 
 @datasets_router.get("/{dataset_slug}/parts")
 async def part_show_bulk(dataset: RequireDataset, account: CurrentAccount) -> list[DatasetPartRead]:
-    if account and account.has_scope("review"):
-        return dataset.parts
-    else:
-        return [p for p in dataset.parts if p.is_visible]
+    return [p for p in dataset.parts if p.visible_to(account)]
 
 
 @datasets_router.post("/{dataset_slug}/parts")

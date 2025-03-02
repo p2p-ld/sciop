@@ -36,6 +36,8 @@ class ModerationAction(StrEnum):
     """Suspend an account"""
     restore = "restore"
     """Restore a suspended account"""
+    remove = "remove"
+    """Remove an item"""
 
 
 _actor_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True)

@@ -350,6 +350,19 @@ class ModerableMixin(SQLModel):
                 sqla.or_(cls.is_visible == True, account.has_scope("review") == True),
             )
 
+    @hybrid_method
+    def removable_by(self, account: Optional["Account"] = None) -> bool:
+        if account is None:
+            return False
+        return self.account == account or account.has_scope("review")
+
+    @removable_by.inplace.expression
+    @classmethod
+    def _removable_by(cls, account: Optional["Account"] = None) -> ColumnElement[bool]:
+        if account is None:
+            return sqla.false()
+        return sqla.or_(cls.account == account, account.has_scope("review") == True)
+
 
 class _FriedolinType(StrEnum):
     friedolin = "friedolin"
