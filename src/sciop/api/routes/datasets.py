@@ -44,7 +44,7 @@ async def datasets_create(
     request: Request,
     dataset: DatasetCreate,
     session: SessionDep,
-    current_account: CurrentAccount,
+    current_account: RequireCurrentAccount,
     response: Response,
 ) -> DatasetRead:
     existing_dataset = crud.get_dataset(session=session, dataset_slug=dataset.slug)
@@ -73,7 +73,7 @@ async def datasets_create_form(
     request: Request,
     dataset: Annotated[DatasetCreate, Form()],
     session: SessionDep,
-    current_account: CurrentAccount,
+    current_account: RequireCurrentAccount,
     response: Response,
 ) -> DatasetRead:
     """

@@ -61,9 +61,12 @@ async def dataset_partial(request: Request, dataset: RequireVisibleDataset):
 
 
 @datasets_router.get("/{dataset_slug}/parts", response_class=HTMLResponse)
-async def dataset_parts(request: Request, dataset: RequireVisibleDataset):
+async def dataset_parts(
+    request: Request, dataset: RequireVisibleDataset, current_account: CurrentAccount
+):
+    parts = [p for p in dataset.parts if p.visible_to(current_account)]
     return templates.TemplateResponse(
-        request, "partials/dataset-parts.html", {"dataset": dataset, "parts": dataset.parts}
+        request, "partials/dataset-parts.html", {"dataset": dataset, "parts": parts}
     )
 
 
