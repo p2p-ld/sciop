@@ -47,13 +47,20 @@ table {
 }
 
 .text-container {
-  max-width: 750px;
+  width: 100%;
+  max-width: 100%;
+  & h1, h2, p, blockquote {
+    max-width: 750px;
+  }
 }
 
 .center-column {
   display: flex;
   flex-direction: column;
   align-items: center;
+  p {
+    text-align: left;
+  }
 }
 
 .flex-container {
