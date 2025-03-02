@@ -8,9 +8,11 @@
 {% if parts | length == 0 %}
   <span>No dataset parts</span>
 {% else %}
+    {% if pages %}
     {% with swap_target="#dataset-parts" %}
     {% include 'includes/pagination-buttons.html' %}
     {% endwith %}
+    {% endif %}
     <div class="table-head">
       <span class="marker"></span>
       <span class="col-slug">
@@ -36,9 +38,11 @@
   {% for part in parts if part.visible_to(current_account) %}
   {{ dataset_part_collapsible(part, dataset, current_account, config, review) }}
   {% endfor %}
+  {% if pages %}
   {% with swap_target="#dataset-parts" %}
   {% include 'includes/pagination-buttons.html' %}
   {% endwith %}
+  {% endif %}
 {% endif %}
 </div>
 {% if current_account and not review %}
