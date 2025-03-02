@@ -117,7 +117,7 @@
     <h{{ header_start + 1}}>
        Files
     </h{{ header_start + 1}}>
-    <div class="file-table">
+    <div class="file-table scrollable">
         {% for file in upload.torrent.files %}
         <span class="file-name">{{ file.path }}</span>
         <span class="file-size">{{ file.human_size }}</span>
@@ -126,9 +126,9 @@
     <h{{ header_start + 1}}>
         Trackers
     </h{{ header_start + 1}}>
-    <div class="tracker-list">
+    <div class="tracker-list scrollable">
         {% for tracker in upload.torrent.trackers %}
-        <code>{{ tracker.url }}</code>
+        <code>{{ tracker.url }}</code><br>
         {% endfor %}
     </div>
 </div>

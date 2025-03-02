@@ -30,26 +30,6 @@ class UploadBase(SQLModel):
         max_length=4096,
     )
 
-
-class Upload(UploadBase, TableMixin, ModerableMixin, table=True):
-    __tablename__ = "uploads"
-
-    upload_id: IDField = Field(default=None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
-    dataset: Dataset = Relationship(back_populates="uploads")
-    dataset_parts: list[DatasetPart] = Relationship(
-        back_populates="uploads", link_model=UploadDatasetPartLink
-    )
-    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
-    account: Account = Relationship(back_populates="submissions")
-    torrent: Optional["TorrentFile"] = Relationship(
-        back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
-    )
-
-    audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
-    seeders: Optional[int] = None
-    leechers: Optional[int] = None
-
     @property
     def human_size(self) -> str:
         """Human-sized string representation of the torrent size"""
@@ -76,9 +56,10 @@ class Upload(UploadBase, TableMixin, ModerableMixin, table=True):
 
     @property
     def short_hash(self) -> Optional[str]:
-        if self.torrent:
-            return self.torrent.short_hash
-        return None
+        # try:
+        return self.torrent.short_hash
+        # except AttributeError:
+        #     return None
 
     @property
     def infohash(self) -> Optional[str]:
@@ -115,12 +96,32 @@ class Upload(UploadBase, TableMixin, ModerableMixin, table=True):
         """
 
 
+class Upload(UploadBase, TableMixin, ModerableMixin, table=True):
+    __tablename__ = "uploads"
+
+    upload_id: IDField = Field(default=None, primary_key=True)
+    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
+    dataset: Dataset = Relationship(back_populates="uploads")
+    dataset_parts: list[DatasetPart] = Relationship(
+        back_populates="uploads", link_model=UploadDatasetPartLink
+    )
+    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
+    account: Account = Relationship(back_populates="submissions")
+    torrent: Optional["TorrentFile"] = Relationship(
+        back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+    audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
+    seeders: Optional[int] = None
+    leechers: Optional[int] = None
+
+
 @event.listens_for(Upload.is_removed, "set")
 def _upload_remove_torrent(
     target: Upload, value: bool, oldvalue: bool, initiator: AttributeEventToken
 ) -> None:
     """Remove an associated torrent when the"""
-    if value and target.torrent:
+    if value and not oldvalue and oldvalue is not None and target.torrent:
         from sciop.db import get_session
 
         with next(get_session()) as session:

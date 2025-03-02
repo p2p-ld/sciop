@@ -37,6 +37,13 @@
           </span>
       </div>
   </div>
+  <div class="upload-button">
+      <button class="button" id="upload-button"
+              hx-get="/datasets/{{dataset.slug}}/upload/start?{{ part.part_slug }}=true"
+              hx-swap="outerHTML">
+          Upload
+      </button>
+    </div>
 </div>
 {% endmacro %}
 

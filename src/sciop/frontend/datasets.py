@@ -1,17 +1,19 @@
 from typing import Annotated, Optional
 from typing import Literal as L
 
-from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import Session, select
 from starlette.datastructures import QueryParams
+from starlette.requests import Request
+from starlette.responses import Response
 
 from sciop import crud
 from sciop.api.deps import (
     CurrentAccount,
-    RequireUploader,
+    RequireCurrentAccount,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
     SessionDep,
@@ -114,7 +116,7 @@ def _parts_from_query(
 @datasets_router.get("/{dataset_slug}/upload/start", response_class=HTMLResponse)
 async def dataset_upload_start(
     dataset_slug: str,
-    account: RequireUploader,
+    account: RequireCurrentAccount,
     session: SessionDep,
     dataset: RequireVisibleDataset,
     request: Request,
@@ -136,13 +138,16 @@ async def dataset_upload_torrent(
     dataset_slug: str,
     dataset: RequireVisibleDataset,
     file: Annotated[UploadFile, File()],
-    account: RequireUploader,
+    account: RequireCurrentAccount,
     session: SessionDep,
     request: Request,
+    response: Response,
 ):
     """Validate and create a torrent file,"""
 
-    created_torrent = await upload_torrent(account=account, file=file, session=session)
+    created_torrent = await upload_torrent(
+        account=account, file=file, session=session, request=request, response=response
+    )
     parts = _parts_from_query(query=request.query_params, dataset=dataset, session=session)
 
     return templates.TemplateResponse(

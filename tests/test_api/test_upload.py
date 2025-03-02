@@ -1,9 +1,12 @@
 import io
 
 import pytest
+from starlette.testclient import TestClient
 from torf._errors import MetainfoError
 
+from sciop import crud
 from sciop.config import config
+from sciop.models import UploadCreate
 from sciop.models.torrent import TorrentVersion
 
 from ..fixtures.paths import DATA_DIR
@@ -79,3 +82,30 @@ def test_upload_trackerless(client, uploader, get_auth_header, torrent, hx_reque
         else:
             msg = response.json()
             assert "must contain at least one tracker" in msg["detail"]["msg"]
+
+
+def test_upload_noscope(client: TestClient, account, dataset, get_auth_header, torrent, session):
+    """Accounts without upload scope should be able to upload stuff"""
+    acct = account()
+    header = get_auth_header()
+    torrent_ = torrent()
+    ds = dataset()
+    stream = io.BytesIO()
+    torrent_.write_stream(stream)
+    with stream as f:
+        response = client.post(
+            config.api_prefix + "/upload/torrent", headers=header, files={"file": f}
+        )
+        assert response.status_code == 200
+
+    ul = UploadCreate(
+        torrent_infohash=torrent_.infohash,
+    )
+
+    res = client.post(
+        f"{config.api_prefix}/datasets/{ds.slug}/uploads", headers=header, json=ul.model_dump()
+    )
+    assert res.status_code == 200
+    ul = crud.get_upload_from_infohash(infohash=torrent_.infohash, session=session)
+    assert not ul.is_approved
+    assert ul.needs_review
