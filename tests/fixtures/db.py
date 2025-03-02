@@ -2,9 +2,9 @@ from typing import Callable
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
+from alembic.config import Config as AlembicConfig
 from sqlalchemy import Engine, create_engine
 from sqlmodel import Session, SQLModel
-from alembic.config import Config as AlembicConfig
 
 
 @pytest.fixture(scope="session", autouse=True)

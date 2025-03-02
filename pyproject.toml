@@ -146,6 +146,7 @@ fixable = ["ALL"]
 "tests/**/test_*" = ["ANN001", "ANN201", "F841"]
 "tests/conftest.py" = ["F403", "E402"]
 "tests/fixtures/**/*" = ["F403"]
+"src/sciop/migrations/env.py" = ["ANN"]
 
 [tool.black]
 target-version = ['py311', 'py312', 'py313']
