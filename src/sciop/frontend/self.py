@@ -12,7 +12,17 @@ from sciop.api.deps import (
     SessionDep,
 )
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Account, AccountRead, AuditLog, AuditLogRead, Dataset, DatasetPart, Upload
+from sciop.models import (
+    Account,
+    AccountRead,
+    AuditLog,
+    AuditLogRead,
+    Dataset,
+    DatasetPart,
+    DatasetRead,
+    Upload,
+    UploadRead,
+)
 
 AuditLogRead.model_rebuild()
 self_router = APIRouter(prefix="/self")
@@ -42,13 +52,29 @@ async def log(request: Request, account: RequireReviewer):
 
 
 @self_router.get("/datasets", response_class=HTMLResponse)
-async def datasets(request: Request, account: RequireCurrentAccount):
-    pass
+@jinja.hx("partials/datasets.html")
+async def datasets(
+    request: Request, account: RequireCurrentAccount, session: SessionDep
+) -> Page[DatasetRead]:
+    stmt = (
+        select(Dataset)
+        .where(Dataset.visible_to(account) == True, Dataset.account == account)
+        .order_by(Dataset.created_at.desc())
+    )
+    return paginate(conn=session, query=stmt)
 
 
 @self_router.get("/uploads", response_class=HTMLResponse)
-async def uploads(request: Request, account: RequireCurrentAccount):
-    pass
+@jinja.hx("partials/uploads.html")
+async def uploads(
+    request: Request, account: RequireCurrentAccount, session: SessionDep
+) -> Page[UploadRead]:
+    stmt = (
+        select(Upload)
+        .where(Upload.visible_to(account) == True, Upload.account == account)
+        .order_by(Upload.created_at.desc())
+    )
+    return paginate(conn=session, query=stmt)
 
 
 @self_router.get("/review/datasets", response_class=HTMLResponse)
