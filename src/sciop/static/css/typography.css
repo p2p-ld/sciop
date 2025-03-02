@@ -155,3 +155,58 @@ p.unapproved {
         var(--color-disabled) 7px
     );
 }
+
+blockquote {
+    background-color: var(--color-background-deemphasized);
+    text-align: left;
+    font-style: italic;
+    padding: 1em 2em;
+    position: relative;
+
+    p.attribution {
+        text-align: right;
+    }
+
+    &::before {
+        content: "";
+        width: 5px;
+        height: 100%;
+        background-color: var(--color-border);
+        left: 0;
+        top: 0;
+        position: absolute;
+    }
+}
+
+div.status-strip {
+    width: 100%;
+    padding: 2em 1em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    h2 {
+        font-size: 2em;
+    }
+    h2, p {
+        background-color: var(--color-background);
+        padding: 1em;
+    }
+    p {
+        max-width: 400px;
+    }
+    .token {
+        margin-top: 1em;
+        line-height: 3em;
+    }
+
+    font-family: var(--font-mono);
+    & * {
+        margin: auto;
+    }
+    background: repeating-linear-gradient(
+        -45deg,
+        var(--color-background),
+        var(--color-background) 15px,
+        var(--color-alert) 15px,
+        var(--color-alert) 30px );
+}
