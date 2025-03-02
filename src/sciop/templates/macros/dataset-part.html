@@ -1,13 +1,19 @@
 {% macro dataset_part_row(part, dataset, current_account, config) %}
 <div class="dataset-part" id="dataset-part-{{ dataset.slug }}-{{ part.part_slug }}">
   <h2 class="dataset-title">{{ part.part_slug }} </h2>
+  <p class="account-link"><a href="/accounts/{{ part.account.username }}">@{{ part.account.username }}</a></p>
   <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>/
   <span class="dataset-part-slug token">
     <a href="/datasets/{{dataset.slug}}/{{ part.part_slug }}">{{ part.part_slug}}</a>
   </span>
+
+  {% if not part.is_approved %}
+  <p class="unapproved">
+      Dataset part has not yet been reviewed, and is not visible in public lists
+  </p>
+  {% endif %}
   {% if current_account and (part.needs_review and current_account.has_scope("review")) %}
-  <p class="font-mono">review status: unapproved</p>
-  <div >{{ review_buttons(dataset, part, config) }}</div></td>
+  <div >{{ review_buttons(dataset, part, config) }}</div>
   {% endif %}
 
   {% if part.paths %}
@@ -34,8 +40,11 @@
 </div>
 {% endmacro %}
 
-{% macro dataset_part_collapsible(part, dataset, current_account, config) %}
-<details class="collapsible dataset-part-collapsible{% if not part.is_approved %} unapproved{% endif %}""
+{% macro dataset_part_collapsible(part, dataset, current_account, config, review) %}
+{% if not dataset %}
+{% set dataset=part.dataset %}
+{% endif %}
+<details class="collapsible dataset-part-collapsible{% if not part.is_approved %} unapproved{% endif %}"
          id="dataset-part-collapsible-{{ dataset.slug }}-{{ part.part_slug }}">
   <summary
       class="collapsible-summary"
@@ -44,14 +53,29 @@
       hx-target="#dataset-part-{{ dataset.slug }}-{{ part.part_slug }}"
   >
     <span class="collapsible-marker"></span>
+    {% if review %}
+      <span class="dataset-slug item-link">
+      <a href="/datasets/{{ dataset.slug }}">
+        {{ dataset.slug }}
+      </a>
+        /
+      <a href="/datasets/{{ dataset.slug }}/{{ part.part_slug }}">
+        {{ part.part_slug }}
+      </a>
+    </span>
+    {% else %}
     <span class="dataset-slug item-link">
       <a href="/datasets/{{ dataset.slug }}/{{ part.part_slug }}">
         {{ part.part_slug }}
       </a>
     </span>
+    {% endif %}
     <time class="dataset-part-timestamp timestamp" datetime="{{part.created_at.strftime('%y-%m-%d %H:%M') }}Z">
             {{ part.created_at.strftime("%y-%m-%d %H:%M") }}
       </time>
+      {% if review %}
+      {{ review_buttons(dataset, part, config) }}
+      {% else %}
     <span class="color-strip primary">
 
     <input type="checkbox" class="upload-part-checkbox" name="{{ part.part_slug }}"
@@ -60,6 +84,7 @@
            form="dataset-parts-{{ dataset.slug }}-batch-upload-form"
     >
     </span>
+    {% endif %}
 
   </summary>
   <div class="dataset-part" id="dataset-part-{{ dataset.slug }}-{{ part.part_slug }}"></div>

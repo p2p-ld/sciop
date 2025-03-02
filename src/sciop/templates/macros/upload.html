@@ -3,6 +3,11 @@
     <div class="upload-topmatter topmatter">
         <div class="upload-header header">
             <h{{ header_start }} class="title upload-title font-mono">{{ upload.short_hash }} </h{{ header_start }}>
+            {% if not upload.is_approved %}
+            <p class="unapproved">
+              Upload has not yet been reviewed, and is not visible in public lists
+            </p>
+            {% endif %}
             <span class="dataset-slug">
                 <a href="/datasets/{{upload.dataset.slug}}">
                     {{ upload.dataset.slug }}
@@ -34,14 +39,16 @@
                 <tr>
                     <td colspan="2" class="infobox-subhead wrap">{{ upload.torrent.file_name }}</td>
                 </tr>
+                {% if upload.account %}
                 <tr>
                     <td class="infobox-key">Uploaded By</td>
                     <td class="infobox-value">
-                        <a href="/accounts/{{ upload.account.username }}">
-                            {{ upload.account.username }}
-                        </a>
+                    <a class="account-link" href="/accounts/{{ upload.account.username }}">
+                        @{{ upload.account.username }}
+                    </a>
                     </td>
                 </tr>
+                {% endif %}
                 <tr>
                     <td class="infobox-key">Size</td>
                     <td class="infobox-value">{{ upload.human_size }}</td>

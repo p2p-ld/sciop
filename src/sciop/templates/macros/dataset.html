@@ -5,6 +5,11 @@
     <div class="dataset-topmatter topmatter">
         <div class="dataset-header header">
             <h{{ header_start }} class="dataset-title">{{ dataset.title }} </h{{ header_start }}>
+            {% if not dataset.is_approved %}
+            <p class="unapproved">
+                Dataset has not yet been reviewed, and is not visible in public lists
+            </p>
+            {% endif %}
             <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
             <p class="dataset-publisher">{{ dataset.publisher }}</p>
             {%- if dataset.homepage %}
@@ -26,9 +31,9 @@
                 <tr>
                     <td class="infobox-key">Submitted By</td>
                     <td class="infobox-value">
-                        <a href="/accounts/{{ dataset.account.username }}">
-                            {{ dataset.account.username }}
-                        </a>
+                    <a class="account-link" href="/accounts/{{ dataset.account.username }}">
+                        @{{ dataset.account.username }}
+                    </a>
                     </td>
                 </tr>
                 {% endif %}

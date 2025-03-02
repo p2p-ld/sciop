@@ -9,6 +9,7 @@
         hx-get="/self/review/datasets"
         hx-trigger="load"
         hx-swap="outerHTML"
+        hx-indicator="#review-datasets-indicator"
     >
         <span class="htmx-indicator search-indicator" id="review-datasets-indicator">
             <span>Loading datasets...</span>
@@ -17,12 +18,30 @@
     </div>
 </div>
 
-<h2>uploads</h2>
+<h2>Dataset Parts</h2>
+
+<div id="dataset-parts-review-container" class="review-container">
+    <div
+        hx-get="/self/review/dataset-parts"
+        hx-trigger="load"
+        hx-swap="outerHTML"
+        hx-indicator="#review-dataset-parts-indicator"
+    >
+        <span class="htmx-indicator search-indicator" id="review-dataset-parts-indicator">
+            <span>Loading dataset parts...</span>
+            <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+        </span>
+    </div>
+</div>
+
+<h2>Uploads</h2>
 
 <div id="upload-review-container"  class="review-container">
     <div
         hx-get="/self/review/uploads"
         hx-trigger="load"
+        hx-swap="outerHTML"
+        hx-indicator="#review-uploads-indicator"
     >
         <span class="htmx-indicator search-indicator" id="review-uploads-indicator">
             <span>Loading uploads...</span>

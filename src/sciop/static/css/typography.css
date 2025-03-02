@@ -140,3 +140,18 @@
         );
     }
 }
+
+p.unapproved {
+    font-family: var(--font-mono);
+    font-size: 1.2em;
+    color: var(--color-alert);
+    font-weight: bold;
+    padding: 1em 0.5em;
+    background: repeating-linear-gradient(
+        -45deg,
+        var(--color-background),
+        var(--color-background) 5px,
+        var(--color-disabled) 5px,
+        var(--color-disabled) 7px
+    );
+}
