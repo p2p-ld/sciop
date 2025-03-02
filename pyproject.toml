@@ -80,6 +80,8 @@ format.composite = [
     "black .",
     "ruff check --fix",
 ]
+migrate = "alembic -c ./src/sciop/migrations/alembic.ini upgrade head"
+alembic = "alembic -c ./src/sciop/migrations/alembic.ini"
 
 
 [tool.ruff]
