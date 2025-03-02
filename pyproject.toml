@@ -48,6 +48,7 @@ test = [
     "pytest-asyncio>=0.25.3",
     "beautifulsoup4>=4.13.3",
     "lxml>=5.3.1",
+    "pytest-alembic>=0.11.1",
 ]
 dev = [
     "sciop[test]",
@@ -79,6 +80,8 @@ format.composite = [
     "black .",
     "ruff check --fix",
 ]
+migrate = "alembic -c ./src/sciop/migrations/alembic.ini upgrade head"
+alembic = "alembic -c ./src/sciop/migrations/alembic.ini"
 
 
 [tool.ruff]
@@ -143,6 +146,7 @@ fixable = ["ALL"]
 "tests/**/test_*" = ["ANN001", "ANN201", "F841"]
 "tests/conftest.py" = ["F403", "E402"]
 "tests/fixtures/**/*" = ["F403"]
+"src/sciop/migrations/env.py" = ["ANN"]
 
 [tool.black]
 target-version = ['py311', 'py312', 'py313']
