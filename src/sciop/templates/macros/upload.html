@@ -1,3 +1,4 @@
+{% from "macros/actions.html" import delete_button %}
 {% macro upload_row(upload, current_account, config, header_start=1) %}
 <div class="upload" id="upload-{{ upload.infohash }}">
     <div class="upload-topmatter topmatter">
@@ -101,6 +102,15 @@
                         </time>
                     </td>
                 </tr>
+                {% if upload.removable_by(current_account) %}
+                {% set delete_url= config.api_prefix + "/uploads/" + upload.infohash %}
+                <tr>
+                    <td class="infobox-key">Actions</td>
+                    <td class="infobox-value">
+                    {{ delete_button(url=delete_url, item_type="upload", name=upload.infohash)}}
+                    </td>
+                </tr>
+                {% endif %}
                 {% if current_account and current_account.has_scope("review") and not upload.is_approved %}
                 <tr>
                     <td colspan="2">

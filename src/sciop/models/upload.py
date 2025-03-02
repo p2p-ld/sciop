@@ -1,6 +1,7 @@
 from typing import Optional
 from urllib.parse import urljoin
 
+from pydantic import field_validator
 from sqlalchemy import event
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship, SQLModel
@@ -132,7 +133,14 @@ def _upload_remove_torrent(
 class UploadRead(UploadBase, TableReadMixin):
     """Version of datasaet upload returned when reading"""
 
+    dataset: Optional[SlugStr] = None
     torrent: Optional["TorrentFile"] = None
+
+    @field_validator("dataset", mode="before")
+    def extract_slug(cls, value: Optional["Dataset"] = None) -> SlugStr:
+        if value is not None:
+            value = value.slug
+        return value
 
 
 class UploadCreate(UploadBase):

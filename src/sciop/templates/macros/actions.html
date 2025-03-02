@@ -1,0 +1,7 @@
+{% macro delete_button(url, item_type="item", name="") %}
+<button class="button delete-button success-button caution"
+        role="button"
+        aria-roledescription="Deletes the {{ item_type }} {{ name }}"
+        hx-delete="{{ url }}">Delete
+</button>
+{% endmacro %}
