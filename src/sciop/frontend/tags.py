@@ -27,7 +27,7 @@ def tag_show(tag: str, tag_obj: RequireTag, request: Request):
 def tag_datasets(
     tag: str, tag_obj: RequireTag, session: SessionDep, request: Request
 ) -> Page[Dataset]:
-    stmt = select(Dataset).where(Dataset.enabled == True, Dataset.tags.any(tag=tag))
+    stmt = select(Dataset).where(Dataset.is_visible == True, Dataset.tags.any(tag=tag))
     return paginate(conn=session, query=stmt)
 
 
@@ -36,5 +36,5 @@ def tag_datasets(
 def tag_uploads(
     tag: str, tag_obj: RequireTag, session: SessionDep, request: Request
 ) -> Page[Upload]:
-    stmt = select(Upload).join(Dataset).where(Dataset.tags.any(tag=tag), Upload.enabled == True)
+    stmt = select(Upload).join(Dataset).where(Dataset.tags.any(tag=tag), Upload.is_visible == True)
     return paginate(conn=session, query=stmt)

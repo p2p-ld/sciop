@@ -5,6 +5,11 @@
     <div class="dataset-topmatter topmatter">
         <div class="dataset-header header">
             <h{{ header_start }} class="dataset-title">{{ dataset.title }} </h{{ header_start }}>
+            {% if not dataset.is_approved %}
+            <p class="unapproved">
+                Dataset has not yet been reviewed, and is not visible in public lists
+            </p>
+            {% endif %}
             <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
             <p class="dataset-publisher">{{ dataset.publisher }}</p>
             {%- if dataset.homepage %}
@@ -26,9 +31,9 @@
                 <tr>
                     <td class="infobox-key">Submitted By</td>
                     <td class="infobox-value">
-                        <a href="/accounts/{{ dataset.account.username }}">
-                            {{ dataset.account.username }}
-                        </a>
+                    <a class="account-link" href="/accounts/{{ dataset.account.username }}">
+                        @{{ dataset.account.username }}
+                    </a>
                     </td>
                 </tr>
                 {% endif %}
@@ -104,6 +109,13 @@
                     <td class="infobox-key">Record Last Updated</td>
                     <td class="infobox-value">{{ dataset.updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
                 </tr>
+                {% if current_account and current_account.has_scope("review") and not dataset.is_approved %}
+                <tr>
+                    <td colspan="2">
+                        <p class="infobox-subhead font-mono">review status: unapproved</p>
+                        <div class="infobox-row">{{ review_buttons(dataset, config) }}</div></td>
+                </tr>
+                {% endif %}
             </table>
         </div>
     </div>
@@ -126,7 +138,7 @@
 
     <h{{ header_start + 1 }}>Uploads</h{{ header_start + 1 }}>
 
-    {% if dataset.enabled %}
+    {% if dataset.is_approved %}
     <div id="dataset-uploads-container" class="uploads-container container">
         <div
             hx-get="/datasets/{{ dataset.slug }}/uploads"
@@ -141,7 +153,7 @@
     {% endif %}
 
     <div class="upload-button">
-    {% if not dataset.enabled %}
+    {% if not dataset.is_approved %}
         {% if current_account and current_account.has_scope("review") %}
         <button class="button success-button" id="approve-button"
                 hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve this dataset</button>
@@ -171,7 +183,8 @@
 {% endmacro %}
 
 {% macro dataset_collapsible(dataset, review = False, config = None, types= None) %}
-<details class="collapsible dataset-collapsible" id="dataset-collapsible-{{ dataset.slug }}">
+<details class="collapsible dataset-collapsible{% if not dataset.is_approved %} unapproved{% endif %}"
+         id="dataset-collapsible-{{ dataset.slug }}">
     <summary class="collapsible-summary"
              hx-get="/datasets/{{ dataset.slug }}/partial"
              hx-trigger="click once"
@@ -190,20 +203,24 @@
             {{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}
         </time>
         {% if review %}
-        <button class="button approve-button success-button"
-                role="button"
-                aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it visible on the site"
-                aria-controls="dataset-collapsible-{{ dataset.slug }}"
-                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve
-        </button>
-        <button class="button deny-button success-button caution"
-                aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
-                aria-controls="dataset-collapsible-{{ dataset.slug }}"
-                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/deny">Deny
-        </button>
+        {{ review_buttons(dataset, config) }}
         {% endif %}
     </summary>
 
     <div class="dataset" id="dataset-{{ dataset.slug }}"></div>
 </details>
+{% endmacro %}
+
+{% macro review_buttons(dataset, config) %}
+<button class="button approve-button success-button"
+        role="button"
+        aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it visible on the site"
+        aria-controls="dataset-collapsible-{{ dataset.slug }}"
+        hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve
+</button>
+<button class="button deny-button success-button caution"
+        aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
+        aria-controls="dataset-collapsible-{{ dataset.slug }}"
+        hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/deny">Deny
+</button>
 {% endmacro %}

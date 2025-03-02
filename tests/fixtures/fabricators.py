@@ -99,19 +99,23 @@ def account(
     default_account: dict, session: Session
 ) -> C[Concatenate[list[Scopes] | None, Session | None, P], "Account"]:
     def _account(
-        scopes: list[Scopes] = None, session_: Session | None = None, **kwargs: P.kwargs
+        scopes: list[Scopes] = None,
+        is_suspended: bool = False,
+        session_: Session | None = None,
+        **kwargs: P.kwargs,
     ) -> Account:
         if not session_:
             session_ = session
 
         scopes = [] if scopes is None else [Scope.get_item(s, session=session_) for s in scopes]
-        default_account.update(kwargs)
+        kwargs = {**default_account.copy(), **kwargs}
 
-        account_ = crud.get_account(session=session_, username=default_account["username"])
+        account_ = crud.get_account(session=session_, username=kwargs["username"])
         if not account_:
-            account_ = AccountCreate(**default_account)
+            account_ = AccountCreate(**kwargs)
             account_ = crud.create_account(session=session, account_create=account_)
         account_.scopes = scopes
+        account_.is_suspended = is_suspended
         session_.add(account_)
         session_.commit()
         session_.flush()
@@ -122,26 +126,39 @@ def account(
 
 
 @pytest.fixture
-def admin_user(account: C[..., "Account"]) -> "Account":
+def admin_user(account: C[..., "Account"], session: Session) -> "Account":
     yield account(
         scopes=[Scopes.admin, Scopes.upload, Scopes.review, Scopes.submit],
         username="admin",
         password="adminadmin12",
+        session=session,
     )
 
 
 @pytest.fixture
-def root_user(account: C[..., "Account"]) -> "Account":
+def root_user(account: C[..., "Account"], session: Session) -> "Account":
     yield account(
         scopes=[Scopes.root, Scopes.admin, Scopes.upload, Scopes.review, Scopes.submit],
         username="root",
         password="rootroot1234",
+        session=session,
     )
 
 
 @pytest.fixture
-def uploader(account: C[..., "Account"]) -> Account:
-    return account(scopes=[Scopes.upload])
+def uploader(account: C[..., "Account"], session: Session) -> Account:
+    return account(
+        scopes=[Scopes.upload],
+        session=session,
+    )
+
+
+@pytest.fixture
+def reviewer(account: C[..., "Account"], session: Session) -> Account:
+    return account(
+        scopes=[Scopes.review],
+        session=session,
+    )
 
 
 @pytest.fixture
@@ -149,15 +166,19 @@ def dataset(
     default_dataset: dict, session: Session
 ) -> C[Concatenate[bool, Session | None, P], Dataset]:
     def _dataset(
-        enabled: bool = True, session_: Session | None = None, **kwargs: P.kwargs
+        is_approved: bool = True,
+        is_removed: bool = False,
+        session_: Session | None = None,
+        **kwargs: P.kwargs,
     ) -> Dataset:
         if session_ is None:
             session_ = session
-        default_dataset.update(**kwargs)
+        kwargs = {**default_dataset, **kwargs}
 
-        created = DatasetCreate(**default_dataset)
+        created = DatasetCreate(**kwargs)
         dataset = crud.create_dataset(session=session_, dataset_create=created)
-        dataset.enabled = enabled
+        dataset.is_approved = is_approved
+        dataset.is_removed = is_removed
         session_.add(dataset)
         session_.commit()
         session_.flush()
@@ -171,15 +192,15 @@ def dataset(
 def torrent(default_torrent: dict, tmp_path: Path) -> C[P, Torrent]:
 
     def _torrent(**kwargs: P.kwargs) -> Torrent:
-        default_torrent.update(kwargs)
+        kwargs = {**default_torrent, **kwargs}
         file_in_torrent = Path(default_torrent["path"])
         if not file_in_torrent.is_absolute():
             file_in_torrent = tmp_path / file_in_torrent
         with open(file_in_torrent, "wb") as f:
             f.write(b"0" * 16384 * 4)
-        default_torrent["path"] = file_in_torrent
+        kwargs["path"] = file_in_torrent
 
-        t = Torrent(**default_torrent)
+        t = Torrent(**kwargs)
         t.generate()
         return t
 
@@ -202,12 +223,20 @@ def torrentfile(
         if account_ is None:
             account_ = account(scopes=[Scopes.upload], session_=session_, username="uploader")
 
-        default_torrentfile.update(kwargs)
+        files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
+        hash_data = "".join([str(f) for f in files])
+        hash_data = hash_data.encode("utf-8")
+        if "v1_infohash" not in kwargs:
+            kwargs["v1_infohash"] = hashlib.sha1(hash_data).hexdigest()
+        if "v2_infohash" not in kwargs:
+            kwargs["v2_infohash"] = hashlib.sha256(hash_data).hexdigest()
+
+        kwargs = {**default_torrentfile, **kwargs}
         file_in_torrent = tmp_path / "default.bin"
         with open(file_in_torrent, "wb") as f:
-            f.write(b"0" * default_torrentfile["total_size"])
+            f.write(b"0" * kwargs["total_size"])
 
-        tf = TorrentFileCreate(**default_torrentfile)
+        tf = TorrentFileCreate(**kwargs)
         t = torrent(path=file_in_torrent)
         tf.filesystem_path.parent.mkdir(exist_ok=True, parents=True)
         t.write(tf.filesystem_path, overwrite=True)
@@ -228,7 +257,7 @@ def upload(
     Concatenate[bool, TorrentFile | None, Account | None, Dataset | None, Session | None, P], Upload
 ]:
     def _upload(
-        enabled: bool = True,
+        is_approved: bool = True,
         torrentfile_: TorrentFile | None = None,
         account_: Account | None = None,
         dataset_: Dataset | None = None,
@@ -242,16 +271,16 @@ def upload(
         if torrentfile_ is None:
             torrentfile_ = torrentfile(account_=account_, session_=session_)
         if dataset_ is None:
-            dataset_ = dataset(enabled=True, session=session_)
+            dataset_ = dataset(is_approved=True, session=session_)
 
-        default_upload.update(kwargs)
+        kwargs = {**default_upload, **kwargs}
         if "torrent_infohash" not in kwargs:
-            default_upload["torrent_infohash"] = torrentfile_.infohash
-        created = UploadCreate(**default_upload)
+            kwargs["torrent_infohash"] = torrentfile_.infohash
+        created = UploadCreate(**kwargs)
         created = crud.create_upload(
             session=session_, created_upload=created, dataset=dataset_, account=account_
         )
-        created.enabled = enabled
+        created.is_approved = is_approved
         session_.add(created)
         session_.commit()
         session_.refresh(created)
@@ -339,8 +368,8 @@ def default_db(
     )
     uploader = account(scopes=[Scopes.upload], session_=session, username="uploader")
     tfile = torrentfile(account_=uploader, session_=session)
-    dataset_ = dataset(enabled=True, session_=session)
+    dataset_ = dataset(is_approved=True, session_=session)
     upload_ = upload(
-        enabled=True, torrentfile_=tfile, account_=uploader, dataset_=dataset_, session_=session
+        is_approved=True, torrentfile_=tfile, account_=uploader, dataset_=dataset_, session_=session
     )
     yield admin, uploader, tfile, dataset_, upload_

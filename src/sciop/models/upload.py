@@ -1,12 +1,14 @@
 from typing import Optional
 from urllib.parse import urljoin
 
+from sqlalchemy import event
+from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
 from sciop.models.dataset import UploadDatasetPartLink
-from sciop.models.mixin import TableMixin, TableReadMixin
+from sciop.models.mixin import ModerableMixin, TableMixin, TableReadMixin
 from sciop.types import EscapedStr, IDField, InputType, SlugStr
 
 
@@ -29,7 +31,7 @@ class UploadBase(SQLModel):
     )
 
 
-class Upload(UploadBase, TableMixin, table=True):
+class Upload(UploadBase, TableMixin, ModerableMixin, table=True):
     __tablename__ = "uploads"
 
     upload_id: IDField = Field(default=None, primary_key=True)
@@ -43,7 +45,7 @@ class Upload(UploadBase, TableMixin, table=True):
     torrent: Optional["TorrentFile"] = Relationship(
         back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
     )
-    enabled: bool = False
+
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
     seeders: Optional[int] = None
     leechers: Optional[int] = None
@@ -73,12 +75,16 @@ class Upload(UploadBase, TableMixin, table=True):
         return self.torrent.file_name
 
     @property
-    def short_hash(self) -> str:
-        return self.torrent.short_hash
+    def short_hash(self) -> Optional[str]:
+        if self.torrent:
+            return self.torrent.short_hash
+        return None
 
     @property
-    def infohash(self) -> str:
-        return self.torrent.infohash
+    def infohash(self) -> Optional[str]:
+        if self.torrent:
+            return self.torrent.infohash
+        return None
 
     @property
     def rss_description(self) -> str:
@@ -109,6 +115,20 @@ class Upload(UploadBase, TableMixin, table=True):
         """
 
 
+@event.listens_for(Upload.is_removed, "set")
+def _upload_remove_torrent(
+    target: Upload, value: bool, oldvalue: bool, initiator: AttributeEventToken
+) -> None:
+    """Remove an associated torrent when the"""
+    if value and target.torrent:
+        from sciop.db import get_session
+
+        with next(get_session()) as session:
+            torrent = session.merge(target.torrent)
+            session.delete(torrent)
+            session.commit()
+
+
 class UploadRead(UploadBase, TableReadMixin):
     """Version of datasaet upload returned when reading"""
 
@@ -116,7 +136,7 @@ class UploadRead(UploadBase, TableReadMixin):
 
 
 class UploadCreate(UploadBase):
-    """Dataset upload for creation, excludes the enabled param"""
+    """Dataset upload for creation, excludes the is_approved param"""
 
     torrent_infohash: str = Field(
         min_length=40, max_length=64, description="Infohash of the torrent file, v1 or v2"

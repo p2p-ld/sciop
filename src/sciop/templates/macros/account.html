@@ -58,7 +58,7 @@
         {% if review %}
         {% set suspend_disabled=not current_account or not current_account.can_suspend(account) %}
         <button class="button suspend-button success-button caution"
-                hx-delete="{{ config.api_prefix }}/accounts/{{ account.username }}"
+                hx-post="{{ config.api_prefix }}/accounts/{{ account.username }}/suspend"
                 {% if suspend_disabled %}disabled{% endif %}
         >Suspend
         </button>

@@ -4,7 +4,9 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
-from pydantic import SecretStr, field_validator
+import sqlalchemy as sqla
+from pydantic import ConfigDict, SecretStr, field_validator
+from sqlalchemy.ext.hybrid import hybrid_method
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
@@ -44,6 +46,9 @@ class AccountScopeLink(TableMixin, table=True):
 class AccountBase(SQLModel):
     username: UsernameStr
 
+    model_config = ConfigDict(ignored_types=(hybrid_method,))
+
+    @hybrid_method
     def has_scope(self, *args: str | Scopes) -> bool:
         """
         Check if an account has a given scope.
@@ -79,6 +84,22 @@ class AccountBase(SQLModel):
             return True
 
         return any([scope in has_scopes for scope in str_args])
+
+    @has_scope.inplace.expression
+    @classmethod
+    def _has_scope(cls, *args: str) -> sqla.ColumnElement[bool]:
+        if len(args) > 1 and ("root" in args or "admin" in args):
+            raise ValueError(
+                "root and admin in has_scope checks can only be used by themselves. "
+                "They implicitly have all other scopes."
+            )
+        if "root" in args:
+            return cls.scopes.any(scope="root")
+        elif "admin" in args:
+            return sqla.or_(cls.scopes.any(scope="admin"), cls.scopes.any(scope="root"))
+        else:
+            args = ("root", "admin", *args)
+            return sqla.or_(*[cls.scopes.any(scope=s) for s in args])
 
     def get_scope(self, scope: str) -> Optional["Scope"]:
         """Get the scope object from its name, returning None if not present"""
@@ -116,6 +137,7 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
             primaryjoin="Account.account_id == AuditLog.target_account_id",
         ),
     )
+    is_suspended: bool = False
 
     def can_suspend(self, account: "Account") -> bool:
         """Whether this account can suspend another account"""

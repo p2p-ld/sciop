@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any, Generator, Optional, Self
 import bencodepy
 import humanize
 from pydantic import field_validator, model_validator
+from sqlalchemy import Connection, event
+from sqlalchemy.orm.mapper import Mapper
 from sqlmodel import Field, Relationship, SQLModel
 from torf import Torrent as Torrent_
 
@@ -226,6 +228,14 @@ class TorrentFile(TorrentFileBase, TableMixin, table=True):
         description="length-8 truncated version of the v2 infohash, if present, or the v1 infohash",
         index=True,
     )
+
+
+@event.listens_for(TorrentFile, "after_delete")
+def _delete_torrent_file(mapper: Mapper, connection: Connection, target: TorrentFile) -> None:
+    """
+    When a reference to a torrent file is deleted, delete the torrent file itself
+    """
+    target.filesystem_path.unlink(missing_ok=True)
 
 
 class TorrentFileCreate(TorrentFileBase):

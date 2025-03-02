@@ -53,7 +53,7 @@ def authenticate(*, session: Session, username: str, password: str) -> Account |
 def create_dataset(
     *, session: Session, dataset_create: DatasetCreate, current_account: Optional[Account] = None
 ) -> Dataset:
-    enabled = current_account is not None and current_account.has_scope("submit")
+    is_approved = current_account is not None and current_account.has_scope("submit")
     urls = [DatasetURL(url=url) for url in dataset_create.urls]
     external_identifiers = [
         ExternalIdentifier(type=e.type, identifier=e.identifier)
@@ -75,7 +75,7 @@ def create_dataset(
     db_obj = Dataset.model_validate(
         dataset_create,
         update={
-            "enabled": enabled,
+            "is_approved": is_approved,
             "account": current_account,
             "urls": urls,
             "tags": tags,
@@ -98,14 +98,14 @@ def create_dataset_part(
     commit: bool = True,
 ) -> DatasetPart:
     paths = [DatasetPath(path=str(path)) for path in dataset_part.paths]
-    enabled = bool(account) and account.has_scope("submit")
+    is_approved = bool(account) and account.has_scope("submit")
     part = DatasetPart.model_validate(
         dataset_part,
         update={
             "paths": paths,
             "dataset": dataset,
             "account": account,
-            "enabled": enabled,
+            "is_approved": is_approved,
         },
     )
     session.add(part)
@@ -147,28 +147,38 @@ def get_dataset_parts(
 
 
 def get_approved_datasets(*, session: Session) -> list[Dataset]:
-    statement = select(Dataset).where(Dataset.enabled == True)
+    statement = select(Dataset).where(Dataset.is_approved == True)
+    return session.exec(statement).all()
+
+
+def get_visible_datasets(*, session: Session) -> list[Dataset]:
+    statement = select(Dataset).where(Dataset.is_visible == True)
     return session.exec(statement).all()
 
 
 def get_approved_datasets_from_tag(*, session: Session, tag: str) -> list[Upload]:
-    statement = select(Dataset).where(Dataset.enabled == True, Dataset.tags.any(tag=tag))
+    statement = select(Dataset).where(Dataset.is_approved == True, Dataset.tags.any(tag=tag))
+    return session.exec(statement).all()
+
+
+def get_visible_datasets_from_tag(*, session: Session, tag: str) -> list[Upload]:
+    statement = select(Dataset).where(Dataset.is_visible == True, Dataset.tags.any(tag=tag))
     return session.exec(statement).all()
 
 
 def get_review_datasets(*, session: Session) -> list[Dataset]:
-    statement = select(Dataset).where(Dataset.enabled == False)
+    statement = select(Dataset).where(Dataset.needs_review == True)
     datasets = session.exec(statement).all()
     return datasets
 
 
 def get_review_datasets_from_tag(*, session: Session, tag: str) -> list[Upload]:
-    statement = select(Dataset).where(Dataset.enabled == False, Dataset.tags.any(tag=tag))
+    statement = select(Dataset).where(Dataset.needs_review == True, Dataset.tags.any(tag=tag))
     return session.exec(statement).all()
 
 
 def get_review_uploads(*, session: Session) -> list[Upload]:
-    statement = select(Upload).where(Upload.enabled == False)
+    statement = select(Upload).where(Upload.needs_review == True)
     uploads = session.exec(statement).all()
     return uploads
 
@@ -240,7 +250,7 @@ def create_upload(
         "account": account,
         "dataset": dataset,
         "infohash": created_upload.torrent_infohash,
-        "enabled": account.has_scope("upload"),
+        "is_approved": account.has_scope("upload"),
     }
     if created_upload.part_slugs:
         update["dataset_parts"] = get_dataset_parts(
@@ -265,14 +275,26 @@ def get_uploads(*, session: Session, dataset: Dataset | DatasetPart) -> list[Upl
     return uploads
 
 
+def get_visible_uploads(*, session: Session, dataset: Dataset | DatasetPart) -> list[Upload]:
+    if isinstance(dataset, DatasetPart):
+        statement = select(Upload).where(
+            Upload.dataset_parts.any(dataset_part_id=dataset.dataset_part_id),
+            Upload.is_visible == True,
+        )
+    else:
+        statement = select(Upload).where(Upload.dataset == dataset, Upload.is_visible == True)
+    uploads = session.exec(statement).all()
+    return uploads
+
+
 def get_uploads_from_tag(
-    *, session: Session, tag: str, approved: Optional[bool] = None
+    *, session: Session, tag: str, visible: Optional[bool] = True
 ) -> list[Upload]:
-    if approved is not None:
+    if visible:
         statement = (
             select(Upload)
             .join(Dataset)
-            .where(Dataset.tags.any(tag=tag), Upload.enabled == approved)
+            .where(Dataset.tags.any(tag=tag), Upload.is_visible == visible)
         )
     else:
         statement = select(Upload).join(Dataset).where(Dataset.tags.any(tag=tag))
@@ -318,6 +340,8 @@ def log_moderation_action(
 
     if isinstance(target, Dataset):
         audit_kwargs["target_dataset"] = target
+    elif isinstance(target, DatasetPart):
+        audit_kwargs["target_dataset_part"] = target
     elif isinstance(target, Upload):
         audit_kwargs["target_upload"] = target
     elif isinstance(target, Account):

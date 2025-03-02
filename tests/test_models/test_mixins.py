@@ -1,51 +1,40 @@
 from enum import StrEnum
 from typing import Optional
 
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+import pytest
+from sqlmodel import Field, Session, select
 
 from sciop.models import Dataset
 from sciop.models.mixin import EnumTableMixin
-from tests.fixtures import TMP_DIR
 
 
-def test_full_text_search():
+def test_full_text_search(session):
     """
     Weak test for whether full text search merely works.
-
-    # TODO: actual unit tests plz
     """
-    # this should really be in a fixture but it's ok since we don't have any other tests yet!
-    sqlite_path = TMP_DIR / "db.test.sqlite"
-    sqlite_path.unlink(missing_ok=True)
-    sqlite_path = f"sqlite:///{str(sqlite_path)}"
-    engine = create_engine(sqlite_path)
-    Dataset.register_events()
 
-    SQLModel.metadata.create_all(engine)
+    match_ok = Dataset(
+        title="Matches a single thing once like key",
+        slug="matching-ok",
+        publisher="Agency of matching ok",
+    )
+    match_good = Dataset(
+        title="Matches several keywords like key and word several times, see key key key",
+        slug="matching-good",
+        publisher="Agency of matching good",
+    )
+    no_match = Dataset(
+        title="Nothing in here",
+        slug="not-good",
+        publisher="Agency of not good",
+    )
 
-    with Session(engine) as session:
-        match_ok = Dataset(
-            title="Matches a single thing once like key",
-            slug="matching-ok",
-            publisher="Agency of matching ok",
-        )
-        match_good = Dataset(
-            title="Matches several keywords like key and word several times, see key key key",
-            slug="matching-good",
-            publisher="Agency of matching good",
-        )
-        no_match = Dataset(
-            title="Nothing in here",
-            slug="not-good",
-            publisher="Agency of not good",
-        )
+    session.add(match_ok)
+    session.add(match_good)
+    session.add(no_match)
+    session.commit()
 
-        session.add(match_ok)
-        session.add(match_good)
-        session.add(no_match)
-        session.commit()
-
-        results = Dataset.search("key", session)
+    results = Dataset.search("key", session)
 
     assert len(results) == 2
     assert results[0].Dataset.slug == match_good.slug
@@ -79,3 +68,81 @@ def test_ensure_enum(recreate_models):
     row_vals = [row.an_enum for row in enum_rows]
     for item in MyEnum.__members__.values():
         assert item in row_vals
+
+
+@pytest.mark.parametrize("is_approved", [True, False])
+@pytest.mark.parametrize("is_removed", [True, False])
+def test_visible_to(dataset, account, is_approved, is_removed, session):
+    """
+    Moderable items should be visible to creators and moderators if not removed,
+    even if not yet approved
+    """
+    creator = account(username="creator")
+    public = account(username="public")
+    reviewer = account(username="reviewer", scopes=["review"])
+    moderable = dataset()
+    moderable.account = creator
+    moderable.is_approved = is_approved
+    moderable.is_removed = is_removed
+    session.add(moderable)
+    session.commit()
+    session.refresh(moderable)
+
+    if is_removed:
+        assert not moderable.visible_to()
+        assert not moderable.visible_to(public)
+        assert not moderable.visible_to(creator)
+        assert not moderable.visible_to(reviewer)
+    elif is_approved:
+        assert moderable.visible_to()
+        assert moderable.visible_to(public)
+        assert moderable.visible_to(creator)
+        assert moderable.visible_to(reviewer)
+    else:
+        assert not moderable.visible_to()
+        assert not moderable.visible_to(public)
+        assert moderable.visible_to(creator)
+        assert moderable.visible_to(reviewer)
+
+
+@pytest.mark.parametrize("is_approved", [True, False])
+@pytest.mark.parametrize("is_removed", [True, False])
+def test_visible_to_expression(dataset, account, is_approved, is_removed, session):
+    """
+    Moderable items should be visible to creators and moderators if not removed,
+    even if not yet approved when used as an expression
+    """
+    creator = account(username="creator")
+    public = account(username="public")
+    reviewer = account(username="reviewer", scopes=["review"])
+    moderable = dataset()
+    moderable.account = creator
+    moderable.is_approved = is_approved
+    moderable.is_removed = is_removed
+    session.add(moderable)
+    session.commit()
+    session.refresh(moderable)
+
+    if is_removed:
+        assert moderable not in session.exec(select(Dataset).where(Dataset.visible_to())).all()
+        assert (
+            moderable not in session.exec(select(Dataset).where(Dataset.visible_to(public))).all()
+        )
+        assert (
+            moderable not in session.exec(select(Dataset).where(Dataset.visible_to(creator))).all()
+        )
+        assert (
+            moderable not in session.exec(select(Dataset).where(Dataset.visible_to(reviewer))).all()
+        )
+    elif is_approved:
+        assert moderable in session.exec(select(Dataset).where(Dataset.visible_to())).all()
+        assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(public))).all()
+        assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(creator))).all()
+        assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(reviewer))).all()
+    else:
+        assert moderable not in session.exec(select(Dataset).where(Dataset.visible_to())).all()
+        assert (
+            moderable not in session.exec(select(Dataset).where(Dataset.visible_to(public))).all()
+        )
+        assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(creator))).all()
+        assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(reviewer))).all()

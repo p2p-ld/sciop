@@ -1,10 +1,18 @@
 {% from 'macros/dataset-part.html' import dataset_part_collapsible, add_parts %}
-
+{% if dataset %}
 <div id="dataset-{{dataset.slug}}-parts-upload-container"></div>
 <div id="dataset-{{dataset.slug}}-parts" class="dataset-parts dataset-parts-table collapsible-table">
+  {% else %}
+<div id="dataset-parts" class="dataset-parts dataset-parts-table collapsible-table{% if review %} review{% endif %}">
+{% endif %}
 {% if parts | length == 0 %}
   <span>No dataset parts</span>
 {% else %}
+    {% if pages %}
+    {% with swap_target="#dataset-parts" %}
+    {% include 'includes/pagination-buttons.html' %}
+    {% endwith %}
+    {% endif %}
     <div class="table-head">
       <span class="marker"></span>
       <span class="col-slug">
@@ -27,11 +35,16 @@
       </div>
       {% endif %}
     </div>
-  {% for part in parts %}
-  {{ dataset_part_collapsible(part, dataset, current_account, config) }}
+  {% for part in parts if part.visible_to(current_account) %}
+  {{ dataset_part_collapsible(part, dataset, current_account, config, review) }}
   {% endfor %}
+  {% if pages %}
+  {% with swap_target="#dataset-parts" %}
+  {% include 'includes/pagination-buttons.html' %}
+  {% endwith %}
+  {% endif %}
 {% endif %}
 </div>
-{% if current_account %}
+{% if current_account and not review %}
 {{ add_parts(dataset) }}
 {% endif %}

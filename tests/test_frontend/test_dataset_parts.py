@@ -3,6 +3,8 @@ from selenium.webdriver import Firefox
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
+from sciop.models import DatasetPart
+
 
 @pytest.mark.selenium
 def test_add_part(driver_as_admin, default_db):
@@ -64,3 +66,55 @@ def test_add_part_unauth(driver_as_user, default_db):
     and then it is shown as being disabled
     """
     pass
+
+
+def test_no_show_unapproved(dataset, client, session, account):
+    """Unapproved dataset parts are not shown as their own pages"""
+    acc = account()
+    ds = dataset()
+    ds.parts.append(DatasetPart(part_slug="unapproved-part", is_approved=False, account=acc))
+    session.add(ds)
+    session.commit()
+    res = client.get("/datasets/default/unapproved-part")
+    assert res.status_code == 404
+
+
+def test_no_show_removed(dataset, client, session, account):
+    """Unapproved dataset parts are not shown as their own pages"""
+    acc = account()
+    ds = dataset()
+    ds.parts.append(DatasetPart(part_slug="removed-part", is_approved=True, account=acc))
+    ds.parts[0].is_removed = True
+    session.add(ds)
+    session.commit()
+    res = client.get("/datasets/default/removed-part")
+    assert res.status_code == 404
+
+
+def test_no_include_unapproved(client, dataset, session, account):
+    """unapproved dataset parts are not shown in dataset parts lists"""
+    acc = account()
+    ds = dataset()
+    ds.parts.append(DatasetPart(part_slug="unapproved-part", is_approved=False, account=acc))
+    ds.parts.append(DatasetPart(part_slug="approved-part", is_approved=True, account=acc))
+    session.add(ds)
+    session.commit()
+    res = client.get("/datasets/default/parts")
+    assert res.status_code == 200
+    assert "approved-part" in res.text
+    assert "unapproved-part" not in res.text
+
+
+def test_no_include_removed(client, dataset, session, account):
+    """removed dataset parts are not shown in dataset parts lists"""
+    acc = account()
+    ds = dataset()
+    ds.parts.append(DatasetPart(part_slug="removed-part", is_approved=True, account=acc))
+    ds.parts.append(DatasetPart(part_slug="approved-part", is_approved=True, account=acc))
+    ds.parts[0].is_removed = True
+    session.add(ds)
+    session.commit()
+    res = client.get("/datasets/default/parts")
+    assert res.status_code == 200
+    assert "approved-part" in res.text
+    assert "removed-part" not in res.text

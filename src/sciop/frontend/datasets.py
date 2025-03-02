@@ -11,10 +11,9 @@ from starlette.datastructures import QueryParams
 from sciop import crud
 from sciop.api.deps import (
     CurrentAccount,
-    RequireDataset,
-    RequireDatasetPart,
-    RequireEnabledDataset,
     RequireUploader,
+    RequireVisibleDataset,
+    RequireVisibleDatasetPart,
     SessionDep,
 )
 from sciop.api.routes.upload import upload_torrent
@@ -31,13 +30,19 @@ async def datasets(request: Request):
 
 @datasets_router.get("/search")
 @jinja.hx("partials/datasets.html")
-async def datasets_search(query: str = None, session: SessionDep = None) -> Page[DatasetRead]:
+async def datasets_search(
+    query: str = None, session: SessionDep = None, current_account: CurrentAccount = None
+) -> Page[DatasetRead]:
     if not query or len(query) < 3:
-        stmt = select(Dataset).where(Dataset.enabled == True).order_by(Dataset.created_at.desc())
+        stmt = (
+            select(Dataset)
+            .where(Dataset.visible_to(current_account) == True)
+            .order_by(Dataset.created_at.desc())
+        )
     else:
         stmt = (
             select(Dataset)
-            .where(Dataset.enabled == True)
+            .where(Dataset.visible_to(current_account) == True)
             .filter(Dataset.dataset_id.in_(Dataset.search_statement(query)))
         )
     return paginate(conn=session, query=stmt)
@@ -45,33 +50,30 @@ async def datasets_search(query: str = None, session: SessionDep = None) -> Page
 
 @datasets_router.get("/{dataset_slug}", response_class=HTMLResponse)
 async def dataset_show(
-    dataset_slug: str, account: CurrentAccount, session: SessionDep, request: Request
+    dataset_slug: str, dataset: RequireVisibleDataset, session: SessionDep, request: Request
 ):
-    dataset = crud.get_dataset(session=session, dataset_slug=dataset_slug)
-    if not dataset:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No such dataset {dataset_slug} exists",
-        )
     return templates.TemplateResponse(request, "pages/dataset.html", {"dataset": dataset})
 
 
 @datasets_router.get("/{dataset_slug}/partial", response_class=HTMLResponse)
-async def dataset_partial(request: Request, dataset: RequireDataset):
+async def dataset_partial(request: Request, dataset: RequireVisibleDataset):
     return templates.TemplateResponse(request, "partials/dataset.html", {"dataset": dataset})
 
 
 @datasets_router.get("/{dataset_slug}/parts", response_class=HTMLResponse)
-async def dataset_parts(request: Request, dataset: RequireDataset):
+async def dataset_parts(
+    request: Request, dataset: RequireVisibleDataset, current_account: CurrentAccount
+):
+    parts = [p for p in dataset.parts if p.visible_to(current_account)]
     return templates.TemplateResponse(
-        request, "partials/dataset-parts.html", {"dataset": dataset, "parts": dataset.parts}
+        request, "partials/dataset-parts.html", {"dataset": dataset, "parts": parts}
     )
 
 
 @datasets_router.get("/{dataset_slug}/parts/add", response_class=HTMLResponse)
 async def dataset_part_add_partial(
     request: Request,
-    dataset: RequireDataset,
+    dataset: RequireVisibleDataset,
     mode: Annotated[L["bulk"] | L["one"], Query()] = "one",
 ):
     return templates.TemplateResponse(
@@ -82,11 +84,11 @@ async def dataset_part_add_partial(
 @datasets_router.get("/{dataset_slug}/uploads", response_class=HTMLResponse)
 async def dataset_uploads(
     dataset_slug: str,
-    dataset: RequireDataset,
+    dataset: RequireVisibleDataset,
     session: SessionDep,
     request: Request,
 ):
-    uploads = crud.get_uploads(dataset=dataset, session=session)
+    uploads = crud.get_visible_uploads(dataset=dataset, session=session)
     return templates.TemplateResponse(
         request,
         "partials/dataset-uploads.html",
@@ -114,7 +116,7 @@ async def dataset_upload_start(
     dataset_slug: str,
     account: RequireUploader,
     session: SessionDep,
-    dataset: RequireEnabledDataset,
+    dataset: RequireVisibleDataset,
     request: Request,
 ):
     """
@@ -132,7 +134,7 @@ async def dataset_upload_start(
 @datasets_router.post("/{dataset_slug}/upload/torrent", response_class=HTMLResponse)
 async def dataset_upload_torrent(
     dataset_slug: str,
-    dataset: RequireEnabledDataset,
+    dataset: RequireVisibleDataset,
     file: Annotated[UploadFile, File()],
     account: RequireUploader,
     session: SessionDep,
@@ -152,7 +154,10 @@ async def dataset_upload_torrent(
 
 @datasets_router.get("/{dataset_slug}/{dataset_part_slug}", response_class=HTMLResponse)
 async def dataset_part_show(
-    request: Request, dataset: RequireDataset, part: RequireDatasetPart, session: SessionDep
+    request: Request,
+    dataset: RequireVisibleDataset,
+    part: RequireVisibleDatasetPart,
+    session: SessionDep,
 ):
     return templates.TemplateResponse(
         request, "pages/dataset-part.html", {"dataset": dataset, "part": part}
@@ -161,7 +166,10 @@ async def dataset_part_show(
 
 @datasets_router.get("/{dataset_slug}/{dataset_part_slug}/partial", response_class=HTMLResponse)
 async def dataset_part_partial(
-    request: Request, dataset: RequireDataset, part: RequireDatasetPart, session: SessionDep
+    request: Request,
+    dataset: RequireVisibleDataset,
+    part: RequireVisibleDatasetPart,
+    session: SessionDep,
 ):
     return templates.TemplateResponse(
         request, "partials/dataset-part.html", {"dataset": dataset, "part": part}
@@ -170,9 +178,9 @@ async def dataset_part_partial(
 
 @datasets_router.get("/{dataset_slug}/{dataset_part_slug}/uploads", response_class=HTMLResponse)
 async def dataset_part_uploads(
-    request: Request, dataset_slug: str, part: RequireDatasetPart, session: SessionDep
+    request: Request, dataset_slug: str, part: RequireVisibleDatasetPart, session: SessionDep
 ):
-    uploads = crud.get_uploads(dataset=part, session=session)
+    uploads = crud.get_visible_uploads(dataset=part, session=session)
     return templates.TemplateResponse(
         request,
         "partials/dataset-uploads.html",

@@ -5,7 +5,9 @@ from sciop import crud
 from sciop.api.deps import (
     RequireAccount,
     RequireAdmin,
+    RequireAnyAccount,
     RequireDataset,
+    RequireDatasetPart,
     RequireReviewer,
     RequireUpload,
     SessionDep,
@@ -27,7 +29,7 @@ async def approve_dataset(
     dataset: RequireDataset,
     response: Response,
 ) -> SuccessResponse:
-    dataset.enabled = True
+    dataset.is_approved = True
     session.add(dataset)
     session.commit()
 
@@ -41,8 +43,8 @@ async def approve_dataset(
 async def deny_dataset(
     dataset_slug: str, account: RequireReviewer, session: SessionDep, dataset: RequireDataset
 ) -> SuccessResponse:
-
-    session.delete(dataset)
+    dataset.is_removed = True
+    session.add(dataset)
     session.commit()
 
     crud.log_moderation_action(
@@ -51,11 +53,44 @@ async def deny_dataset(
     return SuccessResponse(success=True)
 
 
+@review_router.post("/datasets/{dataset_slug}/{dataset_part_slug}/approve")
+async def approve_dataset_part(
+    dataset_slug: str,
+    account: RequireReviewer,
+    session: SessionDep,
+    dataset: RequireDataset,
+    part: RequireDatasetPart,
+    response: Response,
+) -> SuccessResponse:
+    part.is_approved = True
+    session.add(part)
+    session.commit()
+
+    crud.log_moderation_action(
+        session=session, actor=account, action=ModerationAction.approve, target=part
+    )
+    return SuccessResponse(success=True)
+
+
+@review_router.post("/datasets/{dataset_slug}/{dataset_part_slug}/deny")
+async def deny_dataset_part(
+    account: RequireReviewer, session: SessionDep, dataset: RequireDataset, part: RequireDatasetPart
+) -> SuccessResponse:
+    part.is_removed = True
+    session.add(part)
+    session.commit()
+
+    crud.log_moderation_action(
+        session=session, actor=account, action=ModerationAction.deny, target=part
+    )
+    return SuccessResponse(success=True)
+
+
 @review_router.post("/uploads/{infohash}/approve")
 async def approve_upload(
     infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
 ) -> SuccessResponse:
-    upload.enabled = True
+    upload.is_approved = True
     session.add(upload)
     session.commit()
 
@@ -69,7 +104,8 @@ async def approve_upload(
 async def deny_upload(
     infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
 ) -> SuccessResponse:
-    session.delete(upload)
+    upload.is_removed = True
+    session.add(upload)
     session.commit()
     crud.log_moderation_action(
         session=session, actor=account, action=ModerationAction.deny, target=upload
@@ -77,7 +113,7 @@ async def deny_upload(
     return SuccessResponse(success=True)
 
 
-@review_router.delete("/accounts/{username}")
+@review_router.post("/accounts/{username}/suspend")
 async def suspend_account(
     username: str, account: RequireAccount, session: SessionDep, current_account: RequireAdmin
 ) -> SuccessResponse:
@@ -85,10 +121,28 @@ async def suspend_account(
         raise HTTPException(403, "You cannot suspend yourself")
     if account.has_scope("admin") and not current_account.has_scope("root"):
         raise HTTPException(403, "Admins can't can't ban other admins or roots")
-    session.delete(account)
+    account.is_suspended = True
+    session.add(account)
     session.commit()
     crud.log_moderation_action(
         session=session, actor=current_account, action=ModerationAction.suspend, target=account
+    )
+    return SuccessResponse(success=True)
+
+
+@review_router.post("/accounts/{username}/restore")
+async def restore_account(
+    username: str, account: RequireAnyAccount, session: SessionDep, current_account: RequireAdmin
+) -> SuccessResponse:
+    if account.id == current_account.id:
+        raise HTTPException(403, "You cannot restore yourself")
+    if account.has_scope("admin") and not current_account.has_scope("root"):
+        raise HTTPException(403, "Admins can't can't restore other admins or roots")
+    account.is_suspended = False
+    session.add(account)
+    session.commit()
+    crud.log_moderation_action(
+        session=session, actor=current_account, action=ModerationAction.restore, target=account
     )
     return SuccessResponse(success=True)
 
