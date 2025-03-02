@@ -56,10 +56,9 @@ class UploadBase(SQLModel):
 
     @property
     def short_hash(self) -> Optional[str]:
-        # try:
-        return self.torrent.short_hash
-        # except AttributeError:
-        #     return None
+        if self.torrent:
+            return self.torrent.short_hash
+        return None
 
     @property
     def infohash(self) -> Optional[str]:
