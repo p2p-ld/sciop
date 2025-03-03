@@ -4,34 +4,37 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import select
 
-from sciop import crud
 from sciop.api.deps import CurrentAccount, RequireUpload, RequireVisibleUpload, SessionDep
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, DatasetRead
+from sciop.models import Upload, UploadRead
 
 uploads_router = APIRouter(prefix="/uploads")
 
 
 @uploads_router.get("/", response_class=HTMLResponse)
-async def uploads(request: Request, session: SessionDep):
-    uploads = crud.get_visible_uploads(session=session)
+async def uploads(request: Request):
     return templates.TemplateResponse(
         request,
         "pages/uploads.html",
-        {"uploads": uploads},
     )
 
 
 @uploads_router.get("/search")
 @jinja.hx("partials/uploads.html")
-async def uploads_search(query: str = None, session: SessionDep = None) -> Page[DatasetRead]:
+async def uploads_search(
+    query: str = None, session: SessionDep = None, current_account: CurrentAccount = None
+) -> Page[UploadRead]:
     if not query or len(query) < 3:
-        stmt = select(Dataset).where(Dataset.is_visible == True).order_by(Dataset.created_at)
+        stmt = (
+            select(Upload)
+            .where(Upload.visible_to(current_account) == True)
+            .order_by(Upload.created_at)
+        )
     else:
         stmt = (
-            select(Dataset)
-            .where(Dataset.is_visible == True)
-            .filter(Dataset.dataset_id.in_(Dataset.search_statement(query)))
+            select(Upload)
+            .where(Upload.visible_to(current_account) == True)
+            .filter(Upload.upload_id.in_(Upload.search_statement(query)))
         )
     return paginate(conn=session, query=stmt)
 
