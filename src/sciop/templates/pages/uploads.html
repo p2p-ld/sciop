@@ -1,0 +1,30 @@
+{% extends "layouts/default.html" %}
+{% block head %}
+{% with title = "Uploads" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Uploads</h1>
+  <span class="htmx-indicator loading-indicator" id="uploads-loading-indicator">
+      <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+  </span>
+</div>
+<div class="container flex-container column">
+  <div class="row search-container" >
+    <input class="form-control search-input enter-trigger" type="search"
+           name="query" placeholder="Begin Typing To Search..."
+           hx-get="/uploads/search"
+           hx-trigger="input changed delay:250ms, load, enterKeyUp"
+           hx-target="#uploads-table"
+           hx-indicator="#uploads-loading-indicator"
+           hx-swap="innerHTML"
+    >
+  </div>
+
+  <div id="uploads-table" aria-live="polite">
+  </div>
+</div>
+
+{% endblock %}

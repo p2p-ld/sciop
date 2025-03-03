@@ -28,6 +28,10 @@ nav.navbar {
     font-weight: bold;
   }
 
+  .site-title.responsive {
+    display: none;
+  }
+
   .nav-button {
     background-color: var(--color-primary);
     padding: 0.5em 1em;

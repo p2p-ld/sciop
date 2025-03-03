@@ -84,4 +84,20 @@
 			padding-right: unset;
 		}
 	}
+
+	nav.navbar {
+		.site-title.text {
+			display: none;
+		}
+
+		.site-title.responsive {
+			display: inline-block;
+			max-height: 0.8em;
+
+				margin: unset;
+			img {
+				height: 1em;
+			}
+		}
+	}
 }

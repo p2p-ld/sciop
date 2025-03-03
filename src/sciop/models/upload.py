@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 from pydantic import field_validator
 from sqlalchemy import event
 from sqlalchemy.orm.attributes import AttributeEventToken
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship
 
 from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
@@ -13,7 +13,7 @@ from sciop.models.mixin import ModerableMixin, TableMixin, TableReadMixin
 from sciop.types import EscapedStr, IDField, InputType, SlugStr
 
 
-class UploadBase(SQLModel):
+class UploadBase(ModerableMixin):
     """
     A copy of a dataset
     """
@@ -96,7 +96,7 @@ class UploadBase(SQLModel):
         """
 
 
-class Upload(UploadBase, TableMixin, ModerableMixin, table=True):
+class Upload(UploadBase, TableMixin, table=True):
     __tablename__ = "uploads"
 
     upload_id: IDField = Field(default=None, primary_key=True)
