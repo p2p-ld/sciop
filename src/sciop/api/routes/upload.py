@@ -54,9 +54,9 @@ async def upload_torrent(
         raise HTTPException(
             status_code=415,
             detail="Could not decode upload, is this a .torrent file?",
-        )
+        ) from None
     except MetainfoError as e:
-        raise HTTPException(status_code=415, detail=f"MetaInfo invalid: {str(e)}")
+        raise HTTPException(status_code=415, detail=f"MetaInfo invalid: {str(e)}") from None
 
     existing_torrent = crud.get_torrent_from_infohash(
         session=session, v1=torrent.infohash, v2=torrent.v2_infohash
