@@ -1,8 +1,6 @@
-import io
 
 import pytest
 from starlette.testclient import TestClient
-from torf._errors import MetainfoError
 
 from sciop import crud
 from sciop.config import config
@@ -41,16 +39,9 @@ def test_upload_torrent_infohash(
     """We can upload a torrent and the infohashes are correct"""
     header = get_auth_header()
     with open(torrent, "rb") as f:
-        if version == TorrentVersion.v2:
-            with pytest.raises(MetainfoError):
-                _ = client.post(
-                    config.api_prefix + "/upload/torrent", headers=header, files={"file": f}
-                )
-            return
-        else:
-            response = client.post(
-                config.api_prefix + "/upload/torrent", headers=header, files={"file": f}
-            )
+        response = client.post(
+            config.api_prefix + "/upload/torrent", headers=header, files={"file": f}
+        )
 
     if version in (TorrentVersion.v1, TorrentVersion.hybrid):
         assert response.status_code == 200
@@ -60,19 +51,23 @@ def test_upload_torrent_infohash(
         if "v2_infohash" in hashes:
             assert created["v2_infohash"] == hashes["v2_infohash"]
         assert created["version"] == version
+    else:
+        assert response.status_code == 415
 
 
 @pytest.mark.parametrize("hx_request", [True, False])
-def test_upload_trackerless(client, uploader, get_auth_header, torrent, hx_request):
+def test_upload_trackerless(client, uploader, get_auth_header, torrent, hx_request, tmp_path):
     header = get_auth_header()
     if hx_request:
         header["HX-Request"] = "true"
     torrent_ = torrent(trackers=[])
-    stream = io.BytesIO()
-    torrent_.write_stream(stream)
-    with stream as f:
+    tfile = tmp_path / "test.torrent"
+    torrent_.write(tfile)
+    with open(tfile, "rb") as f:
         response = client.post(
-            config.api_prefix + "/upload/torrent", headers=header, files={"file": f}
+            config.api_prefix + "/upload/torrent",
+            headers=header,
+            files={"file": ("filename.torrent", f, "application/x-bittorrent")},
         )
         assert response.status_code == 400
         if hx_request:
@@ -84,17 +79,21 @@ def test_upload_trackerless(client, uploader, get_auth_header, torrent, hx_reque
             assert "must contain at least one tracker" in msg["detail"]["msg"]
 
 
-def test_upload_noscope(client: TestClient, account, dataset, get_auth_header, torrent, session):
+def test_upload_noscope(
+    client: TestClient, account, dataset, get_auth_header, torrent, session, tmp_path
+):
     """Accounts without upload scope should be able to upload stuff"""
     acct = account()
     header = get_auth_header()
     torrent_ = torrent()
     ds = dataset()
-    stream = io.BytesIO()
-    torrent_.write_stream(stream)
-    with stream as f:
+    tfile = tmp_path / "test.torrent"
+    torrent_.write(tfile)
+    with open(tfile, "rb") as f:
         response = client.post(
-            config.api_prefix + "/upload/torrent", headers=header, files={"file": f}
+            config.api_prefix + "/upload/torrent",
+            headers=header,
+            files={"file": ("filename.torrent", f, "application/x-bittorrent")},
         )
         assert response.status_code == 200
 
