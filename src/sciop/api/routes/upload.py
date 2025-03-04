@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, UploadFile
 from starlette.requests import Request
 from starlette.responses import Response
+from torf import BdecodeError, MetainfoError
 
 from sciop import crud
 from sciop.api.deps import RequireCurrentAccount, SessionDep
@@ -39,8 +40,24 @@ async def upload_torrent(
     Upload a torrent file prior to creating a Dataset upload
     """
     upload_logger.debug("Processing torrent file")
-    torrent = Torrent.read_stream(file.file)
-    torrent.validate()
+    if file.content_type != "application/x-bittorrent":
+        raise HTTPException(
+            status_code=415,
+            detail=f"Uploads must be .torrent files, got mime type {file.content_type}",
+        )
+
+    try:
+        torrent = Torrent.read_stream(file.file)
+        torrent.validate()
+    except BdecodeError:
+        upload_logger.exception("Error decoding upload")
+        raise HTTPException(
+            status_code=415,
+            detail="Could not decode upload, is this a .torrent file?",
+        )
+    except MetainfoError as e:
+        raise HTTPException(status_code=415, detail=f"MetaInfo invalid: {str(e)}")
+
     existing_torrent = crud.get_torrent_from_infohash(
         session=session, v1=torrent.infohash, v2=torrent.v2_infohash
     )
