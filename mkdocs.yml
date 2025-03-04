@@ -7,12 +7,37 @@ site_author: ''
 copyright: CC BY-NC-SA 4.0
 
 nav:
-  - index.md
-  - Scraper's Guide:
-    - Checksums: scraping/checksums.md
+  - Intro:
+    - intro/overview.md
+    - intro/roadmap.md
+  - Using:
+    - using/browsing.md
+    - using/seeding.md
+    - using/rss.md
+    - using/moderation.md
+    - using/curating.md
+    - using/metadata.md
   - Uploading:
-    - Trackers: uploading/trackers.md
+    - uploading/rules.md
+    - uploading/formatting.md
+    - uploading/torrents.md
+    - uploading/checksums.md
+    - uploading/trackers.md
+  - Scraper's Guide:
+    - scraping/web.md
+    - scraping/http.md
+    - scraping/s3.md
+    - scraping/ftp.md
+  - privacy.md
   - API: /docs/api
+  - API Examples:
+    - examples/uploading.md
+  - Developing:
+    - develop/design.md
+    - develop/contributing.md
+    - develop/frontend.md
+    - develop/backend.md
+    - develop/error_handling.md
 
 theme:
   name: material
