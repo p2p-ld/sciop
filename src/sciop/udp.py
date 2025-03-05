@@ -24,7 +24,7 @@ class SciOpUDPCounter():
     Thread safe class for generating unique 32 bit transaction IDs.  A
     prefix may be used and generated for ensuring uniqueness.
     """
-    def __init__(self, starting: int = 0, db_start: int = 0):
+    def __init__(self, starting: int = -1, db_start: int = 0):
         self._tracker_trans_id: int = starting
         self._db_prefix: int = db_start
         self.lock = asyncio.Lock()
@@ -57,6 +57,7 @@ class UDPTrackerClient(asyncio.DatagramProtocol):
         self.connection_id: int | None = connection_id
         self._torrent_hashes: dict = {}
         self._action: ACTIONS = action
+        self.failed = False
 
     @property
     def action(self):
@@ -75,6 +76,7 @@ class UDPTrackerClient(asyncio.DatagramProtocol):
         self._torrent_hashes = torrent_hashes
 
     def reset_future(self, on_end: asyncio.Future):
+        self.failed = False
         self.on_end = on_end
 
     def connection_made(self, transport):
@@ -83,8 +85,7 @@ class UDPTrackerClient(asyncio.DatagramProtocol):
 
     def datagram_received(self, data, addr):
         self.data = data
-        _action, resp_trans_id, conn_id = struct.unpack_from("!IIq", data)
-        action = ACTIONS(_action)
+        action, resp_trans_id, conn_id = struct.unpack_from("!IIq", data)
         assert(self.action == action)
         if action == ACTIONS.REQUEST_ID:
             # initializing connection
@@ -98,11 +99,13 @@ class UDPTrackerClient(asyncio.DatagramProtocol):
 
     def error_received(self, exc):
         self.on_end.set_result(True)
+        self.failed = True
         # self.error_handler(exc)
 
     def connection_lost(self, exc):
         if exc:
             self.on_end.set_result(True)
+            self.failed = True
             # self.error_handler(exc)
 
 
@@ -155,6 +158,9 @@ async def initiate_connection(hostname: str):
     # reset the future, set a new action and message
     on_end = loop.create_future()
     protocol.reset_future(on_end)
+    db, id = await counter.next()
+    msg = udp_create_connection_msg(id)
+    protocol.message = msg
     # protocol.action = ACTIONS.REQUEST_ANNOUNCE
     # protocol.message = 
     # for now, just prove we can re-use it.
