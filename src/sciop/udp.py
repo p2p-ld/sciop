@@ -123,24 +123,21 @@ def udp_create_connection_msg(transaction_id: int) -> bytes:
 def udp_create_announce_msg(connection_id: int, transaction_id: int) -> bytes:
     return struct.pack("!qII", connection_id, ACTIONS.REQUEST_ANNOUNCE, transaction_id)
 
-async def udp_send_and_receive(host: str, msg: bytes, timeout: int = 5):
-    loop = asyncio.get_event_loop()
-    on_end = loop.create_future()
-    transport, protocol = await loop.create_datagram_endpoint(lambda: UDPTrackerClient(msg, host, on_end), remote_addr=(host, 451))
-    try:
-        await asyncio.wait_for(on_end, timeout=timeout)
-    except:
-        pass
-    return protocol
-
 async def tracker_send_and_receive(protocol: UDPTrackerClient, timeout: int = 5):
     loop = asyncio.get_event_loop()
-    on_end = loop.create_future()
     transport, protocol = await loop.create_datagram_endpoint(lambda: protocol, remote_addr=(protocol.host, 451))
     try:
-        await asyncio.wait_for(on_end, timeout=timeout)
+        await asyncio.wait_for(protocol.on_end, timeout=timeout)
     except:
         pass
+    finally: # cleanup, basically.
+        if transport.is_closing():
+            transport.abort()
+        else:
+            try:
+                transport.close()
+            except:
+                pass
     return protocol
 
 async def initiate_connection(hostname: str):
@@ -149,9 +146,11 @@ async def initiate_connection(hostname: str):
     msg = udp_create_connection_msg(id)
 
     ip = await resolve_host('tracker.torrent.eu.org')
+    on_end = loop.create_future()
     
     logger.debug(f"Sending action: {0} w/ ID of {db}:{id} to IP: {ip} on port 451")
-    protocol = await udp_send_and_receive(ip, msg)
+    protocol = UDPTrackerClient(msg, ip, on_end)
+    protocol = await tracker_send_and_receive(protocol)
 
     logger.debug(f"STORED CONNECTION ID: {protocol.connection_id}")
 
