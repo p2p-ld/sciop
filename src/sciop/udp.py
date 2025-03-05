@@ -49,7 +49,7 @@ class SciOpUDPCounter():
 counter = SciOpUDPCounter()
 
 class UDPTrackerClient(asyncio.DatagramProtocol):
-    def __init__(self, message: bytes, host: str, on_end: asyncio.Future, action: ACTIONS = ACTIONS.REQUEST_ID, connection_id: int | None = None):
+    def __init__(self, message: bytes, host: str, transaction_id: int, on_end: asyncio.Future, action: ACTIONS = ACTIONS.REQUEST_ID, connection_id: int | None = None):
         self.message: bytes = message
         self.host = host
         self.on_end: asyncio.Future = on_end
@@ -78,6 +78,14 @@ class UDPTrackerClient(asyncio.DatagramProtocol):
     def reset_future(self, on_end: asyncio.Future):
         self.failed = False
         self.on_end = on_end
+
+    async def reset(self):
+        loop = asyncio.get_event_loop()
+        self.reset_future(loop.create_future())
+        # self.message = msg
+        # self.transaction_id = id
+        # self.action = action
+        pass
 
     def connection_made(self, transport):
         self.transport = transport
@@ -149,7 +157,7 @@ async def initiate_connection(hostname: str):
     on_end = loop.create_future()
     
     logger.debug(f"Sending action: {0} w/ ID of {db}:{id} to IP: {ip} on port 451")
-    protocol = UDPTrackerClient(msg, ip, on_end)
+    protocol = UDPTrackerClient(msg, ip, id, on_end)
     protocol = await tracker_send_and_receive(protocol)
 
     logger.debug(f"STORED CONNECTION ID: {protocol.connection_id}")
