@@ -25,6 +25,7 @@ from sciop.middleware import (
 )
 from sciop.services import build_docs
 from sciop.scheduler import start_scheduler, add_job
+from sciop.udp import udp_test
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"
@@ -35,6 +36,7 @@ async def lifespan(app: FastAPI) -> Generator[None, None, None]:
     create_tables()
     build_docs()
     start_scheduler()
+    await udp_test()
     yield
 
 
