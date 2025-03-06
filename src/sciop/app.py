@@ -25,7 +25,7 @@ from sciop.middleware import (
 )
 from sciop.services import build_docs
 from sciop.scheduler import start_scheduler, add_job
-from sciop.udp import UDPTrackerClient
+from sciop.udp import UDPTrackerClient, resolve_host
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
 #     return f"{route.tags[0]}-{route.name}"
@@ -36,12 +36,15 @@ async def lifespan(app: FastAPI) -> Generator[None, None, None]:
     create_tables()
     build_docs()
     start_scheduler()
-    tracker = UDPTrackerClient(ip="0.0.0.0", port=0, torrents={"blah": "blah", "blah2": "blah2"})
+    ip, port = await resolve_host("udp://open.demonii.com:1337")
+    tracker = UDPTrackerClient(ip=ip, port=port, torrents={"blah": "blah", "blah2": "blah2"})
     async for i in tracker.gen_torrents():
         print(i)
     await tracker.set_torrents({"no": True, "yes": True})
     async for i in tracker.gen_torrents():
         print(i)
+    await tracker.initiate_connection()
+    print(tracker.connection_id)
     yield
 
 

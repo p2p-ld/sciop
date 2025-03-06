@@ -29,7 +29,7 @@ class UDPTrackerException(SciOpException):
 
 class UDPReadLock(asyncio.Queue):
     async def __aenter__(self):
-        self.put_nowait(0)
+        self.put_nowait(None)
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -38,7 +38,7 @@ class UDPReadLock(asyncio.Queue):
         return None
 
 class UDPReadWriteLock:
-    """A totally untested read/write lock for our torrent dictionary"""
+    """A slightly tested read/write lock for our dictionary of torrent hashes"""
     def __init__(self):
         self._lock = asyncio.Lock()
         self._read = UDPReadLock()
@@ -61,7 +61,7 @@ class UDPReadWriteLock:
 
 class SciOpUDPCounter:
     """
-    Thread safe class for generating unique 32 bit transaction IDs.  A
+    Task safe class for generating unique 32 bit transaction IDs.  A
     prefix may be used and generated for ensuring uniqueness.
     """
     def __init__(self, starting: int = -1, db_start: int = 0):
@@ -147,19 +147,19 @@ class UDPTrackerClient:
     def udp_create_announce_msg(self, transaction_id: int) -> bytes:
         return struct.pack("!qII", self.connection_id, ACTIONS.REQUEST_ANNOUNCE, transaction_id)
 
-    def datagram_received(self, data, addr):
-        self.data = data
-        action, resp_trans_id, conn_id = struct.unpack_from("!IIq", data)
-        assert(self.action == action)
-        if action == ACTIONS.REQUEST_ID:
-            # initializing connection
-            self.connection_id = conn_id
-            logger.debug(f"""RESPONSE from {self.host}:
-                    Action:         {0}
-                    Transaction ID: {resp_trans_id}
-                    Connection ID:  {conn_id}""")
-        self.on_end.set_result(True)
-        # asyncio.create_task(self.response_handler(data))
+    # def datagram_received(self, data, addr):
+    #     self.data = data
+    #     action, resp_trans_id, conn_id = struct.unpack_from("!IIq", data)
+    #     assert(self.action == action)
+    #     if action == ACTIONS.REQUEST_ID:
+    #         # initializing connection
+    #         self.connection_id = conn_id
+    #         logger.debug(f"""RESPONSE from {self.host}:
+    #                 Action:         {0}
+    #                 Transaction ID: {resp_trans_id}
+    #                 Connection ID:  {conn_id}""")
+    #     self.on_end.set_result(True)
+    #     # asyncio.create_task(self.response_handler(data))
 
     async def tracker_send_and_receive(self, protocol: UDPProtocolHandler, timeout: int = 5) -> tuple[asyncio.DatagramTransport, UDPProtocolHandler]:
         transport, protocol = await loop.create_datagram_endpoint(lambda: protocol, remote_addr=(self.ip, self.port))
@@ -182,9 +182,8 @@ class UDPTrackerClient:
         db, id = await counter.next()
         msg = self.udp_create_connection_msg(id)
         
-        logger.debug(f"Sending action: {0} w/ ID of {db}:{id} to IP: {ip} on port 451")
+        logger.debug(f"Sending action: {0} w/ ID of {db}:{id} to IP: {self.ip} on port 451")
 
-        # protocol = UDPTrackerClient(msg, ip, id, on_end)
         future = loop.create_future()
         protocol = UDPProtocolHandler(msg, id, future)
         transport, protocol = await self.tracker_send_and_receive(protocol)
@@ -193,6 +192,7 @@ class UDPTrackerClient:
         result = struct.unpack_from("!IIq", protocol.result[0])
         connection_id = result[2]
         logger.debug(f"STORED CONNECTION ID: {connection_id}")
+        self.connection_id = connection_id
 
 async def resolve_host(url: str) -> tuple[str, int]:
     parsed = urlparse(url)
