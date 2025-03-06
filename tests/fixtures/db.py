@@ -17,7 +17,7 @@ def create_tables(monkeypatch_session: "MonkeyPatch", monkeypatch_config: None) 
 
 
 @pytest.fixture
-def session(monkeypatch: MonkeyPatch) -> Session:
+def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session:
     from sciop import db
     from sciop.api import deps
     from sciop.app import app
@@ -42,7 +42,10 @@ def session(monkeypatch: MonkeyPatch) -> Session:
     yield session
 
     session.close()
-    trans.rollback()  # roll back to the SAVEPOINT
+    if not request.config.getoption("--persist-db"):
+        trans.rollback()  # roll back to the SAVEPOINT
+    else:
+        trans.commit()
     connection.close()
 
 

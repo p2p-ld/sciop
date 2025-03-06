@@ -13,7 +13,13 @@ from sqlmodel.main import FieldInfo
 
 from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PREFIX_LEN
 from sciop.models.account import Account
-from sciop.models.mixin import ModerableMixin, SearchableMixin, TableMixin, TableReadMixin
+from sciop.models.mixin import (
+    EditableMixin,
+    ModerableMixin,
+    SearchableMixin,
+    TableMixin,
+    TableReadMixin,
+)
 from sciop.models.tag import DatasetTagLink
 from sciop.types import (
     AccessType,
@@ -179,7 +185,7 @@ class DatasetBase(ModerableMixin):
     )
 
 
-class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
+class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, table=True):
     __tablename__ = "datasets"
     __searchable__ = ["title", "slug", "publisher", "homepage", "description"]
 

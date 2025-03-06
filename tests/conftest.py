@@ -27,6 +27,12 @@ def pytest_addoption(parser: argparse.ArgumentParser) -> None:
         default=False,
         help="Echo queries made by SQLAlchemy to stdout (use with -s)",
     )
+    parser.addoption(
+        "--persist-db",
+        action="store_true",
+        default=False,
+        help="Persist SQLAlchemy database between tests, don't rollback",
+    )
 
 
 def pytest_sessionfinish(session: pytest.Session) -> None:

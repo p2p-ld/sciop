@@ -1,3 +1,4 @@
+import pdb
 from enum import StrEnum
 from typing import Optional
 
@@ -146,3 +147,10 @@ def test_visible_to_expression(dataset, account, is_approved, is_removed, sessio
         )
         assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(creator))).all()
         assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(reviewer))).all()
+
+
+def test_editable(dataset, session):
+    ds = dataset()
+    ds.title = "NewTitle"
+    session.add(ds)
+    session.commit()
