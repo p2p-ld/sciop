@@ -2,6 +2,7 @@ import asyncio
 import struct
 import aiodns
 import enum
+import binascii
 from urllib.parse import urlparse
 
 from typing import Callable, Optional, Any
@@ -9,10 +10,11 @@ from sciop.logging import init_logger
 from sciop.exceptions import SciOpException
 
 loop = asyncio.get_event_loop()
-logger = init_logger('udp.tracker')
+logger = init_logger('tracker.udp')
 
 resolver = aiodns.DNSResolver()
 MAGIC_VALUE = 0x41727101980
+MAX_SCRAPE = 70
 
 # https://www.bittorrent.org/beps/bep_0015.html
 class ACTIONS(enum.IntEnum):
@@ -88,6 +90,7 @@ class SciOpUDPCounter:
 
 counter = SciOpUDPCounter()
 
+# from https://github.com/mhdzumair/PyAsyncTracker/blob/main/src/pyasynctracker/scraper.py, with love
 class UDPProtocolHandler(asyncio.DatagramProtocol):
     def __init__(self, message: bytes, transaction_id: int, active: asyncio.Future):
         self.message: bytes = message
@@ -112,22 +115,14 @@ class UDPProtocolHandler(asyncio.DatagramProtocol):
             self.success.set_result(True)
 
 class UDPTrackerClient:
-    def __init__(self, url: Optional[str] = None, ip: Optional[str] = None, port: Optional[int] = None, torrents: dict = {}, action: ACTIONS = ACTIONS.REQUEST_ID):
-        if url is None and ip is None:
-            raise UDPTrackerException("Either url or ip must be set.")
-        if url is not None:
-            _ip, _port = asyncio.run(resolve_host(url)) # we don't want to use async in an init
-            if ip is None: # if an IP is set, we don't want to override it
-                ip = _ip
-            if port is None: # Same with the port
-                port = _port
-        assert(ip is not None)
-        assert(port is not None) # oh my gawwwd pyright stop kvetching, this is pointless
-        self.url: Optional[str] = url
+    def __init__(self, ip: str, port: int, torrents: dict = {}, host: Optional[str] = None, max_scrape: int = MAX_SCRAPE, action: ACTIONS = ACTIONS.REQUEST_ID):
         self.ip: str = ip
         self.port: int = port
+        self.host: Optional[str] = host
         self.connection_id: Optional[int] = None
         self._torrents: dict = torrents
+        self._unscraped_hashes: list = list(torrents.keys())
+        self.max_scrape: int = max_scrape
         self.action: Optional[ACTIONS] = action
         self.lock = UDPReadWriteLock()
 
@@ -147,19 +142,29 @@ class UDPTrackerClient:
     def udp_create_announce_msg(self, transaction_id: int) -> bytes:
         return struct.pack("!qII", self.connection_id, ACTIONS.REQUEST_ANNOUNCE, transaction_id)
 
-    # def datagram_received(self, data, addr):
-    #     self.data = data
-    #     action, resp_trans_id, conn_id = struct.unpack_from("!IIq", data)
-    #     assert(self.action == action)
-    #     if action == ACTIONS.REQUEST_ID:
-    #         # initializing connection
-    #         self.connection_id = conn_id
-    #         logger.debug(f"""RESPONSE from {self.host}:
-    #                 Action:         {0}
-    #                 Transaction ID: {resp_trans_id}
-    #                 Connection ID:  {conn_id}""")
-    #     self.on_end.set_result(True)
-    #     # asyncio.create_task(self.response_handler(data))
+    async def udp_create_scrape_msg(self, transaction_id: int) -> tuple[bytes, list[str]]:
+        # so we can only do around 74 at a time here: see https://www.bittorrent.org/beps/bep_0015.html
+        # that's not particularly specific, so let's use an internal value and keep track
+        # of who we scraped.
+        hashes = []
+        async with await self.lock.read:
+            if len(self._unscraped_hashes) <= self.max_scrape:
+                hashes = self._unscraped_hashes
+                logger.info(f"Scraping all {len(self._unscraped_hashes)} hashes for tracker {self.host}")
+            else:
+                # otherwise, copy into a new list...
+                logger.info(f"""
+                    Unable to scrape all hashes for tracker {self.host}:
+                        Hashes remaining: {len(self._unscraped_hashes) - self.max_scrape}"
+                """)
+                hashes = self._unscraped_hashes[:self.max_scrape-1].copy()
+                # ... then reslice the existing list.
+                self._unscraped_hashes = self._unscraped_hashes[self.max_scrape:]
+        # now!  Pack it up into bytes.
+        msg = struct.pack("!qII", self.connection_id, ACTIONS.REQUEST_SCRAPE, transaction_id)
+        for hash in hashes:
+            msg += binascii.a2b_hex(hash)
+        return msg, hashes
 
     async def tracker_send_and_receive(self, protocol: UDPProtocolHandler, timeout: int = 5) -> tuple[asyncio.DatagramTransport, UDPProtocolHandler]:
         transport, protocol = await loop.create_datagram_endpoint(lambda: protocol, remote_addr=(self.ip, self.port))
@@ -182,17 +187,70 @@ class UDPTrackerClient:
         db, id = await counter.next()
         msg = self.udp_create_connection_msg(id)
         
-        logger.debug(f"Sending action: {0} w/ ID of {db}:{id} to IP: {self.ip} on port 451")
+        logger.debug(f"Sending action: {ACTIONS.REQUEST_ID} w/ ID of {db}:{id} to IP:PORT {self.ip}:{self.port}")
 
         future = loop.create_future()
         protocol = UDPProtocolHandler(msg, id, future)
         transport, protocol = await self.tracker_send_and_receive(protocol)
 
         assert(protocol.result is not None) # oh my goddddd pyright more like pywrong
-        result = struct.unpack_from("!IIq", protocol.result[0])
-        connection_id = result[2]
-        logger.debug(f"STORED CONNECTION ID: {connection_id}")
+        # initializing connection
+        # TODO: Error handling!
+        resp_action, resp_id, connection_id = struct.unpack_from("!IIq", protocol.result[0])
+        assert(resp_action == ACTIONS.REQUEST_ID)
+        assert(resp_id == id)
+        logger.debug(f"""RESPONSE from {self.ip}:{self.port}:
+                Action:         {resp_action}
+                Transaction ID: {resp_id}
+                Connection ID:  {connection_id}
+                Tracker URL:    {self.host}
+                """)
         self.connection_id = connection_id
+
+    async def announce_to_tracker(self):
+        if not self.connection_id:
+            raise UDPTrackerException("Connection ID is not set; initiate connection to tracker first!")
+        else:
+            raise NotImplementedError("We don't use this class to announce ourselves as clients who wish to download.")
+
+    async def request_scrape(self):
+        if not self.connection_id:
+            raise UDPTrackerException("Connection ID is not set; initiate connection to tracker first!")
+        db, id = await counter.next()
+        msg, hashes = await self.udp_create_scrape_msg(id)
+
+        logger.debug(f"Sending action: {ACTIONS.REQUEST_SCRAPE} w/ ID of {db}:{id} to IP:PORT {self.ip}:{self.port}")
+
+        future = loop.create_future()
+        protocol = UDPProtocolHandler(msg, id, future)
+        transport, protocol = await self.tracker_send_and_receive(protocol)
+
+        assert(protocol.result is not None)
+        # TODO: Error handling!
+        resp_action, resp_id = struct.unpack_from("!II", protocol.result[0])
+        assert(resp_action == ACTIONS.REQUEST_SCRAPE)
+        assert(resp_id == id)
+
+        offset = 8
+        length_per_hash = 12
+        results = {}
+
+        for hash in hashes:
+            if offset + length_per_hash > len(protocol.result[0]):
+                logger.debug(f"Response not enough long enough")
+                # should probably try and get this hash again
+            seeds, completed, peers = struct.unpack_from("!iii", protocol.result[0], offset)
+            results[hash] = {
+                "seeds": seeds,
+                "completed": completed,
+                "peers": peers # they're not leeches, they're your siblings
+            }
+            
+            offset += length_per_hash
+
+        logger.debug(f"RESULTS FROM SCRAPE: {resp_action} {resp_id} {results}")
+
+
 
 async def resolve_host(url: str) -> tuple[str, int]:
     parsed = urlparse(url)
@@ -216,4 +274,6 @@ async def resolve_host(url: str) -> tuple[str, int]:
     except:
         raise
 
-
+async def create_udp_tracker_client(url: str, torrents: dict):
+    ip, port = await resolve_host(url)
+    return UDPTrackerClient(ip, port, torrents, host=url)
