@@ -9,8 +9,10 @@ from slowapi.errors import RateLimitExceeded
 
 from sciop.frontend.templates import templates
 
+
 class SciOpException(Exception):
     """Base SciOp Exception"""
+
 
 class UploadSizeExceeded(ValueError, SciOpException):
     """An uploaded file is too large!"""

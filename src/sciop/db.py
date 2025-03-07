@@ -32,6 +32,7 @@ def get_session() -> Generator[Session, None, None]:
     # finally:
     #     session.close()
 
+
 def get_engine() -> Engine:
     return engine
 
