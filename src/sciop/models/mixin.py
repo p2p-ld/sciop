@@ -20,7 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
-from sqlalchemy.orm import Mapper, attributes, object_mapper, object_session
+from sqlalchemy.orm import Mapper, attributes, object_mapper, object_session, registry
 from sqlalchemy.orm.exc import UnmappedColumnError
 from sqlalchemy.orm.relationships import RelationshipProperty
 from sqlmodel import Field, Session, SQLModel, select, text
@@ -470,24 +470,28 @@ class EditableMixin(SQLModel):
                 "edit_created_at", sqla.DateTime, default=lambda: datetime.now(UTC), info=edit_meta
             )
         )
-        # bases = mapper.base_mapper.class_.__bases__
-        # edit_cls = type(
-        #     cls.__name__ + "Edits",
-        #     bases,
-        #     {
-        #         "__table__": table,
-        #         "_edit_table_configured": True,
-        #         "__mapper_args__": {"properites": properties},
-        #     },
-        # )
-        # reg = registry()
-        # reg.map_imperatively(edit_cls, table)
+
+        model_cfg = cls.model_config.copy()
+        model_cfg["table"] = False
+        edit_cls = type(
+            cls.__name__ + "Edits",
+            (mapper.base_mapper.class_,),
+            {
+                "_edit_table_configured": True,
+                "model_config": model_cfg,
+            },
+        )
+
+        reg = registry()
+        reg.map_imperatively(
+            edit_cls, table, properties=properties, primary_key=cls.__edit_pk_col_name__()
+        )
 
         cls.__edit_table__ = table
 
-        # cls.__edit_cls__ = edit_cls
+        cls.__edit_cls__ = edit_cls
 
-        # cls.__edit_mapper__ = edit_cls.__mapper__
+        cls.__edit_mapper__ = edit_cls.__mapper__
 
     @classmethod
     def __edit_table_name__(cls) -> str:
