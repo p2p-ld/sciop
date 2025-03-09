@@ -1,12 +1,10 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-from apscheduler.jobstores.memory import MemoryJobStore
-from apscheduler.job import Job
-from apscheduler.triggers.base import BaseTrigger
-from typing import Callable
-from functools import wraps
+from types import FunctionType
+from typing import Any, Callable, Optional, Sequence
 
-from sqlmodel import Session
+from apscheduler.job import Job
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.base import BaseTrigger
 from sqlalchemy.engine.base import Engine
 
 from sciop.db import get_engine
@@ -38,13 +36,13 @@ def start_scheduler() -> None:
     scheduler.start()
 
 
-def _split_job_kwargs(func, **kwargs):
+def _split_job_kwargs(func: FunctionType, **kwargs: dict[str, Any]) -> tuple[dict, dict]:
     # A little convenience parsing for those who do not want to use the explicit scheduler_kwargs
     # I'm not married to this; if we think it's a hassle, we can just get rid of it.
     del_key = []
     scheduler_kwargs = {}
-    for kwarg in kwargs.keys():
-        if kwarg not in func.__annotations__.keys():
+    for kwarg in kwargs:
+        if kwarg not in func.__annotations__:
             scheduler_kwargs[kwarg] = kwargs[kwarg]
             del_key.append(kwarg)
     # You can't mutate while you're iterating!
@@ -56,10 +54,17 @@ def _split_job_kwargs(func, **kwargs):
 def _add_job(
     func: Callable,
     trigger: str | BaseTrigger = "interval",
-    scheduler_kwargs={},
-    job_args=[],
-    job_kwargs={},
+    scheduler_kwargs: Optional[dict] = None,
+    job_args: Optional[Sequence] = None,
+    job_kwargs: Optional[dict] = None,
 ) -> Job:
+    if scheduler_kwargs is None:
+        scheduler_kwargs = {}
+    if job_args is None:
+        job_args = []
+    if job_kwargs is None:
+        job_kwargs = {}
+
     logger.debug(
         f"""Adding job to scheduler: 
                    job:            {func}
@@ -76,8 +81,12 @@ def _add_job(
 
 # https://apscheduler.readthedocs.io/en/latest/modules/schedulers/base.html
 def add_job(
-    func: Callable, trigger: str | BaseTrigger = "interval", scheduler_kwargs={}, *args, **kwargs
+    func: FunctionType,
+    trigger: str | BaseTrigger = "interval",
+    *args: Any,
+    **kwargs: dict[str, Any],
 ) -> Job:
+
     job_kwargs, scheduler_kwargs = _split_job_kwargs(func, **kwargs)
     return _add_job(
         func,
@@ -88,7 +97,7 @@ def add_job(
     )
 
 
-def interval(func: Callable, *args, **kwargs) -> Job:
+def interval(func: Callable, *args: Any, **kwargs: dict[str, Any]) -> Job:
     job_kwargs, scheduler_kwargs = _split_job_kwargs(func, **kwargs)
     return _add_job(
         func,
@@ -99,7 +108,7 @@ def interval(func: Callable, *args, **kwargs) -> Job:
     )
 
 
-def date(func: Callable, *args, **kwargs) -> Job:
+def date(func: Callable, *args: Any, **kwargs: dict[str, Any]) -> Job:
     job_kwargs, scheduler_kwargs = _split_job_kwargs(func, **kwargs)
     return _add_job(
         func,
@@ -110,7 +119,7 @@ def date(func: Callable, *args, **kwargs) -> Job:
     )
 
 
-def cron(func: Callable, *args, **kwargs) -> Job:
+def cron(func: Callable, *args: Any, **kwargs: dict[str, Any]) -> Job:
     job_kwargs, scheduler_kwargs = _split_job_kwargs(func, **kwargs)
     return _add_job(
         func,
@@ -121,7 +130,7 @@ def cron(func: Callable, *args, **kwargs) -> Job:
     )
 
 
-def do_not_run(func: Callable, *args, **kwargs) -> Job:
+def do_not_run(func: FunctionType, *args: Any, **kwargs: dict[str, Any]) -> Job:
     job_kwargs, scheduler_kwargs = _split_job_kwargs(func, **kwargs)
     import sys
 
@@ -148,7 +157,7 @@ def print_job(msg: str, num: int = 0) -> None:
     logger.info(f"PRINT: {num} : {msg}")
 
 
-def remove_all_jobs():
+def remove_all_jobs() -> None:
     scheduler.remove_all_jobs()
 
 
