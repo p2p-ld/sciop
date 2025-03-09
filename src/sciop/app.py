@@ -23,7 +23,7 @@ from sciop.middleware import (
     limiter,
     security_headers,
 )
-from sciop.scheduler import start_scheduler
+from sciop.scheduler import remove_all_jobs, shutdown, start_scheduler
 from sciop.services import build_docs
 
 # def custom_generate_unique_id(route: APIRoute) -> str:
@@ -36,6 +36,8 @@ async def lifespan(app: FastAPI) -> Generator[None, None, None]:
     build_docs()
     start_scheduler()
     yield
+    remove_all_jobs()
+    shutdown()
 
 
 app = FastAPI(

@@ -89,7 +89,7 @@ def ensure_alembic_version() -> None:
             command.check(alembic_config)
         except CommandError as e:
             # don't automatically migrate since it could be destructive
-            raise RuntimeError("Database needs to be migrated! Run `pdm run migrate`") from e
+            raise RuntimeError(f"Database needs to be migrated! Run `pdm run migrate`\n{e}") from e
 
 
 def get_alembic_config() -> AlembicConfig:

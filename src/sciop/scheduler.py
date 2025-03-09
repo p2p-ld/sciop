@@ -1,3 +1,4 @@
+from datetime import datetime
 from types import FunctionType
 from typing import Any, Callable, Optional, Sequence
 
@@ -5,6 +6,8 @@ from apscheduler.job import Job
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.base import BaseTrigger
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.date import DateTrigger
 from sqlalchemy.engine.base import Engine
 
 from sciop.db import get_engine
@@ -25,15 +28,28 @@ def create_scheduler(engine: Optional[Engine] = None) -> AsyncIOScheduler:
     return scheduler
 
 
-scheduler = create_scheduler()
+scheduler: AsyncIOScheduler | None = None
 
 
 def get_scheduler() -> AsyncIOScheduler:
+    global scheduler
     return scheduler
 
 
 def start_scheduler() -> None:
+    global scheduler
+    if scheduler is None:
+        scheduler = create_scheduler()
+    else:
+        raise RuntimeError("Scheduler already started")
+
     scheduler.start()
+
+
+def shutdown() -> None:
+    global scheduler
+    scheduler.shutdown()
+    scheduler = None
 
 
 def _split_job_kwargs(func: FunctionType, **kwargs: dict[str, Any]) -> tuple[dict, dict]:
@@ -82,10 +98,12 @@ def _add_job(
 # https://apscheduler.readthedocs.io/en/latest/modules/schedulers/base.html
 def add_job(
     func: FunctionType,
-    trigger: str | BaseTrigger = "interval",
+    trigger: str | BaseTrigger | None = None,
     *args: Any,
     **kwargs: dict[str, Any],
 ) -> Job:
+    if trigger is None:
+        trigger = DateTrigger(run_date=datetime.now())
 
     job_kwargs, scheduler_kwargs = _split_job_kwargs(func, **kwargs)
     return _add_job(
@@ -97,7 +115,7 @@ def add_job(
     )
 
 
-def interval(func: Callable, *args: Any, **kwargs: dict[str, Any]) -> Job:
+def interval(func: FunctionType, *args: Any, **kwargs: Any) -> Job:
     job_kwargs, scheduler_kwargs = _split_job_kwargs(func, **kwargs)
     return _add_job(
         func,
@@ -108,7 +126,7 @@ def interval(func: Callable, *args: Any, **kwargs: dict[str, Any]) -> Job:
     )
 
 
-def date(func: Callable, *args: Any, **kwargs: dict[str, Any]) -> Job:
+def date(func: FunctionType, *args: Any, **kwargs: Any) -> Job:
     job_kwargs, scheduler_kwargs = _split_job_kwargs(func, **kwargs)
     return _add_job(
         func,
@@ -119,19 +137,17 @@ def date(func: Callable, *args: Any, **kwargs: dict[str, Any]) -> Job:
     )
 
 
-def cron(func: Callable, *args: Any, **kwargs: dict[str, Any]) -> Job:
+def cron(func: FunctionType, *args: Any, **kwargs: Any) -> Job:
+    trigger = CronTrigger.from_crontab(kwargs["crontab"]) if "crontab" in kwargs else "cron"
+
     job_kwargs, scheduler_kwargs = _split_job_kwargs(func, **kwargs)
     return _add_job(
         func,
-        trigger="cron",
+        trigger=trigger,
         scheduler_kwargs=scheduler_kwargs,
         job_args=args,
         job_kwargs=job_kwargs,
     )
-
-
-def print_job(msg: str, num: int = 0) -> None:
-    logger.info(f"PRINT: {num} : {msg}")
 
 
 def remove_all_jobs() -> None:
