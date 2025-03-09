@@ -18,6 +18,18 @@ class UploadSizeExceeded(ValueError, SciOpException):
     """An uploaded file is too large!"""
 
 
+class TrackerURLException(SciOpException, ValueError):
+    """Exception when something went wrong with the URL given"""
+
+
+class UDPTrackerException(SciOpException, RuntimeError):
+    """Exception when an error has been encountered with the UDPTrackerClient"""
+
+
+class TrackerHandshakeException(UDPTrackerException):
+    """Error while performing handshake with a UDP bittorrent tracker"""
+
+
 async def http_handler(request: Request, exc: HTTPException) -> Response:
     """
     Small wrapping of FastAPI's error handling to
@@ -81,11 +93,3 @@ def _get_reset_timedelta(request: Request, exc: RateLimitExceeded) -> timedelta:
     )
     reset_time = window_stats.reset_time
     return timedelta(seconds=reset_time - time())
-
-
-class TrackerURLException(SciOpException):
-    """Exception when something went wrong with the URL given"""
-
-
-class UDPTrackerException(SciOpException):
-    """Exception when an error has been encountered with the UDPTrackerClient"""

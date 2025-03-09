@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import aiodns
 
-from sciop.exceptions import TrackerURLException, UDPTrackerException
+from sciop.exceptions import TrackerHandshakeException, TrackerURLException, UDPTrackerException
 from sciop.logging import init_logger
 
 loop = asyncio.get_event_loop()
@@ -124,6 +124,7 @@ class UDPProtocolHandler(asyncio.DatagramProtocol):
         self.success.set_result(True)
 
     def error_received(self, exc: OSError) -> None:
+        logger.exception(f"UDP Error: {str(exc)}")
         self.success.set_result(False)
 
     def connection_lost(self, exc: OSError) -> None:
@@ -169,6 +170,7 @@ class UDPTrackerClient:
                 logger.info(
                     f"Scraping all {len(self._unscraped_hashes)} hashes for tracker {self.host}"
                 )
+                self._unscraped_hashes = []
             else:
                 # otherwise, copy into a new list...
                 logger.info(
@@ -220,12 +222,19 @@ class UDPTrackerClient:
         protocol = UDPProtocolHandler(msg, id, future)
         transport, protocol = await self.tracker_send_and_receive(protocol)
 
-        assert protocol.result is not None  # oh my goddddd pyright more like pywrong
+        if protocol.result is None:
+            raise TrackerHandshakeException("UDP protocol result was None")
         # initializing connection
         # TODO: Error handling!
         resp_action, resp_id, connection_id = struct.unpack_from("!IIq", protocol.result[0])
-        assert resp_action == ACTIONS.REQUEST_ID
-        assert resp_id == id
+        if resp_action != ACTIONS.REQUEST_ID or resp_id != id:
+            raise TrackerHandshakeException(
+                "Response action and id must match in request and response.\n"
+                f"response_action: {resp_action}\n"
+                f"request_action: {ACTIONS.REQUEST_ID}\n"
+                f"response_id: {resp_id}\n",
+                f"request_id: {id}",
+            )
         logger.debug(
             f"""RESPONSE from {self.ip}:{self.port}:
                 Action:         {resp_action}
@@ -308,8 +317,9 @@ async def resolve_host(url: str) -> tuple[str, int]:
         result = await resolver.query(hostname, "A")
         ip = result[0].host
         return ip, port
-    except:
-        raise
+    except Exception as e:
+        logger.exception(f"Error resolving host: {str(e)}")
+        raise e
 
 
 async def create_udp_tracker_client(url: str, torrents: dict) -> UDPTrackerClient:

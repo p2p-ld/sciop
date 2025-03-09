@@ -6,7 +6,6 @@ from sciop.api.deps import CurrentAccount, RequireCurrentAccount
 from sciop.const import STATIC_DIR
 from sciop.frontend.templates import templates
 from sciop.models import DatasetCreate
-from sciop.scheduler import interval, print_job, remove_all_jobs
 
 index_router = APIRouter()
 
