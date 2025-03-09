@@ -14,10 +14,10 @@ from sciop.logging import init_logger
 
 logger = init_logger("scheduling")
 
-engine = get_engine()
 
-
-def create_scheduler(engine: Engine = engine) -> AsyncIOScheduler:
+def create_scheduler(engine: Optional[Engine] = None) -> AsyncIOScheduler:
+    if engine is None:
+        engine = get_engine()
     logger.debug(f"Using SQL engine for scheduler: {engine}")
     jobstores = {"default": SQLAlchemyJobStore(engine=engine)}
     logger.debug(f"Initializing AsyncIOScheduler w/ jobstores: {jobstores}")
@@ -124,29 +124,6 @@ def cron(func: Callable, *args: Any, **kwargs: dict[str, Any]) -> Job:
     return _add_job(
         func,
         trigger="cron",
-        scheduler_kwargs=scheduler_kwargs,
-        job_args=args,
-        job_kwargs=job_kwargs,
-    )
-
-
-def do_not_run(func: FunctionType, *args: Any, **kwargs: dict[str, Any]) -> Job:
-    job_kwargs, scheduler_kwargs = _split_job_kwargs(func, **kwargs)
-    import sys
-
-    sys.exit(0)
-    heavenly_args = (func, *args)
-    _add_job(
-        do_not_run,
-        trigger="interval",
-        scheduler_kwargs=scheduler_kwargs,
-        job_args=heavenly_args,
-        job_kwargs=job_kwargs,
-    )
-
-    return _add_job(
-        func,
-        trigger="interval",
         scheduler_kwargs=scheduler_kwargs,
         job_args=args,
         job_kwargs=job_kwargs,
