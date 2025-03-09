@@ -27,6 +27,12 @@ if config.config_file_name is not None:
 
 target_metadata = SQLModel.metadata
 
+IGNORE_NAMES = (
+    "__search",
+    "apscheduler",
+)
+"""partial names, if any table contains these substrings, ignore for migrations"""
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -36,7 +42,7 @@ target_metadata = SQLModel.metadata
 
 def include_name(name, type_, parent_names):
     if type_ == "table":
-        return "__search" not in name
+        return not any(substr in name for substr in IGNORE_NAMES)
     else:
         return True
 

@@ -10,8 +10,24 @@ from slowapi.errors import RateLimitExceeded
 from sciop.frontend.templates import templates
 
 
-class UploadSizeExceeded(ValueError):
+class SciOpException(Exception):
+    """Base SciOp Exception"""
+
+
+class UploadSizeExceeded(ValueError, SciOpException):
     """An uploaded file is too large!"""
+
+
+class TrackerURLException(SciOpException, ValueError):
+    """Exception when something went wrong with the URL given"""
+
+
+class UDPTrackerException(SciOpException, RuntimeError):
+    """Exception when an error has been encountered with the UDPTrackerClient"""
+
+
+class TrackerHandshakeException(UDPTrackerException):
+    """Error while performing handshake with a UDP bittorrent tracker"""
 
 
 async def http_handler(request: Request, exc: HTTPException) -> Response:
