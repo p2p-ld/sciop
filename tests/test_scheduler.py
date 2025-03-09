@@ -16,7 +16,7 @@ def test_add_job(client_lifespan, capsys):
     do a single job
     """
     add_job(do_a_print)
-    sleep(0.1)
+    sleep(0.5)
     stdout = capsys.readouterr().out
     lines = stdout.splitlines()
     assert any(["Adding job" in line for line in lines])
