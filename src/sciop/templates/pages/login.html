@@ -1,4 +1,9 @@
 {% extends "layouts/default.html" %}
+{% block head %}
+{% with title = "Login" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
 {% block content %}
 <div class="login-form-container">
 <h1>Login</h1>
@@ -25,6 +30,7 @@
 </form>
 <div class="form-row login-buttons">
     <button
+        id="register-button"
         class="form-button"
         type="submit"
         name="account"
@@ -33,6 +39,7 @@
         hx-target="#login-form"
     >Register</button>
     <button
+        id="login-button"
         class="form-button"
         type="submit"
         name="account"

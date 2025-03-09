@@ -1,6 +1,7 @@
 nav.navbar {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   width: 100%;
   top: 0;
   align-items: center;
@@ -8,7 +9,14 @@ nav.navbar {
   padding: 0.5em 1em;
   box-sizing: border-box;
   gap: 0.5em;
+  position: relative;
 
+  .cta-wrapper {
+	  display: flex;
+	  flex-direction: row;
+    align-items: center;
+  	gap: 0.5em;
+  }
 
   .spacer {
     flex-grow: 2;
@@ -20,12 +28,17 @@ nav.navbar {
     font-weight: bold;
   }
 
+  .site-title.responsive {
+    display: none;
+  }
+
   .nav-button {
     background-color: var(--color-primary);
     padding: 0.5em 1em;
     border-radius: 5px;
     color: var(--color-text);
     text-decoration: unset;
+	  max-height: 40px;
 
     &.outline {
       background-color: unset;
@@ -252,5 +265,44 @@ nav.tabs {
 
   a.current {
     border-bottom: 1px solid var(--color-primary);
+  }
+}
+
+body[class="dev"],
+body[class="prod"] {
+  nav.navbar::after {
+    position: absolute;
+    bottom: -2em;
+    right: 1em;
+    height: 2em;
+    display: flex;
+    align-items: center;
+    padding-left: 1em;
+    padding-right: 1em;
+    box-sizing: border-box;
+    border-bottom-left-radius: 0.5em;
+    border-bottom-right-radius: 0.5em;
+    font-family: var(--font-mono);
+    font-weight: bold;
+    text-shadow: 2px 2px var(--color-background), -2px -2px var(--color-background), -2px 2px var(--color-background), 2px -2px var(--color-background);
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--color-background),
+      var(--color-background) 5px,
+      var(--color-alert) 5px,
+      var(--color-alert) 7px
+    );
+  }
+}
+
+body[class="dev"] {
+  nav.navbar::after {
+    content: "DEV MODE"
+  }
+}
+
+body[class="test"] {
+  nav.navbar::after {
+    content: "TEST MODE"
   }
 }

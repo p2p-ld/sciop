@@ -1,13 +1,31 @@
+{% from "macros/actions.html" import delete_button %}
 {% macro upload_row(upload, current_account, config, header_start=1) %}
-<div class="upload" id="upload-{{ upload.short_hash }}">
+<div class="upload" id="upload-{{ upload.infohash }}">
     <div class="upload-topmatter topmatter">
         <div class="upload-header header">
             <h{{ header_start }} class="title upload-title font-mono">{{ upload.short_hash }} </h{{ header_start }}>
+            {% if not upload.is_approved %}
+            <p class="unapproved">
+              Upload has not yet been reviewed, and is not visible in public lists
+            </p>
+            {% endif %}
             <span class="dataset-slug">
                 <a href="/datasets/{{upload.dataset.slug}}">
                     {{ upload.dataset.slug }}
                 </a>
             </span>
+            {% if upload.dataset_parts %}
+            <h{{ header_start + 1}} class="dataset-parts">For Dataset Parts</h{{ header_start + 1}}>
+            <ul>
+                {% for part in upload.dataset_parts %}
+                <li>
+                   <a href="/datasets/{{upload.dataset.slug}}">{{upload.dataset.slug}}</a>
+                    /
+                   <a href="/datasets/{{upload.dataset.slug}}/{{part.part_slug}}">{{part.part_slug}}</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
             <h{{ header_start + 1}} class="description">Description</h{{ header_start + 1}}>
             <p>{{ upload.description }}</p>
             <h{{ header_start + 1}} class="method">Method</h{{ header_start + 1}}>
@@ -20,8 +38,18 @@
             </p>
             <table class="infobox-table">
                 <tr>
-                    <td colspan="2" class="infobox-subhead">{{ upload.torrent.file_name }}</td>
+                    <td colspan="2" class="infobox-subhead wrap">{{ upload.torrent.file_name }}</td>
                 </tr>
+                {% if upload.account %}
+                <tr>
+                    <td class="infobox-key">Uploaded By</td>
+                    <td class="infobox-value">
+                    <a class="account-link" href="/accounts/{{ upload.account.username }}">
+                        @{{ upload.account.username }}
+                    </a>
+                    </td>
+                </tr>
+                {% endif %}
                 <tr>
                     <td class="infobox-key">Size</td>
                     <td class="infobox-value">{{ upload.human_size }}</td>
@@ -39,6 +67,26 @@
                     <td class="infobox-value">{{ upload.torrent.human_piece_size }}</td>
                 </tr>
                 <tr>
+                    <td class="infobox-key">Version</td>
+                    <td class="infobox-value">{{ upload.torrent.version }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Short Hash</td>
+                    <td class="infobox-value">
+                        <a class="token" href="/uploads/{{ upload.torrent.short_hash }}">
+                            {{ upload.torrent.short_hash }}
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">v1 Infohash</td>
+                    <td class="infobox-value wrap">{{ upload.torrent.v1_infohash }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">v2 Infohash</td>
+                    <td class="infobox-value wrap">{{ upload.torrent.v2_infohash }}</td>
+                </tr>
+                <tr>
                     <td class="infobox-key">Created</td>
                     <td class="infobox-value">
                         <time datetime="{{ upload.created_at.strftime('%y-%m-%d %H:%M') }}Z">
@@ -54,6 +102,23 @@
                         </time>
                     </td>
                 </tr>
+                {% if upload.removable_by(current_account) %}
+                {% set delete_url= config.api_prefix + "/uploads/" + upload.infohash %}
+                <tr>
+                    <td class="infobox-key">Actions</td>
+                    <td class="infobox-value">
+                    {{ delete_button(url=delete_url, item_type="upload", name=upload.infohash)}}
+                    </td>
+                </tr>
+                {% endif %}
+                {% if current_account and current_account.has_scope("review") and not upload.is_approved %}
+                <tr>
+                    <td colspan="2">
+                        <p class="infobox-subhead font-mono">review status: unapproved</p>
+                        <div class="infobox-row">{{ review_buttons(upload, config) }}</div>
+                    </td>
+                </tr>
+                {% endif %}
             </table>
         </div>
 
@@ -62,7 +127,7 @@
     <h{{ header_start + 1}}>
        Files
     </h{{ header_start + 1}}>
-    <div class="file-table">
+    <div class="file-table scrollable">
         {% for file in upload.torrent.files %}
         <span class="file-name">{{ file.path }}</span>
         <span class="file-size">{{ file.human_size }}</span>
@@ -71,24 +136,25 @@
     <h{{ header_start + 1}}>
         Trackers
     </h{{ header_start + 1}}>
-    <div class="tracker-list">
+    <div class="tracker-list scrollable">
         {% for tracker in upload.torrent.trackers %}
-        <code>{{ tracker.url }}</code>
+        <code>{{ tracker.url }}</code><br>
         {% endfor %}
     </div>
 </div>
 {% endmacro %}
 
 {% macro upload_collapsible(upload, review=False, config = None) %}
-<details class="collapsible upload-collapsible" id="upload-collapsible-{{ upload.upload_id }}">
+<details id="upload-collapsible-{{ upload.upload_id }}"
+         class="collapsible upload-collapsible{% if not upload.is_approved %} unapproved{% endif %}">
     <summary class="collapsible-summary"
-             hx-get="/uploads/{{ upload.short_hash }}/partial"
+             hx-get="/uploads/{{ upload.infohash }}/partial"
              hx-trigger="click once"
-             hx-target="#upload-{{ upload.short_hash }}">
+             hx-target="#upload-{{ upload.infohash }}">
 
         <span class="collapsible-marker"></span>
         <span class="upload-hash item-link">
-            <a href="/uploads/{{ upload.short_hash }}">
+            <a href="/uploads/{{ upload.infohash }}">
                 {{ upload.short_hash }}
             </a>
         </span>
@@ -98,23 +164,27 @@
             {{ upload.created_at.strftime("%y-%m-%d %H:%M") }}
         </time>
         {% if review %}
-        <button class="button approve-button success-button"
-                role="button"
-                aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it available for download"
-                aria-controls="upload-collapsible-{{ upload.upload_id }}"
-                hx-post="{{ config.api_prefix }}/uploads/{{ upload.short_hash }}/approve">Approve
-        </button>
-        <button class="button deny-button success-button caution"
-                role="button"
-                aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
-                aria-controls="upload-collapsible-{{ upload.upload_id }}"
-                hx-post="{{ config.api_prefix }}/uploads/{{ upload.short_hash }}/deny">Deny
-        </button>
+        {{ review_buttons(upload, config) }}
         {% else %}
         <a class="icon-link download-link" href="{{ upload.download_path }}" aria-label="Download" title="Download">⬇️
         </a>
         {% endif %}
     </summary>
-    <div class="upload" id="upload-{{ upload.short_hash }}"></div>
+    <div class="upload" id="upload-{{ upload.infohash }}"></div>
 </details>
+{% endmacro %}
+
+{% macro review_buttons(upload, config) %}
+<button class="button approve-button success-button"
+        role="button"
+        aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it available for download"
+        aria-controls="upload-collapsible-{{ upload.upload_id }}"
+        hx-post="{{ config.api_prefix }}/uploads/{{ upload.infohash }}/approve">Approve
+</button>
+<button class="button deny-button success-button caution"
+        role="button"
+        aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
+        aria-controls="upload-collapsible-{{ upload.upload_id }}"
+        hx-post="{{ config.api_prefix }}/uploads/{{ upload.infohash }}/deny">Deny
+</button>
 {% endmacro %}

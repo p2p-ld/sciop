@@ -1,3 +1,4 @@
+import argparse
 import contextlib
 import sys
 
@@ -6,12 +7,26 @@ from _pytest.monkeypatch import MonkeyPatch
 
 mpatch = MonkeyPatch()
 mpatch.setenv("SCIOP_SECRET_KEY", "12345")
+mpatch.setenv("SCIOP_ENV", "test")
+
 
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, create_engine
 
 from .fixtures import *
 from .fixtures import TMP_DIR, TORRENT_DIR
+
+
+def pytest_addoption(parser: argparse.ArgumentParser) -> None:
+    parser.addoption(
+        "--show-browser", action="store_true", default=False, help="Show browser in selenium tests"
+    )
+    parser.addoption(
+        "--echo-queries",
+        action="store_true",
+        default=False,
+        help="Echo queries made by SQLAlchemy to stdout (use with -s)",
+    )
 
 
 def pytest_sessionfinish(session: pytest.Session) -> None:
@@ -36,7 +51,7 @@ def monkeypatch_session() -> MonkeyPatch:
 
 
 @pytest.fixture(autouse=True, scope="session")
-def monkeypatch_config(monkeypatch_session: "MonkeyPatch") -> None:
+def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.FixtureRequest) -> None:
     """
     After we are able to declare environmental variables in session start,
     patch the config
@@ -57,7 +72,11 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch") -> None:
 
     from sciop import db
 
-    engine = create_engine(str(new_config.sqlite_path))
+    if request.config.getoption("--echo-queries"):
+        engine = create_engine(str(new_config.sqlite_path), echo=True)
+    else:
+        engine = create_engine(str(new_config.sqlite_path))
     monkeypatch_session.setattr(db, "engine", engine)
     maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
     monkeypatch_session.setattr(db, "maker", maker)
+    db.create_tables(engine)

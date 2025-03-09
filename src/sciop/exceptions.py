@@ -41,13 +41,19 @@ async def htmx_error(request: Request, exc: HTTPException | RateLimitExceeded) -
     if error_headers := getattr(exc, "headers", None):
         headers.update(error_headers)
 
+    if isinstance(exc.detail, str):
+        msg = exc.detail
+        kwargs = {}
+    elif isinstance(exc.detail, dict):
+        msg = exc.detail.pop("msg")
+        kwargs = exc.detail
+    else:
+        raise TypeError("Dont know how to handle non-dict, non-str exception details")
+
     return templates.TemplateResponse(
+        request,
         "partials/error-modal.html",
-        {
-            "request": request,
-            "detail": exc.detail,
-            "status_code": exc.status_code,
-        },
+        {"msg": msg, "status_code": exc.status_code, **kwargs},
         headers=headers,
         status_code=exc.status_code,
     )

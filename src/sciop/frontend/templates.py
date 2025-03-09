@@ -12,7 +12,7 @@ from fastapi.security.utils import get_authorization_scheme_param
 from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 
-from sciop import models
+from sciop import models, types
 from sciop.api import deps
 from sciop.config import Config, config
 from sciop.const import TEMPLATE_DIR
@@ -52,8 +52,8 @@ def template_config(request: Request) -> dict[L["config"], Config]:
     return {"config": config}
 
 
-def template_models(request: Request) -> dict[L["models"], ModuleType]:
-    return {"models": models}
+def template_models(request: Request) -> dict[L["models", "types"], ModuleType]:
+    return {"models": models, "types": types}
 
 
 def template_nonce(request: Request) -> dict[L["nonce"], str]:

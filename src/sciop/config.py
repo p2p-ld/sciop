@@ -1,18 +1,19 @@
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal, Optional, Self
 
 from platformdirs import PlatformDirs
-from pydantic import (
-    BaseModel,
-    Field,
-    computed_field,
-    field_validator,
-)
+from pydantic import BaseModel, Field, SecretStr, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _default_userdir = Path().home() / ".config" / "mio"
 _dirs = PlatformDirs("sciop", "sciop")
 LOG_LEVELS = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
+
+DEFAULT_DB_LOCATIONS = {
+    "dev": "db.dev.sqlite",
+    "test": "db.test.sqlite",
+    "prod": "db.sqlite",
+}
 
 
 class LogConfig(BaseModel):
@@ -116,23 +117,45 @@ class Config(BaseSettings):
 
     base_url: str = "http://localhost:8000"
     """Root URL where the site is hosted"""
-    secret_key: str
-    db: Optional[Path] = Path("./db.sqlite")
+    secret_key: SecretStr
+    db: Optional[Path]
     """
-    Optional, if set to ``None`` , use the in-memory sqlite DB
+    Defaults:
+    - `prod`: db.sqlite
+    - `dev`: db.dev.sqlite
+    - `test`: db.test.sqlite
+    
+    Optional, if explicitly set to ``None`` , use the in-memory sqlite DB
     """
     logs: LogConfig = LogConfig()
     host: str = "localhost"
     port: int = 8000
-    env: Literal["dev", "prod", "test"] = "dev"
+    env: Literal["dev", "prod", "test"]
     public_url: str = "http://localhost"
-    token_expire_minutes: int = 30
+    token_expire_minutes: int = 60 * 24  # AKA 1 day
     api_prefix: str = "/api/v1"
-    upload_limit: int = 2**20
+    upload_limit: int = 2**24
     """in bytes"""
     torrent_dir: Path = Path(_dirs.user_data_dir) / "torrents"
     """Directory to store uploaded torrents"""
     csp: CSPConfig = CSPConfig()
+    root_user: str = "root"
+    """
+    Default root user created on first run.
+    """
+    root_password: Optional[SecretStr] = "rootroot1234"
+    """
+    Default root password for root user created on first run.
+    
+    When `env==prod`, this password *must* be supplied on first run explicitly
+    via an environment variable (`SCIOP_ROOT_PASSWORD`) or via the .env file.
+    This password must *not* be equal to the default.
+    
+    After the account is created,
+    this value can be removed from the environment variables and .env files.
+    
+    This value is set to `None` by `db.ensure_root` when the program is started normally.    
+    """
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -173,6 +196,31 @@ class Config(BaseSettings):
         """Ensure parent directory exists"""
         value.parent.mkdir(exist_ok=True, parents=True)
         return value
+
+    @model_validator(mode="before")
+    def default_db(cls, value: dict) -> dict:
+        """Add a default db path to args, if not present"""
+        if "db" not in value and "env" in value:
+            value["db"] = DEFAULT_DB_LOCATIONS[value["env"]]
+        return value
+
+    @model_validator(mode="before")
+    def explicit_base_url_in_prod(cls, value: dict) -> dict:
+        """if env is prod, base_url must be set explicitly"""
+        if value.get("env", "") == "prod":
+            assert (
+                "base_url" in value
+            ), "A base_url must be explicitly set when running in `prod` mode"
+        return value
+
+    @model_validator(mode="after")
+    def root_password_not_default_in_prod(self) -> Self:
+        """When env == prod, root_password can't be equal to the default"""
+        if self.env == "prod":
+            assert (
+                self.root_password != self.model_fields["root_password"].default
+            ), "root_password cannot be equal to the default in prod, and must be set explicitly"
+        return self
 
 
 config = Config()

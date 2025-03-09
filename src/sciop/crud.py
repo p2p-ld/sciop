@@ -9,6 +9,9 @@ from sciop.models import (
     AuditLog,
     Dataset,
     DatasetCreate,
+    DatasetPart,
+    DatasetPartCreate,
+    DatasetPath,
     DatasetURL,
     ExternalIdentifier,
     FileInTorrent,
@@ -50,11 +53,17 @@ def authenticate(*, session: Session, username: str, password: str) -> Account |
 def create_dataset(
     *, session: Session, dataset_create: DatasetCreate, current_account: Optional[Account] = None
 ) -> Dataset:
-    enabled = current_account is not None and current_account.has_scope("submit")
+    is_approved = current_account is not None and current_account.has_scope("submit")
     urls = [DatasetURL(url=url) for url in dataset_create.urls]
     external_identifiers = [
         ExternalIdentifier(type=e.type, identifier=e.identifier)
         for e in dataset_create.external_identifiers
+    ]
+    parts = [
+        create_dataset_part(
+            session=session, account=current_account, dataset_part=part, commit=False
+        )
+        for part in dataset_create.parts
     ]
 
     existing_tags = session.exec(select(Tag).filter(Tag.tag.in_(dataset_create.tags))).all()
@@ -66,17 +75,44 @@ def create_dataset(
     db_obj = Dataset.model_validate(
         dataset_create,
         update={
-            "enabled": enabled,
+            "is_approved": is_approved,
             "account": current_account,
             "urls": urls,
             "tags": tags,
             "external_identifiers": external_identifiers,
+            "parts": parts,
         },
     )
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     return db_obj
+
+
+def create_dataset_part(
+    *,
+    session: Session,
+    dataset_part: DatasetPartCreate,
+    dataset: Dataset | None = None,
+    account: Account | None = None,
+    commit: bool = True,
+) -> DatasetPart:
+    paths = [DatasetPath(path=str(path)) for path in dataset_part.paths]
+    is_approved = bool(account) and account.has_scope("submit")
+    part = DatasetPart.model_validate(
+        dataset_part,
+        update={
+            "paths": paths,
+            "dataset": dataset,
+            "account": account,
+            "is_approved": is_approved,
+        },
+    )
+    session.add(part)
+    if commit:
+        session.commit()
+        session.refresh(part)
+    return part
 
 
 def get_dataset(*, session: Session, dataset_slug: str) -> Dataset | None:
@@ -86,35 +122,101 @@ def get_dataset(*, session: Session, dataset_slug: str) -> Dataset | None:
     return session_dataset
 
 
+def get_dataset_part(
+    *, session: Session, dataset_slug: str, dataset_part_slug: str
+) -> Optional[DatasetPart]:
+    statement = (
+        select(DatasetPart)
+        .join(Dataset)
+        .filter(DatasetPart.part_slug == dataset_part_slug, Dataset.slug == dataset_slug)
+    )
+    part = session.exec(statement).first()
+    return part
+
+
+def get_dataset_parts(
+    *, session: Session, dataset_slug: str, dataset_part_slugs: list[str]
+) -> Optional[list[DatasetPart]]:
+    statement = (
+        select(DatasetPart)
+        .join(Dataset)
+        .filter(DatasetPart.part_slug.in_(dataset_part_slugs), Dataset.slug == dataset_slug)
+    )
+    parts = session.exec(statement).all()
+    return parts
+
+
 def get_approved_datasets(*, session: Session) -> list[Dataset]:
-    statement = select(Dataset).where(Dataset.enabled == True)
+    statement = select(Dataset).where(Dataset.is_approved == True)
+    return session.exec(statement).all()
+
+
+def get_visible_datasets(*, session: Session) -> list[Dataset]:
+    statement = select(Dataset).where(Dataset.is_visible == True)
     return session.exec(statement).all()
 
 
 def get_approved_datasets_from_tag(*, session: Session, tag: str) -> list[Upload]:
-    statement = select(Dataset).where(Dataset.enabled == True, Dataset.tags.any(tag=tag))
+    statement = select(Dataset).where(Dataset.is_approved == True, Dataset.tags.any(tag=tag))
+    return session.exec(statement).all()
+
+
+def get_visible_datasets_from_tag(*, session: Session, tag: str) -> list[Upload]:
+    statement = select(Dataset).where(Dataset.is_visible == True, Dataset.tags.any(tag=tag))
     return session.exec(statement).all()
 
 
 def get_review_datasets(*, session: Session) -> list[Dataset]:
-    statement = select(Dataset).where(Dataset.enabled == False)
+    statement = select(Dataset).where(Dataset.needs_review == True)
     datasets = session.exec(statement).all()
     return datasets
 
 
 def get_review_datasets_from_tag(*, session: Session, tag: str) -> list[Upload]:
-    statement = select(Dataset).where(Dataset.enabled == False, Dataset.tags.any(tag=tag))
+    statement = select(Dataset).where(Dataset.needs_review == True, Dataset.tags.any(tag=tag))
     return session.exec(statement).all()
 
 
 def get_review_uploads(*, session: Session) -> list[Upload]:
-    statement = select(Upload).where(Upload.enabled == False)
+    statement = select(Upload).where(Upload.needs_review == True)
     uploads = session.exec(statement).all()
     return uploads
 
 
-def get_torrent_from_file_hash(*, hash: str, session: Session) -> Optional[TorrentFile]:
-    statement = select(TorrentFile).where(TorrentFile.file_hash == hash)
+def get_torrent_from_infohash(
+    *,
+    session: Session,
+    infohash: Optional[str] = None,
+    v1: Optional[str] = None,
+    v2: Optional[str] = None,
+) -> Optional[TorrentFile]:
+    """
+    Get a torrent from one of its infohashes.
+
+    If the generic ``infohash`` is passed, it can be v1, v2, or the short hash.
+    Otherwise, v1 and v2 can be passed, individually or together.
+    """
+    if infohash:
+        if len(infohash) == 8:
+            return get_torrent_from_short_hash(short_hash=infohash, session=session)
+        elif len(infohash) == 40:
+            v1 = infohash
+        elif len(infohash) == 64:
+            v2 = infohash
+        else:
+            raise ValueError("Infohash is not a short hash, v1, or v2 infohash")
+
+    if v1 and v2:
+        statement = select(TorrentFile).filter(
+            (TorrentFile.v1_infohash == v1) | (TorrentFile.v2_infohash == v2)
+        )
+    elif v1:
+        statement = select(TorrentFile).filter(TorrentFile.v1_infohash == v1)
+    elif v2:
+        statement = select(TorrentFile).filter(TorrentFile.v2_infohash == v2)
+    else:
+        raise ValueError("Either a v1 or a v2 infohash must be passed")
+
     value = session.exec(statement).first()
     return value
 
@@ -142,32 +244,61 @@ def create_torrent(
 def create_upload(
     *, session: Session, created_upload: UploadCreate, account: Account, dataset: Dataset
 ) -> Upload:
-    torrent = get_torrent_from_short_hash(
-        session=session, short_hash=created_upload.torrent_short_hash
-    )
-    db_obj = Upload.model_validate(
-        created_upload,
-        update={
-            "torrent": torrent,
-            "account": account,
-            "dataset": dataset,
-            "short_hash": created_upload.torrent_short_hash,
-        },
-    )
+    torrent = get_torrent_from_infohash(session=session, infohash=created_upload.torrent_infohash)
+    update = {
+        "torrent": torrent,
+        "account": account,
+        "dataset": dataset,
+        "infohash": created_upload.torrent_infohash,
+        "is_approved": account.has_scope("upload"),
+    }
+    if created_upload.part_slugs:
+        update["dataset_parts"] = get_dataset_parts(
+            session=session, dataset_slug=dataset.slug, dataset_part_slugs=created_upload.part_slugs
+        )
+
+    db_obj = Upload.model_validate(created_upload, update=update)
+    db_obj.is_approved = account.has_scope("upload")
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     return db_obj
 
 
-def get_uploads(*, dataset: Dataset, session: Session) -> list[Upload]:
-    statement = select(Upload).where(Upload.dataset == dataset)
+def get_uploads(*, session: Session, dataset: Dataset | DatasetPart) -> list[Upload]:
+    if isinstance(dataset, DatasetPart):
+        statement = select(Upload).where(
+            Upload.dataset_parts.any(dataset_part_id=dataset.dataset_part_id)
+        )
+    else:
+        statement = select(Upload).where(Upload.dataset == dataset)
     uploads = session.exec(statement).all()
     return uploads
 
 
-def get_uploads_from_tag(*, session: Session, tag: str) -> list[Upload]:
-    statement = select(Upload).join(Dataset).where(Dataset.tags.any(tag=tag))
+def get_visible_uploads(*, session: Session, dataset: Dataset | DatasetPart) -> list[Upload]:
+    if isinstance(dataset, DatasetPart):
+        statement = select(Upload).where(
+            Upload.dataset_parts.any(dataset_part_id=dataset.dataset_part_id),
+            Upload.is_visible == True,
+        )
+    else:
+        statement = select(Upload).where(Upload.dataset == dataset, Upload.is_visible == True)
+    uploads = session.exec(statement).all()
+    return uploads
+
+
+def get_uploads_from_tag(
+    *, session: Session, tag: str, visible: Optional[bool] = True
+) -> list[Upload]:
+    if visible:
+        statement = (
+            select(Upload)
+            .join(Dataset)
+            .where(Dataset.tags.any(tag=tag), Upload.is_visible == visible)
+        )
+    else:
+        statement = select(Upload).join(Dataset).where(Dataset.tags.any(tag=tag))
     uploads = session.exec(statement).all()
     return uploads
 
@@ -176,6 +307,26 @@ def get_upload_from_short_hash(*, session: Session, short_hash: str) -> Optional
     statement = select(Upload).join(TorrentFile).filter(TorrentFile.short_hash == short_hash)
     upload = session.exec(statement).first()
     return upload
+
+
+def get_upload_from_infohash(*, infohash: str, session: Session) -> Optional[Upload]:
+    """
+    Get a torrent from one of its infohashes.
+
+    If the generic ``infohash`` is passed, it can be v1, v2, or the short hash.
+    Otherwise, v1 and v2 can be passed, individually or together.
+    """
+    if len(infohash) == 8:
+        return get_upload_from_short_hash(short_hash=infohash, session=session)
+    elif len(infohash) == 40:
+        statement = select(Upload).join(TorrentFile).filter(TorrentFile.v1_infohash == infohash)
+    elif len(infohash) == 64:
+        statement = select(Upload).join(TorrentFile).filter(TorrentFile.v2_infohash == infohash)
+    else:
+        raise ValueError("Infohash is not a short hash, v1, or v2 infohash")
+
+    value = session.exec(statement).first()
+    return value
 
 
 def log_moderation_action(
@@ -190,6 +341,8 @@ def log_moderation_action(
 
     if isinstance(target, Dataset):
         audit_kwargs["target_dataset"] = target
+    elif isinstance(target, DatasetPart):
+        audit_kwargs["target_dataset_part"] = target
     elif isinstance(target, Upload):
         audit_kwargs["target_upload"] = target
     elif isinstance(target, Account):
@@ -202,3 +355,30 @@ def log_moderation_action(
     session.commit()
     session.refresh(db_item)
     return db_item
+
+
+def check_existing_dataset_parts(
+    *, session: Session, dataset: Dataset, part_slugs: list[str | DatasetPartCreate]
+) -> Optional[list[str]]:
+    """
+    Check whether any of a list of dataset parts exist in the database,
+    returning a list of slugs that do exist, if any.
+    ``None`` otherwise.
+    """
+    slugs = [p if isinstance(p, str) else p.part_slug for p in part_slugs]
+    stmt = (
+        select(DatasetPart.part_slug)
+        .join(Dataset)
+        .filter(DatasetPart.dataset == dataset, DatasetPart.part_slug.in_(slugs))
+    )
+    existing_parts = session.exec(stmt).all()
+    if not existing_parts:
+        return None
+    else:
+        return existing_parts
+
+
+def get_tag(*, session: Session, tag: str) -> Optional[Tag]:
+    statement = select(Tag).where(Tag.tag == tag)
+    tag = session.exec(statement).first()
+    return tag

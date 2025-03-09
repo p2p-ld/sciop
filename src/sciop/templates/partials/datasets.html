@@ -1,5 +1,8 @@
 {% from 'macros/dataset.html' import dataset_collapsible %}
 <div id="dataset-page" class="dataset-page">
+  {% if items | length == 0 %}
+  <p class="none-found">No Datasets found :)</p>
+  {% else %}
   {% with swap_target="#dataset-page" %}
     {% include 'includes/pagination-buttons.html' %}
   {% endwith %}
@@ -13,6 +16,7 @@
       <span class="col-title">
           title
       </span>
+      <span></span>
       <span class="col-created">
           created
       </span>
@@ -20,11 +24,12 @@
     </div>
     <div class="dataset-items">
       {% for dataset in items %}
-      {{ dataset_collapsible(dataset, review=review, config=config) }}
+      {{ dataset_collapsible(dataset, review=review, config=config, types=types) }}
       {% endfor %}
     </div>
   </div>
   {% with swap_target="#dataset-page" %}
     {% include 'includes/pagination-buttons.html' %}
   {% endwith %}
+  {% endif %}
 </div>

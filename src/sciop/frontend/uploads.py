@@ -1,55 +1,52 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import select
 
-from sciop import crud
-from sciop.api.deps import (
-    CurrentAccount,
-    RequireUpload,
-    SessionDep,
-)
+from sciop.api.deps import CurrentAccount, RequireUpload, RequireVisibleUpload, SessionDep
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, DatasetRead
+from sciop.models import Upload, UploadRead
 
 uploads_router = APIRouter(prefix="/uploads")
 
 
 @uploads_router.get("/", response_class=HTMLResponse)
-async def uploads(request: Request, session: SessionDep):
-    uploads = crud.get_approved_uploads(session=session)
+async def uploads(request: Request):
     return templates.TemplateResponse(
         request,
         "pages/uploads.html",
-        {"uploads": uploads},
     )
 
 
 @uploads_router.get("/search")
 @jinja.hx("partials/uploads.html")
-async def uploads_search(query: str = None, session: SessionDep = None) -> Page[DatasetRead]:
+async def uploads_search(
+    query: str = None, session: SessionDep = None, current_account: CurrentAccount = None
+) -> Page[UploadRead]:
     if not query or len(query) < 3:
-        stmt = select(Dataset).where(Dataset.enabled == True).order_by(Dataset.created_at)
+        stmt = (
+            select(Upload)
+            .where(Upload.visible_to(current_account) == True)
+            .order_by(Upload.created_at)
+        )
     else:
         stmt = (
-            select(Dataset)
-            .where(Dataset.enabled == True)
-            .filter(Dataset.dataset_id.in_(Dataset.search_statement(query)))
+            select(Upload)
+            .where(Upload.visible_to(current_account) == True)
+            .filter(Upload.upload_id.in_(Upload.search_statement(query)))
         )
     return paginate(conn=session, query=stmt)
 
 
-@uploads_router.get("/{short_hash}", response_class=HTMLResponse)
+@uploads_router.get("/{infohash}", response_class=HTMLResponse)
 async def upload_show(
-    short_hash: str, account: CurrentAccount, session: SessionDep, request: Request
+    infohash: str,
+    account: CurrentAccount,
+    session: SessionDep,
+    request: Request,
+    upload: RequireVisibleUpload,
 ):
-    upload = crud.get_upload_from_short_hash(session=session, short_hash=short_hash)
-    if not upload:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No such upload {short_hash} exists",
-        )
     return templates.TemplateResponse(
         request,
         "pages/upload.html",
@@ -57,6 +54,6 @@ async def upload_show(
     )
 
 
-@uploads_router.get("/{short_hash}/partial", response_class=HTMLResponse)
+@uploads_router.get("/{infohash}/partial", response_class=HTMLResponse)
 async def upload_partial(request: Request, upload: RequireUpload):
     return templates.TemplateResponse(request, "partials/upload.html", {"upload": upload})

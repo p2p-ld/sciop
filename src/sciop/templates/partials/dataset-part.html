@@ -1,0 +1,8 @@
+{% from 'macros/dataset-part.html' import dataset_part_row, dataset_part_collapsible %}
+{% if parts %}
+{% for part in parts %}
+{{ dataset_part_collapsible(part, dataset, current_account, config) }}
+{% endfor %}
+{% else %}
+{{ dataset_part_row(part, dataset, current_account, config) }}
+{% endif %}

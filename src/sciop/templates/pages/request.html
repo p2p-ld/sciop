@@ -1,5 +1,10 @@
 {% extends "layouts/default.html" %}
 {% from "macros/model-form.html" import model_form %}
+{% block head %}
+{% with title = "Request/Add a Dataset" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
 {% block content %}
 <h2>Request/Add a Dataset</h2>
 

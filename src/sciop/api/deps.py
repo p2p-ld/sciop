@@ -11,7 +11,7 @@ from sciop import crud
 from sciop.api.auth import ALGORITHM
 from sciop.config import config
 from sciop.db import get_session
-from sciop.models import Account, Dataset, Scopes, TokenPayload, Upload
+from sciop.models import Account, Dataset, DatasetPart, Scopes, Tag, TokenPayload, Upload
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 
@@ -41,9 +41,11 @@ TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 
 def require_current_account(session: SessionDep, token: TokenDep) -> Account:
+    if not token:
+        raise HTTPException(302, detail="Not authorized", headers={"Location": "/login"})
 
     try:
-        payload = jwt.decode(token, config.secret_key, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, config.secret_key.get_secret_value(), algorithms=[ALGORITHM])
         token_data = TokenPayload(**payload)
     except (InvalidTokenError, ValidationError) as e:
         raise HTTPException(
@@ -52,7 +54,11 @@ def require_current_account(session: SessionDep, token: TokenDep) -> Account:
         ) from e
     account = session.get(Account, token_data.sub)
     if not account:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(302, detail="Not authorized", headers={"Location": "/login"})
+    elif account.is_suspended:
+        raise HTTPException(
+            status_code=403, detail="Account is suspended", headers={"HX-Redirect": "/login"}
+        )
     return account
 
 
@@ -67,6 +73,12 @@ RequireCurrentAccount = Annotated[Account, Depends(require_current_account)]
 CurrentAccount = Annotated[Optional[Account], Depends(get_current_account)]
 
 
+def require_current_active_root(current_account: RequireCurrentAccount) -> Account:
+    if not current_account.has_scope("root"):
+        raise HTTPException(status_code=403, detail="Account must be root")
+    return current_account
+
+
 def require_current_active_admin(current_account: RequireCurrentAccount) -> Account:
     if not current_account.has_scope("admin"):
         raise HTTPException(status_code=403, detail="Account must be admin")
@@ -74,17 +86,18 @@ def require_current_active_admin(current_account: RequireCurrentAccount) -> Acco
 
 
 def require_current_active_reviewer(current_account: RequireCurrentAccount) -> Account:
-    if not current_account.has_scope("review", "admin"):
+    if not current_account.has_scope("review"):
         raise HTTPException(status_code=403, detail="Account must be reviewer")
     return current_account
 
 
 def require_current_active_uploader(current_account: RequireCurrentAccount) -> Account:
-    if not current_account.has_scope("upload", "admin"):
-        raise HTTPException(status_code=403, detail="Account must be reviewer")
+    if not current_account.has_scope("upload"):
+        raise HTTPException(status_code=403, detail="Account must be uploader")
     return current_account
 
 
+RequireRoot = Annotated[Account, Depends(require_current_active_root)]
 RequireAdmin = Annotated[Account, Depends(require_current_active_admin)]
 RequireReviewer = Annotated[Account, Depends(require_current_active_reviewer)]
 RequireUploader = Annotated[Account, Depends(require_current_active_uploader)]
@@ -100,50 +113,111 @@ def require_dataset(dataset_slug: str, session: SessionDep) -> Dataset:
     return dataset
 
 
-def require_enabled_dataset(dataset_slug: str, session: SessionDep) -> Dataset:
+def require_approved_dataset(dataset_slug: str, session: SessionDep) -> Dataset:
     """
-    Require that a dataset exists and is enabled
+    Require that a dataset exists and is is_approved
     """
     dataset = require_dataset(dataset_slug, session)
-    if not dataset.enabled:
+    if not dataset.is_approved:
         raise HTTPException(
             status_code=401,
-            detail=f"Dataset {dataset_slug} not enabled for uploads",
+            detail=f"Dataset {dataset_slug} not approved for uploads",
         )
     return dataset
 
 
 RequireDataset = Annotated[Dataset, Depends(require_dataset)]
-RequireEnabledDataset = Annotated[Dataset, Depends(require_enabled_dataset)]
+RequireApprovedDataset = Annotated[Dataset, Depends(require_approved_dataset)]
 
 
-def require_upload(short_hash: str, session: SessionDep) -> Upload:
-    upload = crud.get_upload_from_short_hash(session=session, short_hash=short_hash)
+def require_visible_dataset(dataset: RequireDataset, current_account: CurrentAccount) -> Dataset:
+    if dataset.visible_to(current_account):
+        return dataset
+    else:
+        raise HTTPException(404)
+
+
+RequireVisibleDataset = Annotated[Dataset, Depends(require_visible_dataset)]
+
+
+def require_dataset_part(
+    dataset_slug: str, dataset_part_slug: str, session: SessionDep
+) -> DatasetPart:
+    part = crud.get_dataset_part(
+        session=session, dataset_slug=dataset_slug, dataset_part_slug=dataset_part_slug
+    )
+    if not part:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such dataset part {dataset_slug}/{dataset_part_slug} exists!",
+        )
+    return part
+
+
+RequireDatasetPart = Annotated[DatasetPart, Depends(require_dataset_part)]
+
+
+def require_visible_dataset_part(
+    part: RequireDatasetPart, current_account: CurrentAccount
+) -> DatasetPart:
+    if part.visible_to(current_account):
+        return part
+    else:
+        raise HTTPException(404)
+
+
+RequireVisibleDatasetPart = Annotated[DatasetPart, Depends(require_visible_dataset_part)]
+
+
+def require_upload(infohash: str, session: SessionDep) -> Upload:
+    upload = crud.get_upload_from_infohash(session=session, infohash=infohash)
     if not upload:
         raise HTTPException(
             status_code=404,
-            detail=f"No such upload {short_hash} exists!",
+            detail=f"No such upload {infohash} exists!",
         )
     return upload
 
 
-def require_enabled_upload(short_hash: str, session: SessionDep) -> Upload:
-    upload = require_upload(short_hash, session)
-    if not upload.enabled:
+def require_approved_upload(infohash: str, session: SessionDep) -> Upload:
+    upload = require_upload(infohash, session)
+    if not upload.is_approved:
         raise HTTPException(
             status_code=401,
-            detail=f"Upload {short_hash} is not enabled",
+            detail=f"Upload {infohash} is not approved",
         )
     return upload
 
 
 RequireUpload = Annotated[Upload, Depends(require_upload)]
-RequireEnabledUpload = Annotated[Upload, Depends(require_enabled_upload)]
+RequireApprovedUpload = Annotated[Upload, Depends(require_approved_upload)]
+
+
+def require_visible_upload(upload: RequireUpload, current_account: CurrentAccount) -> Upload:
+    if upload.visible_to(current_account):
+        return upload
+    else:
+        raise HTTPException(404)
+
+
+RequireVisibleUpload = Annotated[Upload, Depends(require_visible_upload)]
 
 
 def require_account(username: str, session: SessionDep) -> Account:
+    """Require an existing, non-suspended account"""
     account = crud.get_account(session=session, username=username)
-    if not username:
+    if not account or account.is_suspended:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such account {username} exists!",
+        )
+    return account
+
+
+def require_any_account(username: str, session: SessionDep) -> Account:
+    """Require any account, even if it is suspended"""
+    account = crud.get_account(session=session, username=username)
+    if not account:
         raise HTTPException(
             status_code=404,
             detail=f"No such account {username} exists!",
@@ -152,6 +226,20 @@ def require_account(username: str, session: SessionDep) -> Account:
 
 
 RequireAccount = Annotated[Account, Depends(require_account)]
+RequireAnyAccount = Annotated[Account, Depends(require_any_account)]
+
+
+def require_tag(tag: str, session: SessionDep) -> Tag:
+    existing_tag = crud.get_tag(session=session, tag=tag)
+    if not tag:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such tag {tag} exists!",
+        )
+    return existing_tag
+
+
+RequireTag = Annotated[Tag, Depends(require_tag)]
 
 
 def valid_scope(scope_name: str | Scopes) -> Scopes:

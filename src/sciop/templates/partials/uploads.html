@@ -1,5 +1,8 @@
 {% from 'macros/upload.html' import upload_collapsible %}
 <div id="upload-page" class="upload-page">
+  {% if items | length == 0 %}
+  No uploads found :)
+  {% else %}
   {% with swap_target="#upload-page" %}
     {% include 'includes/pagination-buttons.html' %}
   {% endwith %}
@@ -30,4 +33,5 @@
   {% with swap_target="#upload-page" %}
     {% include 'includes/pagination-buttons.html' %}
   {% endwith %}
+  {% endif %}
 </div>

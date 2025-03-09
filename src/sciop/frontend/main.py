@@ -10,10 +10,11 @@ from sciop.frontend.partials import partials_router
 from sciop.frontend.rdf import id_router, rdf_router
 from sciop.frontend.rss import rss_router
 from sciop.frontend.self import self_router
+from sciop.frontend.tags import tags_router
 from sciop.frontend.test import test_router
 from sciop.frontend.uploads import uploads_router
 
-frontend_router = APIRouter(dependencies=[Depends(add_htmx_response_trigger)])
+frontend_router = APIRouter(dependencies=[Depends(add_htmx_response_trigger)], tags=["frontend"])
 frontend_router.include_router(index_router)
 frontend_router.include_router(accounts_router)
 frontend_router.include_router(autocomplete_router)
@@ -24,6 +25,7 @@ frontend_router.include_router(partials_router)
 frontend_router.include_router(rdf_router)
 
 frontend_router.include_router(self_router)
+frontend_router.include_router(tags_router)
 frontend_router.include_router(uploads_router)
 
 if config.env != "prod":

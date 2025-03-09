@@ -47,13 +47,20 @@ table {
 }
 
 .text-container {
-  max-width: 750px;
+  width: 100%;
+  max-width: 100%;
+  & h1, h2, p, blockquote {
+    max-width: 750px;
+  }
 }
 
 .center-column {
   display: flex;
   flex-direction: column;
   align-items: center;
+  p {
+    text-align: left;
+  }
 }
 
 .flex-container {
@@ -73,11 +80,19 @@ table {
 /* --- Datasets layout --- */
 
 .datasets-table {
-  --item-cols: 1em minmax(12em, 2fr) 7fr 7em;
+  --item-cols: 1em minmax(12em, 2fr) 7fr 1em 7em;
   display: grid;
 
   &.review {
-    --item-cols: 1em minmax(12em, 2fr) 7fr 7em 4em 4em;
+    --item-cols: 1em minmax(12em, 2fr) 7fr 1em 7em 4em 4em;
+  }
+}
+
+.dataset-parts-table {
+  --item-cols: 1em 1fr 7em 1em 1em;
+
+  &.review {
+    --item-cols: 1em 1fr 7em 4em 4em;
   }
 }
 
@@ -104,11 +119,13 @@ table {
 }
 
 .datasets-table,
+.dataset-parts-table,
 .uploads-table,
 .accounts-table{
 
   .table-head,
   .dataset-collapsible > .collapsible-summary,
+  .dataset-part-collapsible > .collapsible-summary,
   .upload-collapsible > .collapsible-summary,
   .account-collapsible > .collapsible-summary
   {
@@ -136,15 +153,24 @@ table {
   }
 }
 
+#torrent-table {
+  .model-table-value {
+    max-height: 50vh;
+    overflow-y: scroll;
+    display: block;
+  }
+}
+
+
 .topmatter {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1em;
 
   .header {
-    flex-basis: 60%;
-  }
-  .infobox {
-    flex-basis: 40%
+    flex-grow: 1;
+    flex-basis: 50%
   }
 }
 
@@ -169,6 +195,16 @@ table {
     border: 1px solid var(--color-border-deemphasized);
     padding: 0 0.5em;
   }
+  .infobox-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    gap: 0.5em;
+    & > * {
+      flex-grow: 1;
+    }
+  }
 }
 
 .dataset-infobox {
@@ -186,19 +222,6 @@ table {
     font-weight: bold;
     text-align: center;
     margin: 0 0 0 0;
-
-    &.threat-indefinite {
-      background-color: var(--color-threat-indefinite);
-    }
-    &.threat-watchlist {
-      background-color: var(--color-threat-watchlist);
-    }
-    &.threat-endangered {
-      background-color: var(--color-threat-endangered);
-    }
-    &.threat-takedown_issued {
-      background-color: var(--color-threat-takedown_issued);
-    }
   }
 }
 
@@ -263,4 +286,38 @@ table {
       color: var(--color-background);
     }
   }
+}
+
+.tag-group {
+  margin: 0.5em 0;
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+}
+
+.model-table {
+  text-align: left;
+}
+
+.tags-table {
+  table {
+    width: 100%;
+  }
+
+  td.col-metadata {
+    font-family: var(--font-mono);
+  }
+
+  td.col-metadata, th.col-feed, td.col-feed {
+    text-align: center;
+    width: 1%;
+    text-wrap: nowrap;
+  }
+
+}
+
+.scrollable {
+  max-height: 50vh;
+  overflow-y: scroll;
+  padding-right: 1em;
 }

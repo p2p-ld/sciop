@@ -1,11 +1,11 @@
 /* Root vars that are needed in both themes */
 :root {
     --color-dark-background: rgba(23, 23, 26, 1);
-    --color-light-background: #eee;
+    --color-light-background: lch(99.25% 3.6 199.47);
     --color-threat-unknown: var(--color-background-shade);
     --color-threat-indefinite: lch(56.05% 49.39 256.63);
-    --color-threat-watchlist: lch(58.97% 76.96 59.37);
-    --color-threat-endangered: lch(47.26% 75.67 14.74);
+    --color-threat-watchlist: #FCCC0A;
+    --color-threat-endangered: #FF6319;
     --color-threat-takedown_issued: lch(47.26% 75.67 14.74);
     --color-threat-extinct: var(--color-background-shade);
 
@@ -13,7 +13,15 @@
     --font-mono: "Anonymous Pro", "Fira Code", "Courier New", "Courier", monospace;
 
   --width-container: 750px;
-  --breakpoint-tablet: 700px;
+  --breakpoint-tablet: 768px;
+
+  --disabled-bg: repeating-linear-gradient(
+        -45deg,
+        var(--color-background),
+        var(--color-background) 5px,
+        var(--color-disabled) 5px,
+        var(--color-disabled) 7px
+    );
 }
 /* Put all themed vars in body so that we can switch vars on dark mode */
 body {
@@ -30,17 +38,19 @@ body {
   --color-primary-shade-2: color-mix(in lch, var(--color-primary) 65%, white);
   --color-primary-shade-3: color-mix(in lch, var(--color-primary) 50%, white);
   --color-primary-darker-1: color-mix(in lch, var(--color-primary) 80%, var(--color-dark-background));
+  --color-border: #666;
   --color-border-deemphasized: #333;
   --color-deemphasized: #888;
   --color-disabled: #404040;
   --color-caution: red;
   --color-caution-darker-1: color-mix(in lch, var(--color-caution) 80%, var(--color-dark-background));
+  --color-alert: var(--color-threat-watchlist);
   --color-caution-contrast: var(--color-primary-contrast);
 
 
 
   &.light-theme {
-    --color-primary: lch(59.5% 85.81 315.18);
+    --color-primary: lch(75.67% 48.81 313.27);
     --color-text: #000;
     --color-background: var(--color-light-background);
     --color-background-shade: color-mix(in lch, var(--color-background) 95%, var(--color-dark-background));

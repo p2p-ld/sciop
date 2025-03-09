@@ -151,3 +151,16 @@ function init_token_input(){
   })
 }
 init_token_input();
+
+function init_upload_progress(target) {
+  let upload_form = target.querySelector(".upload-form");
+  if (upload_form === null){return}
+
+  let bar = upload_form.querySelector("progress");
+  htmx.on('htmx:xhr:progress', function (evt) {
+    bar.setAttribute('value', evt.detail.loaded / evt.detail.total * 100);
+  });
+}
+htmx.on("htmx:afterSettle", (evt) => {
+  init_upload_progress(evt.target)
+})

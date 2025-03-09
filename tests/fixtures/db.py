@@ -2,6 +2,7 @@ from typing import Callable
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
+from alembic.config import Config as AlembicConfig
 from sqlalchemy import Engine, create_engine
 from sqlmodel import Session, SQLModel
 
@@ -57,3 +58,10 @@ def recreate_models() -> Callable[[], "Engine"]:
         return engine
 
     return _recreate_models
+
+
+@pytest.fixture
+def alembic_config() -> AlembicConfig:
+    from sciop.db import get_alembic_config
+
+    return get_alembic_config()

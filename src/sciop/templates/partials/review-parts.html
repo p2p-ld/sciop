@@ -1,0 +1,12 @@
+<div id="dataset-parts-review-panel" class="review-panel"
+     hx-get="/self/review/dataset-parts" hx-trigger="response from:.success-button"
+     aria-live="polite" aria-relevant="removals"
+>
+{% if items | length == 0 %}
+    <span>No dataset parts to review :)</span>
+{% else %}
+    {% with review=True, parts=items %}
+      {% include "partials/dataset-parts.html" %}
+    {% endwith %}
+{% endif %}
+</div>

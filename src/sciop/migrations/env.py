@@ -2,9 +2,9 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
-from sqlmodel import SQLModel
 
 from sciop.config import config as sciop_config
+from sciop.models import SQLModel  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -27,10 +27,18 @@ if config.config_file_name is not None:
 
 target_metadata = SQLModel.metadata
 
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+
+def include_name(name, type_, parent_names):
+    if type_ == "table":
+        return "__search" not in name
+    else:
+        return True
 
 
 def run_migrations_offline() -> None:
@@ -48,10 +56,14 @@ def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
+        dialect_name="sqlite",
         target_metadata=target_metadata,
         literal_binds=True,
         compare_type=True,
+        include_schemas=True,
+        include_name=include_name,
         dialect_opts={"paramstyle": "named"},
+        render_as_batch=True,
     )
 
     with context.begin_transaction():
@@ -75,7 +87,15 @@ def run_migrations_online() -> None:
         )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+        context.configure(
+            connection=connection,
+            dialect_name="sqlite",
+            target_metadata=target_metadata,
+            compare_type=True,
+            include_schemas=True,
+            include_name=include_name,
+            render_as_batch=True,
+        )
 
         with context.begin_transaction():
             context.run_migrations()

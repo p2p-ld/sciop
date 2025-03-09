@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 import sciop
-from sciop.api.deps import CurrentAccount
+from sciop.api.deps import CurrentAccount, RequireCurrentAccount
 from sciop.const import STATIC_DIR
 from sciop.frontend.templates import templates
 from sciop.models import DatasetCreate
@@ -32,13 +32,20 @@ async def index(request: Request):
     )
 
 
+@index_router.get("/feeds", response_class=HTMLResponse)
+async def feeds(request: Request):
+    return templates.TemplateResponse(request, "pages/feeds.html")
+
+
 @index_router.get("/login", response_class=HTMLResponse)
-async def login(request: Request):
+async def login(request: Request, current_account: CurrentAccount):
+    if current_account:
+        return RedirectResponse("/self")
     return templates.TemplateResponse(request, "pages/login.html")
 
 
 @index_router.get("/request", response_class=HTMLResponse)
-async def request(request: Request):
+async def request(request: Request, account: RequireCurrentAccount):
     return templates.TemplateResponse(request, "pages/request.html", {"model": DatasetCreate})
 
 

@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.parametrize("url", ("/", "/datasets", "/docs", "/request"))
+@pytest.mark.parametrize("url", ("/", "/datasets", "/docs", "/request", "/feeds"))
 def test_public_pages_load(url, client_lifespan):
     """
     The babiest of tests, just make sure public pages load.

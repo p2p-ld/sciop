@@ -1,24 +1,41 @@
 import re
 from enum import StrEnum
 from html import escape
+from os import PathLike as PathLike_
+from pathlib import Path
 from typing import Annotated, Optional, TypeAlias
 
-from annotated_types import Gt, MaxLen
-from pydantic import AfterValidator, AnyUrl, BeforeValidator, Field, TypeAdapter
+from annotated_types import Gt, MaxLen, MinLen
+from pydantic import AfterValidator, AnyUrl, BeforeValidator, TypeAdapter
 from slugify import slugify
+from sqlmodel import Field
 
 USERNAME_PATTERN = re.compile(r"^[\w-]+$")
+
+
+def _validate_username(username: str) -> str:
+    assert USERNAME_PATTERN.fullmatch(
+        username
+    ), f"{username} is not a valid username, must match {USERNAME_PATTERN.pattern}"
+    return username
+
 
 IDField: TypeAlias = Optional[Annotated[int, Gt(0)]]
 EscapedStr: TypeAlias = Annotated[str, AfterValidator(escape)]
 SlugStr: TypeAlias = Annotated[str, AfterValidator(slugify)]
 UsernameStr: TypeAlias = Annotated[
-    str, Field(min_length=3, max_length=64, pattern=USERNAME_PATTERN)
+    str,
+    MinLen(1),
+    MaxLen(64),
+    # Need a specific functional validator because sqlmodel regex validation is busted
+    AfterValidator(_validate_username),
+    Field(regex=USERNAME_PATTERN.pattern, unique=True),
 ]
 AnyUrlTypeAdapter = TypeAdapter(AnyUrl)
 MaxLenURL = Annotated[
     str, MaxLen(512), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
 ]
+PathLike = Annotated[PathLike_[str], AfterValidator(lambda x: Path(x).as_posix())]
 
 
 class AccessType(StrEnum):
@@ -92,6 +109,7 @@ class InputType(StrEnum):
     textarea = "textarea"
     tokens = "tokens"
     model_list = "model_list"
+    none = "none"
 
 
 ARK_PATTERN = r"^\S*ark:\S+"
@@ -112,16 +130,16 @@ QID_PATTERN = r"^Q\d+$"
 
 def _strip_doi_prefix(val: str) -> str:
     val = val.strip()
-    val = re.sub(r"^https://doi\.org/", "", val)
+    val = re.sub(r"^https?://(:?dx\.)?doi\.org/", "", val)
     val = re.sub(r"^doi:[/]{,2}", "", val)
     return val
 
 
-ARK_TYPE: TypeAlias = Annotated[str, Field(pattern=ARK_PATTERN)]
-DOI_TYPE: TypeAlias = Annotated[str, BeforeValidator(_strip_doi_prefix), Field(pattern=DOI_PATTERN)]
-ISNI_TYPE: TypeAlias = Annotated[str, Field(pattern=ISNI_PATTERN)]
-ISSN_TYPE: TypeAlias = Annotated[str, Field(pattern=ISSN_PATTERN)]
-QID_TYPE: TypeAlias = Annotated[str, Field(pattern=QID_PATTERN)]
+ARK_TYPE: TypeAlias = Annotated[str, Field(regex=ARK_PATTERN)]
+DOI_TYPE: TypeAlias = Annotated[str, BeforeValidator(_strip_doi_prefix), Field(regex=DOI_PATTERN)]
+ISNI_TYPE: TypeAlias = Annotated[str, Field(regex=ISNI_PATTERN)]
+ISSN_TYPE: TypeAlias = Annotated[str, Field(regex=ISSN_PATTERN)]
+QID_TYPE: TypeAlias = Annotated[str, Field(regex=QID_PATTERN)]
 
 
 class ExternalIdentifierType(StrEnum):
@@ -136,3 +154,16 @@ class ExternalIdentifierType(StrEnum):
     rrid: Annotated[str, "Research Resource Identifier"] = "rrid"
     urn: Annotated[str, "Uniform Resource Name"] = "urn"
     uri: Annotated[str, "Uniform Resource Identifier"] = "uri"
+    orcid: Annotated[str, "Open Researcher and Contributor ID"] = "orcid"
+
+
+suffix_to_ctype = {
+    "html": "text/html",
+    "xhtml": "application/xhtml+xml",
+    "rss": "application/rss+xml",
+    "ttl": "text/turtle",
+    "rdf": "application/rdf+xml",
+    "nt": "text/n-triples",
+    "js": "application/json",
+}
+ctype_to_suffix = {v: k for k, v in suffix_to_ctype.items()}

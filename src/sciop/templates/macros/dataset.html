@@ -1,21 +1,24 @@
 {% from "macros/model-table.html" import model_table %}
+{% from "macros/tag.html" import feed_link %}
 {% macro dataset_row(dataset, current_account, config, header_start=1) %}
 <div class="dataset" id="dataset-{{ dataset.slug }}">
     <div class="dataset-topmatter topmatter">
         <div class="dataset-header header">
             <h{{ header_start }} class="dataset-title">{{ dataset.title }} </h{{ header_start }}>
+            {% if not dataset.is_approved %}
+            <p class="unapproved">
+                Dataset has not yet been reviewed, and is not visible in public lists
+            </p>
+            {% endif %}
             <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
             <p class="dataset-publisher">{{ dataset.publisher }}</p>
+            {%- if dataset.homepage %}
             <a class="dataset-homepage" href="{{ dataset.homepage }}">{{ dataset.homepage }}</a>
+            {% endif %}
             {% if dataset.tags %}
             <div class="tag-group">
                 {% for tag in dataset.tags %}
-                <span class="tag-item">
-                    <span class="tag token">{{ tag.tag }}</span>
-                    <a class="rss-link" href="/rss/tag/{{ tag.tag }}.rss">
-                        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
-                    </a>
-                </span>
+                {{ feed_link(tag=tag.tag) }}
                 {% endfor %}
             </div>
             {% endif %}
@@ -24,6 +27,16 @@
             <span class="dataset-threat-label">Threat</span>
             <p class="dataset-threat threat-{{ dataset.threat.value }}">{{dataset.threat.value}}</p>
             <table class="infobox-table">
+                {% if dataset.account %}
+                <tr>
+                    <td class="infobox-key">Submitted By</td>
+                    <td class="infobox-value">
+                    <a class="account-link" href="/accounts/{{ dataset.account.username }}">
+                        @{{ dataset.account.username }}
+                    </a>
+                    </td>
+                </tr>
+                {% endif %}
                 <tr>
                     <td class="infobox-key">Scrape Status</td>
                     <td class="infobox-value">{{ dataset.scrape_status.value }}</td>
@@ -96,6 +109,13 @@
                     <td class="infobox-key">Record Last Updated</td>
                     <td class="infobox-value">{{ dataset.updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
                 </tr>
+                {% if current_account and current_account.has_scope("review") and not dataset.is_approved %}
+                <tr>
+                    <td colspan="2">
+                        <p class="infobox-subhead font-mono">review status: unapproved</p>
+                        <div class="infobox-row">{{ review_buttons(dataset, config) }}</div></td>
+                </tr>
+                {% endif %}
             </table>
         </div>
     </div>
@@ -118,7 +138,7 @@
 
     <h{{ header_start + 1 }}>Uploads</h{{ header_start + 1 }}>
 
-    {% if dataset.enabled %}
+    {% if dataset.is_approved %}
     <div id="dataset-uploads-container" class="uploads-container container">
         <div
             hx-get="/datasets/{{ dataset.slug }}/uploads"
@@ -133,23 +153,32 @@
     {% endif %}
 
     <div class="upload-button">
-    {% if not dataset.enabled %}
-        {% if current_account and current_account.has_scope("review") %}
-        <button class="button success-button" id="approve-button"
-                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve this dataset</button>
-        {% else %}
-        <span>Dataset must be reviewed before uploads can be added</span>
-        {% endif %}
-    {% elif current_account and  current_account.has_scope("upload") %}
-        <button class="button" id="upload-button" hx-get="/datasets/{{dataset.slug}}/upload/start" hx-swap="outerHTML">Upload
+        <button class="button" id="upload-button"
+                hx-get="/datasets/{{dataset.slug}}/upload/start"
+                hx-swap="outerHTML">
+            Upload
         </button>
-    {% endif %}
+    </div>
+
+    <h3>Parts</h3>
+    <div id="dataset-{{ dataset.slug }}-parts-container" class="dataset-parts-container">
+        <div
+            hx-get="/datasets/{{ dataset.slug }}/parts"
+            hx-trigger="load"
+            hx-swap="outerHTML"
+        >
+            <span class="htmx-indicator search-indicator" id="uploads-indicator">
+                <span>Loading dataset parts...</span>
+                <img src="/static/img/rings.svg"/>
+            </span>
+        </div>
     </div>
 </div>
 {% endmacro %}
 
-{% macro dataset_collapsible(dataset, review = False, config = None) %}
-<details class="collapsible dataset-collapsible" id="dataset-collapsible-{{ dataset.slug }}">
+{% macro dataset_collapsible(dataset, review = False, config = None, types= None) %}
+<details class="collapsible dataset-collapsible{% if not dataset.is_approved %} unapproved{% endif %}"
+         id="dataset-collapsible-{{ dataset.slug }}">
     <summary class="collapsible-summary"
              hx-get="/datasets/{{ dataset.slug }}/partial"
              hx-trigger="click once"
@@ -157,24 +186,35 @@
         <span class="collapsible-marker" aria-label="Expand/Collapse"></span>
         <span class="dataset-slug item-link"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
         <span class="dataset-title">{{ dataset.title }}</span>
+        {% if dataset.threat != "unknown" %}
+        <span class="dataset-threat threat-dot threat-{{ dataset.threat }}"
+              title="{{ dataset.threat }}: {{ types.Threat.__annotations__[dataset.threat].__metadata__[-1] }}"
+        ></span>
+        {% else %}
+            <span></span>
+        {% endif %}
         <time class="dataset-timestamp timestamp" datetime="{{dataset.created_at.strftime('%y-%m-%d %H:%M') }}Z">
             {{ dataset.created_at.strftime("%y-%m-%d %H:%M") }}
         </time>
         {% if review %}
-        <button class="button approve-button success-button"
-                role="button"
-                aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it visible on the site"
-                aria-controls="dataset-collapsible-{{ dataset.slug }}"
-                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve
-        </button>
-        <button class="button deny-button success-button caution"
-                aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
-                aria-controls="dataset-collapsible-{{ dataset.slug }}"
-                hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/deny">Deny
-        </button>
+        {{ review_buttons(dataset, config) }}
         {% endif %}
     </summary>
 
     <div class="dataset" id="dataset-{{ dataset.slug }}"></div>
 </details>
+{% endmacro %}
+
+{% macro review_buttons(dataset, config) %}
+<button class="button approve-button success-button"
+        role="button"
+        aria-roledescription="Approves the item indicted by aria-controls, removing it from the list and making it visible on the site"
+        aria-controls="dataset-collapsible-{{ dataset.slug }}"
+        hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/approve">Approve
+</button>
+<button class="button deny-button success-button caution"
+        aria-roledescription="Denies the item indicted by aria-controls, removing it from the list and deleting it"
+        aria-controls="dataset-collapsible-{{ dataset.slug }}"
+        hx-post="{{ config.api_prefix }}/datasets/{{ dataset.slug }}/deny">Deny
+</button>
 {% endmacro %}

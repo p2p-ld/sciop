@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-    {% include "includes/head.html" %}
-    <body class="preload">
+    <head>
+	{% block head %}
+	{% include "includes/head.html" %}
+	{% endblock head %}
+    </head>
+
+    <body class="preload{% if config.env in ('dev', 'test') %} {{ config.env }}{% endif %}">
         {% include "includes/header.html" %}
         <div class="container page-container {% block container_class %}{% endblock %}">
             <div class="main">

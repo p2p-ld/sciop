@@ -54,10 +54,12 @@ class ContentSizeLimitMiddleware:
             body_len = len(message.get("body", b""))
             received += body_len
             if received > self.max_content_size:
-                raise UploadSizeExceeded(
+                msg = (
                     f"Maximum content size limit ({self.max_content_size}) "
                     f"exceeded ({received} bytes read)"
                 )
+                self.logger.error(msg)
+                raise UploadSizeExceeded(msg)
             return message
 
         return inner
