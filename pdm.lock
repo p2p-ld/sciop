@@ -5,7 +5,7 @@
 groups = ["default", "dev", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:fb93a02e827f1ff4739f680e4f624d17e270fc9702d74672f4112cc7de0f463d"
+content_hash = "sha256:1ac65cdcea98fbd7f1071340fc94f3c0b880e40feb0b27bbb093a809d1bb5f62"
 
 [[metadata.targets]]
 requires_python = ">=3.11"
@@ -57,6 +57,21 @@ dependencies = [
 files = [
     {file = "anyio-4.8.0-py3-none-any.whl", hash = "sha256:b5011f270ab5eb0abf13385f851315585cc37ef330dd88e27ec3d34d651fd47a"},
     {file = "anyio-4.8.0.tar.gz", hash = "sha256:1d9fe889df5212298c0c0723fa20479d1b94883a2df44bd3897aa91083316f7a"},
+]
+
+[[package]]
+name = "apscheduler"
+version = "3.11.0"
+requires_python = ">=3.8"
+summary = "In-process task scheduler with Cron-like capabilities"
+groups = ["default"]
+dependencies = [
+    "backports-zoneinfo; python_version < \"3.9\"",
+    "tzlocal>=3.0",
+]
+files = [
+    {file = "APScheduler-3.11.0-py3-none-any.whl", hash = "sha256:fc134ca32e50f5eadcc4938e3a4545ab19131435e851abb40b34d63d5141c6da"},
+    {file = "apscheduler-3.11.0.tar.gz", hash = "sha256:4c622d250b0955a65d5d0eb91c33e6d43fd879834bf541e0a18661ae60460133"},
 ]
 
 [[package]]
@@ -1565,6 +1580,20 @@ groups = ["default"]
 files = [
     {file = "tzdata-2025.1-py2.py3-none-any.whl", hash = "sha256:7e127113816800496f027041c570f50bcd464a020098a3b6b199517772303639"},
     {file = "tzdata-2025.1.tar.gz", hash = "sha256:24894909e88cdb28bd1636c6887801df64cb485bd593f2fd83ef29075a81d694"},
+]
+
+[[package]]
+name = "tzlocal"
+version = "5.3.1"
+requires_python = ">=3.9"
+summary = "tzinfo object for the local timezone"
+groups = ["default"]
+dependencies = [
+    "tzdata; platform_system == \"Windows\"",
+]
+files = [
+    {file = "tzlocal-5.3.1-py3-none-any.whl", hash = "sha256:eb1a66c3ef5847adf7a834f1be0800581b683b5608e74f86ecbcef8ab91bb85d"},
+    {file = "tzlocal-5.3.1.tar.gz", hash = "sha256:cceffc7edecefea1f595541dbd6e990cb1ea3d19bf01b2809f362a03dd7921fd"},
 ]
 
 [[package]]
