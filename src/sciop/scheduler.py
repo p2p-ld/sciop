@@ -136,6 +136,3 @@ def print_job(msg: str, num: int = 0) -> None:
 
 def remove_all_jobs() -> None:
     scheduler.remove_all_jobs()
-
-
-remove_all_jobs()

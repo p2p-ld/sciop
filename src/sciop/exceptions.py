@@ -81,3 +81,11 @@ def _get_reset_timedelta(request: Request, exc: RateLimitExceeded) -> timedelta:
     )
     reset_time = window_stats.reset_time
     return timedelta(seconds=reset_time - time())
+
+
+class TrackerURLException(SciOpException):
+    """Exception when something went wrong with the URL given"""
+
+
+class UDPTrackerException(SciOpException):
+    """Exception when an error has been encountered with the UDPTrackerClient"""

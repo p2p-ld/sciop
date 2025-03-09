@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import aiodns
 
-from sciop.exceptions import SciOpException
+from sciop.exceptions import TrackerURLException, UDPTrackerException
 from sciop.logging import init_logger
 
 loop = asyncio.get_event_loop()
@@ -25,14 +25,6 @@ class ACTIONS(enum.IntEnum):
     REQUEST_ANNOUNCE = 1
     REQUEST_SCRAPE = 2
     ERROR = 4  # oh uh
-
-
-class TrackerURLException(SciOpException):
-    """Exception when something went wrong with the URL given"""
-
-
-class UDPTrackerException(SciOpException):
-    """Exception when an error has been encountered with the UDPTrackerClient"""
 
 
 class UDPReadLock(asyncio.Queue):
