@@ -15,6 +15,7 @@ from torf import Torrent as Torrent_
 
 from sciop.config import config
 from sciop.models.mixin import TableMixin
+from sciop.models.tracker import TorrentTrackerLink, TrackerRead
 from sciop.types import EscapedStr, IDField, MaxLenURL
 
 if TYPE_CHECKING:
@@ -132,24 +133,6 @@ class FileInTorrentRead(FileInTorrentCreate):
     pass
 
 
-class TrackerInTorrent(TableMixin, table=True):
-    """A tracker within a torrent file"""
-
-    __tablename__ = "trackers_in_torrent"
-
-    tracker_in_torrent_id: IDField = Field(None, primary_key=True)
-    url: MaxLenURL = Field(description="Tracker announce url")
-
-    torrent_id: Optional[int] = Field(
-        default=None, foreign_key="torrent_files.torrent_file_id", ondelete="CASCADE"
-    )
-    torrent: Optional["TorrentFile"] = Relationship(back_populates="trackers")
-
-
-class TrackerInTorrentRead(SQLModel):
-    url: MaxLenURL
-
-
 class TorrentFileBase(SQLModel):
     file_name: str = Field(max_length=1024)
     v1_infohash: str = Field(
@@ -221,7 +204,7 @@ class TorrentFile(TorrentFileBase, TableMixin, table=True):
     upload_id: Optional[int] = Field(default=None, foreign_key="uploads.upload_id")
     upload: Optional["Upload"] = Relationship(back_populates="torrent")
     files: list["FileInTorrent"] = Relationship(back_populates="torrent", cascade_delete=True)
-    trackers: list["TrackerInTorrent"] = Relationship(back_populates="torrent", cascade_delete=True)
+    tracker_links: list[TorrentTrackerLink] = Relationship(back_populates="torrent")
     short_hash: str = Field(
         min_length=8,
         max_length=8,
@@ -269,5 +252,5 @@ class TorrentFileRead(TorrentFileBase):
         return [v.path for v in val]
 
     @field_validator("trackers", mode="before")
-    def flatten_trackers(cls, val: list[TrackerInTorrentRead]) -> list[str]:
+    def flatten_trackers(cls, val: list[TrackerRead]) -> list[str]:
         return [v.url for v in val]
