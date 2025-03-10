@@ -2,6 +2,7 @@ import asyncio
 import binascii
 import enum
 import struct
+from dataclasses import dataclass
 from types import TracebackType
 from typing import Any, Optional
 from urllib.parse import urlparse
@@ -17,6 +18,28 @@ logger = init_logger("tracker.udp")
 resolver = aiodns.DNSResolver()
 MAGIC_VALUE = 0x41727101980
 MAX_SCRAPE = 70
+
+
+@dataclass
+class ScrapeResponse:
+    infohash: str
+    seeders: int
+    completed: int
+    leechers: int
+
+
+@dataclass
+class ScrapeError:
+    infohash: str
+    msg: str
+
+
+@dataclass
+class ScrapeResult:
+    """Mappings from infohashes to outcomes"""
+
+    errors: dict[str, ScrapeError]
+    responses: dict[str, ScrapeResponse]
 
 
 # https://www.bittorrent.org/beps/bep_0015.html
@@ -255,7 +278,7 @@ class UDPTrackerClient:
                 "We don't use this class to announce ourselves as clients who wish to download."
             )
 
-    async def request_scrape(self) -> None:
+    async def request_scrape(self) -> ScrapeResult:
         if not self.connection_id:
             raise UDPTrackerException(
                 "Connection ID is not set; initiate connection to tracker first!"
@@ -280,22 +303,30 @@ class UDPTrackerClient:
 
         offset = 8
         length_per_hash = 12
-        results = {}
+        responses = {}
+        errors = {}
 
         for hash in hashes:
             if offset + length_per_hash > len(protocol.result[0]):
-                logger.debug("Response not enough long enough")
-                # should probably try and get this hash again
+                msg = f"Response not enough long enough to get scrape result from {hash}"
+                errors[hash] = ScrapeError(infohash=hash, msg=msg)
+                logger.debug(msg)
+                continue
+
             seeds, completed, peers = struct.unpack_from("!iii", protocol.result[0], offset)
-            results[hash] = {
-                "seeds": seeds,
-                "completed": completed,
-                "peers": peers,  # they're not leeches, they're your siblings
-            }
+            responses[hash] = ScrapeResponse(
+                infohash=hash,
+                seeders=int(seeds),
+                completed=int(completed),
+                leechers=int(peers),  # they're not leeches, they're your siblings
+                # tru but we should still call them leechers bc that's what the spec does lol
+            )
 
             offset += length_per_hash
 
-        logger.debug(f"RESULTS FROM SCRAPE: {resp_action} {resp_id} {results}")
+        results = ScrapeResult(responses=responses, errors=errors)
+        logger.debug("RESULTS FROM SCRAPE: %s %s %s", resp_action, resp_id, results)
+        return results
 
 
 async def resolve_host(url: str) -> tuple[str, int]:
