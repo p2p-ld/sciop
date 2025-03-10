@@ -64,6 +64,8 @@ theme:
 site_url: https://sciop.net/docs/
 
 markdown_extensions:
+  - admonition
+  - pymdownx.details
   - pymdownx.snippets:
       base_path: ["docs/"]
 
