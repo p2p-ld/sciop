@@ -49,8 +49,8 @@ from sciop.models.torrent import (
     TorrentFile,
     TorrentFileCreate,
     TorrentFileRead,
-    TrackerInTorrent,
 )
+from sciop.models.tracker import Tracker
 from sciop.models.upload import Upload, UploadCreate, UploadRead
 
 Dataset.model_rebuild()
@@ -93,7 +93,7 @@ __all__ = [
     "TorrentFileCreate",
     "TorrentFileRead",
     "TorrentItem",
-    "TrackerInTorrent",
+    "Tracker",
     "Upload",
     "UploadCreate",
     "UploadRead",

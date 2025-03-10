@@ -19,7 +19,7 @@ from sciop.models import (
     Tag,
     TorrentFile,
     TorrentFileCreate,
-    TrackerInTorrent,
+    Tracker,
     Upload,
     UploadCreate,
 )
@@ -230,7 +230,7 @@ def get_torrent_from_short_hash(*, short_hash: str, session: Session) -> Optiona
 def create_torrent(
     *, session: Session, created_torrent: TorrentFileCreate, account: Account
 ) -> TorrentFile:
-    trackers = [TrackerInTorrent(url=url) for url in created_torrent.trackers]
+    trackers = [Tracker(url=url) for url in created_torrent.trackers]
     files = [FileInTorrent(path=file.path, size=file.size) for file in created_torrent.files]
     db_obj = TorrentFile.model_validate(
         created_torrent, update={"trackers": trackers, "files": files, "account": account}
