@@ -114,6 +114,8 @@ class JobConfig(BaseModel):
 class ScrapeConfig(BaseModel):
     interval: int = 30
     """Frequency of tracker scraping, in minutes"""
+    n_workers: int = 24
+    """Number of trackers to scrape in parallel"""
 
 
 class Config(BaseSettings):

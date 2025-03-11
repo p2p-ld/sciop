@@ -4,9 +4,14 @@ from datetime import UTC, datetime, timedelta
 from math import ceil, floor
 
 import pytest
+from sqlmodel import select
 
-from sciop.models import TorrentFile
-from sciop.services.tracker_scrape import UDPTrackerClient, gather_scrapable_torrents
+from sciop.models import TorrentFile, TorrentTrackerLink
+from sciop.services.tracker_scrape import (
+    UDPTrackerClient,
+    gather_scrapable_torrents,
+    scrape_torrent_stats,
+)
 
 from ..fixtures.tracker import MockTrackerProtocol
 
@@ -121,3 +126,32 @@ def test_gather_scrapable_torrents(torrentfile, session):
     assert len(scrapable[extra]) == 2
     assert len(scrapable[not_recent]) == 1
     assert not any([k.startswith("http") for k in scrapable])
+
+
+@pytest.mark.asyncio
+async def test_scrape_torrent_stats(torrentfile, session, unused_udp_port_factory, tracker_factory):
+    ports = [unused_udp_port_factory(), unused_udp_port_factory()]
+    trackers = [f"udp://localhost:{ports[0]}", f"udp://localhost:{ports[1]}"]
+    a = torrentfile(announce_urls=trackers)
+    b = torrentfile(announce_urls=trackers)
+    c = torrentfile(announce_urls=trackers)
+
+    ta, _ = tracker_factory(port=ports[0])
+    tb, _ = tracker_factory(port=ports[1])
+
+    async with (
+        ta as (ta_transport, ta_proto),
+        tb as (tb_transport, tb_proto),
+    ):
+        await scrape_torrent_stats()
+
+    links = session.exec(select(TorrentTrackerLink)).all()
+    for link in links:
+        if link.tracker.announce_url == trackers[0]:
+            assert ta_proto.stats[link.torrent.infohash[0:40]]["seeders"] == link.seeders
+            assert ta_proto.stats[link.torrent.infohash[0:40]]["leechers"] == link.leechers
+            assert ta_proto.stats[link.torrent.infohash[0:40]]["completed"] == link.completed
+        else:
+            assert tb_proto.stats[link.torrent.infohash[0:40]]["seeders"] == link.seeders
+            assert tb_proto.stats[link.torrent.infohash[0:40]]["leechers"] == link.leechers
+            assert tb_proto.stats[link.torrent.infohash[0:40]]["completed"] == link.completed

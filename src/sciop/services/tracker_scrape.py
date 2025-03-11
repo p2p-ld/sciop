@@ -3,7 +3,7 @@ import binascii
 import enum
 import struct
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from types import TracebackType
 from typing import Any, Optional
@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import aiodns
 import sqlalchemy as sqla
-from sqlmodel import select
+from sqlmodel import select, update
 
 from sciop.config import config
 from sciop.exceptions import TrackerHandshakeException, TrackerURLException, UDPTrackerException
@@ -25,6 +25,7 @@ MAX_SCRAPE = 70
 @dataclass
 class ScrapeResponse:
     infohash: str
+    announce_url: str
     seeders: int
     completed: int
     leechers: int
@@ -34,6 +35,17 @@ class ScrapeResponse:
 class ScrapeError:
     infohash: str
     msg: str
+
+
+@dataclass
+class PivotedResponses:
+    """Long-wise responses, with one list per type of result, for batch updates"""
+
+    infohash: list[str]
+    announce_url: list[str]
+    seeders: list[int]
+    completed: list[int]
+    leechers: list[int]
 
 
 @dataclass
@@ -53,6 +65,23 @@ class ScrapeResult:
 
     def __len__(self) -> int:
         return len(self.errors) + len(self.responses)
+
+    def pivot(self) -> PivotedResponses:
+        pivoted = defaultdict(list)
+        for res in self.responses.values():
+            for key, val in asdict(res):
+                pivoted[key].append(val)
+        return PivotedResponses(**pivoted)
+
+    @classmethod
+    def merge(cls, items: list["ScrapeResult"]) -> "ScrapeResult":
+        """
+        FIXME: Needs to store items as a list not a dict to avoid clobbering matching entries
+        """
+        item = items[0]
+        for anitem in items[1:]:
+            item += anitem
+        return item
 
 
 # https://www.bittorrent.org/beps/bep_0015.html
@@ -175,13 +204,13 @@ class UDPTrackerClient:
         self,
         ip: str,
         port: int,
-        host: Optional[str] = None,
+        host: str,
         max_scrape: int = MAX_SCRAPE,
         action: ACTIONS = ACTIONS.REQUEST_ID,
     ):
         self.ip: str = ip
         self.port: int = port
-        self.host: Optional[str] = host
+        self.host: str = host
         self.max_scrape: int = max_scrape
         self.action: Optional[ACTIONS] = action
         self.lock = UDPReadWriteLock()
@@ -363,6 +392,7 @@ class UDPTrackerClient:
             seeds, completed, peers = struct.unpack_from("!III", data, offset)
             responses[hash] = ScrapeResponse(
                 infohash=hash,
+                announce_url=self.host,
                 seeders=int(seeds),
                 completed=int(completed),
                 leechers=int(peers),  # they're not leeches, they're your siblings
@@ -412,7 +442,19 @@ async def scrape_torrent_stats() -> None:
     - scrapes in batches
     - updates db
     """
-    _ = gather_scrapable_torrents()
+    logger = init_logger("jobs.scrape_stats")
+    logger.info("Scraping torrent stats")
+    to_scrape = gather_scrapable_torrents()
+    sem = asyncio.Semaphore(value=config.tracker_scraping.n_workers)
+    results = await asyncio.gather(
+        *[
+            scrape_tracker(url=tracker, infohashes=infohashes, semaphore=sem)
+            for tracker, infohashes in to_scrape.items()
+        ]
+    )
+    total = sum([len(r.responses) for r in results])
+    logger.info("Scraped %s trackers to update %s torrent/tracker pairs", len(results), total)
+    logger.debug("Scrape results: %s", results)
 
 
 def gather_scrapable_torrents() -> dict[str, list[str]]:
@@ -448,3 +490,56 @@ def gather_scrapable_torrents() -> dict[str, list[str]]:
     for res in results:
         gathered[res.announce_url].append(res.infohash)
     return gathered
+
+
+async def scrape_tracker(
+    url: str, infohashes: list[str], semaphore: asyncio.Semaphore
+) -> ScrapeResult:
+    async with semaphore:
+        try:
+            client = await UDPTrackerClient.from_url(url)
+            results = await client.scrape(infohashes)
+        except Exception as e:
+            raise NotImplementedError("Implement exception handling") from e
+
+    _update_scrape_results(results)
+    return results
+
+
+def _update_scrape_results(results: ScrapeResult) -> None:
+    from sciop.db import get_session
+
+    # FIXME: assuming we are storing a collection from a single tracker,
+    # which are are most of the time
+    # revisit using `sqla.tuple_(col1, col2).in([(val1, val2) for ...])
+    announce_url = set([r.announce_url for r in results.responses.values()])
+    if len(announce_url) > 1:
+        raise ValueError("Can only store one tracker's worth of results at a time")
+    announce_url = list(announce_url)[0]
+
+    stmt = (
+        select(TorrentTrackerLink.torrent_file_id, TorrentTrackerLink.tracker_id)
+        .join(TorrentFile.tracker_links)
+        .join(TorrentTrackerLink.tracker)
+        .where(
+            Tracker.announce_url == announce_url,
+            TorrentFile.infohash.in_([res.infohash for res in results.responses.values()]),
+        )
+    )
+    with next(get_session()) as session:
+        scrape_time = datetime.now(UTC)
+        link_ids = session.exec(stmt).all()
+        session.exec(
+            update(TorrentTrackerLink),
+            params=[
+                {
+                    "torrent_file_id": tllid.torrent_file_id,
+                    "tracker_id": tllid.tracker_id,
+                    "seeders": res.seeders,
+                    "leechers": res.leechers,
+                    "completed": res.completed,
+                    "last_scraped_at": scrape_time,
+                }
+                for tllid, res in zip(link_ids, results.responses.values())
+            ],
+        )
