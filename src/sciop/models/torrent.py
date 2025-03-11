@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Generator, Optional, Self
 
 import bencodepy
 import humanize
-from pydantic import field_validator, model_validator
+from pydantic import ModelWrapValidatorHandler, field_validator, model_validator
 from sqlalchemy import Connection, event
 from sqlalchemy.orm.mapper import Mapper
 from sqlmodel import Field, Relationship, SQLModel
@@ -15,7 +15,7 @@ from torf import Torrent as Torrent_
 
 from sciop.config import config
 from sciop.models.mixin import TableMixin
-from sciop.models.tracker import TorrentTrackerLink, TrackerRead
+from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.types import EscapedStr, IDField, MaxLenURL
 
 if TYPE_CHECKING:
@@ -194,6 +194,11 @@ class TorrentFileBase(SQLModel):
     def human_piece_size(self) -> str:
         return humanize.naturalsize(self.piece_size)
 
+    @property
+    def trackers(self) -> dict[MaxLenURL, Tracker]:
+        """Convenience accessor for trackers through tracker links, keyed by announce url"""
+        return {tl.tracker.announce_url: tl.tracker for tl in self.tracker_links}
+
 
 class TorrentFile(TorrentFileBase, TableMixin, table=True):
     __tablename__ = "torrent_files"
@@ -204,7 +209,9 @@ class TorrentFile(TorrentFileBase, TableMixin, table=True):
     upload_id: Optional[int] = Field(default=None, foreign_key="uploads.upload_id")
     upload: Optional["Upload"] = Relationship(back_populates="torrent")
     files: list["FileInTorrent"] = Relationship(back_populates="torrent", cascade_delete=True)
-    tracker_links: list[TorrentTrackerLink] = Relationship(back_populates="torrent")
+    tracker_links: list[TorrentTrackerLink] = Relationship(
+        back_populates="torrent", cascade_delete=True
+    )
     short_hash: str = Field(
         min_length=8,
         max_length=8,
@@ -223,7 +230,7 @@ def _delete_torrent_file(mapper: Mapper, connection: Connection, target: Torrent
 
 class TorrentFileCreate(TorrentFileBase):
     files: list[FileInTorrentCreate]
-    trackers: list[MaxLenURL]
+    announce_urls: list[MaxLenURL]
 
     @model_validator(mode="after")
     def get_short_hash(self) -> Self:
@@ -238,7 +245,6 @@ class TorrentFileCreate(TorrentFileBase):
 
 class TorrentFileRead(TorrentFileBase):
     files: list[str]
-    trackers: list[str] = Field(min_length=1, max_length=128)
     short_hash: str = Field(
         None,
         min_length=8,
@@ -246,11 +252,18 @@ class TorrentFileRead(TorrentFileBase):
         description="length-8 truncated version of the v2 infohash, if present, or the v1 infohash",
         index=True,
     )
+    announce_urls: list[MaxLenURL] = Field(default_factory=list)
 
     @field_validator("files", mode="before")
     def flatten_files(cls, val: list[FileInTorrentRead]) -> list[str]:
         return [v.path for v in val]
 
-    @field_validator("trackers", mode="before")
-    def flatten_trackers(cls, val: list[TrackerRead]) -> list[str]:
-        return [v.url for v in val]
+    @model_validator(mode="wrap")
+    @classmethod
+    def flatten_trackers(cls, data: Any, handler: ModelWrapValidatorHandler[Self]) -> Self:
+        val = handler(data)
+
+        if isinstance(data, TorrentFile) and not val.announce_urls:
+            val.announce_urls = [v.tracker.announce_url for v in data.tracker_links]
+
+        return val

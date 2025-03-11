@@ -337,7 +337,7 @@ def _generate_upload(
         piece_size=16384,
         torrent_size=64,
         files=[FileInTorrentCreate(path=str(torrent_file.name), size=file_size)],
-        trackers=["http://example.com/announce"],
+        announce_urls=["http://example.com/announce"],
     )
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
     torrent.write(created_torrent.filesystem_path, overwrite=True)

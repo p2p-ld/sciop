@@ -19,7 +19,9 @@ from sciop.models import (
     Tag,
     TorrentFile,
     TorrentFileCreate,
+    TorrentTrackerLink,
     Tracker,
+    TrackerCreate,
     Upload,
     UploadCreate,
 )
@@ -230,12 +232,30 @@ def get_torrent_from_short_hash(*, short_hash: str, session: Session) -> Optiona
 def create_torrent(
     *, session: Session, created_torrent: TorrentFileCreate, account: Account
 ) -> TorrentFile:
-    trackers = [Tracker(url=url) for url in created_torrent.trackers]
+    existing_trackers = session.exec(
+        select(Tracker).filter(Tracker.announce_url.in_(created_torrent.announce_urls))
+    ).all()
+    existing_tracker_str = set([e.announce_url for e in existing_trackers])
+    new_tracker_urls = set(created_torrent.announce_urls) - existing_tracker_str
+    new_trackers = []
+    for url in new_tracker_urls:
+        tracker = Tracker.model_validate(TrackerCreate(announce_url=url))
+        session.add(tracker)
+        new_trackers.append(tracker)
+
     files = [FileInTorrent(path=file.path, size=file.size) for file in created_torrent.files]
     db_obj = TorrentFile.model_validate(
-        created_torrent, update={"trackers": trackers, "files": files, "account": account}
+        created_torrent, update={"files": files, "account": account}
     )
     session.add(db_obj)
+
+    # create link model entries
+    links = []
+    for tracker in (*existing_trackers, *new_trackers):
+        link = TorrentTrackerLink(tracker=tracker, torrent=db_obj)
+        session.add(link)
+        links.append(link)
+
     session.commit()
     session.refresh(db_obj)
     return db_obj
