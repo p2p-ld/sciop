@@ -61,8 +61,12 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
 
     db_path = TMP_DIR / "db.test.sqlite"
     db_path.unlink(missing_ok=True)
+    log_dir = TMP_DIR / "logs"
+    log_dir.mkdir(exist_ok=True)
 
     new_config = config.Config(env="test", db=db_path, torrent_dir=TORRENT_DIR, secret_key="12345")
+    new_config.logs.dir = log_dir
+    new_config.logs.level_file = "DEBUG"
     monkeypatch_session.setattr(config, "config", new_config)
     for key, module in sys.modules.items():
         if not key.startswith("sciop.") and not key.startswith("tests."):
