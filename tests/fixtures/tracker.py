@@ -5,11 +5,17 @@ from asyncio import DatagramProtocol, DatagramTransport, Event
 from datetime import datetime, timedelta
 from random import randint
 from types import TracebackType
-from typing import Any, Optional
+from typing import Any, Optional, TypedDict
 
 import pytest_asyncio
 
 from sciop.logging import init_logger
+
+
+class RequestBatch(TypedDict):
+    transaction_id: int
+    connection_id: int
+    infohashes: list[str]
 
 
 class MockTrackerProtocol(DatagramProtocol):
@@ -21,6 +27,7 @@ class MockTrackerProtocol(DatagramProtocol):
         self.logger = init_logger("mock.tracker")
         self.connids: dict[int, datetime] = {}
         self.activity: dict[tuple, datetime] = {}
+        self.batches: list[RequestBatch] = []
         self.loop = loop or asyncio.get_event_loop()
         self.logger.info("Mock tracker initialized")
 
@@ -76,13 +83,13 @@ class MockTrackerProtocol(DatagramProtocol):
         elif timestamp < last_valid:
             # we did generate that identifier, but it's too
             # old. remove it and send an error.
-            del self.connids[connid]
             return self.error(tid, "Old connection identifier.")
 
         hashes = [
             binascii.b2a_hex(data[i : i + 20]).decode("ascii") for i in range(0, len(data), 20)
         ]
         self.logger.info("Received scrape for hashes: %s", hashes)
+        self.batches.append({"transaction_id": tid, "connection_id": connid, "infohashes": hashes})
         return_msg = struct.pack("!II", 2, tid)
         for hash in hashes:
             if hash not in self.stats:
@@ -138,11 +145,3 @@ async def tracker(unused_udp_port: int) -> tuple[DatagramTransport, MockTrackerP
     async with MockUDPServer(MockTrackerProtocol, port=unused_udp_port) as server:
         transport, proto = server
         yield transport, proto, unused_udp_port
-    #
-    # loop = asyncio.get_event_loop()
-    # transport, proto = await loop.create_datagram_endpoint(
-    #     lambda: MockTrackerProtocol(),
-    #     local_addr=("127.0.0.1", 6881),
-    # )
-    # yield transport, proto
-    # transport.close()

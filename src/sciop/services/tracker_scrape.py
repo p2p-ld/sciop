@@ -2,7 +2,8 @@ import asyncio
 import binascii
 import enum
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from types import TracebackType
 from typing import Any, Optional
 from urllib.parse import urlparse
@@ -34,8 +35,19 @@ class ScrapeError:
 class ScrapeResult:
     """Mappings from infohashes to outcomes"""
 
-    errors: dict[str, ScrapeError]
-    responses: dict[str, ScrapeResponse]
+    errors: dict[str, ScrapeError] = field(default_factory=dict)
+    responses: dict[str, ScrapeResponse] = field(default_factory=dict)
+
+    def __add__(self, other: "ScrapeResult") -> "ScrapeResult":
+        if not isinstance(other, ScrapeResult):
+            raise TypeError("Can only add scrape results together!")
+        return ScrapeResult(
+            errors={**self.errors, **other.errors},
+            responses={**self.responses, **other.responses},
+        )
+
+    def __len__(self) -> int:
+        return len(self.errors) + len(self.responses)
 
 
 # https://www.bittorrent.org/beps/bep_0015.html
@@ -158,7 +170,6 @@ class UDPTrackerClient:
         self,
         ip: str,
         port: int,
-        infohashes: list[str],
         host: Optional[str] = None,
         max_scrape: int = MAX_SCRAPE,
         action: ACTIONS = ACTIONS.REQUEST_ID,
@@ -166,51 +177,62 @@ class UDPTrackerClient:
         self.ip: str = ip
         self.port: int = port
         self.host: Optional[str] = host
-        self.connection_id: Optional[int] = None
-        self.infohashes = infohashes
-        self._unscraped_hashes: list = self.infohashes.copy()
         self.max_scrape: int = max_scrape
         self.action: Optional[ACTIONS] = action
         self.lock = UDPReadWriteLock()
         self.loop = asyncio.get_event_loop()
         self.logger = init_logger("tracker.udp.client")
 
+        self._transaction_id: Optional[int] = None
+        self._connection_id: Optional[int] = None
+        self._connection_id_created: Optional[datetime] = None
+
+    @classmethod
+    async def from_url(cls, url: str) -> "UDPTrackerClient":
+        ip, port = await resolve_host(url)
+        return UDPTrackerClient(ip, port, host=url)
+
+    @property
+    async def connection_id(self) -> Optional[int]:
+        if self._connection_id is None or (
+            self._connection_id_created
+            and self._connection_id_created < (datetime.now() - timedelta(minutes=1))
+        ):
+            try:
+                db, self._transaction_id = await counter.next()
+                self._connection_id = await self._initiate_connection(self._transaction_id)
+                self._connection_id_created = datetime.now()
+            except UDPTrackerException as e:
+                raise TrackerHandshakeException("Could not initiate connection to tracker") from e
+        return self._connection_id
+
     @staticmethod
     def udp_create_connection_msg(transaction_id: int) -> bytes:
         return struct.pack("!qII", MAGIC_VALUE, ACTIONS.REQUEST_ID, transaction_id)
 
-    def udp_create_announce_msg(self, transaction_id: int) -> bytes:
-        return struct.pack("!qII", self.connection_id, ACTIONS.REQUEST_ANNOUNCE, transaction_id)
+    async def udp_create_announce_msg(self, transaction_id: int) -> bytes:
+        return struct.pack(
+            "!qII", await self.connection_id, ACTIONS.REQUEST_ANNOUNCE, transaction_id
+        )
 
-    async def udp_create_scrape_msg(self, transaction_id: int) -> tuple[bytes, list[str]]:
+    async def udp_create_scrape_msg(self, infohashes: list[str]) -> tuple[bytes, list[str]]:
         # so we can only do around 74 at a time here: see https://www.bittorrent.org/beps/bep_0015.html
         # that's not particularly specific, so let's use an internal value and keep track
         # of who we scraped.
-        hashes = []
         async with await self.lock.read:
-            if len(self._unscraped_hashes) <= self.max_scrape:
-                hashes = self._unscraped_hashes
-                self.logger.info(
-                    f"Scraping all {len(self._unscraped_hashes)} hashes for tracker {self.host}"
+            if len(infohashes) > self.max_scrape:
+                raise ValueError(
+                    f"Can only scrape {self.max_scrape} infohashes in a single request"
                 )
-                self._unscraped_hashes = []
-            else:
-                # otherwise, copy into a new list...
-                self.logger.info(
-                    f"""
-                    Unable to scrape all hashes for tracker {self.host}:
-                        Hashes remaining: {len(self._unscraped_hashes) - self.max_scrape}"
-                """
-                )
-                hashes = self._unscraped_hashes[: self.max_scrape - 1].copy()
-                # ... then reslice the existing list.
-                self._unscraped_hashes = self._unscraped_hashes[self.max_scrape :]
+
         # now!  Pack it up into bytes.
-        msg = struct.pack("!qII", self.connection_id, ACTIONS.REQUEST_SCRAPE, transaction_id)
-        for hash in hashes:
+        msg = struct.pack(
+            "!qII", await self.connection_id, ACTIONS.REQUEST_SCRAPE, self._transaction_id
+        )
+        for hash in infohashes:
             # trackers expect 20-byte truncated hashes
             msg += binascii.a2b_hex(hash)[0:20]
-        return msg, hashes
+        return msg, infohashes
 
     async def tracker_send_and_receive(
         self, protocol: UDPProtocolHandler, timeout: int = 5
@@ -232,32 +254,30 @@ class UDPTrackerClient:
                     self.logger.exception("Exception closing transport: %s", e)
         return transport, protocol
 
-    async def initiate_connection(self) -> None:
+    async def _initiate_connection(self, tid: int) -> bytes:
 
-        db, id = await counter.next()
-        msg = self.udp_create_connection_msg(id)
+        msg = self.udp_create_connection_msg(tid)
 
         self.logger.debug(
-            f"Sending action: {ACTIONS.REQUEST_ID} w/ ID of {db}:{id} "
+            f"Sending action: {ACTIONS.REQUEST_ID} w/ ID of {tid} "
             f"to IP:PORT {self.ip}:{self.port}"
         )
 
         future = self.loop.create_future()
-        protocol = UDPProtocolHandler(msg, id, future)
+        protocol = UDPProtocolHandler(msg, tid, future)
         transport, protocol = await self.tracker_send_and_receive(protocol)
 
         if protocol.result is None:
             raise TrackerHandshakeException("UDP protocol result was None")
-        # initializing connection
-        # TODO: Error handling!
+
         resp_action, resp_id, connection_id = struct.unpack_from("!IIq", protocol.result[0])
-        if resp_action != ACTIONS.REQUEST_ID or resp_id != id:
+        if resp_action != ACTIONS.REQUEST_ID or resp_id != tid:
             raise TrackerHandshakeException(
                 "Response action and id must match in request and response.\n"
                 f"response_action: {resp_action}\n"
                 f"request_action: {ACTIONS.REQUEST_ID}\n"
                 f"response_id: {resp_id}\n",
-                f"request_id: {id}",
+                f"request_id: {tid}",
             )
         self.logger.debug(
             f"""RESPONSE from {self.ip}:{self.port}:
@@ -267,54 +287,75 @@ class UDPTrackerClient:
                 Tracker URL:    {self.host}
                 """
         )
-        self.connection_id = connection_id
+        return connection_id
 
     async def announce_to_tracker(self) -> None:
-        if not self.connection_id:
-            raise UDPTrackerException(
-                "Connection ID is not set; initiate connection to tracker first!"
-            )
-        else:
-            raise NotImplementedError(
-                "We don't use this class to announce ourselves as clients who wish to download."
-            )
-
-    async def request_scrape(self) -> ScrapeResult:
-        if not self.connection_id:
-            raise UDPTrackerException(
-                "Connection ID is not set; initiate connection to tracker first!"
-            )
-        db, id = await counter.next()
-        msg, hashes = await self.udp_create_scrape_msg(id)
-
-        self.logger.debug(
-            msg=f"Sending action: {ACTIONS.REQUEST_SCRAPE} w/ ID of {db}:{id} "
-            f"to IP:PORT {self.ip}:{self.port}"
+        raise NotImplementedError(
+            "We don't use this class to announce ourselves as clients who wish to download."
         )
 
+    async def scrape(self, infohashes: list[str]) -> ScrapeResult:
+        """
+        Scrape a set of infohashes from the configured tracker.
+
+        If more than 70 infohashes are passed, will be batched across multiple requests
+        """
+
+        self.logger.debug(
+            msg=f"Sending action: {ACTIONS.REQUEST_SCRAPE} w/ ID of {self._transaction_id} "
+            f"to IP:PORT {self.ip}:{self.port}"
+        )
+        results = ScrapeResult()
+        for i in range(0, len(infohashes), self.max_scrape):
+            results += await self._scrape_page(infohashes[i : i + self.max_scrape])
+
+        self.logger.info(
+            "Scraped %s torrents: success - %s, error - %s",
+            len(results),
+            len(results.responses),
+            len(results.errors),
+        )
+        self.logger.debug("Scrape results: %s", results)
+
+        return results
+
+    async def _scrape_page(self, infohashes: list[str]) -> ScrapeResult:
+        """Scrape a single page of 70 infohashes"""
+
+        msg, hashes = await self.udp_create_scrape_msg(infohashes)
+
         future = self.loop.create_future()
-        protocol = UDPProtocolHandler(msg, id, future)
+        protocol = UDPProtocolHandler(msg, self._transaction_id, future)
         transport, protocol = await self.tracker_send_and_receive(protocol)
 
         assert protocol.result is not None
-        # TODO: Error handling!
-        resp_action, resp_id = struct.unpack_from("!II", protocol.result[0])
+        data = protocol.result[0]
+        resp_action, resp_id = struct.unpack_from("!II", data)
         assert resp_action == ACTIONS.REQUEST_SCRAPE
-        assert resp_id == id
+        assert resp_id == self._transaction_id
+        # TODO: Error handling!
 
+        return self._unpack_scrape_result(data, infohashes)
+
+    def _unpack_scrape_result(self, data: bytes, infohashes: list[str]) -> ScrapeResult:
+        """
+        Args:
+            data: tracker response with header bits stripped off, a set of 3 32-bit integers
+            infohashes: list of infohashes that corresponds to the scrape result
+        """
         offset = 8
         length_per_hash = 12
         responses = {}
         errors = {}
 
-        for hash in hashes:
-            if offset + length_per_hash > len(protocol.result[0]):
+        for hash in infohashes:
+            if offset + length_per_hash > len(data):
                 msg = f"Response not enough long enough to get scrape result from {hash}"
                 errors[hash] = ScrapeError(infohash=hash, msg=msg)
                 self.logger.debug(msg)
                 continue
 
-            seeds, completed, peers = struct.unpack_from("!III", protocol.result[0], offset)
+            seeds, completed, peers = struct.unpack_from("!III", data, offset)
             responses[hash] = ScrapeResponse(
                 infohash=hash,
                 seeders=int(seeds),
@@ -326,7 +367,6 @@ class UDPTrackerClient:
             offset += length_per_hash
 
         results = ScrapeResult(responses=responses, errors=errors)
-        self.logger.debug("RESULTS FROM SCRAPE: %s %s %s", resp_action, resp_id, results)
         return results
 
 
@@ -355,8 +395,3 @@ async def resolve_host(url: str) -> tuple[str, int]:
         logger = init_logger("udp")
         logger.exception(f"Error resolving host: {str(e)}")
         raise e
-
-
-async def create_udp_tracker_client(url: str, infohashes: list[str]) -> UDPTrackerClient:
-    ip, port = await resolve_host(url)
-    return UDPTrackerClient(ip, port, infohashes=infohashes, host=url)
