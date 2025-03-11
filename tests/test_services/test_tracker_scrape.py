@@ -1,11 +1,12 @@
 import hashlib
 import random
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from math import ceil, floor
 
 import pytest
 
-from sciop.services.tracker_scrape import UDPTrackerClient
+from sciop.models import TorrentFile
+from sciop.services.tracker_scrape import UDPTrackerClient, gather_scrapable_torrents
 
 from ..fixtures.tracker import MockTrackerProtocol
 
@@ -89,3 +90,34 @@ async def test_scrape_autoid(tracker):
     result2 = await client.scrape(hashes)
 
     assert len(proto.connids) == 2
+
+
+def test_gather_scrapable_torrents(torrentfile, session):
+    """
+    We should update only torrents that we haven't scraped recently,
+    and whose trackers aren't unresponsive
+    """
+
+    recent = "udp://scraped.recently"
+    unresponsive = "udp://un.responsive"
+    extra = "udp://ex.tra"
+    not_recent = "udp://not.recent"
+
+    torrent: TorrentFile = torrentfile(extra_trackers=[recent, unresponsive, extra, not_recent])
+    v1_only = torrentfile(v2_infohash=None, extra_trackers=[extra])
+
+    torrent.tracker_links_map[recent].last_scraped_at = datetime.now(UTC)
+    torrent.tracker_links_map[unresponsive].tracker.next_scrape_after = datetime.now(
+        UTC
+    ) + timedelta(minutes=30)
+    torrent.tracker_links_map[not_recent].last_scraped_at = datetime.now(UTC) - timedelta(weeks=1)
+
+    session.add(torrent)
+    session.commit()
+
+    scrapable = gather_scrapable_torrents()
+    assert recent not in scrapable
+    assert unresponsive not in scrapable
+    assert len(scrapable[extra]) == 2
+    assert len(scrapable[not_recent]) == 1
+    assert not any([k.startswith("http") for k in scrapable])

@@ -1,8 +1,9 @@
 import hashlib
 import random
 from collections.abc import Callable as C
+from copy import deepcopy
 from pathlib import Path
-from typing import Concatenate, ParamSpec
+from typing import Concatenate, Optional, ParamSpec
 from typing import Literal as L
 
 import pytest
@@ -232,7 +233,10 @@ def torrentfile(
     tmp_path: Path,
 ) -> C[Concatenate[Account | None, Session | None, P], TorrentFile]:
     def _torrentfile(
-        account_: Account | None = None, session_: Session | None = None, **kwargs: P.kwargs
+        extra_trackers: Optional[list[str]] = None,
+        account_: Account | None = None,
+        session_: Session | None = None,
+        **kwargs: P.kwargs,
     ) -> TorrentFile:
         if session_ is None:
             session_ = session
@@ -247,10 +251,15 @@ def torrentfile(
         if "v2_infohash" not in kwargs:
             kwargs["v2_infohash"] = hashlib.sha256(hash_data).hexdigest()
 
-        kwargs = {**default_torrentfile, **kwargs}
+        kwargs = deepcopy({**default_torrentfile, **kwargs})
         file_in_torrent = tmp_path / "default.bin"
         with open(file_in_torrent, "wb") as f:
             f.write(b"0" * kwargs["total_size"])
+
+        if extra_trackers is not None:
+            kwargs["announce_urls"].extend(extra_trackers)
+        else:
+            kwargs["announce_urls"].append(fake.url(schemes=["udp"]))
 
         tf = TorrentFileCreate(**kwargs)
         t = torrent(path=file_in_torrent)

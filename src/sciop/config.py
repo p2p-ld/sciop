@@ -105,6 +105,17 @@ class CSPConfig(BaseModel):
         return "; ".join(format_parts)
 
 
+class JobConfig(BaseModel):
+    """Abstract shared class for job configs"""
+
+    enabled: bool = True
+
+
+class ScrapeConfig(BaseModel):
+    interval: int = 30
+    """Frequency of tracker scraping, in minutes"""
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -156,6 +167,7 @@ class Config(BaseSettings):
     
     This value is set to `None` by `db.ensure_root` when the program is started normally.    
     """
+    tracker_scraping: ScrapeConfig = ScrapeConfig()
 
     @computed_field  # type: ignore[prop-decorator]
     @property
