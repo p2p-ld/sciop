@@ -32,6 +32,7 @@ dependencies = [
     "bencode-py>=4.0.0",
     "pymdown-extensions>=10.14.3",
     "apscheduler>=3.11.0",
+    "aiodns>=3.2.0",
 ]
 requires-python = ">=3.11"
 readme = "README.md"

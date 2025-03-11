@@ -65,4 +65,4 @@ class TrackerCreate(SQLModel):
 
 
 class TrackerRead(TrackerBase):
-    url: MaxLenURL
+    announce_url: MaxLenURL
