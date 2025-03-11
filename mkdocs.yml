@@ -9,6 +9,7 @@ copyright: CC BY-NC-SA 4.0
 nav:
   - index.md
   - Scraper's Guide:
+    - Web Pages: scraping/webpages.md
     - Checksums: scraping/checksums.md
   - Uploading:
     - Trackers: uploading/trackers.md
