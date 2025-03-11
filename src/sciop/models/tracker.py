@@ -22,7 +22,10 @@ class TrackerProtocol(StrEnum):
 class TorrentTrackerLink(TableMixin, table=True):
     __tablename__ = "torrent_tracker_links"
     torrent_file_id: Optional[int] = Field(
-        default=None, foreign_key="torrent_files.torrent_file_id", primary_key=True
+        default=None,
+        foreign_key="torrent_files.torrent_file_id",
+        primary_key=True,
+        ondelete="CASCADE",
     )
     tracker_id: Optional[int] = Field(
         default=None, foreign_key="trackers.tracker_id", primary_key=True
@@ -36,7 +39,7 @@ class TorrentTrackerLink(TableMixin, table=True):
 
 
 class TrackerBase(SQLModel):
-    announce_url: MaxLenURL = Field(description="Tracker announce url")
+    announce_url: MaxLenURL = Field(description="Tracker announce url", unique=True)
     protocol: TrackerProtocol
 
 

@@ -89,7 +89,7 @@ async def upload_torrent(
         total_size=torrent.size,
         piece_size=torrent.piece_size,
         files=[FileInTorrentCreate(path=_file.path, size=_file.size) for _file in torrent.files],
-        trackers=trackers,
+        announce_urls=trackers,
     )
 
     upload_logger.debug("Writing torrent file to disk")

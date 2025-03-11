@@ -48,6 +48,7 @@ async def test_scrape_pagination(tracker):
 
     client = await UDPTrackerClient.from_url(f"udp://localhost:{port}")
     result = await client.scrape(hashes)
+
     assert len(proto.batches) == ceil(len(numbers) / 70)
     for i in range(floor(len(numbers) / 70)):
         assert len(proto.batches[i]["infohashes"]) == 70

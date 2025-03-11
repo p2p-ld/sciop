@@ -79,8 +79,24 @@ def default_torrentfile() -> dict:
         "piece_size": 16384,
         "torrent_size": 64,
         "files": files,
-        "trackers": ["http://example.com/announce"],
+        "announce_urls": ["http://example.com/announce", "udp://example.com/announce"],
     }
+
+
+@pytest.fixture
+def infohashes() -> C[[], dict[L["v1_infohash", "v2_infohash"], str]]:
+    """Fixture function to generate "unique" infohashes"""
+
+    def _infohashes() -> dict[L["v1_infohash", "v2_infohash"], str]:
+        files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
+        hash_data = "".join([str(f) for f in files])
+        hash_data = hash_data.encode("utf-8")
+        return {
+            "v1_infohash": hashlib.sha1(hash_data).hexdigest(),
+            "v2_infohash": hashlib.sha256(hash_data).hexdigest(),
+        }
+
+    return _infohashes
 
 
 @pytest.fixture
