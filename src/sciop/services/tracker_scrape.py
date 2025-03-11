@@ -2,16 +2,21 @@ import asyncio
 import binascii
 import enum
 import struct
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from types import TracebackType
 from typing import Any, Optional
 from urllib.parse import urlparse
 
 import aiodns
+import sqlalchemy as sqla
+from sqlmodel import select
 
+from sciop.config import config
 from sciop.exceptions import TrackerHandshakeException, TrackerURLException, UDPTrackerException
 from sciop.logging import init_logger
+from sciop.models import TorrentFile, TorrentTrackerLink, Tracker
 
 MAGIC_VALUE = 0x41727101980
 MAX_SCRAPE = 70
@@ -395,3 +400,51 @@ async def resolve_host(url: str) -> tuple[str, int]:
         logger = init_logger("udp")
         logger.exception(f"Error resolving host: {str(e)}")
         raise e
+
+
+async def scrape_torrent_stats() -> None:
+    """
+    Main job for periodic scraping torrent stats.
+
+    - Gathers torrents due for updating according to the update interval in config,
+      plus any exponential backoff from unresponsive trackers
+    - Dispatches jobs per tracker with lists of infohashes to scrape
+    - scrapes in batches
+    - updates db
+    """
+    _ = gather_scrapable_torrents()
+
+
+def gather_scrapable_torrents() -> dict[str, list[str]]:
+    """
+    Gather scrapable torrents as a {"announce_url": ["infohash", ...]} dict.
+    """
+    from sciop.db import get_session
+
+    last_scrape_time = datetime.now(UTC) - timedelta(minutes=config.tracker_scraping.interval)
+    statement = (
+        select(TorrentFile.infohash, Tracker.announce_url)
+        .join(TorrentFile.tracker_links)
+        .join(TorrentTrackerLink.tracker)
+        .filter(
+            Tracker.protocol == "udp",
+            sqla.and_(
+                sqla.or_(
+                    TorrentTrackerLink.last_scraped_at == None,  # noqa: E711
+                    TorrentTrackerLink.last_scraped_at <= last_scrape_time,
+                ),
+                sqla.or_(
+                    Tracker.next_scrape_after == None,  # noqa: E711
+                    Tracker.next_scrape_after < datetime.now(UTC),
+                ),
+            ),
+        )
+    )
+    with next(get_session()) as session:
+        results = session.exec(statement).all()
+
+    # group by tracker
+    gathered = defaultdict(list)
+    for res in results:
+        gathered[res.announce_url].append(res.infohash)
+    return gathered

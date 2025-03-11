@@ -8,8 +8,10 @@ from typing import TYPE_CHECKING, Any, Generator, Optional, Self
 import bencodepy
 import humanize
 from pydantic import ModelWrapValidatorHandler, field_validator, model_validator
-from sqlalchemy import Connection, event
+from sqlalchemy import ColumnElement, Connection, event
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 from torf import Torrent as Torrent_
 
@@ -199,6 +201,11 @@ class TorrentFileBase(SQLModel):
         """Convenience accessor for trackers through tracker links, keyed by announce url"""
         return {tl.tracker.announce_url: tl.tracker for tl in self.tracker_links}
 
+    @property
+    def tracker_links_map(self) -> dict[str, TorrentTrackerLink]:
+        """Tracker links mapped by announce url"""
+        return {link.tracker.announce_url: link for link in self.tracker_links}
+
 
 class TorrentFile(TorrentFileBase, TableMixin, table=True):
     __tablename__ = "torrent_files"
@@ -218,6 +225,18 @@ class TorrentFile(TorrentFileBase, TableMixin, table=True):
         description="length-8 truncated version of the v2 infohash, if present, or the v1 infohash",
         index=True,
     )
+
+    @hybrid_property
+    def infohash(self) -> str:
+        """The v2 infohash, if present, else the v1 infohash"""
+        if self.v2_infohash:
+            return self.v2_infohash
+        else:
+            return self.v1_infohash
+
+    @infohash.inplace.expression
+    def _infohash(self) -> ColumnElement[str]:
+        return func.ifnull(self.v2_infohash, self.v1_infohash)
 
 
 @event.listens_for(TorrentFile, "after_delete")

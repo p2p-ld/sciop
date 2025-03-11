@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Optional
 from urllib.parse import urlparse
 
 from pydantic import computed_field
+from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.mixin import TableMixin
@@ -21,6 +22,8 @@ class TrackerProtocol(StrEnum):
 
 class TorrentTrackerLink(TableMixin, table=True):
     __tablename__ = "torrent_tracker_links"
+    __table_args__ = (UniqueConstraint("torrent_file_id", "tracker_id"),)
+
     torrent_file_id: Optional[int] = Field(
         default=None,
         foreign_key="torrent_files.torrent_file_id",
@@ -39,7 +42,7 @@ class TorrentTrackerLink(TableMixin, table=True):
 
 
 class TrackerBase(SQLModel):
-    announce_url: MaxLenURL = Field(description="Tracker announce url", unique=True)
+    announce_url: MaxLenURL = Field(description="Tracker announce url", unique=True, index=True)
     protocol: TrackerProtocol
 
 
@@ -57,6 +60,7 @@ class Tracker(TrackerBase, TableMixin, table=True):
         "used for exponential backoff. "
         "Should be set to 0 after a successful scrape",
     )
+    next_scrape_after: Optional[datetime] = Field(default=None)
 
 
 class TrackerCreate(SQLModel):
