@@ -250,6 +250,7 @@ def torrentfile(
             kwargs["v1_infohash"] = hashlib.sha1(hash_data).hexdigest()
         if "v2_infohash" not in kwargs:
             kwargs["v2_infohash"] = hashlib.sha256(hash_data).hexdigest()
+        passed_announce_urls = "announce_urls" in kwargs
 
         kwargs = deepcopy({**default_torrentfile, **kwargs})
         file_in_torrent = tmp_path / "default.bin"
@@ -258,7 +259,7 @@ def torrentfile(
 
         if extra_trackers is not None:
             kwargs["announce_urls"].extend(extra_trackers)
-        else:
+        elif not passed_announce_urls:
             kwargs["announce_urls"].append(fake.url(schemes=["udp"]))
 
         tf = TorrentFileCreate(**kwargs)

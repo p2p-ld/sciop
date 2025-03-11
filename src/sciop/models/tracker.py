@@ -23,6 +23,7 @@ class TrackerProtocol(StrEnum):
 class TorrentTrackerLink(TableMixin, table=True):
     __tablename__ = "torrent_tracker_links"
     __table_args__ = (UniqueConstraint("torrent_file_id", "tracker_id"),)
+    __table_kwargs__ = {"sqlite_autoincrement": True}
 
     torrent_file_id: Optional[int] = Field(
         default=None,

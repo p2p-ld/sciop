@@ -7,6 +7,7 @@ from random import randint
 from types import TracebackType
 from typing import Any, Optional, TypedDict
 
+import pytest
 import pytest_asyncio
 
 from sciop.logging import init_logger
@@ -145,3 +146,12 @@ async def tracker(unused_udp_port: int) -> tuple[DatagramTransport, MockTrackerP
     async with MockUDPServer(MockTrackerProtocol, port=unused_udp_port) as server:
         transport, proto = server
         yield transport, proto, unused_udp_port
+
+
+@pytest.fixture
+def tracker_factory(unused_udp_port: int) -> MockTrackerProtocol:
+    def _tracker_factory(port: Optional[int] = unused_udp_port) -> MockTrackerProtocol:
+        mock = MockUDPServer(MockTrackerProtocol, port=port)
+        return mock, port
+
+    return _tracker_factory
