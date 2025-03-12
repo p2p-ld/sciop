@@ -1,5 +1,5 @@
 site_name: SciOp
-repo_url: https://codeberg.org/sneakers-the-rat/sciop
+repo_url: https://codeberg.org/Safeguarding/sciop
 repo_name: Codeberg
 edit_uri: _edit/main/docs/
 site_description: ''
@@ -14,6 +14,9 @@ nav:
   - Uploading:
     - Trackers: uploading/trackers.md
   - API: /docs/api
+  - Developers:
+    - Error Handling: sciop/error_handling.md
+    - Jobs: sciop/jobs.md
 
 theme:
   name: material
