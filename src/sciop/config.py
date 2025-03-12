@@ -111,7 +111,7 @@ class JobConfig(BaseModel):
     enabled: bool = True
 
 
-class ScrapeConfig(BaseModel):
+class ScrapeConfig(JobConfig):
     interval: int = 30
     """Frequency of tracker scraping, in minutes"""
     n_workers: int = 24
@@ -169,6 +169,8 @@ class Config(BaseSettings):
     
     This value is set to `None` by `db.ensure_root` when the program is started normally.    
     """
+    clear_jobs: bool = False
+    """Clear any remaining scheduler jobs on startup"""
     tracker_scraping: ScrapeConfig = ScrapeConfig()
 
     @computed_field  # type: ignore[prop-decorator]
