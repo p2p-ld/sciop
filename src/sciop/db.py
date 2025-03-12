@@ -320,7 +320,7 @@ def _generate_upload(
     torrent = Torrent(
         path=torrent_file,
         name=f"Example Torrent {name}",
-        trackers=[["http://example.com/announce"]],
+        trackers=[["udp://opentracker.io:6969/announce"]],
         comment="My comment",
         piece_size=16384,
     )
@@ -337,7 +337,7 @@ def _generate_upload(
         piece_size=16384,
         torrent_size=64,
         files=[FileInTorrentCreate(path=str(torrent_file.name), size=file_size)],
-        announce_urls=["http://example.com/announce"],
+        announce_urls=["udp://opentracker.io:6969/announce"],
     )
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
     torrent.write(created_torrent.filesystem_path, overwrite=True)
