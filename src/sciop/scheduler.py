@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, tzinfo
+from datetime import UTC, datetime, timedelta, tzinfo
 from functools import wraps
 from types import FunctionType
 from typing import Any, Callable, Literal, Optional, ParamSpec, Sequence, TypeVar, cast
@@ -157,6 +157,13 @@ def interval(
     enabled: bool = True,
     **kwargs: Any,
 ) -> Callable[P, T]:
+    """
+    Declare an interval task with a decorator.
+
+    If ``start_date`` is ``None`` , schedule the first run for 10s in the future
+    """
+    if start_date is None and config.env != "test":
+        start_date = datetime.now(UTC) + timedelta(seconds=10)
     outer_kwargs = {**locals()}
     outer_kwargs = {
         k: v
@@ -190,9 +197,6 @@ def _register_job(
 ) -> _ScheduledJob:
     global _REGISTRY, _TO_SCHEDULE
     kwargs["id"] = func.__name__
-    for rm_key in ("kwargs", "enabled"):
-        if rm_key in kwargs:
-            del kwargs[rm_key]
 
     job_params = _ScheduledJob(
         func=func, job_id=func.__name__, trigger=trigger, kwargs=kwargs, enabled=enabled
@@ -205,9 +209,9 @@ def _register_job(
 
 def _wrap_job(func: Callable[P, T], params: _ScheduledJob) -> Callable[P, T]:
     @wraps(func)
-    def _wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
+    async def _wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
         _log_job_start(params)
-        val = func(*args, **kwargs)
+        val = await func(*args, **kwargs)
         _log_job_end(params)
         return val
 

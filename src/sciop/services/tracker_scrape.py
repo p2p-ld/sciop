@@ -5,6 +5,8 @@ import struct
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
+from logging import Logger
+from pprint import pformat
 from types import TracebackType
 from typing import Any, Optional
 from urllib.parse import urlparse
@@ -33,8 +35,10 @@ class ScrapeResponse:
 
 @dataclass
 class ScrapeError:
-    infohash: str
     msg: str
+    type: str
+    announce_url: Optional[str] = None
+    infohash: Optional[str] = None
 
 
 @dataclass
@@ -52,14 +56,14 @@ class PivotedResponses:
 class ScrapeResult:
     """Mappings from infohashes to outcomes"""
 
-    errors: dict[str, ScrapeError] = field(default_factory=dict)
+    errors: list[ScrapeError] = field(default_factory=list)
     responses: dict[str, ScrapeResponse] = field(default_factory=dict)
 
     def __add__(self, other: "ScrapeResult") -> "ScrapeResult":
         if not isinstance(other, ScrapeResult):
             raise TypeError("Can only add scrape results together!")
         return ScrapeResult(
-            errors={**self.errors, **other.errors},
+            errors=[*self.errors, *other.errors],
             responses={**self.responses, **other.responses},
         )
 
@@ -207,6 +211,7 @@ class UDPTrackerClient:
         host: str,
         max_scrape: int = MAX_SCRAPE,
         action: ACTIONS = ACTIONS.REQUEST_ID,
+        timeout: int = 30,
     ):
         self.ip: str = ip
         self.port: int = port
@@ -215,6 +220,7 @@ class UDPTrackerClient:
         self.action: Optional[ACTIONS] = action
         self.lock = UDPReadWriteLock()
         self.loop = asyncio.get_event_loop()
+        self.timeout = timeout
         self.logger = init_logger("tracker.udp.client")
 
         self._transaction_id: Optional[int] = None
@@ -222,9 +228,9 @@ class UDPTrackerClient:
         self._connection_id_created: Optional[datetime] = None
 
     @classmethod
-    async def from_url(cls, url: str) -> "UDPTrackerClient":
+    async def from_url(cls, url: str, **kwargs: Any) -> "UDPTrackerClient":
         ip, port = await resolve_host(url)
-        return UDPTrackerClient(ip, port, host=url)
+        return UDPTrackerClient(ip, port, host=url, **kwargs)
 
     @property
     async def connection_id(self) -> Optional[int]:
@@ -269,8 +275,11 @@ class UDPTrackerClient:
         return msg, infohashes
 
     async def tracker_send_and_receive(
-        self, protocol: UDPProtocolHandler, timeout: int = 5
+        self, protocol: UDPProtocolHandler, timeout: Optional[int] = None
     ) -> tuple[asyncio.DatagramTransport, UDPProtocolHandler]:
+        if timeout is None:
+            timeout = self.timeout
+
         transport, protocol = await self.loop.create_datagram_endpoint(
             lambda: protocol, remote_addr=(self.ip, self.port)
         )
@@ -299,7 +308,9 @@ class UDPTrackerClient:
 
         future = self.loop.create_future()
         protocol = UDPProtocolHandler(msg, tid, future)
-        transport, protocol = await self.tracker_send_and_receive(protocol)
+        transport, protocol = await self.tracker_send_and_receive(
+            protocol, timeout=config.tracker_scraping.connection_timeout
+        )
 
         if protocol.result is None:
             raise TrackerHandshakeException("UDP protocol result was None")
@@ -356,20 +367,31 @@ class UDPTrackerClient:
     async def _scrape_page(self, infohashes: list[str]) -> ScrapeResult:
         """Scrape a single page of 70 infohashes"""
 
-        msg, hashes = await self.udp_create_scrape_msg(infohashes)
+        try:
+            msg, hashes = await self.udp_create_scrape_msg(infohashes)
+        except Exception as e:
+            return ScrapeResult(errors=[ScrapeError(type="create_scrape_msg", msg=str(e))])
 
-        future = self.loop.create_future()
-        protocol = UDPProtocolHandler(msg, self._transaction_id, future)
-        transport, protocol = await self.tracker_send_and_receive(protocol)
+        try:
+            future = self.loop.create_future()
+            protocol = UDPProtocolHandler(msg, self._transaction_id, future)
+            transport, protocol = await self.tracker_send_and_receive(protocol)
 
-        assert protocol.result is not None
-        data = protocol.result[0]
-        resp_action, resp_id = struct.unpack_from("!II", data)
-        assert resp_action == ACTIONS.REQUEST_SCRAPE
-        assert resp_id == self._transaction_id
-        # TODO: Error handling!
+            assert protocol.result is not None
 
-        return self._unpack_scrape_result(data, infohashes)
+        except Exception as e:
+            return ScrapeResult(errors=[ScrapeError(type="scrape_request", msg=str(e))])
+
+        try:
+            data = protocol.result[0]
+            resp_action, resp_id = struct.unpack_from("!II", data)
+            assert resp_action == ACTIONS.REQUEST_SCRAPE
+            assert resp_id == self._transaction_id
+            # TODO: Error handling!
+
+            return self._unpack_scrape_result(data, infohashes)
+        except Exception as e:
+            return ScrapeResult(errors=[ScrapeError(type="unpack_result", msg=str(e))])
 
     def _unpack_scrape_result(self, data: bytes, infohashes: list[str]) -> ScrapeResult:
         """
@@ -446,6 +468,17 @@ async def scrape_torrent_stats() -> None:
     logger.info("Scraping torrent stats")
     to_scrape = gather_scrapable_torrents()
     sem = asyncio.Semaphore(value=config.tracker_scraping.n_workers)
+    logger.debug("Scraping torrent stats for: %s", to_scrape)
+    thing = [
+        (
+            tracker,
+            infohashes,
+            sem,
+        )
+        # scrape_tracker(url=tracker, infohashes=infohashes, semaphore=sem)
+        for tracker, infohashes in to_scrape.items()
+    ]
+    logger.debug(pformat(thing))
     results = await asyncio.gather(
         *[
             scrape_tracker(url=tracker, infohashes=infohashes, semaphore=sem)
@@ -453,7 +486,13 @@ async def scrape_torrent_stats() -> None:
         ]
     )
     total = sum([len(r.responses) for r in results])
-    logger.info("Scraped %s trackers to update %s torrent/tracker pairs", len(results), total)
+    errors = sum([len(r.errors) for r in results])
+    logger.info(
+        "Scraped %s trackers to update %s torrent/tracker pairs. %s errors",
+        len(results),
+        total,
+        errors,
+    )
     logger.debug("Scrape results: %s", results)
 
 
@@ -495,18 +534,24 @@ def gather_scrapable_torrents() -> dict[str, list[str]]:
 async def scrape_tracker(
     url: str, infohashes: list[str], semaphore: asyncio.Semaphore
 ) -> ScrapeResult:
+    logger = init_logger("jobs.scrape_stats.scrape_tracker")
+    logger.debug("scraping tracker %s with %s", url, infohashes)
     async with semaphore:
         try:
-            client = await UDPTrackerClient.from_url(url)
+            client = await UDPTrackerClient.from_url(
+                url, timeout=config.tracker_scraping.scrape_timeout
+            )
             results = await client.scrape(infohashes)
         except Exception as e:
-            raise NotImplementedError("Implement exception handling") from e
+            msg = str(e)
+            logger.exception(msg)
+            return ScrapeResult(errors=[ScrapeError(type="tracker", msg=msg, announce_url=url)])
 
-    _update_scrape_results(results)
+    _update_scrape_results(results, logger=logger)
     return results
 
 
-def _update_scrape_results(results: ScrapeResult) -> None:
+def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
     from sciop.db import get_session
 
     # FIXME: assuming we are storing a collection from a single tracker,
@@ -515,6 +560,9 @@ def _update_scrape_results(results: ScrapeResult) -> None:
     announce_url = set([r.announce_url for r in results.responses.values()])
     if len(announce_url) > 1:
         raise ValueError("Can only store one tracker's worth of results at a time")
+    if len(announce_url) == 0:
+        logger.warning("no announce url found in responses")
+        return
     announce_url = list(announce_url)[0]
 
     stmt = (
@@ -543,3 +591,4 @@ def _update_scrape_results(results: ScrapeResult) -> None:
                 for tllid, res in zip(link_ids, results.responses.values())
             ],
         )
+        session.commit()

@@ -113,9 +113,26 @@ class JobConfig(BaseModel):
 
 class ScrapeConfig(JobConfig):
     interval: int = 30
-    """Frequency of tracker scraping, in minutes"""
+    """Frequency of tracker scraping, in minutes - 
+    how frequently a given tracker/torrent pair should be scraped"""
+    job_interval: int = 10
+    """Frequency of executing the scrape job, in minutes - 
+    only scrapes torrents that haven't been scraped in more than `interval` minutes."""
     n_workers: int = 24
     """Number of trackers to scrape in parallel"""
+    connection_timeout: int = 10
+    """
+    Timeout for initializing UDP requests, in seconds
+    """
+    scrape_timeout: int = 30
+    """
+    Timeout for scrape responses, in seconds
+    """
+    backoff_multiplier: float = 2
+    """
+    for backoff calculated like: 
+    base_interval * n_failures * backoff_multiplier 
+    """
 
 
 class Config(BaseSettings):
