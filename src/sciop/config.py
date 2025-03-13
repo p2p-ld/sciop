@@ -111,6 +111,14 @@ class JobConfig(BaseModel):
     enabled: bool = True
 
 
+class ScrapeErrorBackoffs(BaseModel):
+    default: float = 1
+    unpack: float = 1
+    timeout: float = 2
+    connection: float = 5
+    dns: float = 10
+
+
 class ScrapeConfig(JobConfig):
     interval: int = 30
     """Frequency of tracker scraping, in minutes - 
@@ -128,10 +136,17 @@ class ScrapeConfig(JobConfig):
     """
     Timeout for scrape responses, in seconds
     """
-    backoff_multiplier: float = 2
+    backoff: ScrapeErrorBackoffs = ScrapeErrorBackoffs()
     """
-    for backoff calculated like: 
-    base_interval * n_failures * backoff_multiplier 
+    Exponential penalties for different kinds of tracker errors,
+    computed like:
+    
+    interval * backoff_multiplier * 2^{n_errors}
+    """
+    max_backoff: float = 60 * 24 * 30
+    """
+    Maximum time that a tracker can be backed off, in minutes
+    Default: 30 days (yes, in minutes)
     """
 
 
