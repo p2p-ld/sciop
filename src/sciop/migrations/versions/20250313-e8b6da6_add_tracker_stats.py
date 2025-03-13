@@ -101,6 +101,8 @@ def upgrade() -> None:
                 "announce_url": t_url,
                 "created_at": now,
                 "updated_at": now,
+                "protocol": t_url.split('://')[0],
+                "n_errors": 0
             }
             for t_id, t_url in zip(tracker_ids, tracker_urls)
         ],
