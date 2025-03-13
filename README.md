@@ -122,6 +122,20 @@ python -m pytest tests/test_migrations.py
 pdm run pytest tests/test_migrations.py
 ```
 
+To test trickier migrations, you might want to create a version of the db in the previous state
+to compare what happens after the migration.
+
+```shell
+rm db.dev.sqlite
+git switch main
+pdm run start
+
+# wait for startup... then quit
+
+git switch {feature-branch}
+pdm run migrate
+```
+
 # License
 [EUPL v1.2](./LICENSE)
 

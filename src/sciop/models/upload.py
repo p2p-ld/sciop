@@ -2,14 +2,15 @@ from typing import Optional
 from urllib.parse import urljoin
 
 from pydantic import field_validator
-from sqlalchemy import event
+from sqlalchemy import ColumnElement, event
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship
 
 from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
 from sciop.models.dataset import UploadDatasetPartLink
-from sciop.models.mixin import ModerableMixin, TableMixin, TableReadMixin
+from sciop.models.mixin import ModerableMixin, SearchableMixin, TableMixin, TableReadMixin
 from sciop.types import EscapedStr, IDField, InputType, SlugStr
 
 
@@ -96,8 +97,9 @@ class UploadBase(ModerableMixin):
         """
 
 
-class Upload(UploadBase, TableMixin, table=True):
+class Upload(UploadBase, TableMixin, SearchableMixin, table=True):
     __tablename__ = "uploads"
+    __searchable__ = ["description", "method"]
 
     upload_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
@@ -112,8 +114,22 @@ class Upload(UploadBase, TableMixin, table=True):
     )
 
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
-    seeders: Optional[int] = None
-    leechers: Optional[int] = None
+
+    @hybrid_property
+    def seeders(self) -> int:
+        return self.torrent.seeders
+
+    @seeders.inplace.expression
+    def _seeders(self) -> ColumnElement[Optional[int]]:
+        return self.torrent._seeders()
+
+    @hybrid_property
+    def leechers(self) -> int:
+        return self.torrent.leechers
+
+    @seeders.inplace.expression
+    def _leechers(self) -> ColumnElement[Optional[int]]:
+        return self.torrent._leechers()
 
 
 @event.listens_for(Upload.is_removed, "set")
@@ -135,6 +151,8 @@ class UploadRead(UploadBase, TableReadMixin):
 
     dataset: Optional[SlugStr] = None
     torrent: Optional["TorrentFile"] = None
+    seeders: Optional[int] = None
+    leechers: Optional[int] = None
 
     @field_validator("dataset", mode="before")
     def extract_slug(cls, value: Optional["Dataset"] = None) -> SlugStr:

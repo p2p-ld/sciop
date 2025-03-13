@@ -7,14 +7,17 @@ from typing import TYPE_CHECKING, Any, Generator, Optional, Self
 
 import bencodepy
 import humanize
-from pydantic import field_validator, model_validator
-from sqlalchemy import Connection, event
+from pydantic import ModelWrapValidatorHandler, field_validator, model_validator
+from sqlalchemy import ColumnElement, Connection, event
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 from torf import Torrent as Torrent_
 
 from sciop.config import config
 from sciop.models.mixin import TableMixin
+from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.types import EscapedStr, IDField, MaxLenURL
 
 if TYPE_CHECKING:
@@ -132,24 +135,6 @@ class FileInTorrentRead(FileInTorrentCreate):
     pass
 
 
-class TrackerInTorrent(TableMixin, table=True):
-    """A tracker within a torrent file"""
-
-    __tablename__ = "trackers_in_torrent"
-
-    tracker_in_torrent_id: IDField = Field(None, primary_key=True)
-    url: MaxLenURL = Field(description="Tracker announce url")
-
-    torrent_id: Optional[int] = Field(
-        default=None, foreign_key="torrent_files.torrent_file_id", ondelete="CASCADE"
-    )
-    torrent: Optional["TorrentFile"] = Relationship(back_populates="trackers")
-
-
-class TrackerInTorrentRead(SQLModel):
-    url: MaxLenURL
-
-
 class TorrentFileBase(SQLModel):
     file_name: str = Field(max_length=1024)
     v1_infohash: str = Field(
@@ -211,6 +196,16 @@ class TorrentFileBase(SQLModel):
     def human_piece_size(self) -> str:
         return humanize.naturalsize(self.piece_size)
 
+    @property
+    def trackers(self) -> dict[MaxLenURL, Tracker]:
+        """Convenience accessor for trackers through tracker links, keyed by announce url"""
+        return {tl.tracker.announce_url: tl.tracker for tl in self.tracker_links}
+
+    @property
+    def tracker_links_map(self) -> dict[str, TorrentTrackerLink]:
+        """Tracker links mapped by announce url"""
+        return {link.tracker.announce_url: link for link in self.tracker_links}
+
 
 class TorrentFile(TorrentFileBase, TableMixin, table=True):
     __tablename__ = "torrent_files"
@@ -221,13 +216,53 @@ class TorrentFile(TorrentFileBase, TableMixin, table=True):
     upload_id: Optional[int] = Field(default=None, foreign_key="uploads.upload_id")
     upload: Optional["Upload"] = Relationship(back_populates="torrent")
     files: list["FileInTorrent"] = Relationship(back_populates="torrent", cascade_delete=True)
-    trackers: list["TrackerInTorrent"] = Relationship(back_populates="torrent", cascade_delete=True)
+    tracker_links: list[TorrentTrackerLink] = Relationship(
+        back_populates="torrent", cascade_delete=True
+    )
     short_hash: str = Field(
         min_length=8,
         max_length=8,
         description="length-8 truncated version of the v2 infohash, if present, or the v1 infohash",
         index=True,
     )
+
+    @hybrid_property
+    def infohash(self) -> str:
+        """The v2 infohash, if present, else the v1 infohash"""
+        if self.v2_infohash:
+            return self.v2_infohash
+        else:
+            return self.v1_infohash
+
+    @infohash.inplace.expression
+    def _infohash(self) -> ColumnElement[str]:
+        return func.ifnull(self.v2_infohash, self.v1_infohash)
+
+    @hybrid_property
+    def seeders(self) -> Optional[int]:
+        seeders = [link.seeders for link in self.tracker_links if link.seeders is not None]
+        if not seeders:
+            return None
+        return max(seeders)
+
+    @seeders.inplace.expression
+    def _seeders(self) -> ColumnElement[Optional[int]]:
+        return func.max(TorrentTrackerLink.seeders).where(
+            TorrentTrackerLink.torrent_id == self.torrent_id
+        )
+
+    @hybrid_property
+    def leechers(self) -> Optional[int]:
+        leechers = [link.leechers for link in self.tracker_links if link.leechers is not None]
+        if not leechers:
+            return None
+        return max(leechers)
+
+    @leechers.inplace.expression
+    def _leechers(self) -> ColumnElement[Optional[int]]:
+        return func.max(TorrentTrackerLink.leechers).where(
+            TorrentTrackerLink.torrent_id == self.torrent_id
+        )
 
 
 @event.listens_for(TorrentFile, "after_delete")
@@ -240,7 +275,7 @@ def _delete_torrent_file(mapper: Mapper, connection: Connection, target: Torrent
 
 class TorrentFileCreate(TorrentFileBase):
     files: list[FileInTorrentCreate]
-    trackers: list[MaxLenURL]
+    announce_urls: list[MaxLenURL]
 
     @model_validator(mode="after")
     def get_short_hash(self) -> Self:
@@ -255,7 +290,6 @@ class TorrentFileCreate(TorrentFileBase):
 
 class TorrentFileRead(TorrentFileBase):
     files: list[str]
-    trackers: list[str] = Field(min_length=1, max_length=128)
     short_hash: str = Field(
         None,
         min_length=8,
@@ -263,11 +297,20 @@ class TorrentFileRead(TorrentFileBase):
         description="length-8 truncated version of the v2 infohash, if present, or the v1 infohash",
         index=True,
     )
+    announce_urls: list[MaxLenURL] = Field(default_factory=list)
+    seeders: Optional[int] = None
+    leechers: Optional[int] = None
 
     @field_validator("files", mode="before")
     def flatten_files(cls, val: list[FileInTorrentRead]) -> list[str]:
         return [v.path for v in val]
 
-    @field_validator("trackers", mode="before")
-    def flatten_trackers(cls, val: list[TrackerInTorrentRead]) -> list[str]:
-        return [v.url for v in val]
+    @model_validator(mode="wrap")
+    @classmethod
+    def flatten_trackers(cls, data: Any, handler: ModelWrapValidatorHandler[Self]) -> Self:
+        val = handler(data)
+
+        if isinstance(data, TorrentFile) and not val.announce_urls:
+            val.announce_urls = [v.tracker.announce_url for v in data.tracker_links]
+
+        return val

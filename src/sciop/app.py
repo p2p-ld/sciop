@@ -10,6 +10,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.cors import CORSMiddleware
 
+from sciop import jobs  # noqa: F401 - import to register
 from sciop.api.main import api_router
 from sciop.config import config
 from sciop.const import DOCS_DIR, STATIC_DIR
@@ -25,9 +26,6 @@ from sciop.middleware import (
 )
 from sciop.scheduler import remove_all_jobs, shutdown, start_scheduler
 from sciop.services import build_docs
-
-# def custom_generate_unique_id(route: APIRoute) -> str:
-#     return f"{route.tags[0]}-{route.name}"
 
 
 @asynccontextmanager

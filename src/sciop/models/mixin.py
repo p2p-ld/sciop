@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Optional, Self, get_origin
 import sqlalchemy as sqla
 from pydantic import ConfigDict
 from sqlalchemy import CheckConstraint, Column, ColumnElement, Connection, Table, event
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlmodel import Field, Session, SQLModel, select, text
 
@@ -211,7 +212,12 @@ class SearchableMixin(SQLModel):
             END;
             """  # noqa: S608 - confirmed no sqli
         )
-        connection.execute(create_stmt)
+        try:
+            connection.execute(create_stmt)
+        except OperationalError as e:
+            if "already exists" not in str(e):
+                raise e
+
         connection.execute(trigger_insert)
         connection.execute(trigger_delete)
         connection.execute(trigger_update)

@@ -210,3 +210,32 @@ div.status-strip {
         var(--color-alert) 15px,
         var(--color-alert) 30px );
 }
+
+.seeders-icon {
+    color: var(--color-good);
+    display: inline-block;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-right: 0.2em;
+    font-family: var(--font-sans);
+}
+
+.downloaders-icon {
+    color: var(--color-caution);
+    transform: rotate(180deg);
+    display: inline-block;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-right: 0.2em;
+    font-family: var(--font-sans);
+}
+
+.deemphasized {
+    color: var(--color-deemphasized);
+}
+
+.upload-seeders, .upload-downloaders {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+}
