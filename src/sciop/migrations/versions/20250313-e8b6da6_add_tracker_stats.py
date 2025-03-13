@@ -102,7 +102,7 @@ def upgrade() -> None:
                 "created_at": now,
                 "updated_at": now,
             }
-            for t_id, t_url in zip(tracker_urls, tracker_ids)
+            for t_id, t_url in zip(tracker_ids, tracker_urls)
         ],
     )
     op.bulk_insert(
