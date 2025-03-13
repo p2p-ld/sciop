@@ -52,6 +52,7 @@ def create_tables(engine: Engine = engine) -> None:
     # FIXME: Super janky, do this in a __new__ or a decorator
     models.Dataset.register_events()
     models.Account.register_events()
+    models.Upload.register_events()
 
     SQLModel.metadata.create_all(engine)
     # check version here since creating the table is the same action as
