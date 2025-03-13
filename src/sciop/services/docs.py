@@ -1,8 +1,3 @@
-"""
-Jobs that might happen in the background, and otherwise encapsulate some
-repeated operation not part of a route
-"""
-
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -14,7 +9,7 @@ from sciop.config import config
 
 def _find_mkdocs_config() -> Path:
     """Abstraction around path location in case we want to start packaging it"""
-    return Path(__file__).parents[2].resolve() / "mkdocs.yml"
+    return Path(__file__).parents[3].resolve() / "mkdocs.yml"
 
 
 def build_docs() -> None:
@@ -31,7 +26,7 @@ def build_docs() -> None:
 
     cfg.plugins.on_startup(command="build", dirty=dirty)
 
-    output_dir = Path(__file__).parent / "docs"
+    output_dir = Path(__file__).parents[1] / "docs"
     output_dir.mkdir(exist_ok=True)
     cfg.site_dir = output_dir
     cfg.site_url = urljoin(config.external_url, "/docs")

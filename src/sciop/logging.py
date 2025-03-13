@@ -6,7 +6,7 @@ import logging
 import multiprocessing as mp
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from rich.logging import RichHandler
 
@@ -80,16 +80,23 @@ def init_logger(
 
     # if run from a forked process, need to add different handlers to not collide
     if mp.parent_process() is not None:
-        logger.addHandler(
-            _file_handler(
-                name=f"{name}_{mp.current_process().pid}",
-                file_level=file_level,
-                log_dir=log_dir,
-                log_file_n=log_file_n,
-                log_file_size=log_file_size,
+        handler_name = f"{name}_{mp.current_process().pid}"
+        if not any([h.name == handler_name for h in logger.handlers]):
+
+            logger.addHandler(
+                _file_handler(
+                    name=f"{name}_{mp.current_process().pid}",
+                    file_level=file_level,
+                    log_dir=log_dir,
+                    log_file_n=log_file_n,
+                    log_file_size=log_file_size,
+                )
             )
-        )
-        logger.addHandler(_rich_handler(level))
+
+        if not any(
+            [handler_name in h.keywords for h in logger.handlers if isinstance(h, RichHandler)]
+        ):
+            logger.addHandler(_rich_handler(level, keywords=[handler_name]))
         logger.propagate = False
 
     return logger
@@ -153,8 +160,8 @@ def _file_handler(
     return file_handler
 
 
-def _rich_handler(level: LOG_LEVELS) -> RichHandler:
-    rich_handler = RichHandler(rich_tracebacks=True, markup=True)
+def _rich_handler(level: LOG_LEVELS, **kwargs: Any) -> RichHandler:
+    rich_handler = RichHandler(rich_tracebacks=True, markup=True, **kwargs)
     rich_formatter = logging.Formatter(
         r"[bold green]\[%(name)s][/bold green] %(message)s",
         datefmt="[%y-%m-%dT%H:%M:%S]",

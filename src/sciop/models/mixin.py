@@ -18,6 +18,7 @@ from sqlalchemy import (
     inspect,
     select,
 )
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import Mapper, attributes, object_mapper, object_session, registry
 from sqlalchemy.orm.exc import UnmappedColumnError
@@ -227,7 +228,12 @@ class SearchableMixin(SQLModel):
             END;
             """  # noqa: S608 - confirmed no sqli
         )
-        connection.execute(create_stmt)
+        try:
+            connection.execute(create_stmt)
+        except OperationalError as e:
+            if "already exists" not in str(e):
+                raise e
+
         connection.execute(trigger_insert)
         connection.execute(trigger_delete)
         connection.execute(trigger_update)

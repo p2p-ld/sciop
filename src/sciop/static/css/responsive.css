@@ -20,12 +20,10 @@
   }
 
   .datasets-table,
-  .uploads-table,
   .accounts-table {
 
     .table-head,
     .dataset-collapsible > .collapsible-summary,
-    .upload-collapsible > .collapsible-summary,
     .account-collapsible > .collapsible-summary {
 			display: flex;
 			flex-wrap: wrap;
@@ -51,6 +49,43 @@
 			width: calc(100% - 2em);
 		}
   }
+
+	.uploads-table {
+		.upload-collapsible > .collapsible-summary {
+			display: grid;
+			grid-gap: 0.1em;
+			grid-template-columns: 1em 5em 1fr 4em 3em 3em  4em;
+			grid-template-rows: 1.5em 1.6em;
+			align-items: center;
+
+			.upload-title {
+				grid-row: 2 / 2;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				grid-column: 1/8;
+			}
+			.upload-size {
+				grid-column: 4/4;
+			}
+			&>.download-link {
+				display: none;
+			}
+			&>.upload-size, &>.seeders .seeders-number, &>.downloaders .downloaders-number,
+			&>.upload-timestamp {
+				color: var(--color-text-deemphasized);
+				font-size: 0.8em;
+			}
+			&>.downloaders, &>.seeders {
+				display: flex;
+				flex-direction: row;
+				flex-wrap:nowrap;
+			}
+			&>.upload-timestamp {
+				align-self: right;
+				grid-column: 7/7;
+			}
+		}
+	}
 
 	.collapsible-table {
 		display: flex;

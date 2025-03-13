@@ -8,6 +8,7 @@
     --color-threat-endangered: #FF6319;
     --color-threat-takedown_issued: lch(47.26% 75.67 14.74);
     --color-threat-extinct: var(--color-background-shade);
+    --color-good: lch(76.36% 99.79 133.94);
 
     --font-sans: "Work Sans", "Helvetica Neue", "Segoe UI", "Helvetica", "Roboto", sans-serif;
     --font-mono: "Anonymous Pro", "Fira Code", "Courier New", "Courier", monospace;

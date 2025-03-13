@@ -1,8 +1,9 @@
 import hashlib
 import random
 from collections.abc import Callable as C
+from copy import deepcopy
 from pathlib import Path
-from typing import Concatenate, ParamSpec
+from typing import Concatenate, Optional, ParamSpec
 from typing import Literal as L
 
 import pytest
@@ -79,8 +80,24 @@ def default_torrentfile() -> dict:
         "piece_size": 16384,
         "torrent_size": 64,
         "files": files,
-        "trackers": ["http://example.com/announce"],
+        "announce_urls": ["http://example.com/announce", "udp://example.com/announce"],
     }
+
+
+@pytest.fixture
+def infohashes() -> C[[], dict[L["v1_infohash", "v2_infohash"], str]]:
+    """Fixture function to generate "unique" infohashes"""
+
+    def _infohashes() -> dict[L["v1_infohash", "v2_infohash"], str]:
+        files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
+        hash_data = "".join([str(f) for f in files])
+        hash_data = hash_data.encode("utf-8")
+        return {
+            "v1_infohash": hashlib.sha1(hash_data).hexdigest(),
+            "v2_infohash": hashlib.sha256(hash_data).hexdigest(),
+        }
+
+    return _infohashes
 
 
 @pytest.fixture
@@ -216,7 +233,10 @@ def torrentfile(
     tmp_path: Path,
 ) -> C[Concatenate[Account | None, Session | None, P], TorrentFile]:
     def _torrentfile(
-        account_: Account | None = None, session_: Session | None = None, **kwargs: P.kwargs
+        extra_trackers: Optional[list[str]] = None,
+        account_: Account | None = None,
+        session_: Session | None = None,
+        **kwargs: P.kwargs,
     ) -> TorrentFile:
         if session_ is None:
             session_ = session
@@ -230,11 +250,17 @@ def torrentfile(
             kwargs["v1_infohash"] = hashlib.sha1(hash_data).hexdigest()
         if "v2_infohash" not in kwargs:
             kwargs["v2_infohash"] = hashlib.sha256(hash_data).hexdigest()
+        passed_announce_urls = "announce_urls" in kwargs
 
-        kwargs = {**default_torrentfile, **kwargs}
+        kwargs = deepcopy({**default_torrentfile, **kwargs})
         file_in_torrent = tmp_path / "default.bin"
         with open(file_in_torrent, "wb") as f:
             f.write(b"0" * kwargs["total_size"])
+
+        if extra_trackers is not None:
+            kwargs["announce_urls"].extend(extra_trackers)
+        elif not passed_announce_urls:
+            kwargs["announce_urls"].append(fake.url(schemes=["udp"]))
 
         tf = TorrentFileCreate(**kwargs)
         t = torrent(path=file_in_torrent)

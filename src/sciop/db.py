@@ -36,6 +36,10 @@ def get_session() -> Generator[Session, None, None]:
     #     session.close()
 
 
+def get_engine() -> Engine:
+    return engine
+
+
 def create_tables(engine: Engine = engine) -> None:
     """
     Create tables and stamps with an alembic version
@@ -48,6 +52,7 @@ def create_tables(engine: Engine = engine) -> None:
     # FIXME: Super janky, do this in a __new__ or a decorator
     models.Dataset.register_events()
     models.Account.register_events()
+    models.Upload.register_events()
 
     SQLModel.metadata.create_all(engine)
     # check version here since creating the table is the same action as
@@ -85,7 +90,7 @@ def ensure_alembic_version() -> None:
             command.check(alembic_config)
         except CommandError as e:
             # don't automatically migrate since it could be destructive
-            raise RuntimeError("Database needs to be migrated! Run `pdm run migrate`") from e
+            raise RuntimeError(f"Database needs to be migrated! Run `pdm run migrate`\n{e}") from e
 
 
 def get_alembic_config() -> AlembicConfig:
@@ -316,7 +321,7 @@ def _generate_upload(
     torrent = Torrent(
         path=torrent_file,
         name=f"Example Torrent {name}",
-        trackers=[["http://example.com/announce"]],
+        trackers=[["udp://opentracker.io:6969/announce"]],
         comment="My comment",
         piece_size=16384,
     )
@@ -333,7 +338,7 @@ def _generate_upload(
         piece_size=16384,
         torrent_size=64,
         files=[FileInTorrentCreate(path=str(torrent_file.name), size=file_size)],
-        trackers=["http://example.com/announce"],
+        announce_urls=["udp://opentracker.io:6969/announce"],
     )
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
     torrent.write(created_torrent.filesystem_path, overwrite=True)

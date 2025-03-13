@@ -1,7 +1,9 @@
+from copy import deepcopy
+
 from sqlmodel import select
 
 from sciop import crud
-from sciop.models import DatasetCreate, Tag
+from sciop.models import DatasetCreate, Tag, TorrentFileCreate, Tracker
 
 
 def test_create_dataset_tags(session, default_dataset):
@@ -44,3 +46,37 @@ def test_create_dataset_tags(session, default_dataset):
 
     assert len([tag for tag in dataset_a.tags if tag.tag == "a-new-one"]) == 1
     assert len([tag for tag in dataset_b.tags if tag.tag == "another-new-one"]) == 1
+
+
+def test_create_torrent_with_trackers(session, default_torrentfile, infohashes, uploader):
+    torrent_a = deepcopy(default_torrentfile)
+    torrent_b = deepcopy(default_torrentfile)
+
+    a_tracker = "udp://uniquetracker.com"
+    b_tracker = "udp://didnt-think-ahead-about-uniquetracker2.com"
+    shared = "udp://shared.com"
+
+    torrent_a["announce_urls"].append(shared)
+    torrent_a["announce_urls"].append(a_tracker)
+    torrent_b["announce_urls"].append(shared)
+    torrent_b["announce_urls"].append(b_tracker)
+    torrent_b.update(infohashes())
+
+    a = crud.create_torrent(
+        session=session, created_torrent=TorrentFileCreate(**torrent_a), account=uploader
+    )
+    b = crud.create_torrent(
+        session=session, created_torrent=TorrentFileCreate(**torrent_b), account=uploader
+    )
+
+    trackers = session.exec(select(Tracker)).all()
+    assert len(trackers) == len(set(torrent_a["announce_urls"]) | set(torrent_b["announce_urls"]))
+    assert len(a.tracker_links) == len(torrent_a["announce_urls"])
+    assert len(b.tracker_links) == len(torrent_b["announce_urls"])
+
+    # use the same tracker object for shared
+    assert a.trackers[shared].tracker_id == b.trackers[shared].tracker_id
+    assert a_tracker in a.trackers
+    assert b_tracker not in a.trackers
+    assert b_tracker in b.trackers
+    assert a_tracker not in b.trackers

@@ -28,7 +28,7 @@ async def uploads_search(
         stmt = (
             select(Upload)
             .where(Upload.visible_to(current_account) == True)
-            .order_by(Upload.created_at)
+            .order_by(Upload.created_at.desc())
         )
     else:
         stmt = (

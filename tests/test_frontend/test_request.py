@@ -8,20 +8,20 @@ from sciop.config import config
 
 
 @pytest.mark.selenium
-async def test_request(driver):
-    driver.get("http://127.0.0.1:8080/request")
+async def test_request(driver_as_admin):
+    driver_as_admin.get("http://127.0.0.1:8080/request")
     title = "Test Item"
     slug = "test-item"
     publisher = "test publisher"
     tags = "tag1, tag2"
 
-    driver.find_element(By.ID, "request-form-title").send_keys(title)
-    driver.find_element(By.ID, "request-form-slug").send_keys(slug)
-    driver.find_element(By.ID, "request-form-publisher").send_keys(publisher)
-    driver.find_element(By.ID, "request-form-tags").send_keys(tags)
-    driver.find_element(By.CLASS_NAME, "form-button").click()
+    driver_as_admin.find_element(By.ID, "request-form-title").send_keys(title)
+    driver_as_admin.find_element(By.ID, "request-form-slug").send_keys(slug)
+    driver_as_admin.find_element(By.ID, "request-form-publisher").send_keys(publisher)
+    driver_as_admin.find_element(By.ID, "request-form-tags").send_keys(tags)
+    driver_as_admin.find_element(By.CLASS_NAME, "form-button").click()
     element_present = EC.presence_of_element_located((By.ID, "dataset-test-item"))
-    WebDriverWait(driver, 3).until(element_present)
+    WebDriverWait(driver_as_admin, 3).until(element_present)
 
     res = requests.get(f"http://127.0.0.1:8080{config.api_prefix}/datasets/test-item")
     dataset = res.json()

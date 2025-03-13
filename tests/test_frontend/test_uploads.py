@@ -56,3 +56,19 @@ def test_no_include_removed(dataset, upload, client, session):
     assert res.status_code == 200
     assert removed_infohash not in res.text
     assert approved_infohash in res.text
+
+
+@pytest.mark.skip(reason="TODO")
+def test_show_trackers():
+    """
+    Trackers are shown in the upload page
+    """
+    pass
+
+
+@pytest.mark.skip(reason="TODO")
+def test_show_tracker_stats():
+    """
+    Tracker stats are shown in the upload page
+    """
+    pass
