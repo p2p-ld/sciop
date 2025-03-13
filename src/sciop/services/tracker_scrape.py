@@ -6,7 +6,6 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from logging import Logger
-from pprint import pformat
 from types import TracebackType
 from typing import Any, Optional
 from urllib.parse import urlparse
@@ -16,7 +15,14 @@ import sqlalchemy as sqla
 from sqlmodel import select, update
 
 from sciop.config import config
-from sciop.exceptions import TrackerHandshakeException, TrackerURLException, UDPTrackerException
+from sciop.exceptions import (
+    DNSException,
+    ScrapeErrorType,
+    ScrapeUnpackException,
+    TrackerConnectionException,
+    TrackerURLException,
+    UDPTrackerException,
+)
 from sciop.logging import init_logger
 from sciop.models import TorrentFile, TorrentTrackerLink, Tracker
 
@@ -36,7 +42,7 @@ class ScrapeResponse:
 @dataclass
 class ScrapeError:
     msg: str
-    type: str
+    type: ScrapeErrorType
     announce_url: Optional[str] = None
     infohash: Optional[str] = None
 
@@ -195,7 +201,7 @@ class UDPProtocolHandler(asyncio.DatagramProtocol):
         self.success.set_result(True)
 
     def error_received(self, exc: OSError) -> None:
-        self.logger.exception(f"UDP Error: {str(exc)}")
+        self.logger.debug(f"UDP Error: {str(exc)}")
         self.success.set_result(False)
 
     def connection_lost(self, exc: OSError) -> None:
@@ -243,7 +249,7 @@ class UDPTrackerClient:
                 self._connection_id = await self._initiate_connection(self._transaction_id)
                 self._connection_id_created = datetime.now()
             except UDPTrackerException as e:
-                raise TrackerHandshakeException("Could not initiate connection to tracker") from e
+                raise TrackerConnectionException("Could not initiate connection to tracker") from e
         return self._connection_id
 
     @staticmethod
@@ -285,8 +291,9 @@ class UDPTrackerClient:
         )
         try:
             await asyncio.wait_for(protocol.success, timeout=timeout)
-        except Exception as e:
-            self.logger.exception("Exception communicating with tracker: %s", e)
+        except TimeoutError as e:
+            self.logger.debug("Timeout exception communicating with tracker: %s", e)
+            raise e
         finally:  # cleanup, basically.
             if transport.is_closing():
                 transport.abort()
@@ -294,7 +301,8 @@ class UDPTrackerClient:
                 try:
                     transport.close()
                 except Exception as e:
-                    self.logger.exception("Exception closing transport: %s", e)
+                    self.logger.debug("Exception closing transport: %s", e)
+                    raise UDPTrackerException("Exception closing transport") from e
         return transport, protocol
 
     async def _initiate_connection(self, tid: int) -> bytes:
@@ -313,11 +321,11 @@ class UDPTrackerClient:
         )
 
         if protocol.result is None:
-            raise TrackerHandshakeException("UDP protocol result was None")
+            raise TrackerConnectionException("UDP protocol result was None")
 
         resp_action, resp_id, connection_id = struct.unpack_from("!IIq", protocol.result[0])
         if resp_action != ACTIONS.REQUEST_ID or resp_id != tid:
-            raise TrackerHandshakeException(
+            raise TrackerConnectionException(
                 "Response action and id must match in request and response.\n"
                 f"response_action: {resp_action}\n"
                 f"request_action: {ACTIONS.REQUEST_ID}\n"
@@ -354,14 +362,6 @@ class UDPTrackerClient:
         for i in range(0, len(infohashes), self.max_scrape):
             results += await self._scrape_page(infohashes[i : i + self.max_scrape])
 
-        self.logger.info(
-            "Scraped %s torrents: success - %s, error - %s",
-            len(results),
-            len(results.responses),
-            len(results.errors),
-        )
-        self.logger.debug("Scrape results: %s", results)
-
         return results
 
     async def _scrape_page(self, infohashes: list[str]) -> ScrapeResult:
@@ -369,29 +369,38 @@ class UDPTrackerClient:
 
         try:
             msg, hashes = await self.udp_create_scrape_msg(infohashes)
-        except Exception as e:
-            return ScrapeResult(errors=[ScrapeError(type="create_scrape_msg", msg=str(e))])
-
-        try:
             future = self.loop.create_future()
             protocol = UDPProtocolHandler(msg, self._transaction_id, future)
             transport, protocol = await self.tracker_send_and_receive(protocol)
 
-            assert protocol.result is not None
+            if protocol.result is None:
+                raise TrackerConnectionException("UDP protocol result was none when scraping")
 
+            try:
+                data = protocol.result[0]
+                resp_action, resp_id = struct.unpack_from("!II", data)
+                assert resp_action == ACTIONS.REQUEST_SCRAPE
+                assert resp_id == self._transaction_id
+                return self._unpack_scrape_result(data, infohashes)
+            except Exception as e:
+                raise ScrapeUnpackException(f"Error unpacking scrape result: {msg(e)}") from e
+
+        except TrackerConnectionException as e:
+            return ScrapeResult(
+                errors=[ScrapeError(type="connection", announce_url=self.host, msg=str(e))]
+            )
+        except ScrapeUnpackException as e:
+            return ScrapeResult(
+                errors=[ScrapeError(type="unpack", announce_url=self.host, msg=str(e))]
+            )
+        except TimeoutError as e:
+            return ScrapeResult(
+                errors=[ScrapeError(type="timeout", announce_url=self.host, msg=str(e))]
+            )
         except Exception as e:
-            return ScrapeResult(errors=[ScrapeError(type="scrape_request", msg=str(e))])
-
-        try:
-            data = protocol.result[0]
-            resp_action, resp_id = struct.unpack_from("!II", data)
-            assert resp_action == ACTIONS.REQUEST_SCRAPE
-            assert resp_id == self._transaction_id
-            # TODO: Error handling!
-
-            return self._unpack_scrape_result(data, infohashes)
-        except Exception as e:
-            return ScrapeResult(errors=[ScrapeError(type="unpack_result", msg=str(e))])
+            return ScrapeResult(
+                errors=[ScrapeError(type="default", announce_url=self.host, msg=str(e))]
+            )
 
     def _unpack_scrape_result(self, data: bytes, infohashes: list[str]) -> ScrapeResult:
         """
@@ -402,12 +411,12 @@ class UDPTrackerClient:
         offset = 8
         length_per_hash = 12
         responses = {}
-        errors = {}
+        errors = []
 
         for hash in infohashes:
             if offset + length_per_hash > len(data):
                 msg = f"Response not enough long enough to get scrape result from {hash}"
-                errors[hash] = ScrapeError(infohash=hash, msg=msg)
+                errors.append(ScrapeError(type="unpack", infohash=hash, msg=msg))
                 self.logger.debug(msg)
                 continue
 
@@ -450,8 +459,9 @@ async def resolve_host(url: str) -> tuple[str, int]:
         return ip, port
     except Exception as e:
         logger = init_logger("udp")
-        logger.exception(f"Error resolving host: {str(e)}")
-        raise e
+        msg = f"Error resolving host: {str(e)}"
+        logger.debug(msg)
+        raise DNSException(msg) from e
 
 
 async def scrape_torrent_stats() -> None:
@@ -465,20 +475,9 @@ async def scrape_torrent_stats() -> None:
     - updates db
     """
     logger = init_logger("jobs.scrape_stats")
-    logger.info("Scraping torrent stats")
     to_scrape = gather_scrapable_torrents()
     sem = asyncio.Semaphore(value=config.tracker_scraping.n_workers)
     logger.debug("Scraping torrent stats for: %s", to_scrape)
-    thing = [
-        (
-            tracker,
-            infohashes,
-            sem,
-        )
-        # scrape_tracker(url=tracker, infohashes=infohashes, semaphore=sem)
-        for tracker, infohashes in to_scrape.items()
-    ]
-    logger.debug(pformat(thing))
     results = await asyncio.gather(
         *[
             scrape_tracker(url=tracker, infohashes=infohashes, semaphore=sem)
@@ -542,17 +541,24 @@ async def scrape_tracker(
                 url, timeout=config.tracker_scraping.scrape_timeout
             )
             results = await client.scrape(infohashes)
+        except DNSException as e:
+            results = ScrapeResult(errors=[ScrapeError(type="dns", announce_url=url, msg=str(e))])
         except Exception as e:
             msg = str(e)
-            logger.exception(msg)
-            return ScrapeResult(errors=[ScrapeError(type="tracker", msg=msg, announce_url=url)])
+            logger.debug(msg)
+            results = ScrapeResult(errors=[ScrapeError(type="default", announce_url=url, msg=msg)])
 
     _update_scrape_results(results, logger=logger)
+    _handle_tracker_error(results, logger=logger)
+    _touch_tracker(url, results)
     return results
 
 
 def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
     from sciop.db import get_session
+
+    if len(results.responses) == 0:
+        return
 
     # FIXME: assuming we are storing a collection from a single tracker,
     # which are are most of the time
@@ -565,7 +571,7 @@ def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
         return
     announce_url = list(announce_url)[0]
 
-    stmt = (
+    update_select_stmt = (
         select(TorrentTrackerLink.torrent_file_id, TorrentTrackerLink.tracker_id)
         .join(TorrentFile.tracker_links)
         .join(TorrentTrackerLink.tracker)
@@ -576,7 +582,7 @@ def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
     )
     with next(get_session()) as session:
         scrape_time = datetime.now(UTC)
-        link_ids = session.exec(stmt).all()
+        link_ids = session.exec(update_select_stmt).all()
         session.exec(
             update(TorrentTrackerLink),
             params=[
@@ -591,4 +597,60 @@ def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
                 for tllid, res in zip(link_ids, results.responses.values())
             ],
         )
+        session.commit()
+
+
+def _handle_tracker_error(results: ScrapeResult, logger: Logger) -> None:
+    from sciop.db import get_session
+
+    tracker_errors = [e for e in results.errors if e.announce_url and e.infohash is None]
+    if not tracker_errors:
+        return
+    with next(get_session()) as session:
+        for e in tracker_errors:
+            tracker = session.exec(
+                select(Tracker).where(Tracker.announce_url == e.announce_url)
+            ).first()
+            if e.type != tracker.error_type:
+                tracker.n_errors = 0
+            tracker.n_errors += 1
+            next_scrape = datetime.now(UTC) + timedelta(
+                minutes=_compute_backoff(tracker.n_errors, e.type)
+            )
+            tracker.next_scrape_after = next_scrape
+            tracker.error_type = e.type
+            session.add(tracker)
+            logger.debug(
+                "Backing off tracker %s - %s errors - next scrape at %s",
+                e.announce_url,
+                tracker.n_errors,
+                next_scrape,
+            )
+        session.commit()
+
+
+def _compute_backoff(
+    n_errors: int = 1, error_type: ScrapeErrorType = ScrapeErrorType.default
+) -> float:
+    if isinstance(error_type, ScrapeErrorType):
+        error_type = error_type.value
+    multipliers = config.tracker_scraping.backoff.model_dump()
+
+    multiplier = multipliers.get(error_type, multipliers.get("default", 1))
+    backoff = config.tracker_scraping.interval * multiplier * (2**n_errors)
+    return min(backoff, config.tracker_scraping.max_backoff)
+
+
+def _touch_tracker(url: str, results: ScrapeResult) -> None:
+    from sciop.db import get_session
+
+    errors = [e for e in results.errors]
+    any_errors = any([e.announce_url == url for e in errors])
+
+    params = {"last_scraped_at": datetime.now(UTC)}
+    if not any_errors:
+        params.update({"n_errors": 0, "error_type": None, "next_scrape_after": None})
+
+    with next(get_session()) as session:
+        session.exec(update(Tracker).where(Tracker.announce_url == url), params=params)
         session.commit()

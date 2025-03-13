@@ -7,6 +7,7 @@ from pydantic import computed_field
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
+from sciop.exceptions import ScrapeErrorType
 from sciop.models.mixin import TableMixin
 from sciop.types import IDField, MaxLenURL
 
@@ -55,12 +56,13 @@ class Tracker(TrackerBase, TableMixin, table=True):
     tracker_id: IDField = Field(None, primary_key=True)
     torrent_links: list[TorrentTrackerLink] = Relationship(back_populates="tracker")
     last_scraped_at: Optional[datetime] = Field(default=None)
-    scrape_failures: int = Field(
+    n_errors: int = Field(
         default=0,
         description="Number of sequential failures to scrape this tracker, "
         "used for exponential backoff. "
         "Should be set to 0 after a successful scrape",
     )
+    error_type: Optional[ScrapeErrorType] = Field(default=None)
     next_scrape_after: Optional[datetime] = Field(default=None)
 
 

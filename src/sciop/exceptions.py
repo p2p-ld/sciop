@@ -1,4 +1,5 @@
 from datetime import timedelta
+from enum import StrEnum
 from time import time
 
 from fastapi import HTTPException, Request, Response
@@ -6,8 +7,6 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse
 from humanize.time import naturaldelta
 from slowapi.errors import RateLimitExceeded
-
-from sciop.frontend.templates import templates
 
 
 class SciOpException(Exception):
@@ -26,8 +25,29 @@ class UDPTrackerException(SciOpException, RuntimeError):
     """Exception when an error has been encountered with the UDPTrackerClient"""
 
 
-class TrackerHandshakeException(UDPTrackerException):
-    """Error while performing handshake with a UDP bittorrent tracker"""
+class DNSException(SciOpException, RuntimeError):
+    """Error resolving DNS information"""
+
+
+class TrackerConnectionException(UDPTrackerException):
+    """Error connecting to a tracker"""
+
+
+class ScrapeUnpackException(UDPTrackerException):
+    """Scrape results could not be unpacked"""
+
+
+class ScrapeErrorType(StrEnum):
+    dns = "dns"
+    """DNS resolution error"""
+    connection = "connection"
+    """Connection refused"""
+    timeout = "timeout"
+    """Timeout when communicating"""
+    unpack = "unpack"
+    """Error unpacking scraped values"""
+    default = "default"
+    """Unhandled or unknown exception type"""
 
 
 async def http_handler(request: Request, exc: HTTPException) -> Response:
@@ -48,6 +68,7 @@ async def htmx_error(request: Request, exc: HTTPException | RateLimitExceeded) -
     On HTMX errors that aren't 422s (which are handled clientsite),
     retarget the error to a modal
     """
+    from sciop.frontend.templates import templates
 
     headers = {"HX-Retarget": "#error-modal-container", "HX-Reswap": "innerHTML"}
     if error_headers := getattr(exc, "headers", None):
