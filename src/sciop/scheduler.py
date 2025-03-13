@@ -89,7 +89,10 @@ def remove_all_jobs() -> None:
     global scheduler
     if scheduler is not None:
         logger.debug("Clearing jobs")
-        scheduler.remove_all_jobs()
+        try:
+            scheduler.remove_all_jobs()
+        except Exception as e:
+            logger.exception(f"Could not clear jobs: {e}")
     else:
         logger.warning("Scheduler has not been started, can't clear yet")
 

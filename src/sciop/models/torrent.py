@@ -238,6 +238,32 @@ class TorrentFile(TorrentFileBase, TableMixin, table=True):
     def _infohash(self) -> ColumnElement[str]:
         return func.ifnull(self.v2_infohash, self.v1_infohash)
 
+    @hybrid_property
+    def seeders(self) -> Optional[int]:
+        seeders = [link.seeders for link in self.tracker_links if link.seeders is not None]
+        if not seeders:
+            return None
+        return max(seeders)
+
+    @seeders.inplace.expression
+    def _seeders(self) -> ColumnElement[Optional[int]]:
+        return func.max(TorrentTrackerLink.seeders).where(
+            TorrentTrackerLink.torrent_id == self.torrent_id
+        )
+
+    @hybrid_property
+    def leechers(self) -> Optional[int]:
+        leechers = [link.leechers for link in self.tracker_links if link.leechers is not None]
+        if not leechers:
+            return None
+        return max(leechers)
+
+    @leechers.inplace.expression
+    def _leechers(self) -> ColumnElement[Optional[int]]:
+        return func.max(TorrentTrackerLink.leechers).where(
+            TorrentTrackerLink.torrent_id == self.torrent_id
+        )
+
 
 @event.listens_for(TorrentFile, "after_delete")
 def _delete_torrent_file(mapper: Mapper, connection: Connection, target: TorrentFile) -> None:
@@ -272,6 +298,8 @@ class TorrentFileRead(TorrentFileBase):
         index=True,
     )
     announce_urls: list[MaxLenURL] = Field(default_factory=list)
+    seeders: Optional[int] = None
+    leechers: Optional[int] = None
 
     @field_validator("files", mode="before")
     def flatten_files(cls, val: list[FileInTorrentRead]) -> list[str]:
