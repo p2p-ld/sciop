@@ -19,6 +19,7 @@ class TrackerProtocol(StrEnum):
     udp = "udp"
     http = "http"
     https = "https"
+    wss = "wss"
 
 
 class TorrentTrackerLink(TableMixin, table=True):
