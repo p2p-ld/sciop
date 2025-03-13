@@ -451,8 +451,10 @@ async def resolve_host(url: str) -> tuple[str, int]:
         errors.append("protocol is not udp;")
     if len(errors) != 0:
         raise TrackerURLException(f"Unable to parse given url of {url}: " + " ".join(errors))
-    try:
+    if parsed.hostname == "localhost":
+        return "127.0.0.1", port
 
+    try:
         resolver = aiodns.DNSResolver()
         result = await resolver.query(hostname, "A")
         ip = result[0].host
