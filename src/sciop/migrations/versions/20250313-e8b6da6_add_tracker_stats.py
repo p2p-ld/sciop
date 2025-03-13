@@ -101,8 +101,8 @@ def upgrade() -> None:
                 "announce_url": t_url,
                 "created_at": now,
                 "updated_at": now,
-                "protocol": t_url.split('://')[0],
-                "n_errors": 0
+                "protocol": t_url.split("://")[0],
+                "n_errors": 0,
             }
             for t_id, t_url in zip(tracker_ids, tracker_urls)
         ],
@@ -154,7 +154,11 @@ def downgrade() -> None:
     tracker_res = conn.execute(
         sa.text(
             """
-        SELECT torrent_files.torrent_file_id, trackers.announce_url, torrent_files.created_at, torrent_files.updated_at, 
+        SELECT 
+          torrent_tracker_links.torrent_file_id, 
+          trackers.announce_url, 
+          torrent_tracker_links.created_at, 
+          torrent_tracker_links.updated_at 
         FROM torrent_tracker_links
         INNER JOIN trackers ON torrent_tracker_links.tracker_id = trackers.tracker_id
         """
