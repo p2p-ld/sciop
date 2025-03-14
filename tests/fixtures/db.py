@@ -25,6 +25,7 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
     from sciop.app import app
     from sciop.db import get_session
     from sciop.frontend import templates
+    from sciop.models.mixins import EditableMixin
 
     if request.config.getoption("--file-db"):
         engine, session, connection, trans = _file_session()
@@ -64,22 +65,27 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
 
 def _in_memory_session() -> tuple[Engine, Session, None, None]:
     from sciop.db import create_tables
+    from sciop.models.mixins import EditableMixin
 
     engine = create_engine(
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     create_tables(engine, check_migrations=False)
-    return engine, Session(engine), None, None
+    session = Session(engine)
+    session = EditableMixin.editable_session(session)
+    return engine, session, None, None
 
 
 def _file_session() -> tuple[Engine, Session, Connection, Transaction]:
     from sciop.db import engine, maker
+    from sciop.models.mixins import EditableMixin
 
     connection = engine.connect()
 
     # begin a non-ORM transaction
     trans = connection.begin()
     session = maker(bind=connection)
+    session = EditableMixin.editable_session(session)
     return engine, session, connection, trans
 
 

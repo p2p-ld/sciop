@@ -11,7 +11,13 @@ from sqlmodel import Field, Relationship
 from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
 from sciop.models.dataset import UploadDatasetPartLink
-from sciop.models.mixins import ModerableMixin, SearchableMixin, TableMixin, TableReadMixin
+from sciop.models.mixins import (
+    ModerableMixin,
+    SearchableMixin,
+    TableMixin,
+    TableReadMixin,
+    EditableMixin,
+)
 from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import IDField, InputType, SlugStr
 
@@ -110,7 +116,7 @@ class UploadBase(ModerableMixin):
         """
 
 
-class Upload(UploadBase, TableMixin, SearchableMixin, table=True):
+class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, table=True):
     __tablename__ = "uploads"
     __searchable__ = ["description", "method"]
 

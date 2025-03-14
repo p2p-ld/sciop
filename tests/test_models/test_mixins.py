@@ -1,10 +1,11 @@
+import pdb
 from enum import StrEnum
 from typing import Optional
 
 import pytest
 from sqlmodel import Field, Session, select
 
-from sciop.models import Dataset
+from sciop.models import Dataset, Tag
 from sciop.models.mixins.enum import EnumTableMixin
 
 
@@ -151,5 +152,18 @@ def test_visible_to_expression(dataset, account, is_approved, is_removed, sessio
 def test_editable(dataset, session):
     ds = dataset()
     ds.title = "NewTitle"
+    ds.tags.append(Tag(tag="newtag"))
     session.add(ds)
     session.commit()
+
+    ds.title = "ThirdTitle"
+    del ds.tags[0]
+    session.add(ds)
+    session.commit()
+
+    ds.title = "FourthTitle"
+    ds.tags.append(Tag(tag="thirdtag"))
+    session.add(ds)
+    session.commit()
+
+    # FIXME: need to correct the change detection logic to catch cases where the parent table is not modified

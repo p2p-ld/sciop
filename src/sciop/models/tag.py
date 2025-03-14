@@ -2,14 +2,14 @@ from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 
-from sciop.models.mixins import ListlikeMixin, TableMixin
+from sciop.models.mixins import ListlikeMixin, TableMixin, EditableMixin
 from sciop.types import IDField, SlugStr
 
 if TYPE_CHECKING:
     from sciop.models import Dataset
 
 
-class DatasetTagLink(TableMixin, table=True):
+class DatasetTagLink(TableMixin, EditableMixin, table=True):
     __tablename__ = "dataset_tag_links"
     dataset_id: Optional[int] = Field(
         default=None, foreign_key="datasets.dataset_id", primary_key=True

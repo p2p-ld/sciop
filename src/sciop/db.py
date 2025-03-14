@@ -27,7 +27,10 @@ maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=eng
 
 
 def get_session() -> Generator[Session, None, None]:
+    from sciop.models.mixins import EditableMixin
+
     with maker() as session:
+        session = EditableMixin.editable_session(session)
         yield session
     #     session = Session(engine)
     # try:
@@ -172,8 +175,8 @@ def create_seed_data() -> None:
 
         # generate a bunch of approved datasets to test pagination
         n_datasets = session.exec(select(func.count(Dataset.dataset_id))).one()
-        if n_datasets < 200:
-            for _ in range(200):
+        if n_datasets < 10:
+            for _ in range(10):
                 generated_dataset = _generate_dataset(fake)
                 dataset = crud.create_dataset(session=session, dataset_create=generated_dataset)
                 dataset.dataset_created_at = datetime.now(UTC)
