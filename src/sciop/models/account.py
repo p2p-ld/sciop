@@ -10,7 +10,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
-from sciop.models.mixin import EnumTableMixin, SearchableMixin, TableMixin
+from sciop.models.mixins import EnumTableMixin, SearchableMixin, TableMixin
 from sciop.types import IDField, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:

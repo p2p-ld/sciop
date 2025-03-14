@@ -40,6 +40,7 @@ from sciop.models.dataset import (
     ExternalSource,
 )
 from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
+from sciop.models.mystery import _Friedolin
 from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.tag import DatasetTagLink, Tag, TagSummary
 from sciop.models.torrent import (
@@ -53,10 +54,12 @@ from sciop.models.torrent import (
 from sciop.models.tracker import TorrentTrackerLink, Tracker, TrackerCreate
 from sciop.models.upload import Upload, UploadCreate, UploadRead
 
+Account.model_rebuild()
 Dataset.model_rebuild()
 DatasetRead.model_rebuild()
 DatasetPart.model_rebuild()
 DatasetPartRead.model_rebuild()
+Scope.model_rebuild()
 
 __all__ = [
     "Account",
@@ -99,4 +102,5 @@ __all__ = [
     "Upload",
     "UploadCreate",
     "UploadRead",
+    "_Friedolin",
 ]

@@ -13,7 +13,7 @@ from sqlmodel.main import FieldInfo
 
 from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PREFIX_LEN
 from sciop.models.account import Account
-from sciop.models.mixin import (
+from sciop.models.mixins import (
     EditableMixin,
     ModerableMixin,
     SearchableMixin,

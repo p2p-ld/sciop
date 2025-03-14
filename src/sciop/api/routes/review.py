@@ -16,7 +16,7 @@ from sciop.api.deps import (
 from sciop.frontend.templates import jinja
 from sciop.middleware import limiter
 from sciop.models import ModerationAction, Scope, SuccessResponse
-from sciop.models.mixin import _Friedolin
+from sciop.models.mystery import _Friedolin
 
 review_router = APIRouter()
 

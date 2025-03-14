@@ -5,7 +5,7 @@ from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship, SQLModel
 
-from sciop.models.mixin import TableMixin
+from sciop.models.mixins import TableMixin
 from sciop.types import IDField, UTCDateTime
 
 if TYPE_CHECKING:
