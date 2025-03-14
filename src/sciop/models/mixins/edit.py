@@ -24,32 +24,32 @@ class EditableMixin(SQLModel):
 
     __table_args__ = {"sqlite_autoincrement": True}
 
-    _edit_table_configured: ClassVar[bool] = False
-    __edit_table__: ClassVar[Optional[Table]] = None
-    __edit_mapper__: ClassVar[Optional[Mapper]] = None
+    _history_table_configured: ClassVar[bool] = False
+    __history_table__: ClassVar[Optional[Table]] = None
+    __history_mapper__: ClassVar[Optional[Mapper]] = None
 
     @classmethod
-    def edit_table(cls) -> Table:
+    def history_table(cls) -> Table:
         """
         adapted from
         https://docs.sqlalchemy.org/en/20/_modules/examples/versioned_history/history_meta.html
         """
-        if cls.__edit_table__ is None:
-            cls._make_edit_table()
-        return cls.__edit_table__
+        if cls.__history_table__ is None:
+            cls._make_history_table()
+        return cls.__history_table__
 
     @staticmethod
-    def _make_edit_table(mapper: Mapper):
+    def _make_history_table(mapper: Mapper):
         """
-        Makes edit table, adding it to the metadata object and storing in __edit_table__
+        Makes history table, adding it to the metadata object and storing in __history_table__
         """
         cls = mapper.class_
         cls.__table__: Table
-        if cls.__edit_table_name__() in cls.__table__.metadata.tables:
+        if cls.__history_table_name__() in cls.__table__.metadata.tables:
             return
-        elif cls.__edit_table__ is not None:
+        elif cls.__history_table__ is not None:
             return
-        elif cls._edit_table_configured:
+        elif cls._history_table_configured:
             return
         cls._history_mapper_configured = True
 
@@ -57,20 +57,20 @@ class EditableMixin(SQLModel):
 
         table = cls.__table__.to_metadata(
             mapper.local_table.metadata,
-            name=cls.__edit_table_name__(),
+            name=cls.__history_table_name__(),
         )
         table.sqlite_autoincrement = True
         for idx in table.indexes:
             if idx.name is not None:
-                idx.name += "_edits"
+                idx.name += "_history"
             idx.unique = False
 
-        for orig_c, edit_c in zip(cls.__table__.c, table.c):
-            orig_c.info["edit_copy"] = edit_c
-            edit_c.unique = False
-            edit_c.default = edit_c.server_default = None
-            edit_c.autoincrement = False
-            edit_c.primary_key = False
+        for orig_c, history_c in zip(cls.__table__.c, table.c):
+            orig_c.info["history_copy"] = history_c
+            history_c.unique = False
+            history_c.default = history_c.server_default = None
+            history_c.autoincrement = False
+            history_c.primary_key = False
 
             orig_prop = mapper.get_property_by_column(orig_c)
             # carry over column re-mappings
@@ -83,59 +83,59 @@ class EditableMixin(SQLModel):
             if not isinstance(const, (ForeignKeyConstraint,)):
                 table.constraints.discard(const)
 
-        edit_meta = {"edit_meta": True}
+        history_meta = {"history_meta": True}
 
         table.append_column(
             Column(
-                cls.__edit_pk_col_name__(),
+                cls.__history_pk_col_name__(),
                 sqla.Integer,
                 primary_key=True,
                 nullable=True,
                 # autoincrement=True,
-                info=edit_meta,
+                info=history_meta,
             )
         )
 
         table.append_column(
             Column(
-                "edit_created_at", sqla.DateTime, default=lambda: datetime.now(UTC), info=edit_meta
+                "version_created_at", sqla.DateTime, default=lambda: datetime.now(UTC), info=history_meta
             )
         )
 
         model_cfg = cls.model_config.copy()
         model_cfg["table"] = False
-        edit_cls = type(
-            cls.__name__ + "Edits",
+        history_cls = type(
+            cls.__name__ + "History",
             (mapper.base_mapper.class_,),
             {
-                "_edit_table_configured": True,
+                "_history_table_configured": True,
                 "model_config": model_cfg,
             },
         )
 
         reg = registry()
         reg.map_imperatively(
-            edit_cls, table, properties=properties, primary_key=cls.__edit_pk_col_name__()
+            history_cls, table, properties=properties, primary_key=cls.__history_pk_col_name__()
         )
 
-        cls.__edit_table__ = table
+        cls.__history_table__ = table
 
-        cls.__edit_cls__ = edit_cls
+        cls.__history_cls__ = history_cls
 
-        cls.__edit_mapper__ = edit_cls.__mapper__
-
-    @classmethod
-    def __edit_table_name__(cls) -> str:
-        return "__".join([cls.__tablename__, "edits"])
+        cls.__history_mapper__ = history_cls.__mapper__
 
     @classmethod
-    def __edit_pk_col_name__(cls) -> str:
-        return "_".join([cls.__tablename__, "edit_id"])
+    def __history_table_name__(cls) -> str:
+        return "__".join([cls.__tablename__, "history"])
 
     @classmethod
-    def __edit_meta_cols__(cls) -> tuple[str, ...]:
-        """Columns that are added by the edit table and not in the original object"""
-        return cls.__edit_pk_col_name__(), "edit_created_at"
+    def __history_pk_col_name__(cls) -> str:
+        return "_".join([cls.__tablename__, "history_id"])
+
+    @classmethod
+    def __history_meta_cols__(cls) -> tuple[str, ...]:
+        """Columns that are added by the history table and not in the original object"""
+        return cls.__history_pk_col_name__(), "version_created_at"
 
     @classmethod
     def _register_events(cls):
@@ -155,7 +155,7 @@ class EditableMixin(SQLModel):
         # inst = obj.__edit_cls__(**obj.model_dump())
         # session.add(inst)
         connection.execute(
-            sqla.insert(obj.__edit_table__),
+            sqla.insert(obj.__history_table__),
             obj.model_dump(),
         )
         # pdb.set_trace()
@@ -165,7 +165,7 @@ class EditableMixin(SQLModel):
         """Create a"""
 
         obj_mapper = object_mapper(obj)
-        history_mapper = obj.__edit_mapper__
+        history_mapper = obj.__history_mapper__
         history_cls = history_mapper.class_
 
         obj_state = attributes.instance_state(obj)
@@ -179,7 +179,7 @@ class EditableMixin(SQLModel):
                 continue
 
             for hist_col in hm.local_table.c:
-                if "edit_meta" in hist_col.info:
+                if "history_meta" in hist_col.info:
                     continue
 
                 obj_col = om.local_table.c[hist_col.key]
@@ -246,7 +246,7 @@ class EditableMixin(SQLModel):
     def editable_objects(cls, iter_: Iterable[T]) -> Generator[T, None, None]:
         """Instances of editable objects within an iterable of objects"""
         for obj in iter_:
-            if hasattr(obj, "__edit_table__"):
+            if hasattr(obj, "__history_table__"):
                 yield obj
 
     @staticmethod
@@ -264,17 +264,17 @@ class EditableMixin(SQLModel):
     def __init_subclass__(cls, **kwargs) -> None:
         insp: Mapper = inspect(cls, raiseerr=False)
 
-        if not cls._edit_table_configured:
+        if not cls._history_table_configured:
             cls._register_events()
 
         if insp is not None:
-            # cls.__edit_mapper__ = insp
-            cls._make_edit_table(insp)
+            # cls.__history_mapper__ = insp
+            cls._make_history_table(insp)
         else:
 
             @event.listens_for(cls, "after_mapper_constructed")
             def _mapper_constructed(mapper, class_):
-                # class_.__edit_mapper__ = mapper
-                class_._make_edit_table(mapper)
+                # class_.__history_mapper__ = mapper
+                class_._make_history_table(mapper)
 
         super().__init_subclass__(**kwargs)
