@@ -98,7 +98,10 @@ class EditableMixin(SQLModel):
 
         table.append_column(
             Column(
-                "version_created_at", sqla.DateTime, default=lambda: datetime.now(UTC), info=history_meta
+                "version_created_at",
+                sqla.DateTime,
+                default=lambda: datetime.now(UTC),
+                info=history_meta,
             )
         )
 
