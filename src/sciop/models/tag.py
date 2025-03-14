@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 
-from sciop.models.mixin import ListlikeMixin, TableMixin
+from sciop.models.mixins import ListlikeMixin, TableMixin
 from sciop.types import IDField, SlugStr
 
 if TYPE_CHECKING:

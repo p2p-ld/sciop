@@ -1,4 +1,3 @@
-import pdb
 from enum import StrEnum
 from typing import Optional
 
@@ -6,7 +5,7 @@ import pytest
 from sqlmodel import Field, Session, select
 
 from sciop.models import Dataset
-from sciop.models.mixin import EnumTableMixin
+from sciop.models.mixins.enum import EnumTableMixin
 
 
 def test_full_text_search(session):

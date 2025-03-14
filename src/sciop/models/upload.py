@@ -10,7 +10,7 @@ from sqlmodel import Field, Relationship
 from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
 from sciop.models.dataset import UploadDatasetPartLink
-from sciop.models.mixin import ModerableMixin, SearchableMixin, TableMixin, TableReadMixin
+from sciop.models.mixins import ModerableMixin, SearchableMixin, TableMixin, TableReadMixin
 from sciop.types import EscapedStr, IDField, InputType, SlugStr
 
 
