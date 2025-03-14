@@ -23,12 +23,14 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
     from sciop.app import app
     from sciop.db import engine, get_session, maker
     from sciop.frontend import templates
+    from sciop.models.mixins import EditableMixin
 
     connection = engine.connect()
 
     # begin a non-ORM transaction
     trans = connection.begin()
     session = maker(bind=connection)
+    session = EditableMixin.editable_session(session)
 
     def get_session_override() -> Session:
         yield session

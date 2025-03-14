@@ -338,7 +338,7 @@ class DatasetRead(DatasetBase, TableReadMixin):
         return sorted(val)
 
 
-class DatasetURL(SQLModel, table=True):
+class DatasetURL(EditableMixin, table=True):
     __tablename__ = "dataset_urls"
 
     dataset_url_id: IDField = Field(default=None, primary_key=True)
@@ -363,7 +363,7 @@ class ExternalSourceBase(SQLModel):
     )
 
 
-class ExternalSource(ExternalSourceBase, TableMixin, table=True):
+class ExternalSource(ExternalSourceBase, TableMixin, EditableMixin, table=True):
     __tablename__ = "external_sources"
 
     external_source_id: IDField = Field(None, primary_key=True)
@@ -399,7 +399,7 @@ class ExternalIdentifierBase(SQLModel):
             return self.identifier
 
 
-class ExternalIdentifier(ExternalIdentifierBase, TableMixin, table=True):
+class ExternalIdentifier(ExternalIdentifierBase, TableMixin, EditableMixin, table=True):
     __tablename__ = "external_identifiers"
 
     external_identifier_id: IDField = Field(None, primary_key=True)
@@ -456,7 +456,7 @@ class DatasetPartBase(SQLModel):
     )
 
 
-class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, table=True):
+class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, EditableMixin, table=True):
     __tablename__ = "dataset_parts"
     __table_args__ = (UniqueConstraint("dataset_id", "part_slug", name="_dataset_part_slug_uc"),)
 

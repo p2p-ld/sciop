@@ -53,6 +53,7 @@ from sciop.models.torrent import (
 )
 from sciop.models.tracker import TorrentTrackerLink, Tracker, TrackerCreate
 from sciop.models.upload import Upload, UploadCreate, UploadRead
+from sciop.models.mixins import EditableMixin
 
 Account.model_rebuild()
 Dataset.model_rebuild()
@@ -60,6 +61,7 @@ DatasetRead.model_rebuild()
 DatasetPart.model_rebuild()
 DatasetPartRead.model_rebuild()
 Scope.model_rebuild()
+EditableMixin.rebuild_history_models(namespace=locals())
 
 __all__ = [
     "Account",

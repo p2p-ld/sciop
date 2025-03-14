@@ -16,7 +16,7 @@ from sqlmodel import Field, Relationship, SQLModel
 from torf import Torrent as Torrent_
 
 from sciop.config import config
-from sciop.models.mixins import TableMixin
+from sciop.models.mixins import TableMixin, EditableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.types import EscapedStr, IDField, MaxLenURL
 
@@ -107,7 +107,7 @@ class Torrent(Torrent_):
         pass
 
 
-class FileInTorrent(TableMixin, table=True):
+class FileInTorrent(TableMixin, EditableMixin, table=True):
     """A file within a torrent file"""
 
     __tablename__ = "files_in_torrent"
@@ -207,7 +207,7 @@ class TorrentFileBase(SQLModel):
         return {link.tracker.announce_url: link for link in self.tracker_links}
 
 
-class TorrentFile(TorrentFileBase, TableMixin, table=True):
+class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
     __tablename__ = "torrent_files"
 
     torrent_file_id: IDField = Field(None, primary_key=True)
