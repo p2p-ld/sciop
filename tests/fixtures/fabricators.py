@@ -181,7 +181,7 @@ def reviewer(account: C[..., "Account"], session: Session) -> Account:
 @pytest.fixture
 def dataset(
     default_dataset: dict, session: Session
-) -> C[Concatenate[bool, Session | None, P], Dataset]:
+) -> C[Concatenate[bool, bool, Session | None, P], Dataset]:
     def _dataset(
         is_approved: bool = True,
         is_removed: bool = False,
@@ -196,12 +196,6 @@ def dataset(
         dataset = crud.create_dataset(
             session=session_, dataset_create=created, is_approved=is_approved, is_removed=is_removed
         )
-        # dataset.is_approved = is_approved
-        # dataset.is_removed = is_removed
-        # session_.add(dataset)
-        # session_.commit()
-        # session_.flush()
-        # session_.refresh(dataset)
         return dataset
 
     return _dataset
