@@ -39,6 +39,7 @@ from sciop.models.dataset import (
     ExternalIdentifierCreate,
     ExternalSource,
 )
+from sciop.models.mixins import EditableMixin
 from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
 from sciop.models.mystery import _Friedolin
 from sciop.models.rss import TorrentFeed, TorrentItem
@@ -53,7 +54,6 @@ from sciop.models.torrent import (
 )
 from sciop.models.tracker import TorrentTrackerLink, Tracker, TrackerCreate
 from sciop.models.upload import Upload, UploadCreate, UploadRead
-from sciop.models.mixins import EditableMixin
 
 Account.model_rebuild()
 Dataset.model_rebuild()

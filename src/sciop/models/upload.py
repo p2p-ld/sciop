@@ -11,11 +11,11 @@ from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
 from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixins import (
+    EditableMixin,
     ModerableMixin,
     SearchableMixin,
     TableMixin,
     TableReadMixin,
-    EditableMixin,
 )
 from sciop.types import EscapedStr, IDField, InputType, SlugStr
 

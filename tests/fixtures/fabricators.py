@@ -193,13 +193,15 @@ def dataset(
         kwargs = {**default_dataset, **kwargs}
 
         created = DatasetCreate(**kwargs)
-        dataset = crud.create_dataset(session=session_, dataset_create=created)
-        dataset.is_approved = is_approved
-        dataset.is_removed = is_removed
-        session_.add(dataset)
-        session_.commit()
-        session_.flush()
-        session_.refresh(dataset)
+        dataset = crud.create_dataset(
+            session=session_, dataset_create=created, is_approved=is_approved, is_removed=is_removed
+        )
+        # dataset.is_approved = is_approved
+        # dataset.is_removed = is_removed
+        # session_.add(dataset)
+        # session_.commit()
+        # session_.flush()
+        # session_.refresh(dataset)
         return dataset
 
     return _dataset

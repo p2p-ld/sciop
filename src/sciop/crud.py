@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from sqlmodel import Session, select
 
@@ -53,7 +53,11 @@ def authenticate(*, session: Session, username: str, password: str) -> Account |
 
 
 def create_dataset(
-    *, session: Session, dataset_create: DatasetCreate, current_account: Optional[Account] = None
+    *,
+    session: Session,
+    dataset_create: DatasetCreate,
+    current_account: Optional[Account] = None,
+    **kwargs: Any,
 ) -> Dataset:
     is_approved = current_account is not None and current_account.has_scope("submit")
     urls = [DatasetURL(url=url) for url in dataset_create.urls]
@@ -74,16 +78,20 @@ def create_dataset(
     new_tags = [Tag(tag=tag) for tag in new_tags]
     tags = [*existing_tags, *new_tags]
 
+    params = {
+        "is_approved": is_approved,
+        "account": current_account,
+        "urls": urls,
+        "tags": tags,
+        "external_identifiers": external_identifiers,
+        "parts": parts,
+    }
+    # update from kwargs - kwargs are overrides that should mostly be used in tests
+    params.update(kwargs)
+
     db_obj = Dataset.model_validate(
         dataset_create,
-        update={
-            "is_approved": is_approved,
-            "account": current_account,
-            "urls": urls,
-            "tags": tags,
-            "external_identifiers": external_identifiers,
-            "parts": parts,
-        },
+        update=params,
     )
     session.add(db_obj)
     session.commit()

@@ -16,7 +16,7 @@ from sqlmodel import Field, Relationship, SQLModel
 from torf import Torrent as Torrent_
 
 from sciop.config import config
-from sciop.models.mixins import TableMixin, EditableMixin
+from sciop.models.mixins import EditableMixin, TableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.types import EscapedStr, IDField, MaxLenURL
 
