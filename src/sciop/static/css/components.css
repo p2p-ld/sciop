@@ -47,6 +47,17 @@ button,
     }
   }
 
+  &.neutral {
+    border-color: var(--color-neutral);
+    color: var(--color-neutral);
+    box-shadow: 2px 2px 0 var(--color-neutral-darker-1);
+
+    &:hover:not(:disabled){
+      background-color: var(--color-neutral);
+      color: var(--color-neutral-contrast);
+    }
+  }
+
   &.toggle-button {
     &:not(.checked) {
       border-color: var(--color-border-deemphasized);

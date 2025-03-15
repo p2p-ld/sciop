@@ -1,5 +1,6 @@
 {% from "macros/model-table.html" import model_table %}
 {% from "macros/tag.html" import feed_link %}
+{% from "macros/actions.html" import edit_button %}
 {% macro dataset_row(dataset, current_account, config, header_start=1) %}
 <div class="dataset" id="dataset-{{ dataset.slug }}">
     <div class="dataset-topmatter topmatter">
@@ -109,6 +110,15 @@
                     <td class="infobox-key">Record Last Updated</td>
                     <td class="infobox-value">{{ dataset.updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
                 </tr>
+                {% if current_account and dataset.editable_by(current_account) %}
+                {% set edit_url="/datasets/" + dataset.slug + "/edit" %}
+                <tr>
+                    <td class="infobox-key">Actions</td>
+                    <td class="infobox-value">
+                        {{ edit_button(url=delete_url, item_type="dataset", name=dataset.slug)}}
+                    </td>
+                </tr>
+                {% endif %}
                 {% if current_account and current_account.has_scope("review") and not dataset.is_approved %}
                 <tr>
                     <td colspan="2">

@@ -5,3 +5,11 @@
         hx-delete="{{ url }}">Delete
 </button>
 {% endmacro %}
+
+{% macro edit_button(url, item_type="item", name="") %}
+<button class="button edit-button success-button neutral"
+        role="button"
+        aria-roledescription="Deletes the {{ item_type }} {{ name }}"
+        hx-get="{{ url }}">Edit
+</button>
+{% endmacro %}
