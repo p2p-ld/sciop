@@ -7,7 +7,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.exceptions import ScrapeErrorType
-from sciop.models.mixins import EditableMixin, TableMixin
+from sciop.models.mixins import TableMixin
 from sciop.types import IDField, MaxLenURL, UTCDateTime
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ class TrackerProtocol(StrEnum):
     wss = "wss"
 
 
-class TorrentTrackerLink(TableMixin, EditableMixin, table=True):
+class TorrentTrackerLink(TableMixin, table=True):
     __tablename__ = "torrent_tracker_links"
     __table_args__ = (UniqueConstraint("torrent_file_id", "tracker_id"),)
     __table_kwargs__ = {"sqlite_autoincrement": True}

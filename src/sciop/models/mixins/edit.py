@@ -1,16 +1,13 @@
-import pdb
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import ClassVar, Generator, Iterable, Optional, TypeVar, Self
 from inspect import getmro
+from logging import Logger
+from typing import Any, ClassVar, Generator, Iterable, Optional, Self, TypeVar, cast
 
-from copy import copy
 import sqlalchemy as sqla
 from pydantic import ConfigDict
-from pydantic._internal._namespace_utils import MappingNamespace
 from sqlalchemy import (
     Column,
-    Connection,
-    PrimaryKeyConstraint,
     ForeignKeyConstraint,
     Table,
     event,
@@ -21,13 +18,17 @@ from sqlalchemy.orm import (
     RelationshipProperty,
     attributes,
     object_mapper,
-    object_session,
     registry,
 )
-from sqlalchemy.sql.schema import ForeignKey
+from sqlalchemy.orm.attributes import History
 from sqlalchemy.orm.exc import UnmappedColumnError
-from sqlmodel import Session, SQLModel, Field
+from sqlalchemy.orm.relationships import _RelationshipDeclared
+from sqlalchemy.orm.unitofwork import UOWTransaction
+from sqlalchemy.sql.schema import ForeignKey
+from sqlmodel import Field, Session, SQLModel
 from sqlmodel.main import RelationshipInfo
+
+from sciop.logging import init_logger
 
 T = TypeVar("T")
 
@@ -65,177 +66,94 @@ class EditableMixin(SQLModel):
     __history_mapper__: ClassVar[Optional[Mapper]] = None
     __history_cls__: ClassVar[Optional[type["EditableMixin"]]] = None
     __is_history_cls__: ClassVar[bool] = False
+    __editable_logger__: ClassVar[Logger] = False
 
     @classmethod
     def history_table(cls) -> Table:
         """
-        adapted from
-        https://docs.sqlalchemy.org/en/20/_modules/examples/versioned_history/history_meta.html
+        A table that stores the versions of this object when edited
         """
         if cls.__history_table__ is None:
-            cls._make_history_table()
+            raise AttributeError(
+                "History table was not constructed, "
+                "it must be created by an after_mapper_constructed event handler "
+                "to be added to sqlalchemy's registry"
+            )
         return cls.__history_table__
 
-    @staticmethod
-    def _make_history_table(mapper: Mapper):
-        """
-        Makes history table, adding it to the metadata object and storing in __history_table__
-        """
-        cls = mapper.class_
-        cls.__table__: Table
-        if cls.__history_table_name__() in cls.__table__.metadata.tables:
-            return
-        elif cls.__history_table__ is not None:
-            return
-        elif cls._history_table_configured:
-            return
-        cls._history_mapper_configured = True
-
-        properties = {}
-
-        table = cls.__table__.to_metadata(
-            mapper.local_table.metadata,
-            name=cls.__history_table_name__(),
-        )
-        table.sqlite_autoincrement = True
-        for idx in table.indexes:
-            if idx.name is not None:
-                idx.name += "_history"
-            idx.unique = False
-
-        # if cls.__name__ == "Dataset":
-        #     pdb.set_trace()
-
-        # clear existing constraints, recreate them below
-
-        # new_fk_cols = []
-        for orig_c, history_c in zip(cls.__table__.c, table.c):
-            orig_c.info["history_copy"] = history_c
-            history_c.unique = False
-            history_c.default = history_c.server_default = None
-            history_c.autoincrement = False
-
-            # if history_c.foreign_keys:
-            #     # new fk column that refers to the history table
-            #     # the referent table may not have been mapped yet! so we can't access it directly
-            #     # instead operate on string representations
-            #     for fk in list(history_c.foreign_keys):
-            #         table_name = fk.target_fullname.split(".")[0]
-            #         if table_name not in cls.__no_history_tables__:
-            #             fk_table_name = cls.__history_table_name__(table_name)
-            #             fk_col_name = cls.__history_pk_col_name__(table_name)
-            #             new_fk_cols.append(
-            #                 Column(
-            #                     fk_col_name,
-            #                     sqla.Integer,
-            #                     ForeignKey(f"{fk_table_name}.{fk_col_name}"),
-            #                 )
-            #             )
-
-            if history_c.primary_key:
-                # FK to the main tables primary key
-
-                history_c.primary_key = False
-                parent_fk = ForeignKey(orig_c)
-                history_c.foreign_keys.add(parent_fk)
-                table.constraints.add(ForeignKeyConstraint([history_c], [orig_c]))
-
-            orig_prop = mapper.get_property_by_column(orig_c)
-            # carry over column re-mappings
-            if len(orig_prop.columns) > 1 or orig_prop.columns[0].key != orig_prop.key:
-                properties[orig_prop.key] = tuple(
-                    col.info["history_copy"] for col in orig_prop.columns
-                )
-        # if table.name in ("datasets__history", "dataset_tag_links__history"):
-        #     pdb.set_trace()
-        # add new foreign keys created in previous step
-        # for new_fk in new_fk_cols:
-        #
-        #     table.append_column(new_fk)
-
-        # referenced_col = next(iter(new_fk.foreign_keys)).target_fullname
-        # table.constraints.add(ForeignKeyConstraint([new_fk], [referenced_col]))
-
-        # clear any remaining constraints, particularly PKs, recreate below
-        for const in list(table.constraints):
-            if not isinstance(
-                const,
-                (ForeignKeyConstraint,),
-            ):
-                table.constraints.discard(const)
-
-        history_meta = {"history_meta": True}
-
-        # table.primary_key = PrimaryKeyConstraint()
-        # table.append_column(
-        #     Column(
-        #         cls.__history_pk_col_name__(),
-        #         sqla.Integer,
-        #         primary_key=True,
-        #         nullable=False,
-        #         autoincrement=True,
-        #         info=history_meta,
-        #     )
-        # )
-
-        table.append_column(
-            Column(
-                "version_created_at",
-                sqla.DateTime,
-                # default=datetime.now(),
-                server_default=sqla.func.datetime("now", "utc", "subsec"),
-                info=history_meta,
-                primary_key=True,
+    @classmethod
+    def history_cls(cls) -> "EditableMixin":
+        if cls.__history_cls__ is None:
+            raise AttributeError(
+                "History class was not constructed, "
+                "it must be created by an after_mapper_constructed event handler "
+                "to be added to sqlalchemy's registry"
             )
-        )
+        return cls.__history_cls__
 
-        model_cfg = cls.model_config.copy()
-        model_cfg["table"] = False
-        pk_field = Field(default=None, primary_key=True)
-        pk_field.__annotations__ = {int}
-        created_at_field = Field(default=None)
-        created_at_field.__annotations__ = {datetime}
-        annotations = {}
-        for base in reversed(getmro(cls)):
-            if not hasattr(base, "__annotations__"):
-                continue
-            annotations.update(base.__annotations__.copy())
-        annotations.update(cls.__annotations__.copy())
+    @classmethod
+    def get_versions(cls, session: Session) -> list[Self]:
+        """
+        TODO: load versions. need to construct a query that loads matching versions across relations
+        """
+        raise NotImplementedError()
 
-        history_cls = type(
-            cls.__name__ + "History",
-            (mapper.base_mapper.class_,),
-            {
-                "_history_table_configured": True,
-                "__is_history_cls__": True,
-                "model_config": model_cfg,
-                # cls.__history_pk_col_name__(): pk_field,
-                "version_created_at": created_at_field,
-                "__annotations__": {
-                    **annotations,
-                    # cls.__history_pk_col_name__(): int,
-                    "version_created_at": datetime,
-                },
-                **cls.__pydantic_fields__.copy(),
-            },
-        )
+    @classmethod
+    def latest(cls) -> Self:
+        raise NotImplementedError()
 
-        # delete mapped keys
-        cls_field_keys = list(history_cls.__pydantic_fields__.keys())
-        for key in cls_field_keys:
-            if key not in cls.__pydantic_fields__ and key not in cls.__history_meta_cols__():
-                del history_cls.__pydantic_fields__[key]
+    @classmethod
+    def editable_objects(cls, iter_: Iterable[T]) -> Generator[T, None, None]:
+        """Instances of editable objects within an iterable of objects"""
+        for obj in iter_:
+            if hasattr(obj, "__history_table__") and not obj.__is_history_cls__:
+                yield obj
 
-        reg = registry()
-        reg.map_imperatively(
-            history_cls, table, properties=properties, primary_key=table.primary_key
-        )
+    @staticmethod
+    def editable_session(session: Session) -> Session:
+        @event.listens_for(session, "after_flush")
+        def after_flush(session: Session, flush_context: UOWTransaction) -> None:
+            timestamp = datetime.now(UTC)
+            for obj in EditableMixin.editable_objects(session.new):
+                create_version(obj, session, flush_context, timestamp, new=True)
+            for obj in EditableMixin.editable_objects(session.dirty):
+                create_version(obj, session, flush_context, timestamp)
+            for obj in EditableMixin.editable_objects(session.deleted):
+                create_version(obj, session, flush_context, timestamp, deleted=True)
 
-        cls.__history_table__ = table
+        return session
 
-        cls.__history_cls__ = history_cls
+    @classmethod
+    def rebuild_history_models(cls, namespace: Optional[dict] = None) -> None:
+        """
+        Rebuild the history models of all subclasses
 
-        cls.__history_mapper__ = history_cls.__mapper__
+        Doesn't recurse through subclasses,
+        Let's hope we don't have multiple inheritance of this (we shouldn't)
+        """
+        for subcls in cls.__subclasses__():
+            subcls.__history_cls__.model_rebuild(_types_namespace=namespace)
+
+    @classmethod
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        insp: Mapper = inspect(cls, raiseerr=False)
+
+        if not cls._history_table_configured:
+            if insp is not None:
+                _make_mapped_history_table(insp)
+            else:
+
+                @event.listens_for(cls, "after_mapper_constructed")
+                def _mapper_constructed(mapper: Mapper, class_: type[EditableMixin]) -> None:
+                    _make_mapped_history_table(mapper)
+
+        cls.__editable_logger__ = init_logger(f"mixins.editable.{cls.__name__}")
+        super().__init_subclass__(**kwargs)
+
+    @classmethod
+    def __history_meta_cols__(cls) -> tuple[str, ...]:
+        """Columns that are added by the history table and not in the original object"""
+        return "version_created_at", "version_comment"
 
     @classmethod
     def __history_table_name__(cls, tablename: Optional[str] = None) -> str:
@@ -243,251 +161,366 @@ class EditableMixin(SQLModel):
             tablename = cls.__tablename__
         return "__".join([tablename, "history"])
 
-    @classmethod
-    def __history_pk_col_name__(cls, tablename: Optional[str] = None) -> str:
-        if tablename is None:
-            tablename = cls.__tablename__
-        return "_".join([tablename, "history_id"])
 
-    @classmethod
-    def __history_meta_cols__(cls) -> tuple[str, ...]:
-        """Columns that are added by the history table and not in the original object"""
-        return cls.__history_pk_col_name__(), "version_created_at"
+def create_version(
+    obj: "EditableMixin",
+    session: Session,
+    flush_context: UOWTransaction,
+    timestamp: datetime,
+    deleted: bool = False,
+    new: bool = False,
+) -> None:
+    """Create a new version for the passed object"""
 
-    # @classmethod
-    # def _register_events(cls):
-    #
-    #     @event.listens_for(cls, "after_insert")
-    #     def _after_insert(mapper, connection, target):
-    #         cls.create_version(target, connection)
-    #
-    #     @event.listens_for(cls, "after_update")
-    #     def _after_update(mapper, connection, target):
-    #         is_modified = object_session(target).is_modified(target, include_collections=False)
-    #         if is_modified:
-    #             cls.create_version(target, connection)
+    obj_mapper = object_mapper(obj)
+    history_cls = obj.__history_mapper__.class_
 
-    @staticmethod
-    def create_version(obj: "EditableMixin", session: Session):
-        inst = obj.__history_cls__.model_validate(obj)
-        # pdb.set_trace()
-        session.add(inst)
-        # connection.execute(
-        #     sqla.insert(obj.__history_table__),
-        #     obj.model_dump(),
-        # )
-        # pdb.set_trace()
+    obj_changed, attr = _check_if_changed(obj, obj_mapper, new=new)
 
-    @classmethod
-    def latest(cls) -> Self:
-        pass
+    if not obj_changed and not deleted:
+        obj.__editable_logger__.debug("Model is unchanged, not creating version")
+        return
 
-    @classmethod
-    def create_version_sqla(
-        cls, obj: "EditableMixin", session: Session, flush_context, deleted: bool = False
-    ):
-        """Create a"""
+    hist = history_cls(**{**obj.model_dump(), "version_created_at": timestamp})
+    session.add(hist)
 
-        obj_mapper = object_mapper(obj)
-        history_mapper = obj.__history_mapper__
-        history_cls = history_mapper.class_
+    # create versions for any many-to-many link classes that don't receive normal ORM events
+    for prop in obj_mapper.iterate_properties:
+        should_update, history, vals = _should_update_relationship(prop, obj, new=new)
+        if not should_update:
+            continue
 
-        obj_state = attributes.instance_state(obj)
-        attr = {}
+        # if we are adding new stuff, it won't have its autogenerated primary keys yet
+        # so we need to finalize the flush early and pray god does not see
+        # calling this multiple times is fine, it becomes a no-op after the first
+        flush_context.finalize_flush_changes()
 
-        obj_changed = False
+        # Create new history rows for each of the changed relationships
+        link_model_cls = obj.__sqlmodel_relationships__[prop.key].link_model.__history_cls__
+        for v in vals:
+            # if this was just created, it needs to be refreshed
+            # ( which we can do because we prematurely finalized flush changes )
+            if v in history.added:
+                session.refresh(v)
 
-        for om, hm in zip(obj_mapper.iterate_to_root(), history_mapper.iterate_to_root()):
+            link_model_kwargs = _link_model_kwargs(v, obj, prop)
+            link_model_kwargs["version_created_at"] = timestamp
+            link_model_instance = link_model_cls(**link_model_kwargs)
+            session.add(link_model_instance)
 
-            if hm.single:
+
+# --------------------------------------------------
+# Table Creation
+# --------------------------------------------------
+
+
+@dataclass
+class _MetaCol:
+    col: Column
+    field: Field
+    annotation: dict[str, type]
+
+
+def _make_mapped_history_table(mapper: Mapper) -> None:
+    """
+    Makes history table, adding it to the metadata object and storing in __history_table__.
+
+    Top-level creation function for editable tables/classes :)
+    """
+    cls = mapper.class_
+    if cls.__history_table_name__() in cls.__table__.metadata.tables:
+        return
+    elif cls.__history_table__ is not None:
+        return
+    elif cls._history_table_configured:
+        return
+    cls._history_mapper_configured = True
+
+    # make extra cols to be added to table and orm class
+    meta_cols = _make_meta_cols()
+
+    # the table and history class have to be created separately and mapped imperatively
+    # since sqlmodel is sorta abandoned and doesn't handle sqlalchemy declarative stuff well
+    table, properties = _make_table(cls, mapper, meta_cols)
+    history_cls = _make_orm_class(cls, mapper, meta_cols)
+
+    # mapping connects the constructed ORM class to the table and instruments it
+    reg = registry()
+    reg.map_imperatively(history_cls, table, properties=properties, primary_key=table.primary_key)
+
+    cls.__history_table__ = table
+    cls.__history_cls__ = history_cls
+    cls.__history_mapper__ = history_cls.__mapper__
+
+
+def _make_table(
+    cls: type[EditableMixin], mapper: Mapper, meta_cols: dict[str, _MetaCol]
+) -> tuple[Table, dict[str, tuple]]:
+    table = cls.__table__.to_metadata(
+        mapper.local_table.metadata,
+        name=cls.__history_table_name__(),
+    )
+    table = _prepare_table(table)
+    table, properties = _prepare_columns(table, cls.__table__, mapper)
+
+    # append meta cols to table
+    for col in meta_cols.values():
+        table.append_column(col.col)
+    return table, properties
+
+
+def _make_orm_class(
+    cls: type[EditableMixin], mapper: Mapper, meta_cols: dict[str, _MetaCol]
+) -> type[EditableMixin]:
+    # Tell SQLModel to not process this as a table, we'll map it separately
+    model_cfg = cls.model_config.copy()
+    model_cfg["table"] = False
+
+    annotations = _gather_annotations(cls, meta_cols)
+    meta_fields = {k: col.field for k, col in meta_cols.items()}
+
+    history_cls = cast(
+        type[EditableMixin],
+        type(
+            cls.__name__ + "History",
+            (mapper.base_mapper.class_,),
+            {
+                "__is_history_cls__": True,
+                "__annotations__": annotations,
+                "_history_table_configured": True,
+                "model_config": model_cfg,
+                **cls.__pydantic_fields__.copy(),
+                **meta_fields,
+            },
+        ),
+    )
+
+    # delete mapped/instrumented fields from relations
+    # these are incorrectly interpreted as pydantic fields,
+    # but they are abstract and for sqlalchemy's use only
+    cls_field_keys = list(history_cls.__pydantic_fields__.keys())
+    for key in cls_field_keys:
+        if key not in cls.__pydantic_fields__ and key not in cls.__history_meta_cols__():
+            del history_cls.__pydantic_fields__[key]
+
+    return history_cls
+
+
+def _prepare_table(table: Table) -> Table:
+    """Prepare history table by clearing constraints and etc."""
+    table.sqlite_autoincrement = True
+    for idx in table.indexes:
+        if idx.name is not None:
+            idx.name += "_history"
+        idx.unique = False
+
+    # clear any remaining non-fk constraints
+    for const in list(table.constraints):
+        if not isinstance(
+            const,
+            (ForeignKeyConstraint,),
+        ):
+            table.constraints.discard(const)
+    return table
+
+
+def _prepare_columns(
+    table: Table, original_table: Table, mapper: Mapper
+) -> tuple[Table, dict[str, tuple]]:
+    """
+    Prepare columns in history table - removing constraints,
+    turning primary keys into fks
+    """
+    properties = {}
+    for orig_c, history_c in zip(original_table.c, table.c):
+        orig_c.info["history_copy"] = history_c
+        history_c.unique = False
+        history_c.default = history_c.server_default = None
+        history_c.autoincrement = False
+
+        if history_c.primary_key:
+            # convert primary keys in primary tables to FKs
+            history_c.primary_key = False
+            parent_fk = ForeignKey(orig_c)
+            history_c.foreign_keys.add(parent_fk)
+            table.constraints.add(ForeignKeyConstraint([history_c], [orig_c]))
+
+        orig_prop = mapper.get_property_by_column(orig_c)
+        # carry over column re-mappings
+        if len(orig_prop.columns) > 1 or orig_prop.columns[0].key != orig_prop.key:
+            properties[orig_prop.key] = tuple(col.info["history_copy"] for col in orig_prop.columns)
+    return table, properties
+
+
+def _make_meta_cols() -> dict[str, _MetaCol]:
+    """Make extra columns and fields for history tables"""
+    history_meta = {"history_meta": True}
+    cols = {}
+    cols["version_created_at"] = _MetaCol(
+        col=Column(
+            "version_created_at",
+            sqla.DateTime,
+            server_default=sqla.func.datetime("now", "utc", "subsec"),
+            info=history_meta,
+            primary_key=True,
+        ),
+        field=Field(default=None, primary_key=True),
+        annotation={"version_created_at": datetime},
+    )
+    cols["version_comment"] = _MetaCol(
+        col=Column(
+            "version_comment",
+            sqla.Text(length=4096),
+            default=None,
+            info=history_meta,
+            nullable=True,
+        ),
+        field=Field(default=None, nullable=True, max_length=4096),
+        annotation={"version_comment": Optional[str]},
+    )
+
+    return cols
+
+
+def _gather_annotations(
+    cls: type[EditableMixin], meta_cols: dict[str, _MetaCol]
+) -> dict[str, type]:
+    """Gather annotations for the created ORM class"""
+    annotations = {}
+
+    # Annotations from base classes
+    for base in reversed(getmro(cls)):
+        if not hasattr(base, "__annotations__"):
+            continue
+        annotations.update(base.__annotations__.copy())
+    annotations.update(cls.__annotations__.copy())
+
+    # Annotations from extra columns
+    for col in meta_cols.values():
+        annotations.update(col.annotation)
+    return annotations
+
+
+# --------------------------------------------------
+# Version creation
+# --------------------------------------------------
+
+
+def _check_if_changed(
+    obj: EditableMixin, obj_mapper: Mapper, new: bool = False
+) -> tuple[bool, dict]:
+    attr = {}
+
+    obj_state = attributes.instance_state(obj)
+    history_mapper = obj.__history_mapper__
+    obj_changed = False
+
+    # if creating a new object, we're definitely storing a version of the object
+    if new:
+        obj_changed = True
+
+    for om, hm in zip(obj_mapper.iterate_to_root(), history_mapper.iterate_to_root()):
+
+        if hm.single:
+            continue
+
+        for hist_col in hm.local_table.c:
+            if "history_meta" in hist_col.info:
                 continue
 
-            for hist_col in hm.local_table.c:
-                if "history_meta" in hist_col.info:
-                    continue
+            obj_col = om.local_table.c[hist_col.key]
 
-                obj_col = om.local_table.c[hist_col.key]
+            # get the value of the
+            # attribute based on the MapperProperty related to the
+            # mapped column.  this will allow usage of MapperProperties
+            # that have a different keyname than that of the mapped column.
+            try:
+                prop = obj_mapper.get_property_by_column(obj_col)
+            except UnmappedColumnError:
+                # in the case of single table inheritance, there may be
+                # columns on the mapped table intended for the subclass only.
+                # the "unmapped" status of the subclass column on the
+                # base class is a feature of the declarative module.
+                continue
 
-                # get the value of the
-                # attribute based on the MapperProperty related to the
-                # mapped column.  this will allow usage of MapperProperties
-                # that have a different keyname than that of the mapped column.
-                try:
-                    prop = obj_mapper.get_property_by_column(obj_col)
-                except UnmappedColumnError:
-                    # in the case of single table inheritance, there may be
-                    # columns on the mapped table intended for the subclass only.
-                    # the "unmapped" status of the subclass column on the
-                    # base class is a feature of the declarative module.
-                    continue
+            # expired object attributes and also deferred cols might not
+            # be in the dict.  force it to load no matter what by
+            # using getattr().
+            if prop.key not in obj_state.dict:
+                getattr(obj, prop.key)
+            a, u, d = attributes.get_history(obj, prop.key)
 
-                # expired object attributes and also deferred cols might not
-                # be in the dict.  force it to load no matter what by
-                # using getattr().
-                if prop.key not in obj_state.dict:
-                    getattr(obj, prop.key)
-                a, u, d = attributes.get_history(obj, prop.key)
+            if d:
+                attr[prop.key] = d[0]
+                obj_changed = True
+            elif u:
+                attr[prop.key] = u[0]
+            elif a:
+                # if the attribute had no value.
+                attr[prop.key] = a[0]
+                obj_changed = True
 
-                if d:
-                    attr[prop.key] = d[0]
-                    obj_changed = True
-                elif u:
-                    attr[prop.key] = u[0]
-                elif a:
-                    # if the attribute had no value.
-                    attr[prop.key] = a[0]
-                    obj_changed = True
-
-        # if not obj_changed:
-        # not changed, but we have relationships.  OK
-        # check those too
+    # if haven't decided to update yet, check relations for changes
+    if not obj_changed:
         for prop in obj_mapper.iterate_properties:
-
-            # try:
-            #     if isinstance(prop, RelationshipProperty) and prop.key == "tags":
-            #
-            #         history = attributes.get_history(obj, prop.key)
-            # except:
-            #     pdb.set_trace()
-
             if (
                 isinstance(prop, RelationshipProperty)
                 and attributes.get_history(
                     obj, prop.key, passive=attributes.PASSIVE_NO_INITIALIZE
                 ).has_changes()
             ):
-                for p in prop.local_columns:
-                    if p.foreign_keys:
-                        obj_changed = True
-                        break
-                if obj_changed is True:
-                    break
+                obj_changed = True
+                break
 
-        if not obj_changed and not deleted:
-            print(f"unchanged {obj}")
-            return
+    return obj_changed, attr
 
-        version_timestamp = datetime.now(UTC)
-        hist = history_cls(**{**obj.model_dump(), "version_created_at": version_timestamp})
-        # set all the relationship attrs to Nones - they are InstrumentedAttributes not actual defaults
-        # FIXME: move this to model creation time, fix the defaults
-        # for prop in obj_mapper.iterate_properties:
-        #     if isinstance(prop, RelationshipProperty):
-        #         # make a fake empty version of the instrumented adapter class
-        #         pdb.set_trace()
-        #         instrumented_attr = type(getattr(obj, prop.key))()
-        #         instrumented_attr._sa_adapter = copy(getattr(obj, prop.key)._sa_adapter)
-        #
-        #         setattr(hist, prop.key, instrumented_attr)
 
-        # for key, value in attr.items():
-        #     # print(key, value)
-        #     setattr(hist, key, value)
-        session.add(hist)
-        # create versions for any *-to-many classes that wouldn't get caught in the session
-        # as object to update
-        # flattened into a maybe weird looking set of continue statements to avoid computing
-        # history if we don't have to and also avoid being indented to hell
-        # i'll clean this up later
-        for prop in obj_mapper.iterate_properties:
-            if not isinstance(prop, RelationshipProperty) or not isinstance(
-                vals := getattr(obj, prop.key, None), list
-            ):
-                continue
-            if len(vals) == 0:
-                continue
-            history = attributes.get_history(
-                obj, prop.key, passive=attributes.PASSIVE_NO_INITIALIZE
-            )
-            if not history.has_changes():
-                continue
-            # if we are adding new stuff, it won't have its autogenerated primary keys yet
-            # so we need to finalize the flush early and pray god does not see
-            flush_context.finalize_flush_changes()
+def _should_update_relationship(
+    prop: _RelationshipDeclared, obj: EditableMixin, new: bool = False
+) -> tuple[bool, Optional[History], Optional[list[Any]]]:
+    """
+    Check if a relationship property should also get a new version.
 
-            # they make it very difficult to access the link model with sqlalchemy, yet here we are...
-            rel_info: RelationshipInfo = obj.__sqlmodel_relationships__[prop.key]
-            if not rel_info.link_model or not hasattr(rel_info.link_model, "__history_cls__"):
-                continue
+    This is primarily to handle versioned link models that don't get normal ORM events
 
-            # finally...
-            history_cls = rel_info.link_model.__history_cls__
-            for v in vals:
-                # if this was just created, it needs to be refreshed
-                # ( which we can do because we prematurely finalized flush changes)
-                if v in history.added:
-                    session.refresh(v)
+    Checks that a property...
+    - is a relationship
+    - is multivalued
+    - currently has values
+    - has been changed
+    - has a version table/is editable
+    """
+    if not isinstance(prop, RelationshipProperty) or not isinstance(
+        vals := getattr(obj, prop.key, None), list
+    ):
+        return False, None, None
 
-                history_kwargs = {}
+    if len(vals) == 0:
+        return False, None, vals
 
-                # local side
-                local_col_keys = [col.key for col in prop.local_columns]
-                history_kwargs.update({k: getattr(obj, k) for k in local_col_keys})
-                # remote side
-                # FIXME: extremely fragile
-                remote_col = [col for col in prop.remote_side if col.key not in local_col_keys]
-                history_kwargs.update({col.key: getattr(v, col.key) for col in remote_col})
-                # remote_key = list(list(prop.remote_side)[1].foreign_keys)[0].column.key
-                # history_kwargs[remote_key] = getattr(v, remote_key)
+    history = attributes.get_history(obj, prop.key, passive=attributes.PASSIVE_NO_INITIALIZE)
+    if not history.has_changes() and not new:
+        return False, history, vals
 
-                # we have to do this whacky shit because the history class receives
-                # the InstrumentAttributes as defaults, rather than the actual default values lmao
-                # if we ever fix that, change this.
-                # update: fixed that, now need to clean this up
-                history_instance = history_cls(
-                    **{
-                        **rel_info.link_model(**history_kwargs).model_dump(),
-                        "version_created_at": version_timestamp,
-                    }
-                )
-                # if v.tag == "newtag":
-                #     pdb.set_trace()
-                session.add(history_instance)
+    # they make it very difficult to access the link model with sqlalchemy,
+    # yet here we are...
+    rel_info: RelationshipInfo = obj.__sqlmodel_relationships__[prop.key]
+    if not rel_info.link_model or not hasattr(rel_info.link_model, "__history_cls__"):
+        return False, history, vals
 
-    @classmethod
-    def editable_objects(cls, iter_: Iterable[T]) -> Generator[T, None, None]:
-        """Instances of editable objects within an iterable of objects"""
-        for obj in iter_:
-            if hasattr(obj, "__history_table__"):
-                yield obj
+    return True, history, vals
 
-    @staticmethod
-    def editable_session(session):
-        @event.listens_for(session, "after_flush")
-        def after_flush(session, flush_context):
-            # pdb.set_trace()
-            for obj in EditableMixin.editable_objects(session.dirty):
-                EditableMixin.create_version_sqla(obj, session, flush_context)
-            for obj in EditableMixin.editable_objects(session.deleted):
-                EditableMixin.create_version_sqla(obj, session, flush_context, deleted=True)
 
-        return session
-
-    @classmethod
-    def __init_subclass__(cls, **kwargs) -> None:
-        insp: Mapper = inspect(cls, raiseerr=False)
-
-        if not cls._history_table_configured:
-
-            if insp is not None:
-                # cls.__history_mapper__ = insp
-                cls._make_history_table(insp)
-            else:
-
-                @event.listens_for(cls, "after_mapper_constructed")
-                def _mapper_constructed(mapper, class_):
-                    # class_.__history_mapper__ = mapper
-                    class_._make_history_table(mapper)
-
-        super().__init_subclass__(**kwargs)
-
-    @classmethod
-    def rebuild_history_models(cls, namespace: Optional[dict] = None):
-        """
-        Rebuild the history models of all subclasses
-
-        Let's hope we don't have multiple inheritance of this (we shouldn't)
-        """
-        for subcls in cls.__subclasses__():
-            subcls.__history_cls__.model_rebuild(_types_namespace=namespace)
-
+def _link_model_kwargs(v: SQLModel, obj: EditableMixin, prop: _RelationshipDeclared) -> dict:
+    """
+    Link models get kwargs from both the object and the property,
+    and it's not altogether obvious which are which, so we have to do some ~ introspection ~
+    """
+    kwargs = {}
+    # local side
+    local_col_keys = [col.key for col in prop.local_columns]
+    kwargs.update({k: getattr(obj, k) for k in local_col_keys})
+    # remote side
+    remote_col = [col for col in prop.remote_side if col.key not in local_col_keys]
+    kwargs.update({col.key: getattr(v, col.key) for col in remote_col})
+    return kwargs
