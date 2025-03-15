@@ -1,18 +1,21 @@
+import pdb
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from inspect import getmro
 from logging import Logger
-from typing import Any, ClassVar, Generator, Iterable, Optional, Self, TypeVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Generator, Iterable, Optional, Self, TypeVar, cast
 
 import sqlalchemy as sqla
 from pydantic import ConfigDict
 from sqlalchemy import (
     Column,
+    ColumnElement,
     ForeignKeyConstraint,
     Table,
     event,
     inspect,
 )
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import (
     Mapper,
     RelationshipProperty,
@@ -21,6 +24,7 @@ from sqlalchemy.orm import (
     registry,
 )
 from sqlalchemy.orm.attributes import History
+from sqlalchemy.orm.base import Mapped
 from sqlalchemy.orm.exc import UnmappedColumnError
 from sqlalchemy.orm.relationships import _RelationshipDeclared
 from sqlalchemy.orm.unitofwork import UOWTransaction
@@ -29,6 +33,9 @@ from sqlmodel import Field, Session, SQLModel
 from sqlmodel.main import RelationshipInfo
 
 from sciop.logging import init_logger
+
+if TYPE_CHECKING:
+    from sciop.models import Account
 
 T = TypeVar("T")
 
@@ -40,24 +47,11 @@ class EditableMixin(SQLModel):
     In order for this to work, all joined tables must also be editable.
 
     Tables are constructed such that
-    - a new primary key is generated like `{tablename}_history_id`
-    - existing primary keys in the main table are replaced by
-      foreign keys pointing to the main table
-    - existing foreign keys in the main table are replaced by
-      foreign keys pointing to columns in the history tables of those tables
-
-    As such, we expect all relations to *also* be versioned.
-    If they are not versioned, e.g. a tags table where "versions" of a tag would be meaningless,
-    then one must add the name of that table to the __no_history_tables__ list below.
-
-    This is an ugly hack due to the order of operations when mapping classes -
-    at the time we are constructing tables here, the tables we are referencing may not have
-    been constructed yet. So we have no way of passing information from the table itself.
+    - existing primary keys are made into compound primary keys that include a timestamp
+      that matches across any other updates within the session
+    - foreign keys are added to map primary keys in the history table to the primary keys
+      in the parent table
     """
-
-    __no_history_tables__: ClassVar[str] = ("tags", "accounts", "trackers")
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     __table_args__ = {"sqlite_autoincrement": True}
 
@@ -67,6 +61,23 @@ class EditableMixin(SQLModel):
     __history_cls__: ClassVar[Optional[type["EditableMixin"]]] = None
     __is_history_cls__: ClassVar[bool] = False
     __editable_logger__: ClassVar[Logger] = False
+
+    model_config = ConfigDict(
+        ignored_types=(hybrid_method, hybrid_property), arbitrary_types_allowed=True
+    )
+
+    @hybrid_method
+    def editable_by(self, account: Optional["Account"] = None) -> bool:
+        if account is None:
+            return False
+        return self.account == account or account.has_scope("review")
+
+    @editable_by.inplace.expression
+    @classmethod
+    def _editable_by(cls, account: Optional["Account"] = None) -> ColumnElement[bool]:
+        if account is None:
+            return sqla.false()
+        return sqla.or_(cls.account == account, account.has_scope("review") == True)
 
     @classmethod
     def history_table(cls) -> Table:
@@ -278,7 +289,6 @@ def _make_orm_class(
 
     annotations = _gather_annotations(cls, meta_cols)
     meta_fields = {k: col.field for k, col in meta_cols.items()}
-
     history_cls = cast(
         type[EditableMixin],
         type(

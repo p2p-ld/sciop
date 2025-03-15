@@ -57,6 +57,11 @@ async def dataset_show(
     return templates.TemplateResponse(request, "pages/dataset.html", {"dataset": dataset})
 
 
+@datasets_router.get("/{dataset_slug}/edit", response_class=HTMLResponse)
+async def dataset_edit(dataset: RequireVisibleDataset, request: Request):
+    return templates.TemplateResponse(request, "partials/dataset-edit.html", {"dataset": dataset})
+
+
 @datasets_router.get("/{dataset_slug}/partial", response_class=HTMLResponse)
 async def dataset_partial(
     dataset_slug: str,

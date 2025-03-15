@@ -70,6 +70,21 @@ Then, `pdm` can install dependencies, implicitly creating a venv if not already 
 
     pdm install
 
+Sciop can then be run in development mode like
+
+```
+pdm run start
+```
+
+The default credentials in development mode are
+
+- for an `admin`-scoped account:
+  - username: `admin`
+  - password: `adminadmin12`
+- for a `root`-scoped account:
+  - username: `root`
+  - password: `rootroot1234`
+
 ### .env configuration
 
 Sciop is configured using [`pydantic-settings`](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
