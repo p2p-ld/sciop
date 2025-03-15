@@ -11,6 +11,7 @@ from sciop.config import config
 from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
 from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixin import ModerableMixin, SearchableMixin, TableMixin, TableReadMixin
+from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import EscapedStr, IDField, InputType, SlugStr
 
 
@@ -25,11 +26,21 @@ class UploadBase(ModerableMixin):
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=2048,
     )
+    method_html: Optional[str] = Field(
+        "",
+        schema_extra={"json_schema_extra": {"input_type": InputType.none}},
+        max_length=4096,
+    )
     description: Optional[EscapedStr] = Field(
         None,
         description="Any additional information about this dataset upload",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=4096,
+    )
+    description_html: Optional[str] = Field(
+        "",
+        schema_extra={"json_schema_extra": {"input_type": InputType.none}},
+        max_length=8192,
     )
 
     @property
@@ -144,6 +155,10 @@ def _upload_remove_torrent(
             torrent = session.merge(target.torrent)
             session.delete(torrent)
             session.commit()
+
+
+event.listen(Upload, "before_update", render_db_fields_to_html("description", "method"))
+event.listen(Upload, "before_insert", render_db_fields_to_html("description", "method"))
 
 
 class UploadRead(UploadBase, TableReadMixin):

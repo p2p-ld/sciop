@@ -24,7 +24,6 @@ from sciop.exceptions import (
     UDPTrackerException,
 )
 from sciop.logging import init_logger
-from sciop.models import TorrentFile, TorrentTrackerLink, Tracker
 
 MAGIC_VALUE = 0x41727101980
 MAX_SCRAPE = 70
@@ -502,6 +501,7 @@ def gather_scrapable_torrents() -> dict[str, list[str]]:
     Gather scrapable torrents as a {"announce_url": ["infohash", ...]} dict.
     """
     from sciop.db import get_session
+    from sciop.models import TorrentFile, TorrentTrackerLink, Tracker
 
     last_scrape_time = datetime.now(UTC) - timedelta(minutes=config.tracker_scraping.interval)
     statement = (
@@ -558,6 +558,7 @@ async def scrape_tracker(
 
 def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
     from sciop.db import get_session
+    from sciop.models import TorrentFile, TorrentTrackerLink, Tracker
 
     if len(results.responses) == 0:
         return
@@ -604,6 +605,7 @@ def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
 
 def _handle_tracker_error(results: ScrapeResult, logger: Logger) -> None:
     from sciop.db import get_session
+    from sciop.models import Tracker
 
     tracker_errors = [e for e in results.errors if e.announce_url and e.infohash is None]
     if not tracker_errors:
@@ -645,6 +647,7 @@ def _compute_backoff(
 
 def _touch_tracker(url: str, results: ScrapeResult) -> None:
     from sciop.db import get_session
+    from sciop.models import Tracker
 
     errors = [e for e in results.errors]
     any_errors = any([e.announce_url == url for e in errors])

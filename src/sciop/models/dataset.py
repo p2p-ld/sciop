@@ -15,6 +15,7 @@ from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PRE
 from sciop.models.account import Account
 from sciop.models.mixin import ModerableMixin, SearchableMixin, TableMixin, TableReadMixin
 from sciop.models.tag import DatasetTagLink
+from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import (
     AccessType,
     EscapedStr,
@@ -107,6 +108,11 @@ class DatasetBase(ModerableMixin):
     """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=4096,
+    )
+    description_html: Optional[str] = Field(
+        default="",
+        schema_extra={"json_schema_extra": {"input_type": InputType.none}},
+        max_length=8192,
     )
     dataset_created_at: Optional[datetime] = Field(
         None,
@@ -204,6 +210,10 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     scrape_status: ScrapeStatus = "unknown"
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
     parts: list["DatasetPart"] = Relationship(back_populates="dataset")
+
+
+event.listen(Dataset, "before_update", render_db_fields_to_html("description"))
+event.listen(Dataset, "before_insert", render_db_fields_to_html("description"))
 
 
 @event.listens_for(Dataset.is_removed, "set")
@@ -448,6 +458,11 @@ class DatasetPartBase(SQLModel):
         description="Additional information about this part",
         max_length=4096,
     )
+    description_html: Optional[str] = Field(
+        "",
+        schema_extra={"json_schema_extra": {"input_type": InputType.none}},
+        max_length=8192,
+    )
 
 
 class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, table=True):
@@ -481,6 +496,10 @@ def _part_prefix_on_removal(
         target.part_slug = _add_prefix(target.part_slug, target.created_at, "REM")
     else:
         target.part_slug = _remove_prefix(target.part_slug)
+
+
+event.listen(DatasetPart, "before_update", render_db_fields_to_html("description"))
+event.listen(DatasetPart, "before_insert", render_db_fields_to_html("description"))
 
 
 class DatasetPartCreate(DatasetPartBase):
