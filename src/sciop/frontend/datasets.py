@@ -58,13 +58,20 @@ async def dataset_show(
 
 
 @datasets_router.get("/{dataset_slug}/partial", response_class=HTMLResponse)
-async def dataset_partial(request: Request, dataset: RequireVisibleDataset):
+async def dataset_partial(
+    dataset_slug: str,
+    request: Request,
+    dataset: RequireVisibleDataset,
+):
     return templates.TemplateResponse(request, "partials/dataset.html", {"dataset": dataset})
 
 
 @datasets_router.get("/{dataset_slug}/parts", response_class=HTMLResponse)
 async def dataset_parts(
-    request: Request, dataset: RequireVisibleDataset, current_account: CurrentAccount
+    dataset_slug: str,
+    request: Request,
+    dataset: RequireVisibleDataset,
+    current_account: CurrentAccount,
 ):
     parts = [p for p in dataset.parts if p.visible_to(current_account)]
     return templates.TemplateResponse(
@@ -74,6 +81,7 @@ async def dataset_parts(
 
 @datasets_router.get("/{dataset_slug}/parts/add", response_class=HTMLResponse)
 async def dataset_part_add_partial(
+    dataset_slug: str,
     request: Request,
     dataset: RequireVisibleDataset,
     mode: Annotated[L["bulk"] | L["one"], Query()] = "one",
@@ -159,6 +167,8 @@ async def dataset_upload_torrent(
 
 @datasets_router.get("/{dataset_slug}/{dataset_part_slug}", response_class=HTMLResponse)
 async def dataset_part_show(
+    dataset_slug: str,
+    dataset_part_slug: str,
     request: Request,
     dataset: RequireVisibleDataset,
     part: RequireVisibleDatasetPart,
@@ -171,6 +181,8 @@ async def dataset_part_show(
 
 @datasets_router.get("/{dataset_slug}/{dataset_part_slug}/partial", response_class=HTMLResponse)
 async def dataset_part_partial(
+    dataset_slug: str,
+    dataset_part_slug: str,
     request: Request,
     dataset: RequireVisibleDataset,
     part: RequireVisibleDatasetPart,
@@ -183,7 +195,11 @@ async def dataset_part_partial(
 
 @datasets_router.get("/{dataset_slug}/{dataset_part_slug}/uploads", response_class=HTMLResponse)
 async def dataset_part_uploads(
-    request: Request, dataset_slug: str, part: RequireVisibleDatasetPart, session: SessionDep
+    dataset_slug: str,
+    dataset_part_slug: str,
+    request: Request,
+    part: RequireVisibleDatasetPart,
+    session: SessionDep,
 ):
     uploads = crud.get_visible_uploads(dataset=part, session=session)
     return templates.TemplateResponse(

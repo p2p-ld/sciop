@@ -61,7 +61,7 @@ def _prefixed_len(info: FieldInfo) -> int:
 
 
 class DatasetBase(ModerableMixin):
-    title: EscapedStr = Field(
+    title: str = Field(
         title="Title",
         description="""
     Human readable name for dataset. 
@@ -81,7 +81,7 @@ class DatasetBase(ModerableMixin):
         min_length=2,
         max_length=128,
     )
-    publisher: EscapedStr = Field(
+    publisher: str = Field(
         title="Publisher",
         description="""
     The agency, organization, author, group, publisher, etc. that is associated with the dataset.
@@ -100,19 +100,19 @@ class DatasetBase(ModerableMixin):
     is different from the download URL, add ths index here and additional URLs below.
     """,
     )
-    description: Optional[EscapedStr] = Field(
+    description: Optional[str] = Field(
         None,
         title="Description",
         description="""
-    Additional information about the dataset.
+    Additional information about the dataset. Markdown input is supported.
     """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
-        max_length=4096,
+        max_length=16384,
     )
     description_html: Optional[str] = Field(
         default="",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
-        max_length=8192,
+        max_length=32768,
     )
     dataset_created_at: Optional[datetime] = Field(
         None,
@@ -360,7 +360,7 @@ class ExternalSourceBase(SQLModel):
         max_length=256,
     )
     url: MaxLenURL = Field(description="Link to the external source", max_length=512)
-    description: EscapedStr = Field(
+    description: str = Field(
         description="Additional information about the completeness, accuracy, etc. "
         "of the external source",
         max_length=4096,
@@ -452,10 +452,10 @@ class DatasetPartBase(SQLModel):
         min_length=1,
         max_length=256,
     )
-    description: Optional[EscapedStr] = Field(
+    description: Optional[str] = Field(
         None,
         title="Description",
-        description="Additional information about this part",
+        description="Additional information about this part. Markdown input is supported.",
         max_length=4096,
     )
     description_html: Optional[str] = Field(

@@ -73,9 +73,9 @@ bs = partial(BeautifulSoup, features="html.parser")
             bs(
                 '<div class="highlight">'
                 '<pre><span></span><span class="k">def</span><span class="w"> </span>'
-                '<span class="nf">hello</span><span class="p">():</span>'
-                '<br>    <span class="nb">print</span><span class="p">(</span>'
-                '<span class="s2">&quot;Hello, World!&quot;</span><span class="p">)</span><br>'
+                '<span class="nf">hello</span><span class="p">():</span>\n'
+                '    <span class="nb">print</span><span class="p">(</span>'
+                '<span class="s2">&quot;Hello, World!&quot;</span><span class="p">)</span>\n'
                 "</pre></div>"
             ),
         ),
@@ -97,6 +97,39 @@ bs = partial(BeautifulSoup, features="html.parser")
                 """
             ),
         ),
+        pytest.param(
+            dedent(
+                """\
+                    This is a *markdown* description
+                    
+                    And it does markdown things
+                    
+                    <details>
+                    <summary>whats up this is a summary tag</summary>
+                    
+                    ## Markdown in details
+                    
+                    ```python
+                    a = 1 + 1
+                    ```
+                    
+                    </details>
+                """
+            ),
+            bs(
+                "<p>This is a <em>markdown</em> description</p>"
+                "<p>And it does markdown things</p>"
+                "<details>"
+                "<summary>whats up this is a summary tag</summary>"
+                "<h2>Markdown in details</h2>"
+                '<div class="highlight"><pre><span></span><span class="n">a</span> '
+                '<span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> '
+                '<span class="mi">1</span>\n'
+                "</pre></div>"
+                "</details>"
+            ),
+            marks=[pytest.mark.markdown],
+        ),
     ],
     ids=[
         "empty",
@@ -116,10 +149,43 @@ bs = partial(BeautifulSoup, features="html.parser")
         "code_block",
         "python_code_block",
         "details",
+        "details_markdown",
     ],
 )
 def test_render_markdown(text: str, expected_html: str | BeautifulSoup) -> None:
     """We can render markdown, including syntax highlighting"""
+    wrapped_html = render_markdown(text)
+    assert wrapped_html.startswith('<div class="markdown">')
+    assert wrapped_html.endswith("</div>")
+    html = wrapped_html[22:-6]
+    if isinstance(expected_html, str):
+        # strict equivalency for raw strings
+        assert html == expected_html
+    else:
+        # parse and prettify via BS so that whitespace differences don't matter
+        html = bs(html)
+        assert html.prettify() == expected_html.prettify()
+
+
+@pytest.mark.parametrize(
+    "text,expected_html",
+    [
+        (
+            "<script>window.alert('hey');</script>",
+            "&lt;script&gt;window.alert('hey');&lt;/script&gt;",
+        ),
+        (
+            "<div style=\"background: url('https://example.com/tracker.gif');\">hey</div>",
+            "<div>hey</div>",
+        ),
+        (
+            "<img src='https://example.com/tracker.gif'></img>",
+            "<p>&lt;img src='https://example.com/tracker.gif'&gt;&lt;/img&gt;</p>",
+        ),
+    ],
+)
+def test_sanitize_markdown(text: str, expected_html: str | BeautifulSoup) -> None:
+    """Scripts and other xss vectors are removed from user input"""
     wrapped_html = render_markdown(text)
     assert wrapped_html.startswith('<div class="markdown">')
     assert wrapped_html.endswith("</div>")

@@ -55,5 +55,9 @@ async def upload_show(
 
 
 @uploads_router.get("/{infohash}/partial", response_class=HTMLResponse)
-async def upload_partial(request: Request, upload: RequireUpload):
+async def upload_partial(
+    infohash: str,
+    request: Request,
+    upload: RequireUpload,
+):
     return templates.TemplateResponse(request, "partials/upload.html", {"upload": upload})

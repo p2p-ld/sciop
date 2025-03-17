@@ -12,7 +12,7 @@ from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
 from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixin import ModerableMixin, SearchableMixin, TableMixin, TableReadMixin
 from sciop.services.markdown import render_db_fields_to_html
-from sciop.types import EscapedStr, IDField, InputType, SlugStr
+from sciop.types import IDField, InputType, SlugStr
 
 
 class UploadBase(ModerableMixin):
@@ -20,27 +20,28 @@ class UploadBase(ModerableMixin):
     A copy of a dataset
     """
 
-    method: Optional[EscapedStr] = Field(
+    method: Optional[str] = Field(
         None,
-        description="""Description of how the dataset was acquired""",
+        description="""Description of how the dataset was acquired. Markdown input is supported.""",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
-        max_length=2048,
+        max_length=8192,
     )
     method_html: Optional[str] = Field(
         "",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
-        max_length=4096,
+        max_length=16384,
     )
-    description: Optional[EscapedStr] = Field(
+    description: Optional[str] = Field(
         None,
-        description="Any additional information about this dataset upload",
+        description="Any additional information about this dataset upload. "
+        "Markdown input is supported.",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
-        max_length=4096,
+        max_length=8192,
     )
     description_html: Optional[str] = Field(
         "",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
-        max_length=8192,
+        max_length=16384,
     )
 
     @property

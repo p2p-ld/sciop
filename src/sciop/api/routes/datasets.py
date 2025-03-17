@@ -101,7 +101,7 @@ async def datasets_create_form(
 
 
 @datasets_router.get("/{dataset_slug}")
-async def dataset_show(dataset: RequireDataset) -> DatasetRead:
+async def dataset_show(dataset_slug: str, dataset: RequireDataset) -> DatasetRead:
     return dataset
 
 
@@ -149,13 +149,16 @@ async def datasets_create_upload_form(
 
 
 @datasets_router.get("/{dataset_slug}/parts")
-async def part_show_bulk(dataset: RequireDataset, account: CurrentAccount) -> list[DatasetPartRead]:
+async def part_show_bulk(
+    dataset_slug: str, dataset: RequireDataset, account: CurrentAccount
+) -> list[DatasetPartRead]:
     return [p for p in dataset.parts if p.visible_to(account)]
 
 
 @datasets_router.post("/{dataset_slug}/parts")
 @jinja.hx("partials/dataset-part.html")
 async def part_create(
+    dataset_slug: str,
     parts: Annotated[list[SlugStr] | list[DatasetPartCreate] | DatasetPartCreate, Body()],
     account: RequireCurrentAccount,
     dataset: RequireDataset,
@@ -206,6 +209,7 @@ async def part_create(
 @datasets_router.post("/{dataset_slug}/parts_bulk", include_in_schema=False)
 @jinja.hx("partials/dataset-part.html")
 async def _part_create_bulk(
+    dataset_slug: str,
     parts: Annotated[TypedDict("parts", {"parts": str}), Body()],
     account: RequireCurrentAccount,
     dataset: RequireDataset,

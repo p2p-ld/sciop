@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import bleach
 import mistune
@@ -31,10 +31,14 @@ ALLOWED_TAGS = (bleach.sanitizer.ALLOWED_TAGS - {"a"}) | {
     "span",
     "details",
     "summary",
+    "pre",
+    "code",
+    "div",
 }
+ALLOWED_ATTRIBUTES = {"div": ["class"], "span": ["class"]}
 
 
-_cleaner = bleach.Cleaner(tags=ALLOWED_TAGS, attributes={})
+_cleaner = bleach.Cleaner(tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES)
 
 
 class HighlightRenderer(mistune.HTMLRenderer):
@@ -47,14 +51,8 @@ class HighlightRenderer(mistune.HTMLRenderer):
         if not info:
             return f"\n<pre><code>{mistune.escape(code)}</code></pre>\n"
         lexer = get_lexer_by_name(info, stripall=True)
-        formatter = html.HtmlFormatter(lineseparator="<br>")
+        formatter = html.HtmlFormatter(escape=True, lineseparator="\n")
         return highlight(code, lexer, formatter)
-
-    def inline_html(self, html: str) -> str:
-        return _cleaner.clean(html)
-
-    def block_html(self, html: str) -> str:
-        return _cleaner.clean(html)
 
     def heading(self, text: str, level: int, **attrs: Any) -> str:
         if level > MAX_HEADING_LEVEL:
@@ -62,7 +60,7 @@ class HighlightRenderer(mistune.HTMLRenderer):
         return super().heading(text, level, **attrs)
 
 
-_markdown_renderer = mistune.Markdown(renderer=HighlightRenderer(), plugins=[table])
+_markdown_renderer = mistune.Markdown(renderer=HighlightRenderer(escape=False), plugins=[table])
 
 
 def render_markdown(text: str) -> str:
@@ -71,18 +69,22 @@ def render_markdown(text: str) -> str:
     """
 
     converted = _markdown_renderer(text)
+    cleaned = _cleaner.clean(converted)
 
     # wrap in a containing tag for any additional styling
-    cleaned = '<div class="markdown">' + converted.strip() + "</div>"
+    cleaned = '<div class="markdown">' + cleaned.strip() + "</div>"
     return cleaned
 
 
-def render_db_fields_to_html(*fields: InstrumentedAttribute) -> None:
+def render_db_fields_to_html(
+    *fields: InstrumentedAttribute,
+) -> Callable[[Mapper[_O], Connection, _O], None]:
     """Create event listener to render markdown to HTML for fields on a model"""
 
     def _before_update_event_listener(
         mapper: Mapper[_O], connection: Connection, target: _O
     ) -> None:
+        nonlocal fields
         for field in fields:
             html = render_markdown(markdown) if (markdown := getattr(target, field)) else None
             setattr(target, field + "_html", html)
