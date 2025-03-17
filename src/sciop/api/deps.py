@@ -170,7 +170,11 @@ RequireVisibleDatasetPart = Annotated[DatasetPart, Depends(require_visible_datas
 
 
 def require_upload(infohash: str, session: SessionDep) -> Upload:
-    upload = crud.get_upload_from_infohash(session=session, infohash=infohash)
+    try:
+        upload = crud.get_upload_from_infohash(session=session, infohash=infohash)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
     if not upload:
         raise HTTPException(
             status_code=404,

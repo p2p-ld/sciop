@@ -1,6 +1,7 @@
 from typing import Optional
 from urllib.parse import urljoin
 
+import sqlalchemy as sqla
 from pydantic import field_validator
 from sqlalchemy import ColumnElement, event
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -142,6 +143,21 @@ class Upload(UploadBase, TableMixin, SearchableMixin, table=True):
     @seeders.inplace.expression
     def _leechers(self) -> ColumnElement[Optional[int]]:
         return self.torrent._leechers()
+
+    @hybrid_property
+    def is_visible(self) -> bool:
+        """
+        Whether the dataset should be displayed and included in feeds.
+        Override parent method to include uploads that have a torrent file
+        """
+        return self.is_approved and not self.is_removed and self.torrent is not None
+
+    @is_visible.inplace.expression
+    @classmethod
+    def _is_visible(cls) -> ColumnElement[bool]:
+        return sqla.and_(
+            cls.is_approved == True, cls.is_removed == False, cls.torrent != None  # noqa: E711
+        )
 
 
 @event.listens_for(Upload.is_removed, "set")

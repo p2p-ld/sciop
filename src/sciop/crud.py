@@ -316,9 +316,15 @@ def get_uploads_from_tag(
             select(Upload)
             .join(Dataset)
             .where(Dataset.tags.any(tag=tag), Upload.is_visible == visible)
+            .order_by(Upload.created_at.desc())
         )
     else:
-        statement = select(Upload).join(Dataset).where(Dataset.tags.any(tag=tag))
+        statement = (
+            select(Upload)
+            .join(Dataset)
+            .where(Dataset.tags.any(tag=tag))
+            .order_by(Upload.created_at.desc())
+        )
     uploads = session.exec(statement).all()
     return uploads
 
