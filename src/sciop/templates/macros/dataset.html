@@ -120,9 +120,9 @@
         </div>
     </div>
 
-    <p class="dataset-description">
-    {{ dataset.description }}
-    </p>
+    <div class="dataset-description">
+    {{ dataset.description_html | safe }}
+    </div>
 
     {% if dataset.urls | length > 0 %}
     <h{{ header_start + 1 }}>URLs</h{{ header_start + 1 }}>
