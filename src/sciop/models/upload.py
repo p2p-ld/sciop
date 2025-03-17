@@ -22,7 +22,7 @@ class UploadBase(ModerableMixin):
 
     method: Optional[str] = Field(
         None,
-        description="""Description of how the dataset was acquired""",
+        description="""Description of how the dataset was acquired. Markdown input is supported.""",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=8192,
     )
@@ -33,7 +33,8 @@ class UploadBase(ModerableMixin):
     )
     description: Optional[str] = Field(
         None,
-        description="Any additional information about this dataset upload",
+        description="Any additional information about this dataset upload. "
+        "Markdown input is supported.",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=8192,
     )

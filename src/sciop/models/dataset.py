@@ -104,7 +104,7 @@ class DatasetBase(ModerableMixin):
         None,
         title="Description",
         description="""
-    Additional information about the dataset.
+    Additional information about the dataset. Markdown input is supported.
     """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=16384,
@@ -455,7 +455,7 @@ class DatasetPartBase(SQLModel):
     description: Optional[str] = Field(
         None,
         title="Description",
-        description="Additional information about this part",
+        description="Additional information about this part. Markdown input is supported.",
         max_length=4096,
     )
     description_html: Optional[str] = Field(
