@@ -1,4 +1,4 @@
-{% macro form_field(field, field_name, parent_id) %}
+{% macro form_field(field, field_name, parent_id, value=None) %}
 {%- set ns=namespace(minlength=False, maxlength=False, pattern=False) %}
 {%- set required=field.is_required() %}
 {%- if field.metadata %}
@@ -71,6 +71,7 @@
           hx-trigger="input changed delay:250ms"
           list="{{ parent_id }}-{{ field_name }}-autocomplete"
         {%- endif %}
+        {% if value %} value="{{ value }} "{% endif %}"
     >
     {%- if element=="select" %}
     {% for member in field.annotation.__members__.values() %}
@@ -136,7 +137,7 @@
 </a>
 {% endmacro %}
 
-{% macro inner_model_form(id, model, exclude = []) %}
+{% macro inner_model_form(id, model, exclude = [], edit=False) %}
 {% for field_name, field in model.model_fields.items() if field_name not in exclude %}
 {% if not field.json_schema_extra or field.json_schema_extra and field.json_schema_extra.get('input_type', None) != 'none' %}
 <div class="form-item" data-field-name="{{ field_name }}">
@@ -147,15 +148,16 @@
             {{ field_name }}
         {% endif %}
     </label>
-    {{ form_field(field, field_name, id) }}
+    {% set field_value = model|attr(field_name) %}
+    {{ form_field(field, field_name, id, field_value) }}
 </div>
 {% else %}
 {% endif %}
 {% endfor %}
 {% endmacro %}
 
-{% macro model_form(id, model, exclude = []) %}
+{% macro model_form(id, model, exclude = [], edit = False) %}
 <form class="form" id="{{ id }}" hx-ext="form-json">
-  {{ inner_model_form(id, model, exclude) }}
+  {{ inner_model_form(id, model, exclude, edit) }}
 </form>
 {% endmacro %}

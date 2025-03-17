@@ -1,0 +1,13 @@
+{% extends "layouts/default.html" %}
+{% from "macros/model-form.html" import model_form %}
+{% block head %}
+{% with title = "Editing " + dataset.title %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+
+{% set form_id="edit-dataset-" + dataset.slug %}
+{{ model_form(id=form_id, model=dataset, edit=True) }}
+
+{% endblock %}

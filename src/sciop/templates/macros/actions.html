@@ -7,9 +7,8 @@
 {% endmacro %}
 
 {% macro edit_button(url, item_type="item", name="") %}
-<button class="button edit-button success-button neutral"
-        role="button"
-        aria-roledescription="Deletes the {{ item_type }} {{ name }}"
-        hx-get="{{ url }}">Edit
-</button>
+<a class="button edit-button success-button neutral"
+   aria-roledescription="Edits the {{ item_type }} {{ name }}"
+   href="{{ url }}">Edit
+</a>
 {% endmacro %}
