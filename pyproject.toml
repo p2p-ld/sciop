@@ -34,7 +34,7 @@ dependencies = [
     "apscheduler>=3.11.0",
     "aiodns>=3.2.0",
     "mistune>=3.1.2",
-    "bleach>=6.2.0",
+    "nh3>=0.2.21",
     "pygments>=2.19.1",
 ]
 requires-python = ">=3.11"
@@ -161,6 +161,8 @@ line-length = 100
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+addopts = "--strict-markers"
 markers = """
   selenium: tests that use the selenium webdriver
+  markdown: tests that render markdown within HTML
 """
