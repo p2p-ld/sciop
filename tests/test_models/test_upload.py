@@ -64,3 +64,23 @@ def test_upload_method_html_rendering(upload, session):
     session.refresh(ul)
     assert ul.method == new_method
     assert ul.method_html == '<div class="markdown"><p>A different method</p></div>'
+
+
+def test_upload_without_torrent_visibility(upload, session):
+    """
+    An upload that miraculously loses its torrent should not be visible
+    """
+    ul = upload(is_approved=True)
+    assert ul.torrent is not None
+    assert ul.is_visible
+    session.delete(ul.torrent)
+    session.commit()
+    session.refresh(ul)
+    assert ul.is_approved
+    assert not ul.is_removed
+    assert ul.torrent is None
+    assert not ul.is_visible
+
+    # and the hybrid property
+    visible_uls = session.exec(select(Upload).where(Upload.is_visible == True)).all()
+    assert len(visible_uls) == 0
