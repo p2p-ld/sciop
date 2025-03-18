@@ -7,8 +7,14 @@ from selenium.webdriver.support.wait import WebDriverWait
 from sciop.models import DatasetPart
 
 
-def _wait_until_located(driver: Firefox, locator: str, by: By = By.ID, timeout: float = 10) -> None:
-    element_present = EC.visibility_of_element_located((by, locator))
+def _wait_until_located(
+    driver: Firefox, locator: str, by: By = By.ID, timeout: float = 10, type: str = "visible"
+) -> None:
+    if type == "clickable":
+        element_present = EC.element_to_be_clickable((by, locator))
+    else:
+        element_present = EC.visibility_of_element_located((by, locator))
+
     WebDriverWait(driver, timeout).until(element_present)
 
 
@@ -22,7 +28,7 @@ async def test_add_part(default_db, driver_as_admin):
     driver: Firefox = driver_as_admin
     driver.get("http://127.0.0.1:8080/datasets/default")
 
-    _wait_until_located(driver, "add-one-button", by=By.CLASS_NAME)
+    _wait_until_located(driver, "add-one-button", by=By.CLASS_NAME, type="clickable")
     add_one = driver.find_element(By.CLASS_NAME, "add-one-button")
     add_one.click()
 
@@ -54,7 +60,7 @@ async def test_add_parts(default_db, driver_as_admin):
     driver: Firefox = driver_as_admin
     driver.get("http://127.0.0.1:8080/datasets/default")
 
-    _wait_until_located(driver, "add-bulk-button", by=By.CLASS_NAME)
+    _wait_until_located(driver, "add-bulk-button", by=By.CLASS_NAME, type="clickable")
     add_bulk = driver.find_element(By.CLASS_NAME, "add-bulk-button")
     add_bulk.click()
 
