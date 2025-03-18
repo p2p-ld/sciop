@@ -101,10 +101,10 @@ async def run_server(session: Session) -> Server_:
 
 @pytest.fixture()
 async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriver.Firefox:
-    if os.environ.get("IN_CI", False):
-        executable_path = "/snap/bin/firefox.geckodriver"
-    else:
-        executable_path = GeckoDriverManager().install()
+    # if os.environ.get("IN_CI", False):
+    #     executable_path = "/snap/bin/firefox.geckodriver"
+    # else:
+    executable_path = GeckoDriverManager().install()
     options = FirefoxOptions()
     options.add_argument("--disable-dev-shm-usage")
     if not request.config.getoption("--show-browser"):
