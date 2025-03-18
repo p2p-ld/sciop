@@ -58,7 +58,7 @@ async def test_add_parts(default_db, driver_as_admin):
     add_bulk = driver.find_element(By.CLASS_NAME, "add-bulk-button")
     add_bulk.click()
 
-    _wait_until_located(driver, 'textarea[name="parts"]', By.CSS_SELECTOR)
+    _wait_until_located(driver, "dataset-parts-add-container", By.CLASS_NAME)
     slugs_input = driver.find_element(By.CSS_SELECTOR, 'textarea[name="parts"]')
     slugs_input.send_keys("one-part\ntwo-part\nthree-part")
     driver.find_element(
