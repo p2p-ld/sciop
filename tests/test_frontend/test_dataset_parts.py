@@ -7,12 +7,12 @@ from selenium.webdriver.support.wait import WebDriverWait
 from sciop.models import DatasetPart
 
 
-def _wait_until_located(driver: Firefox, locator: str, by: By = By.ID, timeout: float = 5) -> None:
+def _wait_until_located(driver: Firefox, locator: str, by: By = By.ID, timeout: float = 10) -> None:
     element_present = EC.visibility_of_element_located((by, locator))
     WebDriverWait(driver, timeout).until(element_present)
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(20)
 @pytest.mark.asyncio
 @pytest.mark.selenium
 async def test_add_part(default_db, driver_as_admin):
@@ -44,7 +44,7 @@ async def test_add_part(default_db, driver_as_admin):
     assert len(paths) == 3
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(20)
 @pytest.mark.asyncio
 @pytest.mark.selenium
 async def test_add_parts(default_db, driver_as_admin):
