@@ -69,8 +69,41 @@ def get_current_account(session: SessionDep, token: TokenDep) -> Optional[Accoun
         return None
 
 
+def get_current_dataset(session: SessionDep, dataset_slug: str) -> Optional[Dataset]:
+    dataset = crud.get_dataset(session=session, dataset_slug=dataset_slug)
+    return dataset
+
+
+def get_current_upload(session: SessionDep, infohash: str) -> Optional[Upload]:
+    try:
+        upload = crud.get_upload_from_infohash(session=session, infohash=infohash)
+    except ValueError:
+        # from e.g. if the infohash was just a random string or something
+        return None
+    return upload
+
+
 RequireCurrentAccount = Annotated[Account, Depends(require_current_account)]
 CurrentAccount = Annotated[Optional[Account], Depends(get_current_account)]
+CurrentDataset = Annotated[Optional[Dataset], Depends(get_current_dataset)]
+CurrentUpload = Annotated[Optional[Upload], Depends(get_current_upload)]
+
+
+def require_editable_item(dataset: CurrentDataset, upload: CurrentUpload) -> Dataset | Upload:
+    """Gathering dependency to get one of a kind of editable item, depending on the url params present"""
+    if dataset is None and upload is None:
+        raise HTTPException(404, detail="No editable item found")
+    elif dataset is not None and upload is not None:
+        raise HTTPException(500, detail="Ambiguous editable item")
+    elif upload is not None:
+        return upload
+    elif dataset is not None:
+        return dataset
+    else:
+        raise HTTPException(500, detail="Logically it should be impossible to be here!")
+
+
+RequireEditableItem = Annotated[Dataset | Upload, Depends(require_editable_item)]
 
 
 def require_current_active_root(current_account: RequireCurrentAccount) -> Account:
@@ -97,14 +130,23 @@ def require_current_active_uploader(current_account: RequireCurrentAccount) -> A
     return current_account
 
 
+def require_current_editable_by(
+    current_account: RequireCurrentAccount, editable: RequireEditableItem
+) -> Account:
+    if editable.editable_by(current_account):
+        return current_account
+    else:
+        raise HTTPException(401, "Not permitted to edit")
+
+
 RequireRoot = Annotated[Account, Depends(require_current_active_root)]
 RequireAdmin = Annotated[Account, Depends(require_current_active_admin)]
 RequireReviewer = Annotated[Account, Depends(require_current_active_reviewer)]
 RequireUploader = Annotated[Account, Depends(require_current_active_uploader)]
+RequireEditableBy = Annotated[Account, Depends(require_current_editable_by)]
 
 
-def require_dataset(dataset_slug: str, session: SessionDep) -> Dataset:
-    dataset = crud.get_dataset(session=session, dataset_slug=dataset_slug)
+def require_dataset(dataset: CurrentDataset, dataset_slug: str) -> Dataset:
     if not dataset:
         raise HTTPException(
             status_code=404,
@@ -169,13 +211,8 @@ def require_visible_dataset_part(
 RequireVisibleDatasetPart = Annotated[DatasetPart, Depends(require_visible_dataset_part)]
 
 
-def require_upload(infohash: str, session: SessionDep) -> Upload:
-    try:
-        upload = crud.get_upload_from_infohash(session=session, infohash=infohash)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-    if not upload:
+def require_upload(upload: CurrentUpload, infohash: str) -> Upload:
+    if upload is None:
         raise HTTPException(
             status_code=404,
             detail=f"No such upload {infohash} exists!",

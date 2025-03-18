@@ -63,10 +63,18 @@ def template_nonce(request: Request) -> dict[L["nonce"], str]:
 templates = Jinja2Templates(
     directory=TEMPLATE_DIR,
     context_processors=[template_account, template_config, template_models, template_nonce],
+    trim_blocks=True,
+    lstrip_blocks=True,
+    autoescape=True,
 )
 templates.env.globals["models"] = models
 templates.env.globals["now"] = datetime.now
 templates.env.globals["UTC"] = UTC
+templates.env.tests.update(
+    {
+        "is_list": lambda x: isinstance(x, list),
+    }
+)
 
 jinja = Jinja(templates)
 """fasthx decorator, see https://github.com/volfpeter/fasthx"""

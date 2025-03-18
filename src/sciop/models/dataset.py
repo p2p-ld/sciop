@@ -1,10 +1,10 @@
 import hashlib
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union, cast
 
 from annotated_types import MaxLen
-from pydantic import TypeAdapter, computed_field, field_validator, model_validator
+from pydantic import BaseModel, TypeAdapter, computed_field, field_validator, model_validator
 from sqlalchemy import event
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
@@ -76,6 +76,7 @@ class DatasetBase(ModerableMixin):
     """,
         min_length=3,
         max_length=512,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     slug: SlugStr = Field(
         title="Dataset Slug",
@@ -87,6 +88,7 @@ class DatasetBase(ModerableMixin):
     """,
         min_length=2,
         max_length=128,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     publisher: str = Field(
         title="Publisher",
@@ -96,7 +98,9 @@ class DatasetBase(ModerableMixin):
     using the autocompleted values if any correct matches are listed.
     """,
         max_length=256,
-        schema_extra={"json_schema_extra": {"autocomplete": "publisher"}},
+        schema_extra={
+            "json_schema_extra": {"autocomplete": "publisher", "input_type": InputType.input}
+        },
     )
     homepage: Optional[MaxLenURL] = Field(
         None,
@@ -106,6 +110,7 @@ class DatasetBase(ModerableMixin):
     If the dataset has multiple associated URLs, if e.g. an index page with metadata
     is different from the download URL, add ths index here and additional URLs below.
     """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     description: Optional[str] = Field(
         None,
@@ -127,6 +132,7 @@ class DatasetBase(ModerableMixin):
         description="""
         Datetime when dataset was originally created in UTC. May be approximate or left blank.
         """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     dataset_updated_at: Optional[UTCDateTime] = Field(
         None,
@@ -134,6 +140,7 @@ class DatasetBase(ModerableMixin):
         description="""
         Datetime when the dataset was last updated in UTC. May be approximate or left blank
         """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     source_type: SourceType = Field(
         "unknown",
@@ -143,6 +150,7 @@ class DatasetBase(ModerableMixin):
     Use "web" if the dataset is an archive of websites themselves,
     and "http" if the dataset is some other raw data available via http download.
     """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.select}},
     )
     source_available: bool = Field(
         default=True,
@@ -151,6 +159,7 @@ class DatasetBase(ModerableMixin):
         Whether the canonical source of this dataset is still available.
         Default true unless known to be taken down.
         """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     last_seen_at: Optional[UTCDateTime] = Field(
         default=None,
@@ -162,6 +171,7 @@ class DatasetBase(ModerableMixin):
         Otherwise, leave blank.
         Times should be in UTC.
         """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     source_access: AccessType = Field(
         default="unknown",
@@ -170,6 +180,7 @@ class DatasetBase(ModerableMixin):
     How the canonical source can be accessed, whether it needs credentials
     or is intended to be public.
     """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.select}},
     )
     scarcity: Scarcity = Field(
         default="unknown",
@@ -179,6 +190,7 @@ class DatasetBase(ModerableMixin):
     Datasets that are likely to only exist in one or a few places are prioritized over
     those that are widely available.
     """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.select}},
     )
     threat: Threat = Field(
         default="unknown",
@@ -189,6 +201,7 @@ class DatasetBase(ModerableMixin):
     or specific threats made against them are prioritized over those 
     for whom no specific threat exists.
     """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.select}},
     )
 
 
@@ -279,6 +292,22 @@ class DatasetCreate(DatasetBase):
         title="Part(s)",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
     )
+
+    @classmethod
+    def from_dataset(cls, dataset: Dataset) -> "DatasetCreate":
+        """Reverse a dataset into its creation form, e.g. for editing :)"""
+        return DatasetCreate.model_validate(
+            dataset,
+            update={
+                "urls": [url.url for url in dataset.urls],
+                "tags": [tag.tag for tag in dataset.tags],
+                "external_identifiers": [
+                    ExternalIdentifierCreate.model_validate(ex)
+                    for ex in dataset.external_identifiers
+                ],
+                "parts": [DatasetPartCreate.model_validate(part) for part in dataset.parts],
+            },
+        )
 
     @field_validator("urls", "tags", mode="before")
     def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
@@ -523,6 +552,13 @@ class DatasetPartCreate(DatasetPartBase):
     def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
         return _split_lines(value)
 
+    @field_validator("paths", mode="before")
+    def unpack_dataset_path(cls, value: list[str] | list["DatasetPath"]) -> list[PathLike]:
+        if isinstance(value[0], DatasetPath):
+            value = cast(list[DatasetPath], value)
+            value = [v.path for v in value]
+        return value
+
     @field_validator("part_slug", mode="after")
     def not_reserved_slug(cls, slug: str) -> str:
         assert slug not in DATASET_PART_RESERVED_SLUGS, f"slug {slug} is reserved"
@@ -557,18 +593,24 @@ class DatasetPath(TableMixin, table=True):
     path: str = Field(max_length=1024)
 
 
-def _split_lines(value: str | list[str]) -> Optional[list[str]]:
+def _split_lines(value: str | list[str] | BaseModel) -> Optional[list[str] | BaseModel]:
     if isinstance(value, str):
         if not value or value == "":
             return []
         value = value.splitlines()
-    elif isinstance(value, list) and len(value) == 1:
-        if "\n" in value[0]:
-            value = value[0].splitlines()
-        elif value[0] == "":
-            return []
+    elif isinstance(value, list):
+        if len(value) == 1 and isinstance(value[0], str):
+            if "\n" in value[0]:
+                value = value[0].splitlines()
+            elif value[0] == "":
+                return []
+        elif isinstance(value[0], SQLModel):
+            return value
     elif value is None:
         return []
+    elif isinstance(value, SQLModel):
+        # models aren't raw string input!
+        return value
 
     # filter empty strings
     value = [v for v in value if v and v.strip()]

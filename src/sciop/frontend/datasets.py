@@ -14,13 +14,14 @@ from sciop import crud
 from sciop.api.deps import (
     CurrentAccount,
     RequireCurrentAccount,
+    RequireEditableBy,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
     SessionDep,
 )
 from sciop.api.routes.upload import upload_torrent
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, DatasetRead, UploadCreate
+from sciop.models import Dataset, DatasetCreate, DatasetRead, UploadCreate
 
 datasets_router = APIRouter(prefix="/datasets")
 
@@ -58,8 +59,16 @@ async def dataset_show(
 
 
 @datasets_router.get("/{dataset_slug}/edit", response_class=HTMLResponse)
-async def dataset_edit(dataset: RequireVisibleDataset, request: Request):
-    return templates.TemplateResponse(request, "pages/dataset-edit.html", {"dataset": dataset})
+async def dataset_edit(
+    dataset_slug: str,
+    dataset: RequireVisibleDataset,
+    current_account: RequireEditableBy,
+    request: Request,
+):
+    dataset_create = DatasetCreate.from_dataset(dataset)
+    return templates.TemplateResponse(
+        request, "pages/dataset-edit.html", {"dataset": dataset_create}
+    )
 
 
 @datasets_router.get("/{dataset_slug}/partial", response_class=HTMLResponse)

@@ -109,7 +109,8 @@ class Threat(StrEnum):
 
 
 class InputType(StrEnum):
-    text = "text"
+    input = "input"
+    select = "select"
     textarea = "textarea"
     tokens = "tokens"
     model_list = "model_list"

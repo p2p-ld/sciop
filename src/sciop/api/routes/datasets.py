@@ -12,6 +12,7 @@ from sciop.api.deps import (
     CurrentAccount,
     RequireCurrentAccount,
     RequireDataset,
+    RequireEditableBy,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
     SessionDep,
@@ -103,6 +104,14 @@ async def datasets_create_form(
 @datasets_router.get("/{dataset_slug}")
 async def dataset_show(dataset_slug: str, dataset: RequireDataset) -> DatasetRead:
     return dataset
+
+
+@datasets_router.patch("/{dataset_slug}")
+async def dataset_edit(
+    dataset_slug: str, dataset: RequireVisibleDataset, current_account: RequireEditableBy
+) -> DatasetRead:
+    """Edit a dataset!"""
+    raise NotImplementedError("not quite done!")
 
 
 @datasets_router.post("/{dataset_slug}/uploads")
