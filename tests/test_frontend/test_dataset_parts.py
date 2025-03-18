@@ -7,14 +7,14 @@ from selenium.webdriver.support.wait import WebDriverWait
 from sciop.models import DatasetPart
 
 
-def _wait_until_located(driver: Firefox, locator: str, by: By = By.ID, timeout: float = 3) -> None:
+def _wait_until_located(driver: Firefox, locator: str, by: By = By.ID, timeout: float = 5) -> None:
     element_present = EC.visibility_of_element_located((by, locator))
     WebDriverWait(driver, timeout).until(element_present)
 
 
 @pytest.mark.timeout(15)
 @pytest.mark.selenium
-def test_add_part(driver_as_admin, default_db):
+def test_add_part(default_db, driver_as_admin):
     """
     A single dataset part can be added with a form as admin
     """
@@ -45,7 +45,7 @@ def test_add_part(driver_as_admin, default_db):
 
 @pytest.mark.timeout(15)
 @pytest.mark.selenium
-def test_add_parts(driver_as_admin, default_db):
+def test_add_parts(default_db, driver_as_admin):
     """
     A single dataset part can be added with a form as admin
     """

@@ -18,57 +18,37 @@ from sqlmodel import Session
 from starlette.testclient import TestClient
 from uvicorn import Config, Server
 from webdriver_manager import firefox
-from webdriver_manager.core.download_manager import DownloadManager
 from webdriver_manager.core.driver_cache import DriverCacheManager
-from webdriver_manager.core.os_manager import OperationSystemManager
 
 
-class GeckoDriver(firefox.GeckoDriver):
-    """Override parent to not fail if we get github ratelimited..."""
+class LazyCacheManager(DriverCacheManager):
+    """Cache manager that doesn't fail if github ratelimit exceeded"""
 
-    def get_latest_release_version(self) -> Optional[str]:
-        try:
-            resp = self._http_client.get(url=self.latest_release_url, headers=self.auth_header)
-            return resp.json()["tag_name"]
-        except Exception:
-            # *completely fine pretty much all the time*
+    def find_driver(self, driver: firefox.GeckoDriver) -> Optional[str]:
+        """Find driver by '{os_type}_{driver_name}_{driver_version}_{browser_version}'."""
+        browser_type = driver.get_browser_type()
+        browser_version = self._os_system_manager.get_browser_version_from_os(browser_type)
+        if not browser_version:
             return None
 
+        metadata = self.load_metadata_content()
+        try:
+            key = self.__get_metadata_key(driver)
+            if key not in metadata:
+                return None
+        except Exception as e:
+            if len(metadata.keys()) > 0:
+                key = list(metadata.keys())[-1]
+            else:
+                raise e
 
-class GeckoDriverManager(firefox.GeckoDriverManager):
-    def __init__(
-        self,
-        version: Optional[str] = None,
-        name: str = "geckodriver",
-        url: str = "https://github.com/mozilla/geckodriver/releases/download",
-        latest_release_url: str = "https://api.github.com/repos/mozilla/geckodriver/releases/latest",
-        mozila_release_tag: str = "https://api.github.com/repos/mozilla/geckodriver/releases/tags/{0}",
-        download_manager: Optional[DownloadManager] = None,
-        cache_manager: Optional[DriverCacheManager] = None,
-        os_system_manager: Optional[OperationSystemManager] = None,
-    ):
-        kwargs = locals()
-        _ = kwargs.pop("self")
-        super().__init__(
-            version=version,
-            name=name,
-            url=url,
-            latest_release_url=latest_release_url,
-            mozila_release_tag=mozila_release_tag,
-            download_manager=download_manager,
-            cache_manager=cache_manager,
-            os_system_manager=os_system_manager,
-        )
+        driver_info = metadata[key]
+        path = driver_info["binary_path"]
+        if not os.path.exists(path):
+            return None
 
-        self.driver = GeckoDriver(
-            driver_version=version,
-            name=name,
-            url=url,
-            latest_release_url=latest_release_url,
-            mozila_release_tag=mozila_release_tag,
-            http_client=self.http_client,
-            os_system_manager=os_system_manager,
-        )
+        path = driver_info["binary_path"]
+        return path
 
 
 @pytest.fixture()
@@ -145,6 +125,10 @@ async def run_server(session: Session) -> Server_:
     config = Config(
         app=app,
         port=8080,
+        workers=1,
+        reload=False,
+        access_log=False,
+        log_config=None,
     )
     server = Server_(config=config)
     await asyncio.sleep(0.1)
@@ -157,7 +141,7 @@ async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriv
     # if os.environ.get("IN_CI", False):
     #     executable_path = "/snap/bin/firefox.geckodriver"
     # else:
-    executable_path = GeckoDriverManager().install()
+    executable_path = firefox.GeckoDriverManager(cache_manager=LazyCacheManager()).install()
     options = FirefoxOptions()
     options.add_argument("--disable-dev-shm-usage")
     if not request.config.getoption("--show-browser"):

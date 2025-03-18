@@ -28,9 +28,7 @@ jobs:
           cache: 'pip'
       - name: Install deps
         run: pip install -e .[test]
-      - name: Install Firefox
-#        run: |
-#          sudo apt-get update && sudo apt-get install firefox xvfb -y
+      - name: Install XVFB
         run: |
           sudo apt-get update && sudo apt-get install xvfb -y
       - name: Run tests

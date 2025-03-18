@@ -97,7 +97,7 @@ bs = partial(BeautifulSoup, features="html.parser")
                 """
             ),
         ),
-        pytest.param(
+        (
             dedent(
                 """\
                     This is a *markdown* description
@@ -128,7 +128,6 @@ bs = partial(BeautifulSoup, features="html.parser")
                 "</pre></div>"
                 "</details>"
             ),
-            marks=[pytest.mark.markdown],
         ),
     ],
     ids=[
