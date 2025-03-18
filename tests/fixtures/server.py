@@ -50,6 +50,18 @@ class LazyCacheManager(DriverCacheManager):
         path = driver_info["binary_path"]
         return path
 
+    def __get_metadata_key(self, driver: firefox.GeckoDriver) -> str:
+        if self._metadata_key:
+            return self._metadata_key
+
+        driver_version = self.get_cache_key_driver_version(driver)
+        browser_version = driver.get_browser_version_from_os()
+        browser_version = browser_version if browser_version else ""
+        self._metadata_key = (
+            f"{self.get_os_type()}_{driver.get_name()}_{driver_version}" f"_for_{browser_version}"
+        )
+        return self._metadata_key
+
 
 @pytest.fixture()
 def client(session: Session) -> TestClient:
