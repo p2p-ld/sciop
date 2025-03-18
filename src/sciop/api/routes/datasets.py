@@ -225,7 +225,8 @@ async def _part_create_bulk(
     parts = parts["parts"]
     parts = [p.strip() for p in parts.split("\n") if p.strip()]
     return await part_create(
-        parts,
+        dataset_slug=dataset_slug,
+        parts=parts,
         account=account,
         dataset=dataset,
         session=session,

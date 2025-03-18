@@ -242,7 +242,8 @@ class Config(BaseSettings):
     @field_validator("db", mode="after")
     def create_parent_dir(cls, value: Path) -> Path:
         """Ensure parent directory exists"""
-        value.parent.mkdir(exist_ok=True, parents=True)
+        if value is not None:
+            value.parent.mkdir(exist_ok=True, parents=True)
         return value
 
     @model_validator(mode="before")

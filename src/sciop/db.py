@@ -10,6 +10,7 @@ from alembic.config import Config as AlembicConfig
 from alembic.util.exc import CommandError
 from sqlalchemy import text
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine, func, select
 
@@ -40,7 +41,7 @@ def get_engine() -> Engine:
     return engine
 
 
-def create_tables(engine: Engine = engine) -> None:
+def create_tables(engine: Engine = engine, check_migrations: bool = True) -> None:
     """
     Create tables and stamps with an alembic version
 
@@ -55,11 +56,12 @@ def create_tables(engine: Engine = engine) -> None:
     models.Upload.register_events()
 
     SQLModel.metadata.create_all(engine)
-    # check version here since creating the table is the same action as
-    # ensuring our migration metadata is correct!
-    ensure_alembic_version()
+    if check_migrations:
+        # check version here since creating the table is the same action as
+        # ensuring our migration metadata is correct!
+        ensure_alembic_version(engine)
 
-    with maker() as session:
+    with Session(engine) as session:
         models.Scope.ensure_enum_values(session=session)
         if config.env != "test":
             ensure_root(session=session)
@@ -67,7 +69,7 @@ def create_tables(engine: Engine = engine) -> None:
     create_seed_data()
 
 
-def ensure_alembic_version() -> None:
+def ensure_alembic_version(engine: Engine) -> None:
     """
     Make sure that our database is correctly stamped and migrations are applied.
 
@@ -78,7 +80,7 @@ def ensure_alembic_version() -> None:
     alembic_config = get_alembic_config()
 
     command.ensure_version(alembic_config)
-    version = alembic_version()
+    version = alembic_version(engine)
 
     # Check to see if we are up to date
     if version is None:
@@ -97,7 +99,7 @@ def get_alembic_config() -> AlembicConfig:
     return AlembicConfig(str(importlib.resources.files("sciop") / "migrations" / "alembic.ini"))
 
 
-def alembic_version() -> Optional[str]:
+def alembic_version(engine: Engine) -> Optional[str]:
     """
     for some godforsaken reason alembic's command for getting the
     db version ONLY PRINTS IT and does not return it.
@@ -111,14 +113,20 @@ def alembic_version() -> Optional[str]:
         str: Alembic version revision
         None: if there is no version yet!
     """
-    with engine.connect() as connection:
-        result = connection.execute(text("SELECT version_num FROM alembic_version"))
-        version = result.fetchone()
+    try:
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT version_num FROM alembic_version"))
+            version = result.fetchone()
 
-    if version is not None:
-        version = version[0]
+        if version is not None:
+            version = version[0]
 
-    return version
+        return version
+    except OperationalError as e:
+        if "no such table" in str(e):
+            return None
+        else:
+            raise e
 
 
 def create_seed_data() -> None:

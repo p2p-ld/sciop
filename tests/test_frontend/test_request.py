@@ -7,8 +7,9 @@ from selenium.webdriver.support.wait import WebDriverWait
 from sciop.config import config
 
 
+@pytest.mark.timeout(15)
 @pytest.mark.selenium
-async def test_request(driver_as_admin):
+async def test_request(driver_as_admin, default_db):
     driver_as_admin.get("http://127.0.0.1:8080/request")
     title = "Test Item"
     slug = "test-item"

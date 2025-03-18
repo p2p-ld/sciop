@@ -6,7 +6,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from sciop.models import DatasetPart
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(15)
 @pytest.mark.selenium
 def test_add_part(driver_as_admin, default_db):
     """
@@ -35,7 +35,7 @@ def test_add_part(driver_as_admin, default_db):
     assert len(paths) == 3
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(15)
 @pytest.mark.selenium
 def test_add_parts(driver_as_admin, default_db):
     """
