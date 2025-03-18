@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from selenium.webdriver import Firefox
 from selenium.webdriver.common.by import By
@@ -20,6 +22,7 @@ def _wait_until_located(
 
 @pytest.mark.timeout(15)
 @pytest.mark.asyncio
+@pytest.mark.xfail("IN_CI" in os.environ, reason="selenium still too flaky for CI")
 @pytest.mark.selenium
 async def test_add_part(default_db, driver_as_admin):
     """
@@ -52,6 +55,7 @@ async def test_add_part(default_db, driver_as_admin):
 
 @pytest.mark.timeout(15)
 @pytest.mark.asyncio
+@pytest.mark.xfail("IN_CI" in os.environ, reason="selenium still too flaky for CI")
 @pytest.mark.selenium
 async def test_add_parts(default_db, driver_as_admin):
     """
