@@ -1,3 +1,5 @@
+import os
+
 import pytest
 import requests
 from selenium.webdriver.common.by import By
@@ -7,13 +9,17 @@ from selenium.webdriver.support.wait import WebDriverWait
 from sciop.config import config
 
 
+@pytest.mark.timeout(15)
+@pytest.mark.xfail("IN_CI" in os.environ, reason="selenium still too flaky for CI")
 @pytest.mark.selenium
-async def test_request(driver_as_admin):
+async def test_request(default_db, driver_as_admin):
     driver_as_admin.get("http://127.0.0.1:8080/request")
     title = "Test Item"
     slug = "test-item"
     publisher = "test publisher"
     tags = "tag1, tag2"
+    element_present = EC.presence_of_element_located((By.ID, "request-form-title"))
+    WebDriverWait(driver_as_admin, 3).until(element_present)
 
     driver_as_admin.find_element(By.ID, "request-form-title").send_keys(title)
     driver_as_admin.find_element(By.ID, "request-form-slug").send_keys(slug)

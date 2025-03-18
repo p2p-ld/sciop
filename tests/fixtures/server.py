@@ -5,17 +5,61 @@ import socket
 import time
 from threading import Thread
 from typing import Callable as C
+from typing import Optional
 
 import pytest
 from selenium import webdriver
-from selenium.common import WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.support.wait import WebDriverWait
 from sqlmodel import Session
 from starlette.testclient import TestClient
 from uvicorn import Config, Server
-from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager import firefox
+from webdriver_manager.core.driver_cache import DriverCacheManager
+
+
+class LazyCacheManager(DriverCacheManager):
+    """Cache manager that doesn't fail if github ratelimit exceeded"""
+
+    def find_driver(self, driver: firefox.GeckoDriver) -> Optional[str]:
+        """Find driver by '{os_type}_{driver_name}_{driver_version}_{browser_version}'."""
+        browser_type = driver.get_browser_type()
+        browser_version = self._os_system_manager.get_browser_version_from_os(browser_type)
+        if not browser_version:
+            return None
+
+        metadata = self.load_metadata_content()
+        try:
+            key = self.__get_metadata_key(driver)
+            if key not in metadata:
+                return None
+        except Exception as e:
+            if len(metadata.keys()) > 0:
+                key = list(metadata.keys())[-1]
+            else:
+                raise e
+
+        driver_info = metadata[key]
+        path = driver_info["binary_path"]
+        if not os.path.exists(path):
+            return None
+
+        path = driver_info["binary_path"]
+        return path
+
+    def __get_metadata_key(self, driver: firefox.GeckoDriver) -> str:
+        if self._metadata_key:
+            return self._metadata_key
+
+        driver_version = self.get_cache_key_driver_version(driver)
+        browser_version = driver.get_browser_version_from_os()
+        browser_version = browser_version if browser_version else ""
+        self._metadata_key = (
+            f"{self.get_os_type()}_{driver.get_name()}_{driver_version}" f"_for_{browser_version}"
+        )
+        return self._metadata_key
 
 
 @pytest.fixture()
@@ -92,6 +136,10 @@ async def run_server(session: Session) -> Server_:
     config = Config(
         app=app,
         port=8080,
+        workers=1,
+        reload=False,
+        access_log=False,
+        log_config=None,
     )
     server = Server_(config=config)
     await asyncio.sleep(0.1)
@@ -101,10 +149,7 @@ async def run_server(session: Session) -> Server_:
 
 @pytest.fixture()
 async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriver.Firefox:
-    if os.environ.get("IN_CI", False):
-        executable_path = "/snap/bin/firefox.geckodriver"
-    else:
-        executable_path = GeckoDriverManager().install()
+    executable_path = firefox.GeckoDriverManager(cache_manager=LazyCacheManager()).install()
     options = FirefoxOptions()
     options.add_argument("--disable-dev-shm-usage")
     if not request.config.getoption("--show-browser"):
@@ -119,29 +164,34 @@ async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriv
         browser.set_window_size(1920, 1080)
         browser.maximize_window()
         browser.implicitly_wait(5)
+        # hail mary to avoid some thread synchronization problems
+        await asyncio.sleep(0.25)
 
         yield browser
 
-    except WebDriverException as e:
-        if os.environ.get("IN_CI", False):
-            pytest.skip(str(e))
-        else:
-            raise e
     finally:
         if "browser" in locals():
             browser.close()
             browser.quit()
 
+        await asyncio.sleep(0.25)
+
 
 @pytest.fixture()
 async def driver_as_admin(driver: webdriver.Firefox, admin_auth_header: dict) -> webdriver.Firefox:
     driver.get("http://127.0.0.1:8080/login")
+
     username = driver.find_element(By.ID, "username")
+    wait = WebDriverWait(driver, timeout=3)
+    wait.until(lambda _: username.is_displayed())
     username.send_keys("admin")
     password = driver.find_element(By.ID, "password")
     password.send_keys("adminadmin12")
     submit = driver.find_element(By.ID, "login-button")
     submit.click()
+    username_greeting = driver.find_element(By.CLASS_NAME, "self-greeting")
+    wait = WebDriverWait(driver, timeout=3)
+    wait.until(lambda _: username_greeting.is_displayed())
     return driver
 
 
@@ -151,9 +201,14 @@ async def driver_as_user(driver: webdriver.Firefox, account: C) -> webdriver.Fir
     _ = account(username="user", password="userpassword123")
     driver.get("http://127.0.0.1:8080/login")
     username = driver.find_element(By.ID, "username")
+    wait = WebDriverWait(driver, timeout=3)
+    wait.until(lambda _: username.is_displayed())
     username.send_keys("user")
     password = driver.find_element(By.ID, "password")
     password.send_keys("userpassword123")
     submit = driver.find_element(By.ID, "login-button")
     submit.click()
+    username_greeting = driver.find_element(By.CLASS_NAME, "self-greeting")
+    wait = WebDriverWait(driver, timeout=3)
+    wait.until(lambda _: username_greeting.is_displayed())
     return driver

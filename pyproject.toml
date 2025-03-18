@@ -161,6 +161,11 @@ line-length = 100
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+timeout_func_only = true
+asyncio_default_fixture_loop_scope = "function"
 markers = """
   selenium: tests that use the selenium webdriver
 """
+filterwarnings = [
+    'ignore:Python 3.14 will, by default, filter extracted tar archives'
+]

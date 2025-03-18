@@ -130,7 +130,7 @@ def account(
         account_ = crud.get_account(session=session_, username=kwargs["username"])
         if not account_:
             account_ = AccountCreate(**kwargs)
-            account_ = crud.create_account(session=session, account_create=account_)
+            account_ = crud.create_account(session=session_, account_create=account_)
         account_.scopes = scopes
         account_.is_suspended = is_suspended
         session_.add(account_)

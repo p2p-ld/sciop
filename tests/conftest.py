@@ -4,6 +4,7 @@ import sys
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
+from _pytest.python import Function
 
 mpatch = MonkeyPatch()
 mpatch.setenv("SCIOP_SECRET_KEY", "12345")
@@ -33,11 +34,23 @@ def pytest_addoption(parser: argparse.ArgumentParser) -> None:
         default=False,
         help="Persist SQLAlchemy database between tests, don't rollback",
     )
+    parser.addoption(
+        "--file-db",
+        action="store_true",
+        default=False,
+        help="Use a file-based sqlite db rather than in-memory db (default)",
+    )
 
 
 def pytest_sessionfinish(session: pytest.Session) -> None:
     global mpatch
     mpatch.undo()
+
+
+def pytest_collection_modifyitems(items: list[Function]) -> None:
+    for item in items:
+        if any(["driver" in fixture_name for fixture_name in getattr(item, "fixturenames", ())]):
+            item.add_marker("selenium")
 
 
 def pytest_collection_finish(session: pytest.Session) -> None:
@@ -65,8 +78,11 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
 
     from sciop import config
 
-    db_path = TMP_DIR / "db.test.sqlite"
-    db_path.unlink(missing_ok=True)
+    if request.config.getoption("--file-db"):
+        db_path = TMP_DIR / "db.test.sqlite"
+        db_path.unlink(missing_ok=True)
+    else:
+        db_path = None
     log_dir = TMP_DIR / "logs"
     log_dir.mkdir(exist_ok=True)
 
@@ -91,4 +107,4 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
     monkeypatch_session.setattr(db, "engine", engine)
     maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
     monkeypatch_session.setattr(db, "maker", maker)
-    db.create_tables(engine)
+    db.create_tables(engine, check_migrations=False)
