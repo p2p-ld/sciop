@@ -149,10 +149,6 @@ async def run_server(session: Session) -> Server_:
 
 @pytest.fixture()
 async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriver.Firefox:
-    # if os.environ.get("IN_CI", False):
-    #     executable_path = "/snap/bin/firefox.geckodriver"
-    # else:
-    global phase_report_key
     executable_path = firefox.GeckoDriverManager(cache_manager=LazyCacheManager()).install()
     options = FirefoxOptions()
     options.add_argument("--disable-dev-shm-usage")
@@ -169,7 +165,7 @@ async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriv
         browser.maximize_window()
         browser.implicitly_wait(5)
         # hail mary to avoid some thread synchronization problems
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.25)
 
         yield browser
 
@@ -178,7 +174,7 @@ async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriv
             browser.close()
             browser.quit()
 
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.25)
 
 
 @pytest.fixture()
