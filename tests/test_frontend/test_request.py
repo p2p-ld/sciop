@@ -15,6 +15,8 @@ async def test_request(driver_as_admin, default_db):
     slug = "test-item"
     publisher = "test publisher"
     tags = "tag1, tag2"
+    element_present = EC.presence_of_element_located((By.ID, "request-form-title"))
+    WebDriverWait(driver_as_admin, 3).until(element_present)
 
     driver_as_admin.find_element(By.ID, "request-form-title").send_keys(title)
     driver_as_admin.find_element(By.ID, "request-form-slug").send_keys(slug)
