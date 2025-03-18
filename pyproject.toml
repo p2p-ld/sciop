@@ -164,3 +164,6 @@ asyncio_mode = "auto"
 markers = """
   selenium: tests that use the selenium webdriver
 """
+filterwarnings = [
+    'ignore:Python 3.12 will, by default, filter extracted tar archives'
+]
