@@ -123,7 +123,7 @@ async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriv
         yield browser
 
     except WebDriverException as e:
-        if os.environ.get("IN_CI", False):
+        if os.environ.get("IN_CODEBERG_CI", False):
             pytest.skip(str(e))
         else:
             raise e
