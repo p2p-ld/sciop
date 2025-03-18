@@ -3,7 +3,7 @@ import os
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generator, Optional, Self
+from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Self
 
 import bencodepy
 import humanize
@@ -14,6 +14,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 from torf import Torrent as Torrent_
+from torf import _errors, _torrent, _utils
 
 from sciop.config import config
 from sciop.models.mixin import TableMixin
@@ -52,14 +53,45 @@ class Torrent(Torrent_):
     and not spend literally eons processing torrent files
     """
 
+    MAX_TORRENT_FILE_SIZE = int(40e6)  # 40MB
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        # use these goofy names since `_infohash` is already used
+        self._internal_infohash = None
+        self._internal_infohash_v2 = None
+
     @property
     def v2_infohash(self) -> Optional[str]:
         """SHA256 hash of info dict, if `file tree` is present"""
-        self.validate()
-        if "file tree" not in self.metainfo["info"]:
-            return None
+        if self._internal_infohash_v2 is None:
+            if "file tree" not in self.metainfo["info"]:
+                return None
 
-        return hashlib.sha256(bencodepy.encode(self.metainfo["info"])).hexdigest()
+            self._internal_infohash_v2 = hashlib.sha256(
+                bencodepy.encode(self.metainfo["info"])
+            ).hexdigest()
+        return self._internal_infohash_v2
+
+    @property
+    def infohash(self) -> Optional[str]:
+        """Override parent impl to not validate when accessing an infohash..."""
+        if self._internal_infohash is None:
+            try:
+                try:
+                    info = _utils.encode_dict(self.metainfo["info"])
+                except ValueError as e:
+                    raise _errors.MetainfoError(e) from e
+                else:
+                    self._internal_infohash = hashlib.sha1(bencodepy.encode(info)).hexdigest()
+            except _errors.MetainfoError as e:
+                # If we can't calculate infohash, see if it was explicitly specifed.
+                # This is necessary to create a Torrent from a Magnet URI.
+                try:
+                    return self._infohash
+                except AttributeError:
+                    raise e from None
+        return self._internal_infohash
 
     @property
     def torrent_version(self) -> TorrentVersion:
@@ -105,6 +137,74 @@ class Torrent(Torrent_):
     def _filters_changed(self, _: Any) -> None:
         """Make this a no-op because it's wildly expensive"""
         pass
+
+
+def _assert_type(
+    obj: list | dict,
+    keys: tuple[str | int],
+    exp_types: tuple[type],
+    must_exist: bool = True,
+    check: Optional[Callable] = None,
+) -> None:
+    """
+    Override torf's ridiculously inefficient validation function
+
+    Raise MetainfoError if value is not of a particular type
+
+    :param obj: The object to check
+    :type obj: sequence or mapping
+    :param keys: Sequence of keys so that ``obj[key[0]][key[1]]...`` resolves to
+        a value
+    :type obj: sequence
+    :param exp_types: Sequence of allowed types that the value specified by
+        `keys` must be an instance of
+    :type obj: sequence
+    :param bool must_exist: Whether to raise MetainfoError if `keys` does not
+         resolve to a value
+    :param callable check: Callable that gets the value specified by `keys` and
+        returns True if it is OK, False otherwise
+    """
+    keys = list(keys)
+    i = -1
+    for j, key in enumerate(keys[:-1]):
+        try:
+            obj = obj[key]
+        except (KeyError, IndexError):
+            i = j + 1
+            break
+
+    key = keys[i]
+
+    if not _utils.key_exists_in_list_or_dict(key, obj):
+        if must_exist:
+            raise _errors.MetainfoError(f"Missing {key!r} in {keys}")
+
+    elif not isinstance(obj[key], exp_types):
+        if len(exp_types) > 2:
+            exp_types_str = ", ".join(t.__name__ for t in exp_types[:-1])
+            exp_types_str += " or " + exp_types[-1].__name__
+        else:
+            exp_types_str = " or ".join(t.__name__ for t in exp_types)
+        type_str = type(obj[key]).__name__
+        raise _errors.MetainfoError(
+            f"{keys}[{key!r}] must be {exp_types_str}, " f"not {type_str}: {obj[key]!r}"
+        )
+
+    elif check is not None and not check(obj[key]):
+        raise _errors.MetainfoError(f"{keys}[{key!r}] is invalid: {obj[key]!r}")
+
+
+def _key_exists_in_list_or_dict(key: str | int, lst_or_dct: list | dict) -> bool:
+    """True if `lst_or_dct[key]` does not raise an Exception"""
+    try:
+        _ = lst_or_dct[key]
+        return True
+    except (KeyError, IndexError):
+        return False
+
+
+_torrent.utils.key_exists_in_list_or_dict = _key_exists_in_list_or_dict
+_torrent.utils.assert_type = _assert_type
 
 
 class FileInTorrent(TableMixin, table=True):

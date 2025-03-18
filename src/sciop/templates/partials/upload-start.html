@@ -9,7 +9,12 @@
 </ul>
 {% endif %}
 
-<span>Make sure you have read the <a href="/docs/uploading">upload guide</a> for how to create your torrent!</span>
+<p>Make sure you have read the <a href="/docs/uploading">upload guide</a> for how to create your torrent!</p>
+<p>
+    If your torrent is particularly large (>5MB) or has a large number of files (>20,000), this may take a few moments.
+    If you are uploading a scrape of a website, we strongly recommend zipping directories into logical subsets of the scraped pages,
+    or zipping them such that each archive is slightly less than your torrent's piece size (which should be a few MB).
+</p>
 
 <form id='{{ dataset.slug }}-upload-form' class="upload-form" name="file" hx-encoding='multipart/form-data'
       hx-post="/datasets/{{ dataset.slug }}/upload/torrent{% if parts %}?{{ parts | join('=on&') }}=on{% endif %}"
