@@ -13,8 +13,9 @@ def _wait_until_located(driver: Firefox, locator: str, by: By = By.ID, timeout: 
 
 
 @pytest.mark.timeout(15)
+@pytest.mark.asyncio
 @pytest.mark.selenium
-def test_add_part(default_db, driver_as_admin):
+async def test_add_part(default_db, driver_as_admin):
     """
     A single dataset part can be added with a form as admin
     """
@@ -44,8 +45,9 @@ def test_add_part(default_db, driver_as_admin):
 
 
 @pytest.mark.timeout(15)
+@pytest.mark.asyncio
 @pytest.mark.selenium
-def test_add_parts(default_db, driver_as_admin):
+async def test_add_parts(default_db, driver_as_admin):
     """
     A single dataset part can be added with a form as admin
     """
