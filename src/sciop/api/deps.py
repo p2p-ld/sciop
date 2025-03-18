@@ -69,12 +69,18 @@ def get_current_account(session: SessionDep, token: TokenDep) -> Optional[Accoun
         return None
 
 
-def get_current_dataset(session: SessionDep, dataset_slug: str) -> Optional[Dataset]:
+def get_current_dataset(
+    session: SessionDep, dataset_slug: Optional[str] = None
+) -> Optional[Dataset]:
+    if dataset_slug is None:
+        return None
     dataset = crud.get_dataset(session=session, dataset_slug=dataset_slug)
     return dataset
 
 
-def get_current_upload(session: SessionDep, infohash: str) -> Optional[Upload]:
+def get_current_upload(session: SessionDep, infohash: Optional[str] = None) -> Optional[Upload]:
+    if infohash is None:
+        return None
     try:
         upload = crud.get_upload_from_infohash(session=session, infohash=infohash)
     except ValueError:
