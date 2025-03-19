@@ -5,7 +5,7 @@
 groups = ["default", "dev", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:3798173d03e256df62dcd04fde30aabd4e16d86d9c584d13c3df9a85a515b694"
+content_hash = "sha256:8800e7ecc5af4a319d7a498af3e6e711672dc57aed7d32be37a4dd38c4e0a2b5"
 
 [[metadata.targets]]
 requires_python = ">=3.11"
@@ -115,7 +115,7 @@ name = "backrefs"
 version = "5.8"
 requires_python = ">=3.9"
 summary = "A wrapper around re and regex that adds additional back references."
-groups = ["default"]
+groups = ["default", "dev"]
 files = [
     {file = "backrefs-5.8-py311-none-any.whl", hash = "sha256:2e1c15e4af0e12e45c8701bd5da0902d326b2e200cafcd25e49d9f06d44bb61b"},
     {file = "backrefs-5.8-py312-none-any.whl", hash = "sha256:bbef7169a33811080d67cdf1538c8289f76f0942ff971222a16034da88a73486"},

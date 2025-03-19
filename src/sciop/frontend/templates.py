@@ -65,7 +65,7 @@ templates = Jinja2Templates(
     context_processors=[template_account, template_config, template_models, template_nonce],
 )
 templates.env.globals["models"] = models
-templates.env.globals["now"] = datetime.now()
+templates.env.globals["now"] = datetime.now
 templates.env.globals["UTC"] = UTC
 
 jinja = Jinja(templates)

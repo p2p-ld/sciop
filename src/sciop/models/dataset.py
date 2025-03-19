@@ -30,6 +30,7 @@ from sciop.types import (
     SourceType,
     Threat,
     UsernameStr,
+    UTCDateTime,
 )
 
 if TYPE_CHECKING:
@@ -114,14 +115,14 @@ class DatasetBase(ModerableMixin):
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
         max_length=32768,
     )
-    dataset_created_at: Optional[datetime] = Field(
+    dataset_created_at: Optional[UTCDateTime] = Field(
         None,
         title="Dataset Creation Date",
         description="""
         Datetime when dataset was originally created in UTC. May be approximate or left blank.
         """,
     )
-    dataset_updated_at: Optional[datetime] = Field(
+    dataset_updated_at: Optional[UTCDateTime] = Field(
         None,
         title="Dataset Last Updated",
         description="""
@@ -145,7 +146,7 @@ class DatasetBase(ModerableMixin):
         Default true unless known to be taken down.
         """,
     )
-    last_seen_at: Optional[datetime] = Field(
+    last_seen_at: Optional[UTCDateTime] = Field(
         default=None,
         title="Last Seen At",
         description="""

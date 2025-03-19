@@ -88,7 +88,7 @@
                 {% if dataset.last_seen_at %}
                 <tr>
                     <td class="infobox-key">
-                        {%- if dataset.last_seen_at > now(UTC) %}
+                        {%- if dataset.last_seen_at.replace(tzinfo=UTC) > now(UTC) %}
                             To be removed at
                         {%- else %}
                             Last Seen
