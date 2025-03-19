@@ -11,7 +11,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlmodel import Field, Session, SQLModel, select, text
 
-from sciop.types import IDField, InputType
+from sciop.types import IDField, InputType, UTCDateTime
 
 if TYPE_CHECKING:
     from sqlalchemy import Connection, Table, TextClause
@@ -51,8 +51,8 @@ class TableReadMixin(SQLModel):
     Mixin to add base elements to the read version of all tables
     """
 
-    created_at: datetime
-    updated_at: datetime
+    created_at: UTCDateTime
+    updated_at: UTCDateTime
 
 
 class SearchableMixin(SQLModel):

@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 from urllib.parse import urlparse
@@ -9,7 +8,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.exceptions import ScrapeErrorType
 from sciop.models.mixin import TableMixin
-from sciop.types import IDField, MaxLenURL
+from sciop.types import IDField, MaxLenURL, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import TorrentFile
@@ -41,7 +40,7 @@ class TorrentTrackerLink(TableMixin, table=True):
     seeders: Optional[int] = Field(default=None)
     leechers: Optional[int] = Field(default=None)
     completed: Optional[int] = Field(default=None)
-    last_scraped_at: Optional[datetime] = Field(default=None)
+    last_scraped_at: Optional[UTCDateTime] = Field(default=None)
 
 
 class TrackerBase(SQLModel):
@@ -56,7 +55,7 @@ class Tracker(TrackerBase, TableMixin, table=True):
 
     tracker_id: IDField = Field(None, primary_key=True)
     torrent_links: list[TorrentTrackerLink] = Relationship(back_populates="tracker")
-    last_scraped_at: Optional[datetime] = Field(default=None)
+    last_scraped_at: Optional[UTCDateTime] = Field(default=None)
     n_errors: int = Field(
         default=0,
         description="Number of sequential failures to scrape this tracker, "
@@ -64,7 +63,7 @@ class Tracker(TrackerBase, TableMixin, table=True):
         "Should be set to 0 after a successful scrape",
     )
     error_type: Optional[ScrapeErrorType] = Field(default=None)
-    next_scrape_after: Optional[datetime] = Field(default=None)
+    next_scrape_after: Optional[UTCDateTime] = Field(default=None)
 
 
 class TrackerCreate(SQLModel):

@@ -1,6 +1,5 @@
 import re
 import unicodedata
-from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
@@ -12,7 +11,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.mixin import EnumTableMixin, SearchableMixin, TableMixin
-from sciop.types import IDField, UsernameStr
+from sciop.types import IDField, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import (
@@ -179,7 +178,7 @@ class AccountCreate(AccountBase):
 
 class AccountRead(AccountBase):
     scopes: list["Scope"]
-    created_at: datetime
+    created_at: UTCDateTime
 
 
 class Scope(TableMixin, EnumTableMixin, table=True):

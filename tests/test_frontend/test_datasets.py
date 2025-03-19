@@ -1,3 +1,8 @@
+from datetime import UTC, datetime, timedelta
+
+import pytest
+
+
 def test_no_show_unapproved(client, dataset):
     ds_ = dataset(slug="unapproved", is_approved=False)
     res = client.get("/datasets/unapproved")
@@ -62,3 +67,18 @@ def test_no_include_removed_if_reviewer(client, dataset, reviewer, get_auth_head
     slugs = [i["slug"] for i in items]
     assert "removed" not in slugs
     assert "approved" in slugs
+
+
+@pytest.mark.parametrize("when", ["future", "past"])
+def test_last_seen_at(client, dataset, when):
+    if when == "future":
+        ds = dataset(last_seen_at=datetime.now(UTC) + timedelta(days=1))
+    else:
+        ds = dataset(last_seen_at=datetime.now(UTC) + timedelta(days=1))
+
+    res = client.get("/datasets/default")
+    assert res.status_code == 200
+    if when == "future":
+        assert "to be removed at" in res.text.lower()
+    else:
+        assert "removed at" in res.text.lower()

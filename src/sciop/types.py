@@ -1,4 +1,5 @@
 import re
+from datetime import UTC, datetime
 from enum import StrEnum
 from html import escape
 from os import PathLike as PathLike_
@@ -36,6 +37,9 @@ MaxLenURL = Annotated[
     str, MaxLen(512), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
 ]
 PathLike = Annotated[PathLike_[str], AfterValidator(lambda x: Path(x).as_posix())]
+UTCDateTime = Annotated[datetime, AfterValidator(lambda x: x.replace(tzinfo=UTC))]
+# although this does not get applied when models are reloaded,
+# as it seems like values are populated by assignment, and we have validate_assignment=False
 
 
 class AccessType(StrEnum):

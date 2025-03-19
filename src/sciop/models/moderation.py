@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
@@ -7,7 +6,7 @@ from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.models.mixin import TableMixin
-from sciop.types import IDField
+from sciop.types import IDField, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import Account, AccountRead, Dataset, DatasetPart, Upload
@@ -108,8 +107,8 @@ class AuditLogRead(SQLModel):
     target_dataset: Optional["Dataset"] = None
     target_upload: Optional["Upload"] = None
     value: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: UTCDateTime
+    updated_at: UTCDateTime
 
 
 class Report(TableMixin, table=True):
