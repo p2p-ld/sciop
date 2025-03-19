@@ -14,5 +14,12 @@
     {{ form_field(subfield, subfield_form_name, form_id) }}
 </div>
 {% endfor %}
+<a class="del-subform-button button"
+   hx-get="#"
+   hx-swap="delete"
+   hx-target="closest .model-list-item"
+>
+    -
+</a>
 </div>
 {{ add_subform_button(form_id, field_name, idx + 1, model_name) }}
