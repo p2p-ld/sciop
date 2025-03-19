@@ -101,7 +101,9 @@
     }
 }
 
-.add-subform-button {
+.add-subform-button,
+.del-subform-button
+{
     width: 80%;
     margin: 1em auto 1em auto;
     display: flex;
