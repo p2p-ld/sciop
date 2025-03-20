@@ -163,7 +163,7 @@ async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriv
         browser = webdriver.Firefox(service=_service, options=options)
         browser.set_window_size(1920, 1080)
         browser.maximize_window()
-        browser.implicitly_wait(5)
+        browser.implicitly_wait(0.25)
         # hail mary to avoid some thread synchronization problems
         await asyncio.sleep(0.25)
 

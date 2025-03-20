@@ -23,6 +23,8 @@
         var(--color-disabled) 5px,
         var(--color-disabled) 7px
     );
+  --surface-border-radius: 1em;
+  --surface-padding: 1em;
 }
 /* Put all themed vars in body so that we can switch vars on dark mode */
 body {
