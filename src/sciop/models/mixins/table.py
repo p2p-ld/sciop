@@ -5,14 +5,14 @@ from pydantic import ConfigDict
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlmodel import Field, SQLModel
 
-from sciop.types import IDField
+from sciop.types import IDField, UTCDateTime
 
 
 class TableMixin(SQLModel):
     """Mixin to add base elements to all tables"""
 
-    created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: Optional[datetime] = Field(
+    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: Optional[UTCDateTime] = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"onupdate": lambda: datetime.now(UTC)},
     )
@@ -38,5 +38,5 @@ class TableReadMixin(SQLModel):
     Mixin to add base elements to the read version of all tables
     """
 
-    created_at: datetime
-    updated_at: datetime
+    created_at: UTCDateTime
+    updated_at: UTCDateTime
