@@ -1,3 +1,20 @@
+// Modified to support non-adjacent array items, for e.g. if an item is deleted
+// if updating this module, be sure to port this behavior over
+// ctrl+f for VENDOR OVERRIDE to find the part in the vendored code that needs to be preserved
+
+// note that this only applies **shallowly** - we only filter arrays at the top level of an object
+function filterEmptyArrayItems(obj){
+  Object.entries(obj).forEach((keyval) => {
+    let [key, val] = keyval;
+    if (Array.isArray(val)){
+      obj[key] = val.filter(item => item)
+    }
+  })
+  return obj
+}
+
+// BEGIN VENDORED CODE ------------------------
+
 (function() {
   let api
   const _ConfigIgnoreDeepKey_ = 'ignore-deep-key'
@@ -42,6 +59,9 @@
       if(!api.hasAttribute(elt, _ConfigIgnoreDeepKey_)){
         const flagMap = getFlagMap(object)
         object = buildNestedObject(flagMap, object)
+        // BEGIN VENDOR OVERRIDE --------------
+        object = filterEmptyArrayItems(object)
+        // END VENDOR OVERRIDE -------------
       }
 
       return (JSON.stringify(object))
@@ -115,8 +135,7 @@
         parts.forEach((part, i) => {
             const path = parts.slice(0, i + 1).join('.')
             const isLastPart = i === parts.length - 1
-
-            if (isLastPart){
+            if (isLastPart) {
                 if (flagMap[path] === _FlagObject_){
                     current[part] = { '': map[key] }
                 } else if (part === '-1'){

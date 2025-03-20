@@ -101,9 +101,7 @@
     }
 }
 
-.add-subform-button,
-.del-subform-button
-{
+.add-subform-button {
     width: 80%;
     margin: 1em auto 1em auto;
     display: flex;
@@ -112,11 +110,8 @@
 }
 
 .model-list-input {
-    border: 1px solid var(--color-border-deemphasized);
-
-
     .model-list-item {
-        padding: 1em;
+        position: relative;
 
         &:not(:nth-last-child(2)){
             border-bottom: 1px solid var(--color-border-deemphasized);
@@ -127,13 +122,27 @@
         &.model-list-item.invalid {
             border-left: 1px solid var(--color-caution);
         }
+
+        .close-button {
+            position:absolute;
+            top: 0;
+            right: 0;
+            border-top-right-radius: 1em;
+            border-top-left-radius: 0;
+            border-bottom-right-radius: 0;
+            box-shadow: none;
+            cursor:pointer;
+        }
+        &>.constraint-gutter {
+            height: 1em;
+        }
     }
 
-
-
-    .form-item:not(:first-child){
+    .form-item + .form-item{
         margin-top: 1em;
     }
+
+
 }
 
 form.parts-add-bulk {

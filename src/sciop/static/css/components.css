@@ -24,12 +24,12 @@ button,
   box-shadow: 2px 2px 0 var(--color-primary-darker-1);
   transition: all .2s;
   padding: 0.1em 0.5em;
+  cursor: pointer;
 
   &.form-button {
     padding: 0.25em 2em;
     font-size: 1.25em;
   }
-
 
   &:hover:not(:disabled) {
     background-color: var(--color-primary);
@@ -92,6 +92,10 @@ button,
     border-color: var(--color-border-deemphasized);
     color: var(--color-deemphasized);
   }
+}
+
+a.button:hover {
+  text-decoration: none;
 }
 
 .search-container {
@@ -291,8 +295,8 @@ button,
 }
 
 .surface {
-  padding: 1em;
-  border-radius: 1em;
+  padding: var(--surface-padding);
+  border-radius: var(--surface-border-radius);
   background-color: var(--color-background-shade);
   border: 1px solid var(--color-border-deemphasized);
 

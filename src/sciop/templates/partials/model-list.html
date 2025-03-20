@@ -1,6 +1,17 @@
 {% from 'macros/model-form.html' import form_field, add_subform_button %}
-<div class="model-list-item">
+<div id="{{ field_name }}-{{ idx }}" class="model-list-item surface">
     <div class="constraint-gutter"><span class="error-feedback"></span></div>
+    <a class="close-button button caution"
+       hx-get="#"
+       hx-swap="delete"
+       hx-target="closest .model-list-item"
+       data-idx="{{ idx }}"
+       role="button"
+       aria-label="Remove this item"
+       aria-controls="{{ field_name }}-{{ idx }}"
+    >
+        x
+    </a>
 {% for subfield_name, subfield in model.model_fields.items() %}
 {% set subfield_form_name=field_name_prefix + subfield_name %}
 <div class="form-item">
@@ -14,12 +25,6 @@
     {{ form_field(subfield, subfield_form_name, form_id) }}
 </div>
 {% endfor %}
-<a class="del-subform-button button"
-   hx-get="#"
-   hx-swap="delete"
-   hx-target="closest .model-list-item"
->
-    -
-</a>
+
 </div>
 {{ add_subform_button(form_id, field_name, idx + 1, model_name) }}
