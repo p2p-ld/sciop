@@ -178,7 +178,7 @@ class EditableMixin(SQLModel):
     @classmethod
     def __history_meta_cols__(cls) -> tuple[str, ...]:
         """Columns that are added by the history table and not in the original object"""
-        return "version_created_at", "version_comment"
+        return "version_created_at", "version_comment", "version_created_by"
 
     @classmethod
     def __history_table_name__(cls, tablename: Optional[str] = None) -> str:
@@ -199,6 +199,8 @@ def create_version(
 
     obj_mapper = object_mapper(obj)
     history_cls = obj.__history_mapper__.class_
+    account = session.info.get("current_account", None)
+    account_id = None if account is None else account.account_id
 
     obj_changed, attr = _check_if_changed(obj, obj_mapper, new=new)
 
@@ -206,7 +208,13 @@ def create_version(
         obj.__editable_logger__.debug("Model is unchanged, not creating version")
         return
 
-    hist = history_cls(**{**obj.model_dump(), "version_created_at": timestamp})
+    hist = history_cls(
+        **{
+            **obj.model_dump(),
+            "version_created_at": timestamp,
+            "version_created_by": account_id,
+        }
+    )
     session.add(hist)
 
     # create versions for any many-to-many link classes that don't receive normal ORM events
@@ -230,6 +238,7 @@ def create_version(
 
             link_model_kwargs = _link_model_kwargs(v, obj, prop)
             link_model_kwargs["version_created_at"] = timestamp
+            link_model_kwargs["version_created_by"] = account_id
             link_model_instance = link_model_cls(**link_model_kwargs)
             session.add(link_model_instance)
 
@@ -401,6 +410,18 @@ def _make_meta_cols() -> dict[str, _MetaCol]:
         ),
         field=Field(default=None, nullable=True, max_length=4096),
         annotation={"version_comment": Optional[str]},
+    )
+    cols["version_created_by"] = _MetaCol(
+        col=Column(
+            "version_created_by",
+            sqla.Integer,
+            ForeignKey("accounts.account_id"),
+            default=None,
+            nullable=True,
+            info=history_meta,
+        ),
+        field=Field(default=None, nullable=True, foreign_key="accounts.account_id"),
+        annotation={"version_created_by": Optional[int]},
     )
 
     return cols

@@ -36,11 +36,11 @@ reusable_oauth2 = OAuth2PasswordBearerCookie(
 )
 
 
-SessionDep = Annotated[Session, Depends(get_session)]
+RawSessionDep = Annotated[Session, Depends(get_session)]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 
-def require_current_account(session: SessionDep, token: TokenDep) -> Account:
+def require_current_account(session: RawSessionDep, token: TokenDep) -> Account:
     if not token:
         raise HTTPException(302, detail="Not authorized", headers={"Location": "/login"})
 
@@ -62,11 +62,24 @@ def require_current_account(session: SessionDep, token: TokenDep) -> Account:
     return account
 
 
-def get_current_account(session: SessionDep, token: TokenDep) -> Optional[Account]:
+def get_current_account(session: RawSessionDep, token: TokenDep) -> Optional[Account]:
     try:
         return require_current_account(session, token)
     except HTTPException:
         return None
+
+
+RequireCurrentAccount = Annotated[Account, Depends(require_current_account)]
+CurrentAccount = Annotated[Optional[Account], Depends(get_current_account)]
+
+
+def get_accountable_session(session: RawSessionDep, account: CurrentAccount) -> Session:
+    """Attach the current account to the session"""
+    session.info["current_account"] = account
+    return session
+
+
+SessionDep = Annotated[Session, Depends(get_accountable_session)]
 
 
 def get_current_dataset(
@@ -89,8 +102,6 @@ def get_current_upload(session: SessionDep, infohash: Optional[str] = None) -> O
     return upload
 
 
-RequireCurrentAccount = Annotated[Account, Depends(require_current_account)]
-CurrentAccount = Annotated[Optional[Account], Depends(get_current_account)]
 CurrentDataset = Annotated[Optional[Dataset], Depends(get_current_dataset)]
 CurrentUpload = Annotated[Optional[Upload], Depends(get_current_upload)]
 
