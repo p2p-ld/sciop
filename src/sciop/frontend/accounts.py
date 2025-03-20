@@ -62,7 +62,5 @@ async def accounts_search(query: str = None, session: SessionDep = None) -> Page
     if not query or len(query) < 3:
         stmt = select(Account).filter(Account.is_suspended == False).order_by(Account.username)
     else:
-        stmt = select(Account).filter(
-            Account.is_suspended == False, Account.account_id.in_(Account.search_statement(query))
-        )
+        stmt = Account.search(query).filter(Account.is_suspended == False)
     return paginate(conn=session, query=stmt)

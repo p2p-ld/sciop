@@ -14,14 +14,22 @@ def test_full_text_search(session):
     """
 
     match_ok = Dataset(
-        title="Matches a single thing once like key",
+        title="Unrelated title that doesn't match but its description does",
+        description="Matches a single thing once like key",
         slug="matching-ok",
         publisher="Agency of matching ok",
     )
     match_good = Dataset(
-        title="Matches several keywords like key and word several times, see key key key",
+        title="Unrelated title that doesn't match but its description does even better",
+        description="Matches several keywords like key and word several times, see key key key",
         slug="matching-good",
         publisher="Agency of matching good",
+    )
+    match_better = Dataset(
+        title="Matches with title containing key",
+        description="Matches two times key key ",
+        slug="matching-better",
+        publisher="Agency of matching better",
     )
     no_match = Dataset(
         title="Nothing in here",
@@ -31,14 +39,17 @@ def test_full_text_search(session):
 
     session.add(match_ok)
     session.add(match_good)
+    session.add(match_better)
     session.add(no_match)
     session.commit()
 
-    results = Dataset.search("key", session)
+    stmt = Dataset.search("key")
+    results = session.execute(stmt).fetchall()
 
-    assert len(results) == 2
-    assert results[0].Dataset.slug == match_good.slug
-    assert results[1].Dataset.slug == match_ok.slug
+    assert len(results) == 3
+    assert results[0].Dataset.slug == match_better.slug
+    assert results[1].Dataset.slug == match_good.slug
+    assert results[2].Dataset.slug == match_ok.slug
 
 
 def test_ensure_enum(recreate_models):

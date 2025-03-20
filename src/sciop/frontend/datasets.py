@@ -42,11 +42,7 @@ async def datasets_search(
             .order_by(Dataset.created_at.desc())
         )
     else:
-        stmt = (
-            select(Dataset)
-            .where(Dataset.visible_to(current_account) == True)
-            .filter(Dataset.dataset_id.in_(Dataset.search_statement(query)))
-        )
+        stmt = Dataset.search(query).where(Dataset.visible_to(current_account) == True)
     return paginate(conn=session, query=stmt)
 
 
