@@ -34,7 +34,7 @@ dependencies = [
     "apscheduler>=3.11.0",
     "aiodns>=3.2.0",
     "mistune>=3.1.2",
-    "bleach>=6.2.0",
+    "nh3>=0.2.21",
     "pygments>=2.19.1",
 ]
 requires-python = ">=3.11"
@@ -161,9 +161,11 @@ line-length = 100
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+addopts = "--strict-markers"
 asyncio_default_fixture_loop_scope = "function"
 markers = """
   selenium: tests that use the selenium webdriver
+  markdown: tests that render markdown within HTML
 """
 filterwarnings = [
     'ignore:Python 3.14 will, by default, filter extracted tar archives'

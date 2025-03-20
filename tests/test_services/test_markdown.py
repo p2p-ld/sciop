@@ -23,7 +23,7 @@ bs = partial(BeautifulSoup, features="html.parser")
         ("<h2>Heading 2</h2>", "<h2>Heading 2</h2>"),
         ("<h3>Heading 3</h3>", "<h3>Heading 3</h3>"),
         ("<h4>Heading 4</h4>", "<h4>Heading 4</h4>"),
-        ("<h5>Heading 5</h5>", "&lt;h5&gt;Heading 5&lt;/h5&gt;"),
+        ("<h5>Heading 5</h5>", "<p>Heading 5</p>"),
         (
             dedent(
                 """\
@@ -171,15 +171,15 @@ def test_render_markdown(text: str, expected_html: str | BeautifulSoup) -> None:
     [
         (
             "<script>window.alert('hey');</script>",
-            "&lt;script&gt;window.alert('hey');&lt;/script&gt;",
+            "",
         ),
         (
             "<div style=\"background: url('https://example.com/tracker.gif');\">hey</div>",
-            "<div>hey</div>",
+            "<p>hey</p>",
         ),
         (
             "<img src='https://example.com/tracker.gif'></img>",
-            "<p>&lt;img src='https://example.com/tracker.gif'&gt;&lt;/img&gt;</p>",
+            "",
         ),
     ],
 )

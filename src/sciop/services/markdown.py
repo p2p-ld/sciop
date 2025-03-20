@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
-import bleach
 import mistune
+import nh3
 from mistune.plugins.table import table
 from pygments import highlight
 from pygments.formatters import html
@@ -18,8 +18,19 @@ if TYPE_CHECKING:
 
 MAX_HEADING_LEVEL = 4
 
-ALLOWED_TAGS = (bleach.sanitizer.ALLOWED_TAGS - {"a"}) | {
+ALLOWED_TAGS = {
     *(f"h{level+1}" for level in range(MAX_HEADING_LEVEL)),
+    "abbr",
+    "acronym",
+    "b",
+    "blockquote",
+    "code",
+    "em",
+    "i",
+    "li",
+    "ol",
+    "strong",
+    "ul",
     "p",
     "table",
     "tr",
@@ -31,14 +42,7 @@ ALLOWED_TAGS = (bleach.sanitizer.ALLOWED_TAGS - {"a"}) | {
     "span",
     "details",
     "summary",
-    "pre",
-    "code",
-    "div",
 }
-ALLOWED_ATTRIBUTES = {"div": ["class"], "span": ["class"]}
-
-
-_cleaner = bleach.Cleaner(tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES)
 
 
 class HighlightRenderer(mistune.HTMLRenderer):
@@ -68,12 +72,12 @@ def render_markdown(text: str) -> str:
     Render unsafe markdown from user input, returning sanitized html
     """
 
-    converted = _markdown_renderer(text)
-    cleaned = _cleaner.clean(converted)
+    cleaned = nh3.clean(text, tags=ALLOWED_TAGS)
+    converted = _markdown_renderer(cleaned)
 
     # wrap in a containing tag for any additional styling
-    cleaned = '<div class="markdown">' + cleaned.strip() + "</div>"
-    return cleaned
+    wrapped = '<div class="markdown">' + converted.strip() + "</div>"
+    return wrapped
 
 
 def render_db_fields_to_html(
