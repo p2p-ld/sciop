@@ -72,11 +72,7 @@ def create_dataset(
         for part in dataset_create.parts
     ]
 
-    existing_tags = session.exec(select(Tag).filter(Tag.tag.in_(dataset_create.tags))).all()
-    existing_tag_str = set([e.tag for e in existing_tags])
-    new_tags = set(dataset_create.tags) - existing_tag_str
-    new_tags = [Tag(tag=tag) for tag in new_tags]
-    tags = [*existing_tags, *new_tags]
+    tags = get_tags(session=session, tags=dataset_create.tags)
 
     params = {
         "is_approved": is_approved,
@@ -107,6 +103,18 @@ def create_dataset_part(
     account: Account | None = None,
     commit: bool = True,
 ) -> DatasetPart:
+    # check for existing part
+    if dataset:
+        existing = session.exec(
+            select(DatasetPart).where(
+                DatasetPart.part_slug == dataset_part.part_slug,
+                DatasetPart.dataset_id == dataset.dataset_id,
+            )
+        ).first()
+        if existing:
+            return existing
+
+    # create a new part!
     paths = [DatasetPath(path=str(path)) for path in dataset_part.paths]
     is_approved = bool(account) and account.has_scope("submit")
     part = DatasetPart.model_validate(
@@ -416,3 +424,23 @@ def get_tag(*, session: Session, tag: str) -> Optional[Tag]:
     statement = select(Tag).where(Tag.tag == tag)
     tag = session.exec(statement).first()
     return tag
+
+
+def get_tags(*, session: Session, tags: list[str], commit: bool = False) -> list[Tag]:
+    """
+    Given a list of tags as strings,
+    get any existing tags and create non-existing ones, returning all.
+    """
+    existing_tags = session.exec(select(Tag).filter(Tag.tag.in_(tags))).all()
+    existing_tag_str = set([e.tag for e in existing_tags])
+    new_tags = set(tags) - existing_tag_str
+    new_tags = [Tag(tag=tag) for tag in new_tags]
+    if commit:
+        for tag in new_tags:
+            session.add(tag)
+        session.commit()
+        for tag in new_tags:
+            session.refresh(tag)
+
+    all_tags = [*existing_tags, *new_tags]
+    return all_tags

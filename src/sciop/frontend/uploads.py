@@ -4,9 +4,15 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import select
 
-from sciop.api.deps import CurrentAccount, RequireUpload, RequireVisibleUpload, SessionDep
+from sciop.api.deps import (
+    CurrentAccount,
+    RequireEditableBy,
+    RequireUpload,
+    RequireVisibleUpload,
+    SessionDep,
+)
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Upload, UploadRead
+from sciop.models import Upload, UploadRead, UploadUpdate
 
 uploads_router = APIRouter(prefix="/uploads")
 
@@ -52,6 +58,17 @@ async def upload_show(
         "pages/upload.html",
         {"upload": upload},
     )
+
+
+@uploads_router.get("/{infohash}/edit", response_class=HTMLResponse)
+async def upload_edit(
+    infohash: str,
+    upload: RequireVisibleUpload,
+    current_account: RequireEditableBy,
+    request: Request,
+):
+    upload_update = UploadUpdate.from_upload(upload)
+    return templates.TemplateResponse(request, "pages/upload-edit.html", {"upload": upload_update})
 
 
 @uploads_router.get("/{infohash}/partial", response_class=HTMLResponse)

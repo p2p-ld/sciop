@@ -10,11 +10,7 @@
 {%- endif %}
 {%- set closing_tag=False %}
 {%- set input_type=None %}
-{% if field.annotation.__args__ %}
-  {% set annotation = field.annotation.__args__[0] %}
-{% else %}
-  {% set annotation = field.annotation %}
-{% endif %}
+{% set annotation = unwrap_optional(field.annotation) %}
 {% set autocomplete=field.json_schema_extra.autocomplete %}
 {%- if field.json_schema_extra and field.json_schema_extra.get('input_type', None) == 'textarea' %}
     {%- set element="textarea" %}
@@ -96,7 +92,7 @@
       {%- endif %}
     {% endif %}
     {%- if element=="select" %}
-    {% for member in field.annotation.__members__.values() %}
+    {% for member in annotation.__members__.values() %}
     <option value="{{ member.value }}"{% if member.value == value %} selected="selected"{% endif %}>{{ member.value }}</option>
     {% endfor %}
     {%- endif %}
@@ -164,7 +160,7 @@
 {% endmacro %}
 
 {% macro model_list_item(model, field_name, idx) %}
-{% set field_name_prefix = field_name  + "[" + idx | string + "]" %}
+{% set field_name_prefix = field_name  + "[" + idx | string + "]." %}
 <div id="{{ field_name }}-{{ idx }}" class="model-list-item surface">
     <div class="constraint-gutter"><span class="error-feedback"></span></div>
     <a class="close-button button caution"
@@ -189,7 +185,7 @@
             {% endif %}
         </label>
         {% set value = model | attr(subfield_name) %}
-        {{ form_field(subfield, subfield_form_name, form_id) }}
+        {{ form_field(subfield, subfield_form_name, form_id, value) }}
     </div>
     {% endfor %}
 </div>

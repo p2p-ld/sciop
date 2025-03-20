@@ -25,7 +25,6 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
     from sciop.app import app
     from sciop.db import get_session
     from sciop.frontend import templates
-    from sciop.models.mixins import EditableMixin
 
     if request.config.getoption("--file-db"):
         engine, session, connection, trans = _file_session()

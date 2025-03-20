@@ -15,10 +15,13 @@ from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PRE
 from sciop.models.account import Account
 from sciop.models.mixins import (
     EditableMixin,
+    ListlikeMixin,
     ModerableMixin,
     SearchableMixin,
     TableMixin,
     TableReadMixin,
+    all_optional,
+    exclude_fields,
 )
 from sciop.models.tag import DatasetTagLink
 from sciop.services.markdown import render_db_fields_to_html
@@ -40,6 +43,8 @@ from sciop.types import (
 )
 
 if TYPE_CHECKING:
+    from sqlmodel import Session
+
     from sciop.models import AuditLog, Tag, Upload, UploadRead
 
 PREFIX_PATTERN = re.compile(r"\w{6}-[A-Z]{3}_\S+")
@@ -231,6 +236,27 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, table=Tru
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
     parts: list["DatasetPart"] = Relationship(back_populates="dataset")
 
+    def update(self, session: "Session", new: "DatasetUpdate", commit: bool = False) -> "Dataset":
+        from sciop import crud
+
+        updated = new.model_dump(exclude_unset=True)
+        if "tags" in updated:
+            updated["tags"] = crud.get_tags(session=session, tags=updated["tags"])
+        if "urls" in updated:
+            updated["urls"] = DatasetURL.get_items(self.urls, updated["urls"])
+        if "external_identifiers" in updated:
+            updated["external_identifiers"] = ExternalIdentifier.get_items(
+                self.external_identifiers, updated["external_identifiers"]
+            )
+        for field_name, new_value in updated.items():
+            setattr(self, field_name, new_value)
+
+        if commit:
+            session.add(self)
+            session.commit()
+            session.refresh(self)
+        return self
+
 
 event.listen(Dataset, "before_update", render_db_fields_to_html("description"))
 event.listen(Dataset, "before_insert", render_db_fields_to_html("description"))
@@ -294,9 +320,9 @@ class DatasetCreate(DatasetBase):
     )
 
     @classmethod
-    def from_dataset(cls, dataset: Dataset) -> "DatasetCreate":
+    def from_dataset(cls, dataset: Dataset) -> Self:
         """Reverse a dataset into its creation form, e.g. for editing :)"""
-        return DatasetCreate.model_validate(
+        return cls.model_validate(
             dataset,
             update={
                 "urls": [url.url for url in dataset.urls],
@@ -355,6 +381,17 @@ class DatasetCreate(DatasetBase):
         return slug
 
 
+@exclude_fields("parts")
+@all_optional
+class DatasetUpdate(DatasetCreate):
+    """
+    Version of dataset creation where all fields are optional
+    and we don't try and update the entire database in one call
+    (by excluding related items, except when they are strictly subordinate
+    to this object instance (like external identifiers) or scalar (tags))
+    """
+
+
 class DatasetRead(DatasetBase, TableReadMixin):
     slug: SlugStr = Field(min_length=2, max_length=_prefixed_len(DatasetBase.model_fields["slug"]))
     uploads: list["UploadRead"] = Field(default_factory=list)
@@ -378,8 +415,9 @@ class DatasetRead(DatasetBase, TableReadMixin):
         return sorted(val)
 
 
-class DatasetURL(EditableMixin, table=True):
+class DatasetURL(EditableMixin, ListlikeMixin, table=True):
     __tablename__ = "dataset_urls"
+    __value_column_name__ = "url"
 
     dataset_url_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
@@ -439,8 +477,11 @@ class ExternalIdentifierBase(SQLModel):
             return self.identifier
 
 
-class ExternalIdentifier(ExternalIdentifierBase, TableMixin, EditableMixin, table=True):
+class ExternalIdentifier(
+    ExternalIdentifierBase, TableMixin, EditableMixin, ListlikeMixin, table=True
+):
     __tablename__ = "external_identifiers"
+    __value_column_name__ = ("type", "identifier")
 
     external_identifier_id: IDField = Field(None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
@@ -521,6 +562,20 @@ class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, EditableMixin, ta
     paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset_part")
 
+    def update(
+        self, session: "Session", new: "DatasetPartUpdate", commit: bool = False
+    ) -> "DatasetPart":
+        updated = new.model_dump(exclude_unset=True)
+        if "paths" in updated:
+            updated["paths"] = DatasetPath.get_items(self.paths, updated["paths"])
+        for key, value in updated.items():
+            setattr(self, key, value)
+        if commit:
+            session.add(self)
+            session.commit()
+            session.refresh(self)
+        return self
+
 
 @event.listens_for(DatasetPart.is_removed, "set")
 def _part_prefix_on_removal(
@@ -565,6 +620,11 @@ class DatasetPartCreate(DatasetPartBase):
         return slug
 
 
+@all_optional
+class DatasetPartUpdate(DatasetPartCreate):
+    pass
+
+
 class DatasetPartRead(DatasetPartBase):
     dataset: DatasetRead
     uploads: list["UploadRead"] = Field(default_factory=list)
@@ -584,8 +644,9 @@ class DatasetPartRead(DatasetPartBase):
         return account
 
 
-class DatasetPath(TableMixin, table=True):
+class DatasetPath(TableMixin, ListlikeMixin, EditableMixin, table=True):
     __tablename__ = "dataset_paths"
+    __value_column_name__ = "path"
 
     dataset_path_id: IDField = Field(None, primary_key=True)
     dataset_part_id: Optional[int] = Field(None, foreign_key="dataset_parts.dataset_part_id")
@@ -604,6 +665,8 @@ def _split_lines(value: str | list[str] | BaseModel) -> Optional[list[str] | Bas
                 value = value[0].splitlines()
             elif value[0] == "":
                 return []
+        elif len(value) == 0:
+            return value
         elif isinstance(value[0], SQLModel):
             return value
     elif value is None:

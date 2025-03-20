@@ -96,7 +96,9 @@ CurrentUpload = Annotated[Optional[Upload], Depends(get_current_upload)]
 
 
 def require_editable_item(dataset: CurrentDataset, upload: CurrentUpload) -> Dataset | Upload:
-    """Gathering dependency to get one of a kind of editable item, depending on the url params present"""
+    """
+    Gathering dependency to get one of a kind of editable item, depending on the url params present
+    """
     if dataset is None and upload is None:
         raise HTTPException(404, detail="No editable item found")
     elif dataset is not None and upload is not None:

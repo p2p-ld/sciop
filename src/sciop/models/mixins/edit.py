@@ -49,6 +49,11 @@ class EditableMixin(SQLModel):
       that matches across any other updates within the session
     - foreign keys are added to map primary keys in the history table to the primary keys
       in the parent table
+
+    Inheriting classes *must* implement an ``update`` method that allows them to be updated
+    from a SQLModel (usually the model's `create` variant) IF they are intended to be updated
+    via user interaction. By default, the ``update`` method ignores any relations especially
+    *-to-many relations, and this will almost certainly not work!
     """
 
     __table_args__ = {"sqlite_autoincrement": True}
@@ -63,6 +68,17 @@ class EditableMixin(SQLModel):
     model_config = ConfigDict(
         ignored_types=(hybrid_method, hybrid_property), arbitrary_types_allowed=True
     )
+
+    def update(self, session: "Session", new: SQLModel, commit: bool = False) -> Self:
+        """Update a model in place"""
+        updated = new.model_dump(exclude_unset=True)
+        for key, value in updated.items():
+            setattr(self, key, value)
+        if commit:
+            session.add(self)
+            session.commit()
+            session.refresh(self)
+        return self
 
     @hybrid_method
     def editable_by(self, account: Optional["Account"] = None) -> bool:

@@ -34,6 +34,7 @@ from sciop.models.dataset import (
     DatasetPartRead,
     DatasetPath,
     DatasetRead,
+    DatasetUpdate,
     DatasetURL,
     ExternalIdentifier,
     ExternalIdentifierCreate,
@@ -53,7 +54,7 @@ from sciop.models.torrent import (
     TorrentFileRead,
 )
 from sciop.models.tracker import TorrentTrackerLink, Tracker, TrackerCreate
-from sciop.models.upload import Upload, UploadCreate, UploadRead
+from sciop.models.upload import Upload, UploadCreate, UploadRead, UploadUpdate
 
 Account.model_rebuild()
 Dataset.model_rebuild()
@@ -77,6 +78,7 @@ __all__ = [
     "DatasetPartRead",
     "DatasetPath",
     "DatasetRead",
+    "DatasetUpdate",
     "DatasetURL",
     "DatasetTagLink",
     "ExternalIdentifier",
@@ -104,5 +106,6 @@ __all__ = [
     "Upload",
     "UploadCreate",
     "UploadRead",
+    "UploadUpdate",
     "_Friedolin",
 ]

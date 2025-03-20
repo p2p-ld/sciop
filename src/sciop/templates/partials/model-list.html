@@ -1,3 +1,3 @@
 {% from 'macros/model-form.html' import form_field, add_subform_button, model_list_item %}
-{{ model_list_item(model, field_name, field_name_prefix, idx) }}
+{{ model_list_item(model, field_name, idx) }}
 {{ add_subform_button(form_id, field_name, idx + 1, model_name) }}

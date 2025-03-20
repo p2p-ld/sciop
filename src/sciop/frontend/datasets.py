@@ -21,7 +21,7 @@ from sciop.api.deps import (
 )
 from sciop.api.routes.upload import upload_torrent
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, DatasetCreate, DatasetRead, UploadCreate
+from sciop.models import Dataset, DatasetRead, DatasetUpdate, UploadCreate
 
 datasets_router = APIRouter(prefix="/datasets")
 
@@ -65,9 +65,9 @@ async def dataset_edit(
     current_account: RequireEditableBy,
     request: Request,
 ):
-    dataset_create = DatasetCreate.from_dataset(dataset)
+    dataset_update = DatasetUpdate.from_dataset(dataset)
     return templates.TemplateResponse(
-        request, "pages/dataset-edit.html", {"dataset": dataset_create}
+        request, "pages/dataset-edit.html", {"dataset": dataset_update}
     )
 
 

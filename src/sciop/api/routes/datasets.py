@@ -25,6 +25,7 @@ from sciop.models import (
     DatasetPartCreate,
     DatasetPartRead,
     DatasetRead,
+    DatasetUpdate,
     Upload,
     UploadCreate,
 )
@@ -108,10 +109,19 @@ async def dataset_show(dataset_slug: str, dataset: RequireDataset) -> DatasetRea
 
 @datasets_router.patch("/{dataset_slug}")
 async def dataset_edit(
-    dataset_slug: str, dataset: RequireVisibleDataset, current_account: RequireEditableBy
+    dataset_slug: str,
+    dataset_patch: Annotated[DatasetUpdate, Body()],
+    dataset: RequireVisibleDataset,
+    current_account: RequireEditableBy,
+    session: SessionDep,
+    request: Request,
+    response: Response,
 ) -> DatasetRead:
     """Edit a dataset!"""
-    raise NotImplementedError("not quite done!")
+    updated_dataset = dataset.update(session, new=dataset_patch, commit=True)
+    if "HX-Request" in request.headers:
+        response.headers["HX-Redirect"] = f"/datasets/{updated_dataset.slug}"
+    return updated_dataset
 
 
 @datasets_router.post("/{dataset_slug}/uploads")
