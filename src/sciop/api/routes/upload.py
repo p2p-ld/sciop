@@ -40,12 +40,6 @@ async def upload_torrent(
     Upload a torrent file prior to creating a Dataset upload
     """
     upload_logger.debug("Processing torrent file")
-    if file.content_type != "application/x-bittorrent":
-        raise HTTPException(
-            status_code=415,
-            detail=f"Uploads must be .torrent files, got mime type {file.content_type}",
-        )
-
     try:
         torrent = Torrent.read_stream(file.file)
         torrent.validate()
