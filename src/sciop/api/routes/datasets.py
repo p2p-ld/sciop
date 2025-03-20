@@ -26,6 +26,7 @@ from sciop.models import (
     DatasetPartRead,
     DatasetRead,
     DatasetUpdate,
+    ModerationAction,
     Upload,
     UploadCreate,
 )
@@ -122,6 +123,23 @@ async def dataset_edit(
     if "HX-Request" in request.headers:
         response.headers["HX-Redirect"] = f"/datasets/{updated_dataset.slug}"
     return updated_dataset
+
+
+@datasets_router.delete("/{dataset_slug}")
+async def dataset_delete(
+    dataset_slug: str,
+    session: SessionDep,
+    current_account: RequireCurrentAccount,
+    dataset: RequireDataset,
+):
+    if not dataset.removable_by(current_account):
+        raise HTTPException(403, f"Not permitted to remove dataset {dataset.slug}")
+    dataset.is_removed = True
+    session.add(dataset)
+    session.commit()
+    crud.log_moderation_action(
+        session=session, actor=current_account, target=dataset, action=ModerationAction.remove
+    )
 
 
 @datasets_router.post("/{dataset_slug}/uploads")

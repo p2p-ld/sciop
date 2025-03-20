@@ -213,6 +213,7 @@ def create_version(
             **obj.model_dump(),
             "version_created_at": timestamp,
             "version_created_by": account_id,
+            "version_is_deletion": deleted,
         }
     )
     session.add(hist)
@@ -239,6 +240,13 @@ def create_version(
             link_model_kwargs = _link_model_kwargs(v, obj, prop)
             link_model_kwargs["version_created_at"] = timestamp
             link_model_kwargs["version_created_by"] = account_id
+            link_model_instance = link_model_cls(**link_model_kwargs)
+            session.add(link_model_instance)
+        for v in history.deleted:
+            link_model_kwargs = _link_model_kwargs(v, obj, prop)
+            link_model_kwargs["version_created_at"] = timestamp
+            link_model_kwargs["version_created_by"] = account_id
+            link_model_kwargs["version_is_deletion"] = True
             link_model_instance = link_model_cls(**link_model_kwargs)
             session.add(link_model_instance)
 
@@ -422,6 +430,11 @@ def _make_meta_cols() -> dict[str, _MetaCol]:
         ),
         field=Field(default=None, nullable=True, foreign_key="accounts.account_id"),
         annotation={"version_created_by": Optional[int]},
+    )
+    cols["version_is_deletion"] = _MetaCol(
+        col=Column("version_is_deletion", sqla.Boolean, default=False, info=history_meta),
+        field=Field(default=False, nullable=False),
+        annotation={"version_is_deletion": bool},
     )
 
     return cols
