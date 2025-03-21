@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import Page
