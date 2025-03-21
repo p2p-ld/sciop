@@ -1,5 +1,6 @@
 {% extends "layouts/default.html" %}
-{% from "macros/model-form.html" import model_form %}
+{% from "macros/model-form.html" import model_form, inner_model_form %}
+{% from "macros/torrent.html" import upload_form, torrent_form_partial %}
 {% block head %}
 {% with title = "Editing " + upload.file_name %}
     {% include "includes/head.html" %}
@@ -8,15 +9,26 @@
 {% block content %}
 <h1 class="upload-file-name">Editing - {{ upload.file_name }} </h1>
 
-{% set form_id="edit-upload-" + dataset.infohash %}
-{{ model_form(id=form_id, model=upload, edit=True) }}
+{% set form_id="edit-upload-" + upload.infohash %}
+<form class="form" id="{{ form_id }}" hx-ext="form-json">
+{{ inner_model_form(id=None, model=upload, edit=True) }}
+</form>
+
+<div id="torrent-container" class="surface flex column">
+    <p>Upload a new torrent</p>
+{{ upload_form(dataset, parts, target="#torrent-metadata", post_to="upload", config=config) }}
+
+<div id="torrent-metadata">
+{{ torrent_form_partial(torrent, form=form_id) }}
+</div>
+</div>
 
 <div class="button-row">
     <button
         class="form-button"
         type="submit"
-        name="dataset"
-        hx-patch="{{ config.api_prefix }}/datasets/{{ dataset.slug }}"
+        name="upload"
+        hx-patch="{{ config.api_prefix }}/uploads/{{ upload.infohash }}"
         hx-include="#{{ form_id }}"
         hx-target="#{{ form_id }}"
         hx-ext="form-json"

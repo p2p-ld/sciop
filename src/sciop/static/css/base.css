@@ -46,3 +46,13 @@ pre {
   border: 1px solid var(--color-border-deemphasized);
   border-radius: 3px;
 }
+
+.flex {
+  display: flex;
+  gap: 1em;
+
+  &.column {
+    flex-direction: column;
+
+  }
+}

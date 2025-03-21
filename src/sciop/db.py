@@ -361,7 +361,7 @@ def _generate_upload(
     upload = UploadCreate(
         method="I downloaded it",
         description="Its all here bub",
-        torrent_infohash=created_torrent.infohash,
+        infohash=created_torrent.infohash,
     )
 
     created_upload = crud.create_upload(

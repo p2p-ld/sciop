@@ -114,11 +114,12 @@
                     dataset.editable_by(current_account) or
                     dataset.removable_by(current_account)
                 ) %}
-                {% set edit_url="/datasets/" + dataset.slug + "/edit" %}
+
                 <tr>
                     <td class="infobox-key">Actions</td>
                     <td class="infobox-value">
                         {% if dataset.editable_by(current_account) %}
+                        {% set edit_url="/datasets/" + dataset.slug + "/edit" %}
                         {{ edit_button(url=edit_url, item_type="dataset", name=dataset.slug)}}
                         {% endif %}
                         {% if dataset.removable_by(current_account) %}

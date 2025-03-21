@@ -151,12 +151,11 @@ async def datasets_create_upload(
     session: SessionDep,
 ) -> Upload:
     """Create an upload of a dataset"""
-    torrent = crud.get_torrent_from_infohash(session=session, infohash=upload.torrent_infohash)
+    torrent = crud.get_torrent_from_infohash(session=session, infohash=upload.infohash)
     if not torrent:
         raise HTTPException(
             status_code=404,
-            detail=f"No torrent with short hash {upload.torrent_infohash} exists, "
-            "upload it first!",
+            detail=f"No torrent with short hash {upload.infohash} exists, " "upload it first!",
         )
     created_upload = crud.create_upload(
         session=session, created_upload=upload, dataset=dataset, account=account

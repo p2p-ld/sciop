@@ -170,7 +170,10 @@ table {
 
   .header {
     flex-grow: 1;
-    flex-basis: 50%
+    flex-basis: 49%;
+  }
+  .infobox {
+    flex-basis: 49%;
   }
 }
 

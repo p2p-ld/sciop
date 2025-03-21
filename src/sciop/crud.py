@@ -280,12 +280,12 @@ def create_torrent(
 def create_upload(
     *, session: Session, created_upload: UploadCreate, account: Account, dataset: Dataset
 ) -> Upload:
-    torrent = get_torrent_from_infohash(session=session, infohash=created_upload.torrent_infohash)
+    torrent = get_torrent_from_infohash(session=session, infohash=created_upload.infohash)
     update = {
         "torrent": torrent,
         "account": account,
         "dataset": dataset,
-        "infohash": created_upload.torrent_infohash,
+        "infohash": created_upload.infohash,
         "is_approved": account.has_scope("upload"),
     }
     if created_upload.part_slugs:

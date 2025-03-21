@@ -1,4 +1,4 @@
-{% from "macros/actions.html" import delete_button %}
+{% from "macros/actions.html" import delete_button, edit_button %}
 {% macro upload_row(upload, current_account, config, header_start=1) %}
 <div class="upload" id="upload-{{ upload.infohash }}">
     <div class="upload-topmatter topmatter">
@@ -110,12 +110,21 @@
                         </time>
                     </td>
                 </tr>
-                {% if upload.removable_by(current_account) %}
-                {% set delete_url= config.api_prefix + "/uploads/" + upload.infohash %}
+                {% if current_account and (
+                    upload.removable_by(current_account) or
+                    upload.editable_by(current_account)
+                ) %}
                 <tr>
                     <td class="infobox-key">Actions</td>
                     <td class="infobox-value">
+                    {% if upload.editable_by(current_account) %}
+                    {% set edit_url="/uploads/" + upload.infohash + "/edit" %}
+                    {{ edit_button(url=edit_url, item_type="upload", name=upload.file_name)}}
+                    {% endif %}
+                    {% if upload.removable_by(current_account) %}
+                    {% set delete_url= config.api_prefix + "/uploads/" + upload.infohash %}
                     {{ delete_button(url=delete_url, item_type="upload", name=upload.infohash)}}
+                    {% endif %}
                     </td>
                 </tr>
                 {% endif %}

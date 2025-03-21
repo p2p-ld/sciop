@@ -296,8 +296,8 @@ def upload(
             dataset_ = dataset(is_approved=True, session=session_)
 
         kwargs = {**default_upload, **kwargs}
-        if "torrent_infohash" not in kwargs:
-            kwargs["torrent_infohash"] = torrentfile_.infohash
+        if "infohash" not in kwargs:
+            kwargs["infohash"] = torrentfile_.infohash
         created = UploadCreate(**kwargs)
         created = crud.create_upload(
             session=session_, created_upload=created, dataset=dataset_, account=account_

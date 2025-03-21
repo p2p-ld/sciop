@@ -33,6 +33,7 @@ class UploadBase(ModerableMixin):
 
     method: Optional[str] = Field(
         None,
+        title="Method",
         description="""Description of how the dataset was acquired. Markdown input is supported.""",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=8192,
@@ -44,6 +45,7 @@ class UploadBase(ModerableMixin):
     )
     description: Optional[str] = Field(
         None,
+        title="Description",
         description="Any additional information about this dataset upload. "
         "Markdown input is supported.",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
@@ -76,19 +78,9 @@ class UploadBase(ModerableMixin):
         return urljoin(config.base_url, self.download_path)
 
     @property
-    def file_name(self) -> str:
-        return self.torrent.file_name
-
-    @property
     def short_hash(self) -> Optional[str]:
         if self.torrent:
             return self.torrent.short_hash
-        return None
-
-    @property
-    def infohash(self) -> Optional[str]:
-        if self.torrent:
-            return self.torrent.infohash
         return None
 
     @property
@@ -138,6 +130,16 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, table=True)
 
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
 
+    @property
+    def infohash(self) -> Optional[str]:
+        if self.torrent:
+            return self.torrent.infohash
+        return None
+
+    @property
+    def file_name(self) -> str:
+        return self.torrent.file_name
+
     @hybrid_property
     def seeders(self) -> int:
         return self.torrent.seeders
@@ -176,7 +178,7 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, table=True)
         if "infohash" in updated:
             infohash = updated.pop("infohash")
             self.torrent = crud.get_torrent_from_infohash(session=session, infohash=infohash)
-        if "file_name":
+        if "file_name" in updated:
             self.torrent.file_name = updated.pop("file_name")
         if "part_slugs" in updated:
             part_slugs = updated.pop("part_slugs")
@@ -231,6 +233,16 @@ class UploadRead(UploadBase, TableReadMixin):
     seeders: Optional[int] = None
     leechers: Optional[int] = None
 
+    @property
+    def infohash(self) -> Optional[str]:
+        if self.torrent:
+            return self.torrent.infohash
+        return None
+
+    @property
+    def file_name(self) -> str:
+        return self.torrent.file_name
+
     @field_validator("dataset", mode="before")
     def extract_slug(cls, value: Optional["Dataset"] = None) -> SlugStr:
         if value is not None:
@@ -241,7 +253,7 @@ class UploadRead(UploadBase, TableReadMixin):
 class UploadCreate(UploadBase):
     """Dataset upload for creation, excludes the is_approved param"""
 
-    torrent_infohash: str = Field(
+    infohash: str = Field(
         min_length=40,
         max_length=64,
         description="Infohash of the torrent file, v1 or v2",
@@ -251,7 +263,7 @@ class UploadCreate(UploadBase):
         default=None,
         title="Dataset Parts",
         description="Parts of a dataset that this upload corresponds to",
-        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+        schema_extra={"json_schema_extra": {"input_type": InputType.none}},
     )
 
     @classmethod
@@ -259,7 +271,7 @@ class UploadCreate(UploadBase):
         return cls.model_validate(
             upload,
             update={
-                "torrent_infohash": upload.infohash,
+                "infohash": upload.infohash,
                 "part_slugs": [p.part_slug for p in upload.dataset_parts],
                 "file_name": upload.file_name,
             },
@@ -268,6 +280,16 @@ class UploadCreate(UploadBase):
 
 @all_optional
 class UploadUpdate(UploadCreate):
+    infohash: str = Field(
+        min_length=40,
+        max_length=64,
+        description="Infohash of the torrent file, v1 or v2",
+        schema_extra={"json_schema_extra": {"input_type": InputType.input, "disabled": True}},
+    )
     file_name: Optional[FileName] = Field(
-        default=None, description="The name of the associated torrent file"
+        default=None,
+        max_length=1024,
+        title="File name",
+        description="Torrent filename (must end in .torrent)",
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )

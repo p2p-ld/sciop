@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import Page
@@ -68,7 +69,16 @@ async def upload_edit(
     request: Request,
 ):
     upload_update = UploadUpdate.from_upload(upload)
-    return templates.TemplateResponse(request, "pages/upload-edit.html", {"upload": upload_update})
+    return templates.TemplateResponse(
+        request,
+        "pages/upload-edit.html",
+        {
+            "upload": upload_update,
+            "dataset": upload.dataset,
+            "parts": upload.dataset.parts,
+            "torrent": upload.torrent,
+        },
+    )
 
 
 @uploads_router.get("/{infohash}/partial", response_class=HTMLResponse)
