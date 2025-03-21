@@ -1,10 +1,11 @@
+from collections import defaultdict
 from enum import StrEnum
 from typing import Optional
 
 import pytest
 from sqlmodel import Field, Session, select
 
-from sciop.models import Dataset, DatasetPart, DatasetTagLink, Tag
+from sciop.models import Dataset, DatasetPart, DatasetTagLink, DatasetURL, Tag
 from sciop.models.mixins.enum import EnumTableMixin
 
 
@@ -188,7 +189,7 @@ def test_editable_base(dataset, session):
     assert ds_versions[3].description is None
 
 
-def test_editable_child(dataset, session):
+def test_editable_one_to_many(dataset, session):
     """
     Editable child objects preserve history when they are changed within their parents
 
@@ -223,6 +224,47 @@ def test_editable_child(dataset, session):
     assert part_versions[0].version_created_at == ds_versions[1].version_created_at
 
 
+def test_editable_one_to_many_deletion(dataset, session):
+    """Record deletions in one to many as versions that have their fk to the parent nulled out"""
+    ds: Dataset = dataset()
+
+    url1 = DatasetURL.get_item("https://example.com/1", session=session)
+    url2 = DatasetURL.get_item("https://example.com/2", session=session)
+    url3 = DatasetURL.get_item("https://example.com/3", session=session)
+    ds.urls = [url1, url2, url3]
+    session.add(ds)
+    session.commit()
+
+    ds.urls = [url1, url3]
+    session.add(ds)
+    session.commit()
+
+    urls = session.exec(select(DatasetURL)).all()
+    ds_history = session.exec(select(Dataset.history_cls())).all()
+    url_history = session.exec(select(DatasetURL.history_cls())).all()
+    assert len(ds_history) == 3
+    history_groups = defaultdict(list)
+    for item in url_history:
+        history_groups[item.version_created_at].append(item)
+
+    # didn't make new urls each time
+    assert len(urls) == 3
+
+    assert len(history_groups) == 3
+    timestamps = list(history_groups.keys())
+    # two initial urls
+    assert len(history_groups[timestamps[0]]) == 2
+    # then three assigned
+    assert len(history_groups[timestamps[1]]) == 3
+    # two assigned and one removed
+    assert len(history_groups[timestamps[2]]) == 3
+
+    # unassigned url2 in the last step
+    assert [item for item in history_groups[timestamps[2]] if item.url == url2.url][
+        0
+    ].dataset_id is None
+
+
 def test_editable_many_to_many(dataset, session):
     ds: Dataset = dataset()
     tag_states = []
@@ -239,6 +281,7 @@ def test_editable_many_to_many(dataset, session):
 
     ds.title = "ThirdTitle"
     del ds.tags[0]
+    n_tags += 1
     session.add(ds)
     session.commit()
     session.refresh(ds)
@@ -268,14 +311,11 @@ def test_editable_many_to_many(dataset, session):
         version_tags = [
             tags_by_id[t.tag_id]
             for t in tag_link_versions
-            if t.version_created_at == uq_timestamps[i]
+            if t.version_created_at == uq_timestamps[i] and not t.version_is_deletion
         ]
         assert set(version_tags) == set(state)
 
-
-@pytest.mark.skip(reason="todo")
-def test_editable_cascade_delete(dataset):
-    """
-    History rows are removed when the main row is removed
-    """
-    pass
+    deleted = [t for t in tag_link_versions if t.version_is_deletion]
+    assert len(deleted) == 1
+    deleted_tag = [t for t in tags if t.tag_id == deleted[0].tag_id][0]
+    assert deleted_tag.tag == tag_states[0][0]

@@ -34,10 +34,10 @@ class ListlikeMixin(SQLModel):
 
         existing = session.exec(
             select(cls).where(getattr(cls, cls.__value_column_name__) == value)
-        ).first()
+        ).scalar()
         if existing:
             return existing
-        new_item = cls(**{getattr(cls, cls.__value_column_name__): value, **kwargs})
+        new_item = cls(**{cls.__value_column_name__: value, **kwargs})
         if commit:
             session.add(new_item)
             session.commit()

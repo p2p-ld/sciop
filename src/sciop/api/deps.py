@@ -42,7 +42,8 @@ TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 def require_current_account(session: RawSessionDep, token: TokenDep) -> Account:
     if not token:
-        raise HTTPException(302, detail="Not authorized", headers={"Location": "/login"})
+
+        raise HTTPException(401, detail="Not authorized", headers={"HX-Redirect": "/login"})
 
     try:
         payload = jwt.decode(token, config.secret_key.get_secret_value(), algorithms=[ALGORITHM])
@@ -54,7 +55,7 @@ def require_current_account(session: RawSessionDep, token: TokenDep) -> Account:
         ) from e
     account = session.get(Account, token_data.sub)
     if not account:
-        raise HTTPException(302, detail="Not authorized", headers={"Location": "/login"})
+        raise HTTPException(401, detail="Not authorized", headers={"HX-Redirect": "/login"})
     elif account.is_suspended:
         raise HTTPException(
             status_code=403, detail="Account is suspended", headers={"HX-Redirect": "/login"}
