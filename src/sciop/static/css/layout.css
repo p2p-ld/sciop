@@ -194,6 +194,10 @@ table {
   .infobox-value {
     font-family: var(--font-mono);
   }
+
+  .button {
+    margin: 0.4em 0;
+  }
   td {
     border: 1px solid var(--color-border-deemphasized);
     padding: 0 0.5em;

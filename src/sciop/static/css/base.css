@@ -49,10 +49,14 @@ pre {
 
 .flex {
   display: flex;
-  gap: 1em;
+  row-gap: 0.5em;
+  column-gap: 0.5em;
+
 
   &.column {
     flex-direction: column;
-
+  }
+  &.row {
+    flex-direction: row;
   }
 }
