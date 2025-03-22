@@ -1,5 +1,6 @@
 import hashlib
 import random
+import string
 from collections.abc import Callable as C
 from copy import deepcopy
 from pathlib import Path
@@ -105,7 +106,7 @@ def default_torrent() -> dict:
     return {
         "path": "default.bin",
         "name": "Default Torrent",
-        "trackers": [["http://example.com/announce"]],
+        "trackers": [["udp://example.com/announce"]],
         "comment": "My comment",
         "piece_size": 16384,
     }
@@ -205,12 +206,15 @@ def dataset(
 def torrent(default_torrent: dict, tmp_path: Path) -> C[P, Torrent]:
 
     def _torrent(**kwargs: P.kwargs) -> Torrent:
-        kwargs = {**default_torrent, **kwargs}
+        kwargs = {**default_torrent.copy(), **kwargs}
         file_in_torrent = Path(default_torrent["path"])
         if not file_in_torrent.is_absolute():
             file_in_torrent = tmp_path / file_in_torrent
+
+        hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
+        hash_data = hash_data.encode("utf-8")
         with open(file_in_torrent, "wb") as f:
-            f.write(b"0" * 16384 * 4)
+            f.write(hash_data)
         kwargs["path"] = file_in_torrent
 
         t = Torrent(**kwargs)
@@ -251,7 +255,7 @@ def torrentfile(
         kwargs = deepcopy({**default_torrentfile, **kwargs})
         file_in_torrent = tmp_path / "default.bin"
         with open(file_in_torrent, "wb") as f:
-            f.write(b"0" * kwargs["total_size"])
+            f.write(random.randbytes(kwargs["total_size"]))
 
         if extra_trackers is not None:
             kwargs["announce_urls"].extend(extra_trackers)

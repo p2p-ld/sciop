@@ -5,6 +5,7 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
+from fasthx.dependencies import DependsHXRequest
 from sqlmodel import Session, select
 from starlette.datastructures import QueryParams
 from starlette.requests import Request
@@ -164,11 +165,17 @@ async def dataset_upload_torrent(
     session: SessionDep,
     request: Request,
     response: Response,
+    hx_request: DependsHXRequest,
 ):
     """Validate and create a torrent file,"""
 
     created_torrent = await upload_torrent(
-        account=account, file=file, session=session, request=request, response=response
+        account=account,
+        file=file,
+        session=session,
+        request=request,
+        response=response,
+        __hx_request=None,
     )
     parts = _parts_from_query(query=request.query_params, dataset=dataset, session=session)
 

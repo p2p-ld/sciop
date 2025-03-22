@@ -5,6 +5,7 @@ import socket
 import time
 from threading import Thread
 from typing import Callable as C
+from typing import Literal as L
 from typing import Optional
 
 import pytest
@@ -12,6 +13,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from sqlmodel import Session
 from starlette.testclient import TestClient
@@ -123,6 +126,26 @@ class Server_(Server):
             thread.join()
 
 
+class Firefox_(webdriver.Firefox):
+
+    def wait_for(
+        self,
+        locator: str,
+        by: By = By.ID,
+        timeout: float = 3,
+        type: L["visible", "clickable"] = "visible",
+    ) -> WebElement:
+        if type == "clickable":
+            element_present = EC.element_to_be_clickable((by, locator))
+        elif type == "visible":
+            element_present = EC.visibility_of_element_located((by, locator))
+        else:
+            raise ValueError("Dont know what ur type is lol")
+
+        WebDriverWait(self, timeout).until(element_present)
+        return self.find_element(by, locator)
+
+
 @pytest.fixture()
 async def run_server(session: Session) -> Server_:
     from sciop.app import app
@@ -160,7 +183,7 @@ async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriv
     options.add_argument("--window-size=1920,1080")
     _service = FirefoxService(executable_path=executable_path)
     try:
-        browser = webdriver.Firefox(service=_service, options=options)
+        browser = Firefox_(service=_service, options=options)
         browser.set_window_size(1920, 1080)
         browser.maximize_window()
         browser.implicitly_wait(0.25)
