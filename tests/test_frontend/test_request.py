@@ -101,7 +101,6 @@ async def test_rm_subform_items(driver_as_admin):
         (By.ID, "request-form-external_identifiers[1].type")
     )
     assert element_not_present(driver_as_admin)
-    # WebDriverWait(driver_as_admin, 0.1).until(element_not_present)
 
     # add the third item
     ext_ids.find_element(By.CLASS_NAME, "add-subform-button").click()

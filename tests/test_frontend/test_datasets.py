@@ -27,13 +27,16 @@ def test_upload_from_download(driver_as_admin: "Firefox_", torrent, dataset, ses
     }
 
     driver.get("http://127.0.0.1:8080/datasets/default")
+    # initiate upload partial
     driver.wait_for("upload-button", type="clickable").click()
+    # upload file
     driver.wait_for('input[type="file"]', by=By.CSS_SELECTOR).send_keys(str(t.path))
-    submit_button = driver.find_element(By.CSS_SELECTOR, ".upload-form button[type=submit]")
-    submit_button.click()
+    driver.find_element(By.CSS_SELECTOR, ".upload-form button[type=submit]").click()
+    # input model fields
     driver.wait_for("upload-form-method").send_keys(expected["method"])
     driver.find_element(By.ID, "upload-form-description").send_keys(expected["description"])
     driver.find_element(By.ID, "submit-upload-button").click()
+    # wait for upload to finalize
     driver.wait_for(f"upload-{t.infohash}")
 
     upload = session.exec(select(Upload)).first()
