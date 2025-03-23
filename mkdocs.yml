@@ -14,6 +14,8 @@ nav:
   - Uploading:
     - Trackers: uploading/trackers.md
   - API: /docs/api
+  - Running:
+    - Maintenance: running/maintenance.md
   - Developers:
     - Error Handling: sciop/error_handling.md
     - Jobs: sciop/jobs.md
@@ -45,6 +47,7 @@ site_url: https://sciop.net/docs/
 markdown_extensions:
   - pymdownx.snippets:
       base_path: ["docs/"]
+  - footnotes
 
 
 
