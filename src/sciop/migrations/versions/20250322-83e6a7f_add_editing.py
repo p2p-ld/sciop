@@ -139,7 +139,7 @@ def upgrade() -> None:
             ["accounts.account_id"],
             name=op.f("fk_datasets__history_version_created_by_accounts"),
         ),
-        sa.PrimaryKeyConstraint("version_created_at"),
+        sa.PrimaryKeyConstraint("dataset_id", "version_created_at"),
         sqlite_autoincrement=True,
     )
     with op.batch_alter_table("datasets__history", schema=None) as batch_op:
@@ -205,7 +205,7 @@ def upgrade() -> None:
             ["accounts.account_id"],
             name=op.f("fk_dataset_parts__history_version_created_by_accounts"),
         ),
-        sa.PrimaryKeyConstraint("version_created_at"),
+        sa.PrimaryKeyConstraint("dataset_part_id", "version_created_at"),
     )
     with op.batch_alter_table("dataset_parts__history", schema=None) as batch_op:
         batch_op.create_index(
@@ -258,7 +258,7 @@ def upgrade() -> None:
             ["accounts.account_id"],
             name=op.f("fk_dataset_tag_links__history_version_created_by_accounts"),
         ),
-        sa.PrimaryKeyConstraint("version_created_at"),
+        sa.PrimaryKeyConstraint("dataset_id", "tag_id", "version_created_at"),
         sqlite_autoincrement=True,
     )
     op.create_table(
@@ -296,7 +296,7 @@ def upgrade() -> None:
             ["accounts.account_id"],
             name=op.f("fk_dataset_urls__history_version_created_by_accounts"),
         ),
-        sa.PrimaryKeyConstraint("version_created_at"),
+        sa.PrimaryKeyConstraint("dataset_url_id", "version_created_at"),
         sqlite_autoincrement=True,
     )
     op.create_table(
@@ -361,7 +361,7 @@ def upgrade() -> None:
             ["accounts.account_id"],
             name=op.f("fk_external_identifiers__history_version_created_by_accounts"),
         ),
-        sa.PrimaryKeyConstraint("version_created_at"),
+        sa.PrimaryKeyConstraint("external_identifier_id", "version_created_at"),
         sqlite_autoincrement=True,
     )
     op.create_table(
@@ -419,7 +419,7 @@ def upgrade() -> None:
             ["accounts.account_id"],
             name=op.f("fk_external_sources__history_version_created_by_accounts"),
         ),
-        sa.PrimaryKeyConstraint("version_created_at"),
+        sa.PrimaryKeyConstraint("external_source_id", "version_created_at"),
         sqlite_autoincrement=True,
     )
     op.create_table(
@@ -482,7 +482,7 @@ def upgrade() -> None:
             ["accounts.account_id"],
             name=op.f("fk_uploads__history_version_created_by_accounts"),
         ),
-        sa.PrimaryKeyConstraint("version_created_at"),
+        sa.PrimaryKeyConstraint("upload_id", "version_created_at"),
         sqlite_autoincrement=True,
     )
     op.create_table(
@@ -525,7 +525,7 @@ def upgrade() -> None:
             ["accounts.account_id"],
             name=op.f("fk_dataset_paths__history_version_created_by_accounts"),
         ),
-        sa.PrimaryKeyConstraint("version_created_at"),
+        sa.PrimaryKeyConstraint("dataset_path_id", "version_created_at"),
         sqlite_autoincrement=True,
     )
     op.create_table(
@@ -599,7 +599,7 @@ def upgrade() -> None:
             ["accounts.account_id"],
             name=op.f("fk_torrent_files__history_version_created_by_accounts"),
         ),
-        sa.PrimaryKeyConstraint("version_created_at"),
+        sa.PrimaryKeyConstraint("torrent_file_id", "version_created_at"),
         sqlite_autoincrement=True,
     )
     with op.batch_alter_table("torrent_files__history", schema=None) as batch_op:
@@ -655,7 +655,7 @@ def upgrade() -> None:
             ["accounts.account_id"],
             name=op.f("fk_files_in_torrent__history_version_created_by_accounts"),
         ),
-        sa.PrimaryKeyConstraint("version_created_at"),
+        sa.PrimaryKeyConstraint("file_in_torrent_id", "version_created_at"),
         sqlite_autoincrement=True,
     )
     # ### end Alembic commands ###
