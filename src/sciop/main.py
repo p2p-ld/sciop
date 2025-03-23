@@ -1,9 +1,14 @@
+from typing import TYPE_CHECKING, Optional
+
 import uvicorn
 
-from sciop.config import config
+if TYPE_CHECKING:
+    from sciop.config import Config
 
 
-def main() -> None:
+def main(config: Optional["Config"] = None) -> None:
+    if config is None:
+        from sciop.config import config
     uvicorn.run(
         "sciop.app:app",
         host=config.host,

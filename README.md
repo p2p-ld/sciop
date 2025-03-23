@@ -48,7 +48,7 @@ Two fields *must* be set:
 
 ### With pip
 
-    sciop
+    sciop start
 
 ### With pdm
 
