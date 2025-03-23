@@ -73,6 +73,7 @@ function filterEmptyArrayItems(obj){
     }
   })
 
+  // BEGIN VENDOR OVERRIDE --------------
   // Get the false checkboxes!
   function gatherFalses(elt){
     let form = elt.nodeName === "FORM" ? elt : document.querySelector(elt.getAttribute("hx-include"));
@@ -88,6 +89,7 @@ function filterEmptyArrayItems(obj){
       )
     )
   }
+  // END VENDOR OVERRIDE -------------
 
   function convertValue(input, value, inputType) {
     if (inputType == 'number' || inputType == 'range') {
