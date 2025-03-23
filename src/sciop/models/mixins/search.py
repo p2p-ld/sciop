@@ -1,8 +1,8 @@
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar
 
 from sqlalchemy import Column, Connection, MetaData, Select, Table, TextClause, event, select, text
 from sqlalchemy.exc import OperationalError
-from sqlmodel import Session, SQLModel, literal_column
+from sqlmodel import SQLModel, literal_column
 from sqlmodel.main import FieldInfo
 
 
