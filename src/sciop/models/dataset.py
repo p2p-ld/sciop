@@ -212,7 +212,13 @@ class DatasetBase(ModerableMixin):
 
 class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, table=True):
     __tablename__ = "datasets"
-    __searchable__ = ["title", "slug", "publisher", "homepage", "description"]
+    __searchable__ = {
+        "title": 5.0,
+        "slug": 1.0,
+        "publisher": 2.0,
+        "homepage": 1.0,
+        "description": 3.0,
+    }
 
     slug: SlugStr = Field(
         unique=True,
