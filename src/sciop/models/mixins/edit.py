@@ -377,8 +377,7 @@ def _prepare_columns(
         history_c.autoincrement = False
 
         if history_c.primary_key:
-            # convert primary keys in primary tables to FKs
-            history_c.primary_key = False
+            # add fks back to parent tables
             parent_fk = ForeignKey(orig_c)
             history_c.foreign_keys.add(parent_fk)
             table.constraints.add(ForeignKeyConstraint([history_c], [orig_c]))
