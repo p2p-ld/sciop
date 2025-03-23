@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 
 from sqlmodel import select
 from starlette.testclient import TestClient
@@ -90,15 +91,25 @@ def test_edit_relations(client, dataset, admin_auth_header, session):
     assert len(urls) == 3
     assert len([url for url in urls if url.url == "https://example.com/1"]) == 1
     assert [url for url in urls if url.url == "https://example.com/2"][0].dataset_id is None
-    # 2 creations + 1 creation + 1 dissociation
-    assert len(url_history) == 4
-    assert url_history[-1].dataset_id is None
+    # 2 creations + 1 unchanged + 1 creation + 1 dissociation
+    assert len(url_history) == 5
+    history_map = defaultdict(list)
+    for url in url_history:
+        history_map[url.version_created_at].append(url)
+    assert len(history_map) == 2
+    latest = history_map[max(history_map.keys())]
+    assert len(latest) == 3
+    for url in latest:
+        if url.url == "https://example.com/2":
+            assert url.dataset_id is None
+        else:
+            assert url.dataset_id == 1
 
     # external ids - these are the same kind of model as urls, so we just check number
     assert len(eids) == 3
-    assert len(eid_history) == 4
+    assert len(eid_history) == 5
 
     # tags are forced to be unique so we don't need to check double creation,
     # but we should check on the history (and this is tested in the editable mixin tests)
-    # 3 original + 3 new + 2 deleted == 8
+    # 3 original + 2 new + 1 unchanged + 2 deleted == 8
     assert len(tag_history) == 8

@@ -36,7 +36,16 @@ reusable_oauth2 = OAuth2PasswordBearerCookie(
 )
 
 
-RawSessionDep = Annotated[Session, Depends(get_session)]
+def _raw_session() -> Session:
+    """
+    Get a session - put this in a wrapper function so it's invoked once per
+    resolution of the dependency graph, rather than multiple times
+    if one was just using `get_session` on its own
+    """
+    return next(get_session())
+
+
+RawSessionDep = Annotated[Session, Depends(_raw_session)]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 
@@ -76,7 +85,8 @@ CurrentAccount = Annotated[Optional[Account], Depends(get_current_account)]
 
 def get_accountable_session(session: RawSessionDep, account: CurrentAccount) -> Session:
     """Attach the current account to the session"""
-    session.info["current_account"] = account
+    if account is not None:
+        session.info["current_account_id"] = account.account_id
     return session
 
 

@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.parametrize("url", ("/", "/datasets", "/docs", "/request", "/feeds"))
+@pytest.mark.parametrize("url", ("/", "/datasets", "/docs", "/feeds", "/uploads"))
 def test_public_pages_load(url, client_lifespan):
     """
     The babiest of tests, just make sure public pages load.
@@ -12,7 +12,7 @@ def test_public_pages_load(url, client_lifespan):
     assert response.status_code == 200
 
 
-@pytest.mark.parametrize("url", ("/self", "/self/review", "/self/admin", "/self/log"))
+@pytest.mark.parametrize("url", ("/request", "/self", "/self/review", "/self/admin", "/self/log"))
 def test_admin_pages_load(url, client, admin_auth_header):
     """
     More of the babiest of tests, just make sure admin pages load.

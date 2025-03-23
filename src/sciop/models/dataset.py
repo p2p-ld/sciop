@@ -528,11 +528,13 @@ class DatasetPartBase(SQLModel):
         description="Unique identifier for this dataset part",
         min_length=1,
         max_length=256,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     description: Optional[str] = Field(
         None,
         title="Description",
         description="Additional information about this part. Markdown input is supported.",
+        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=4096,
     )
     description_html: Optional[str] = Field(
@@ -609,6 +611,8 @@ class DatasetPartCreate(DatasetPartBase):
 
     @field_validator("paths", mode="before")
     def unpack_dataset_path(cls, value: list[str] | list["DatasetPath"]) -> list[PathLike]:
+        if not value:
+            return value
         if isinstance(value[0], DatasetPath):
             value = cast(list[DatasetPath], value)
             value = [v.path for v in value]

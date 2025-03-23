@@ -15,6 +15,9 @@ from sciop.config import config
 @pytest.mark.selenium
 async def test_request(default_db, driver_as_admin):
     driver_as_admin.get("http://127.0.0.1:8080/request")
+    # allow htmx to load and execute
+    await asyncio.sleep(0.15)
+
     title = "Test Item"
     slug = "test-item"
     publisher = "test publisher"
@@ -43,6 +46,8 @@ async def test_request(default_db, driver_as_admin):
 @pytest.mark.selenium
 async def test_rm_subform_items(driver_as_admin):
     driver_as_admin.get("http://127.0.0.1:8080/request")
+    # allow htmx to load and execute
+    await asyncio.sleep(0.15)
     element_present = EC.presence_of_element_located((By.ID, "request-form-title"))
     WebDriverWait(driver_as_admin, 3).until(element_present)
 
@@ -68,6 +73,7 @@ async def test_rm_subform_items(driver_as_admin):
 
     # add first item
     ext_ids.find_element(By.CLASS_NAME, "add-subform-button").click()
+    await asyncio.sleep(0.1)
     element_present = EC.presence_of_element_located(
         (By.ID, "request-form-external_identifiers[0].type")
     )
@@ -81,6 +87,7 @@ async def test_rm_subform_items(driver_as_admin):
 
     # add second item
     ext_ids.find_element(By.CLASS_NAME, "add-subform-button").click()
+    await asyncio.sleep(0.1)
     element_present = EC.presence_of_element_located(
         (By.ID, "request-form-external_identifiers[1].type")
     )
@@ -104,6 +111,7 @@ async def test_rm_subform_items(driver_as_admin):
 
     # add the third item
     ext_ids.find_element(By.CLASS_NAME, "add-subform-button").click()
+    await asyncio.sleep(0.1)
     element_present = EC.presence_of_element_located(
         (By.ID, "request-form-external_identifiers[2].type")
     )
@@ -117,6 +125,7 @@ async def test_rm_subform_items(driver_as_admin):
 
     # submit
     driver_as_admin.find_element(By.CLASS_NAME, "form-button").click()
+    await asyncio.sleep(0.1)
     element_present = EC.presence_of_element_located((By.ID, "dataset-test-item"))
     WebDriverWait(driver_as_admin, 3).until(element_present)
 
