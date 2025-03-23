@@ -1,9 +1,16 @@
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from sqlalchemy import Column, Connection, MetaData, Select, Table, TextClause, event, select, text
 from sqlalchemy.exc import OperationalError
 from sqlmodel import SQLModel, literal_column
 from sqlmodel.main import FieldInfo
+
+from sciop.logging import init_logger
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine.base import Engine
+
+FTS_SUBTABLES = ("config", "data", "docsize", "idx")
 
 
 class SearchableMixin(SQLModel):
@@ -44,6 +51,11 @@ class SearchableMixin(SQLModel):
         return list(cls.__searchable__.keys())
 
     @classmethod
+    def fts_trigger_names(cls) -> list[str]:
+        """triggers set by table creation"""
+        return [f"{cls.fts_table_name()}_{suffix}" for suffix in ("ai", "au", "ad")]
+
+    @classmethod
     def fts_rank(cls) -> str:
         """
         Rank function for full text search
@@ -53,7 +65,7 @@ class SearchableMixin(SQLModel):
             if isinstance(cls.__searchable__, list)
             else [str(v) for v in cls.__searchable__.values()]
         )
-        return f"bm25({cls.__fts_table_name__()}, {', '.join(weights)})"
+        return f"bm25({cls.fts_table_name()}, {', '.join(weights)})"
 
     @classmethod
     def fts_table(cls) -> Table:
@@ -63,7 +75,7 @@ class SearchableMixin(SQLModel):
         if cls._fts_table is None:
             cols = [Column(colname) for colname in cls.fts_column_names()]
             cls._fts_table = Table(
-                cls.__fts_table_name__(),
+                cls.fts_table_name(),
                 MetaData(),
                 Column("rowid"),
                 *cols,
@@ -71,7 +83,7 @@ class SearchableMixin(SQLModel):
         return cls._fts_table
 
     @classmethod
-    def __fts_table_name__(cls) -> str:
+    def fts_table_name(cls) -> str:
         return "__".join([cls.__tablename__, "search"])
 
     @classmethod
@@ -113,7 +125,7 @@ class SearchableMixin(SQLModel):
         if len(query) < 3:
             query = query + "*"
 
-        where_clause = text(f"{cls.__fts_table_name__()} = :query").bindparams(query=query)
+        where_clause = text(f"{cls.fts_table_name()} = :query").bindparams(query=query)
         return select(
             table.c.rowid,
             literal_column(cls.fts_rank()).label("rank"),
@@ -123,7 +135,7 @@ class SearchableMixin(SQLModel):
     def count_statement(cls, query: str) -> "TextClause":
         """Select statement to count number of search results"""
         return text(
-            f"SELECT count(*) FROM {cls.__fts_table_name__()} WHERE {cls.__fts_table_name__()} MATCH :q;"  # noqa: S608 - confirmed no sqli
+            f"SELECT count(*) FROM {cls.fts_table_name()} WHERE {cls.fts_table_name()} MATCH :q;"  # noqa: S608 - confirmed no sqli
         ).bindparams(q=query)
 
     @classmethod
@@ -147,7 +159,7 @@ class SearchableMixin(SQLModel):
         if not cls.__searchable__:
             return
 
-        table_name = cls.__fts_table_name__()
+        table_name = cls.fts_table_name()
         col_names = ", ".join(cls.fts_column_names())
 
         _cnames = [cls.primary_key_column(), *cls.fts_column_names()]
@@ -161,21 +173,21 @@ class SearchableMixin(SQLModel):
         )
         trigger_insert = text(
             f"""  
-            CREATE TRIGGER {target.name}_ai AFTER INSERT ON {target.name} BEGIN
+            CREATE TRIGGER {table_name}_ai AFTER INSERT ON {target.name} BEGIN
               INSERT INTO {table_name}(rowid, {', '.join(cls.__searchable__)}) VALUES ({new_names});
             END;
             """  # noqa: S608 - confirmed no sqli
         )
         trigger_delete = text(
             f"""
-            CREATE TRIGGER {target.name}_ad AFTER DELETE ON {target.name} BEGIN
+            CREATE TRIGGER {table_name}_ad AFTER DELETE ON {target.name} BEGIN
               INSERT INTO {table_name}({table_name}, rowid, {col_names}) VALUES('delete', {old_names});
             END;
             """
         )
         trigger_update = text(
             f"""
-            CREATE TRIGGER {target.name}_au AFTER UPDATE ON {target.name} BEGIN
+            CREATE TRIGGER {table_name}_au AFTER UPDATE ON {target.name} BEGIN
               INSERT INTO {table_name}({table_name}, rowid, {col_names}) VALUES('delete', {old_names});
               INSERT INTO {table_name}(rowid, {col_names}) VALUES ({new_names});
             END;
@@ -190,3 +202,41 @@ class SearchableMixin(SQLModel):
         connection.execute(trigger_insert)
         connection.execute(trigger_delete)
         connection.execute(trigger_update)
+
+    @classmethod
+    def fts_drop(cls, engine: "Engine") -> None:
+        """Drop the search table and triggers"""
+        logger = init_logger("mixins.search")
+        table_name = cls.fts_table_name()
+        logger.debug(f"dropping table {table_name}")
+        table = cls.fts_table()
+        try:
+            table.drop(engine)
+        except OperationalError as e:
+            if "no such table" in str(e):
+                logger.debug(str(e))
+            else:
+                raise e
+
+        with engine.connect() as connection:
+            for trigger_name in cls.fts_trigger_names():
+                logger.debug(f"dropping trigger {trigger_name}")
+                cmd = text(f"DROP TRIGGER IF EXISTS {trigger_name};")
+                _ = connection.execute(cmd)
+
+    @classmethod
+    def fts_rebuild(cls, engine: "Engine") -> None:
+        """Drop existing search tables, recreate, and repopulate"""
+        logger = init_logger("mixins.search")
+        cls.fts_drop(engine)
+        with engine.connect() as connection:
+            cls.after_create(target=cls.__table__, connection=connection)
+            connection.commit()
+
+        table_name = cls.fts_table_name()
+        rebuild_stmt = text(f"INSERT INTO {table_name}({table_name}) VALUES('rebuild');")
+
+        logger.debug("rebuilding search index")
+        with engine.connect() as connection:
+            _ = connection.execute(rebuild_stmt)
+            connection.commit()

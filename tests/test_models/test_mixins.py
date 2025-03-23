@@ -6,10 +6,12 @@ import pytest
 from sqlmodel import Field, Session, select
 
 from sciop.models import Dataset, DatasetPart, DatasetTagLink, DatasetURL, Tag
+from sciop.models.mixins import SearchableMixin
 from sciop.models.mixins.enum import EnumTableMixin
 
 
-def test_full_text_search(session):
+@pytest.mark.parametrize("reindex", [True, False])
+def test_full_text_search(session, reindex: bool):
     """
     Weak test for whether full text search merely works.
     """
@@ -43,6 +45,13 @@ def test_full_text_search(session):
     session.add(match_better)
     session.add(no_match)
     session.commit()
+
+    if reindex:
+        from sciop.db import get_engine
+
+        engine = get_engine()
+        for subcls in SearchableMixin.__subclasses__():
+            subcls.fts_rebuild(engine)
 
     stmt = Dataset.search("key")
     results = session.execute(stmt).fetchall()

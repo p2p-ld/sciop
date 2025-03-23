@@ -1,5 +1,6 @@
 import click
 
+from sciop.cli.maintain import maintain
 from sciop.cli.start import start
 
 
@@ -11,3 +12,4 @@ def main() -> None:
 
 
 main.add_command(start, "start")
+main.add_command(maintain, "maintain")

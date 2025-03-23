@@ -172,6 +172,8 @@ class Config(BaseSettings):
     
     Optional, if explicitly set to ``None`` , use the in-memory sqlite DB
     """
+    db_echo: bool = False
+    """Echo all queries made to the database"""
     logs: LogConfig = LogConfig()
     host: str = "localhost"
     port: int = 8000

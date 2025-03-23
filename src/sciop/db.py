@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     from sciop.models import Account, Dataset, DatasetCreate, Upload
 
-engine = create_engine(str(config.sqlite_path))
+engine = create_engine(str(config.sqlite_path), echo=config.db_echo)
 maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
 
 
