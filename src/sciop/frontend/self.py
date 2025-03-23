@@ -108,7 +108,7 @@ async def accounts_search(
     if not query or len(query) < 3:
         stmt = select(Account).order_by(Account.username)
     else:
-        stmt = select(Account).filter(Account.account_id.in_(Account.search_statement(query)))
+        stmt = Account.search(query)
     return paginate(conn=session, query=stmt)
 
 

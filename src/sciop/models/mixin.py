@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, Any, ClassVar, Optional, Self, get_origin
 
 import sqlalchemy as sqla
 from pydantic import ConfigDict
-from sqlalchemy import CheckConstraint, Column, ColumnElement, Connection, Table, event
+from sqlalchemy import CheckConstraint, Column, ColumnElement, Connection, MetaData, Table, event
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
-from sqlmodel import Field, Session, SQLModel, select, text
+from sqlmodel import Field, Session, SQLModel, literal_column, select, text
 
 from sciop.types import IDField, InputType, UTCDateTime
 
@@ -64,7 +64,7 @@ class SearchableMixin(SQLModel):
     https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-xvi-full-text-search
     """
 
-    __searchable__: list[str] = None
+    __searchable__: ClassVar[list[str] | dict[str, float]] = []
     """
     List of columns that should be added to the full text search table 
     """
@@ -84,13 +84,36 @@ class SearchableMixin(SQLModel):
         raise ValueError("No primary key found")
 
     @classmethod
+    def fts_column_names(cls) -> list[str]:
+        """
+        Get the column name for a given column
+        """
+        if isinstance(cls.__searchable__, list):
+            return cls.__searchable__
+        return list(cls.__searchable__.keys())
+
+    @classmethod
+    def fts_rank(cls) -> str:
+        """
+        Rank function for full text search
+        """
+        weights = (
+            ["1.0" for _ in cls.__searchable__]
+            if isinstance(cls.__searchable__, list)
+            else [str(v) for v in cls.__searchable__.values()]
+        )
+        return f"bm25({cls.__fts_table_name__()}, {', '.join(weights)})"
+
+    @classmethod
     def fts_table(cls) -> Table:
-        """Virtual table for full text search"""
+        """
+        Virtual table for full text search
+        """
         if cls._fts_table is None:
-            cols = [Column(colname) for colname in cls.__searchable__]
+            cols = [Column(colname) for colname in cls.fts_column_names()]
             cls._fts_table = Table(
                 cls.__fts_table_name__(),
-                cls.metadata,
+                MetaData(),
                 Column("rowid"),
                 *cols,
             )
@@ -101,7 +124,7 @@ class SearchableMixin(SQLModel):
         return "__".join([cls.__tablename__, "search"])
 
     @classmethod
-    def search(cls, query: str, session: Session) -> list[Self]:
+    def search(cls, query: str) -> "Select":
         """
         Find model instances that match the provided query
         This convenience method should generally be avoided, as it returns all matches
@@ -109,19 +132,19 @@ class SearchableMixin(SQLModel):
         but it is a bit more efficient than the `in` clause in the normal search_statement
         """
 
-        text_stmt = text(
-            f"SELECT rowid as {cls.primary_key_column()}, * FROM {cls.__fts_table_name__()} "  # noqa: S608 - confirmed no sqli
-            f"WHERE {cls.__fts_table_name__()} MATCH :q ORDER BY rank;"
-        ).bindparams(q=query)
-        stmt = select(cls).from_statement(text_stmt)
-        return session.exec(stmt).all()
+        matches = cls.search_statement(query).cte("matches")
+        return (
+            select(cls)
+            .join(matches, onclause=getattr(cls, cls.primary_key_column()) == matches.c.rowid)
+            .order_by(matches.c.rank)
+        )
 
     @classmethod
     def search_statement(cls, query: str) -> "Select":
         """
         Search query statement on the full text search table that selects
-        only the row IDs, so that the full object can be retrieved in a subsequent query,
-        probably as a subquery.
+        only the row IDs and bm25-based rank, so that the full object can be
+        retrieved in a subsequent query probably as a subquery or CTE.
 
         Examples:
 
@@ -138,15 +161,12 @@ class SearchableMixin(SQLModel):
         table = cls.fts_table()
         if len(query) < 3:
             query = query + "*"
-            where_clause = text(f"{cls.__fts_table_name__()} = :query").bindparams(query=query)
-        else:
-            where_clause = text(f"{cls.__fts_table_name__()} = :query").bindparams(query=query)
 
-        return (
-            select(table.c.rowid.label(cls.primary_key_column()))
-            .where(where_clause)
-            .order_by(text("rank"))
-        )
+        where_clause = text(f"{cls.__fts_table_name__()} = :query").bindparams(query=query)
+        return select(
+            table.c.rowid,
+            literal_column(cls.fts_rank()).label("rank"),
+        ).where(where_clause)
 
     @classmethod
     def count_statement(cls, query: str) -> "TextClause":
@@ -177,13 +197,11 @@ class SearchableMixin(SQLModel):
             return
 
         table_name = cls.__fts_table_name__()
-        col_names = ", ".join(cls.__searchable__)
-        new_names = ", ".join(
-            [f"new.{cname}" for cname in [cls.primary_key_column()] + cls.__searchable__]
-        )
-        old_names = ", ".join(
-            [f"old.{cname}" for cname in [cls.primary_key_column()] + cls.__searchable__]
-        )
+        col_names = ", ".join(cls.fts_column_names())
+
+        _cnames = [cls.primary_key_column(), *cls.fts_column_names()]
+        new_names = ", ".join([f"new.{cname}" for cname in _cnames])
+        old_names = ", ".join([f"old.{cname}" for cname in _cnames])
         # ruff: noqa: E501
         create_stmt = text(
             f"""

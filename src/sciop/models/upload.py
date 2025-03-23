@@ -112,7 +112,10 @@ class UploadBase(ModerableMixin):
 
 class Upload(UploadBase, TableMixin, SearchableMixin, table=True):
     __tablename__ = "uploads"
-    __searchable__ = ["description", "method"]
+    __searchable__ = {
+        "description": 2.0,
+        "method": 1.0,
+    }
 
     upload_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")

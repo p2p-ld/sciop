@@ -31,11 +31,7 @@ async def uploads_search(
             .order_by(Upload.created_at.desc())
         )
     else:
-        stmt = (
-            select(Upload)
-            .where(Upload.visible_to(current_account) == True)
-            .filter(Upload.upload_id.in_(Upload.search_statement(query)))
-        )
+        stmt = Upload.search(query).where(Upload.visible_to(current_account) == True)
     return paginate(conn=session, query=stmt)
 
 
