@@ -56,6 +56,11 @@ function filterEmptyArrayItems(obj){
         object[key] = Object.hasOwn(vals, key) ? vals[key] : object[key]
       })
 
+      // BEGIN VENDOR OVERRIDE --------------
+      let falses = gatherFalses(elt);
+      object = {...object, ...falses};
+      // END VENDOR OVERRIDE -------------
+
       if(!api.hasAttribute(elt, _ConfigIgnoreDeepKey_)){
         const flagMap = getFlagMap(object)
         object = buildNestedObject(flagMap, object)
@@ -67,6 +72,22 @@ function filterEmptyArrayItems(obj){
       return (JSON.stringify(object))
     }
   })
+
+  // Get the false checkboxes!
+  function gatherFalses(elt){
+    let form = elt.nodeName === "FORM" ? elt : document.querySelector(elt.getAttribute("hx-include"));
+    if (!form){
+      return
+    }
+    let checkboxes = form.querySelectorAll('input[type="checkbox"]');
+    return Object.fromEntries(
+      [...checkboxes].filter(
+        cb_elt => !cb_elt.checked
+      ).map(
+        cb_elt => [cb_elt.name, cb_elt.checked]
+      )
+    )
+  }
 
   function convertValue(input, value, inputType) {
     if (inputType == 'number' || inputType == 'range') {
