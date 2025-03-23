@@ -1,5 +1,7 @@
 from hashlib import blake2b
 from pathlib import Path
+from typing import Any
+from typing import Literal as L
 
 from fastapi import APIRouter, HTTPException, UploadFile
 from starlette.requests import Request
@@ -8,6 +10,7 @@ from torf import BdecodeError, MetainfoError
 
 from sciop import crud
 from sciop.api.deps import RequireCurrentAccount, SessionDep
+from sciop.frontend.templates import jinja
 from sciop.logging import init_logger
 from sciop.middleware import limiter
 from sciop.models import (
@@ -27,8 +30,15 @@ def _hash_file(file: UploadFile) -> str:
     return hasher.hexdigest()
 
 
+def _passthrough(
+    *, route_result: TorrentFileRead, route_context: Any = None
+) -> dict[L["torrent"], TorrentFileRead]:
+    return {"torrent": route_result}
+
+
 @upload_router.post("/torrent")
 @limiter.limit("60/minute;1000/hour")
+@jinja.hx("partials/torrent.html", make_context=_passthrough)
 async def upload_torrent(
     request: Request,
     response: Response,

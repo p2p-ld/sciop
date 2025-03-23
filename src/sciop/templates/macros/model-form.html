@@ -1,4 +1,4 @@
-{% macro form_field(field, field_name, parent_id) %}
+{% macro form_field(field, field_name, parent_id, value=None) %}
 {%- set ns=namespace(minlength=False, maxlength=False, pattern=False) %}
 {%- set required=field.is_required() %}
 {%- if field.metadata %}
@@ -10,12 +10,12 @@
 {%- endif %}
 {%- set closing_tag=False %}
 {%- set input_type=None %}
-{% if field.annotation.__args__ %}
-  {% set annotation = field.annotation.__args__[0] %}
-{% else %}
-  {% set annotation = field.annotation %}
-{% endif %}
+{% set annotation = unwrap_optional(field.annotation) %}
 {% set autocomplete=field.json_schema_extra.autocomplete %}
+{% set disabled = False %}
+{% if field.json_schema_extra and field.json_schema_extra.get('disabled', False) %}
+{% set disabled = True %}
+{% endif %}
 {%- if field.json_schema_extra and field.json_schema_extra.get('input_type', None) == 'textarea' %}
     {%- set element="textarea" %}
     {%- set closing_tag=True %}
@@ -27,7 +27,7 @@
 {%- elif annotation.__name__ == "bool" %}
     {%- set element="input" %}
     {%- set input_type="checkbox" %}
-    {%- set checked=field.default is true %}
+    {%- set checked=field.default is true and (value is none or value is true)  %}
     {%- set cls="form-checkbox form-input" %}
 {%- elif annotation.__name__ == "datetime"  %}
     {%- set element="input" %}
@@ -49,14 +49,26 @@
         </div>
     </div>
 {%- if field.json_schema_extra.input_type == "tokens" %}
-    {{ token_input(field, field_name, parent_id) }}
+    {{ token_input(field, field_name, parent_id, value) }}
 {%- elif field.json_schema_extra.input_type == "model_list" %}
     <div class="model-list-input" name="{{ field_name }}">
-    {{ add_subform_button(parent_id, field_name, 0, field.json_schema_extra.model_name) }}
+    {% if value %}
+        {% set button_idx = value | length %}
+        {% for item in value %}
+        {{ model_list_item(item, field_name, loop.index ) }}
+        {% endfor %}
+    {% else %}
+        {% set button_idx = 0 %}
+    {% endif %}
+    {{ add_subform_button(parent_id, field_name, button_idx, field.json_schema_extra.model_name) }}
     </div>
 {% else %}
     <{{element}}
+        {% if parent_id %}
         id="{{ parent_id }}-{{ field_name }}"
+        {% else %}
+        id="{{field_name}}"
+        {% endif %}
         name="{{ field_name }}"
         class="{{ cls }}{% if not required %} optional{% endif %}"
         {%- if input_type %} type="{{ input_type }}"{% endif %}
@@ -65,16 +77,32 @@
         {%- if ns.pattern %} pattern="{{ ns.pattern }}"{% endif %}
         {%- if required %} required{% endif %}
         {%- if checked %} checked{% endif %}
+        {%- if disabled %} readonly="readonly"{% endif %}
         {%- if autocomplete %}
           hx-get="/autocomplete/{{ autocomplete }}"
           hx-target="#{{ parent_id }}-{{ field_name }}-autocomplete"
           hx-trigger="input changed delay:250ms"
           list="{{ parent_id }}-{{ field_name }}-autocomplete"
         {%- endif %}
+        {% if value %}
+          {% if input_type=="datetime-local" %}
+            value="{{ value.strftime('%Y-%m-%d %H:%M:%S') }}"
+          {% elif element =="select" %}
+          {% else %}
+            value="{{ value }}"
+    {% endif %}
+        {% endif %}
     >
+    {% if value and element=="textarea" %}
+      {% if value is is_list %}
+{{ value | join("\n") }}
+      {%- else %}
+{{ value }}
+      {%- endif %}
+    {% endif %}
     {%- if element=="select" %}
-    {% for member in field.annotation.__members__.values() %}
-    <option value="{{ member.value }}">{{ member.value }}</option>
+    {% for member in annotation.__members__.values() %}
+    <option value="{{ member.value }}"{% if member.value == value %} selected="selected"{% endif %}>{{ member.value }}</option>
     {% endfor %}
     {%- endif %}
     {%- if closing_tag %}</{{element}}>{% endif %}
@@ -110,8 +138,22 @@
 {% endif %}
 {% endmacro %}
 
-{% macro token_input(field, field_name, parent_id) %}
-<div class="tokens-container" id="{{ parent_id }}-{{ field_name }}-tokens"></div>
+{% macro token_button(tag) %}
+<div class="token-button-container">
+    <input class="hidden" name="tags" value="{{ tag }}" readonly="readonly">
+    <span class="token">{{ tag }}</span>
+    <button class="delete-button token-delete-button" type="button">x</button>
+</div>
+{% endmacro %}
+
+{% macro token_input(field, field_name, parent_id, value=None) %}
+<div class="tokens-container" id="{{ parent_id }}-{{ field_name }}-tokens">
+    {% if value %}
+    {% for tag in value %}
+    {{ token_button(tag) }}
+    {% endfor %}
+    {% endif %}
+</div>
 <input
     class="form-input form-tokens"
     id="{{ parent_id }}-{{ field_name }}"
@@ -126,6 +168,38 @@
 <datalist id="{{ parent_id }}-{{ field_name }}-autocomplete"></datalist>
 {% endmacro %}
 
+{% macro model_list_item(model, field_name, idx) %}
+{% set field_name_prefix = field_name  + "[" + idx | string + "]." %}
+<div id="{{ field_name }}-{{ idx }}" class="model-list-item surface">
+    <div class="constraint-gutter"><span class="error-feedback"></span></div>
+    <a class="close-button button caution"
+       hx-get="#"
+       hx-swap="delete"
+       hx-target="closest .model-list-item"
+       data-idx="{{ idx }}"
+       role="button"
+       aria-label="Remove this item"
+       aria-controls="{{ field_name }}-{{ idx }}"
+    >
+        x
+    </a>
+    {% for subfield_name, subfield in model.model_fields.items() %}
+    {% set subfield_form_name=field_name_prefix + subfield_name %}
+    <div class="form-item">
+        <label for="{{ field_name }}-{{ idx }}-{{ subfield_name }}" class="form-label">
+            {% if subfield.title %}
+                {{ subfield.title }}
+            {% else %}
+                {{ subfield_name }}
+            {% endif %}
+        </label>
+        {% set value = model | attr(subfield_name) %}
+        {{ form_field(subfield, subfield_form_name, form_id, value) }}
+    </div>
+    {% endfor %}
+</div>
+{% endmacro %}
+
 {% macro add_subform_button(parent_id, field_name, idx, model_name) %}
 <a class="add-subform-button button"
    hx-get="/partials/model-list?idx={{idx}}&field_name={{field_name}}&model_name={{model_name}}&form_id={{parent_id}}"
@@ -136,26 +210,37 @@
 </a>
 {% endmacro %}
 
-{% macro inner_model_form(id, model, exclude = []) %}
+{% macro inner_model_form(id=None, model=None, exclude = [], edit=False) %}
 {% for field_name, field in model.model_fields.items() if field_name not in exclude %}
-{% if not field.json_schema_extra or field.json_schema_extra and field.json_schema_extra.get('input_type', None) != 'none' %}
+{% if field.json_schema_extra
+   and field.json_schema_extra.get('input_type', False)
+   and field.json_schema_extra.get('input_type', None) != 'none'
+%}
 <div class="form-item" data-field-name="{{ field_name }}">
-    <label for="{{ id }}-{{ field_name }}" class="form-label">
+
+    <label
+      {% if id %}
+      for="{{ id }}-{{ field_name }}"
+      {% else %}
+      for="{{ field_name }}"
+      {% endif %}
+      class="form-label">
         {% if field.title %}
             {{ field.title }}
         {% else %}
             {{ field_name }}
         {% endif %}
     </label>
-    {{ form_field(field, field_name, id) }}
+    {% set field_value = model|attr(field_name) %}
+    {{ form_field(field, field_name, id, field_value) }}
 </div>
 {% else %}
 {% endif %}
 {% endfor %}
 {% endmacro %}
 
-{% macro model_form(id, model, exclude = []) %}
+{% macro model_form(id, model, exclude = [], edit = False) %}
 <form class="form" id="{{ id }}" hx-ext="form-json">
-  {{ inner_model_form(id, model, exclude) }}
+  {{ inner_model_form(id, model, exclude, edit) }}
 </form>
 {% endmacro %}

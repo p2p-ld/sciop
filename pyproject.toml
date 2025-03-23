@@ -86,8 +86,15 @@ format.composite = [
     "black .",
     "ruff check --fix",
 ]
-migrate = "alembic -c ./src/sciop/migrations/alembic.ini upgrade head"
+
 alembic = "alembic -c ./src/sciop/migrations/alembic.ini"
+migrate = "alembic -c ./src/sciop/migrations/alembic.ini upgrade head"
+migration.composite = [
+    "rm -f db.dev.sqlite",
+    "alembic -c ./src/sciop/migrations/alembic.ini upgrade head",
+    "alembic -c ./src/sciop/migrations/alembic.ini revision --autogenerate -m {args}"
+]
+
 
 
 [tool.ruff]

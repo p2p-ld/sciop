@@ -2,13 +2,19 @@
 :root {
     --color-dark-background: rgba(23, 23, 26, 1);
     --color-light-background: lch(99.25% 3.6 199.47);
+    --color-good: lch(76.36% 99.79 133.94);
+    --color-neutral: lch(56.05% 49.39 256.63);
+    --color-evil: red;
     --color-threat-unknown: var(--color-background-shade);
-    --color-threat-indefinite: lch(56.05% 49.39 256.63);
+    --color-threat-indefinite: var(--color-neutral);
     --color-threat-watchlist: #FCCC0A;
     --color-threat-endangered: #FF6319;
     --color-threat-takedown_issued: lch(47.26% 75.67 14.74);
     --color-threat-extinct: var(--color-background-shade);
-    --color-good: lch(76.36% 99.79 133.94);
+    --color-caution: var(--color-evil);
+    --color-caution-darker-1: color-mix(in lch, var(--color-caution) 80%, var(--color-dark-background));
+    --color-neutral-darker-1: color-mix(in lch, var(--color-neutral) 80%, var(--color-dark-background));
+
 
     --font-sans: "Work Sans", "Helvetica Neue", "Segoe UI", "Helvetica", "Roboto", sans-serif;
     --font-mono: "Anonymous Pro", "Fira Code", "Courier New", "Courier", monospace;
@@ -45,8 +51,6 @@ body {
   --color-border-deemphasized: #333;
   --color-deemphasized: #888;
   --color-disabled: #404040;
-  --color-caution: red;
-  --color-caution-darker-1: color-mix(in lch, var(--color-caution) 80%, var(--color-dark-background));
   --color-alert: var(--color-threat-watchlist);
   --color-caution-contrast: var(--color-primary-contrast);
 
@@ -59,11 +63,11 @@ body {
     --color-background-shade: color-mix(in lch, var(--color-background) 95%, var(--color-dark-background));
     --color-background-deemphasized: color-mix(in lch, var(--color-background) 96%, var(--color-dark-background));
     --color-border-deemphasized: #aaa;
+    --color-disabled: #ededed;
     --color-link: lch(55.05% 102.93 317.74);
     --color-primary-contrast: #000;
     /*--color-primary-shade-1: color-mix(in lch, var(--color-primary) 75%, black);*/
     --color-primary-shade-1: lch(44% 132 317);
-    --color-caution: red;
     --color-caution-contrast: var(--color-primary-contrast);
   }
 }

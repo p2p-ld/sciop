@@ -7,7 +7,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 from sciop.exceptions import ScrapeErrorType
-from sciop.models.mixin import TableMixin
+from sciop.models.mixins import TableMixin
 from sciop.types import IDField, MaxLenURL, UTCDateTime
 
 if TYPE_CHECKING:

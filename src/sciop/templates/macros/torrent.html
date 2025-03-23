@@ -1,0 +1,51 @@
+{% from "macros/model-table.html" import model_table %}
+{% macro torrent_form_partial(torrent, form=None, response=False) %}
+{% if response %}
+<input id="file_name"
+       hx-swap-oob="outerHTML:#file_name"
+           class="form-input optional"
+           type="text"
+           name="file_name"
+           value="{{ torrent.file_name }}"
+    >
+<input id="infohash"
+       hx-swap-oob="outerHTML:#infohash"
+       class="form-input"
+       type="text"
+       name="infohash"
+       value="{{ torrent.infohash }}"
+       readonly="readonly"
+>
+{% endif %}
+{{ model_table(id="torrent-table", model=torrent) }}
+{% endmacro %}
+
+{% macro upload_form(dataset, parts=None, id=None, target=None, post_to="datasets", config=None) %}
+{% if id is none %}
+{% set id = dataset.slug + "-upload-form" %}
+{% endif %}
+<form id='{{ id }}' class="upload-form" name="file" hx-encoding='multipart/form-data'
+      {% if post_to == 'datasets' %}
+      hx-post="/datasets/{{ dataset.slug }}/upload/torrent{% if parts %}?{{ parts | join('=on&') }}=on{% endif %}"
+      {% else %}
+      hx-post="{{ config.api_prefix }}/upload/torrent/"
+      {% endif %}
+      hx-indicator="#{{ dataset.slug }}-upload-indicator"
+      hx-swap="outerHTML"
+      {% if target %}
+      hx-target="{{ target }}"
+      {% endif %}
+>
+    <input type='file' name='file'>
+    <div class="status-bar">
+        <button type="submit" class="form-button">
+            Upload
+        </button>
+        <progress id='progress' value='0' max='100' aria-label="Upload progress"></progress>
+
+        <span class="htmx-indicator loading-indicator" id="{{ dataset.slug }}-upload-indicator">
+          <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+        </span>
+    </div>
+</form>
+{% endmacro %}

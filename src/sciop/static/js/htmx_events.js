@@ -149,6 +149,13 @@ function init_token_input(){
   token_inputs.forEach((e) => {
     e.addEventListener("keyup", addToken)
   })
+  let token_button_containers = document.querySelectorAll(".token-button-container");
+  token_button_containers.forEach((button_container) => {
+    let button = button_container.querySelector('.token-delete-button');
+    button.addEventListener("mouseup", (evt) => {
+      button_container.remove()
+    })
+  })
 }
 init_token_input();
 

@@ -1,3 +1,4 @@
+{% from "macros/torrent.html" import upload_form %}
 <div class="surface">
 <p>Creating upload for <span class="token">{{ dataset.slug }}</span></p>
 {% if parts %}
@@ -16,23 +17,5 @@
     or zipping them such that each archive is slightly less than your torrent's piece size (which should be a few MB).
 </p>
 
-<form id='{{ dataset.slug }}-upload-form' class="upload-form" name="file" hx-encoding='multipart/form-data'
-      hx-post="/datasets/{{ dataset.slug }}/upload/torrent{% if parts %}?{{ parts | join('=on&') }}=on{% endif %}"
-      hx-indicator="#{{ dataset.slug }}-upload-indicator"
-      hx-swap="outerHTML">
-    <input type='file' name='file'>
-    <div class="status-bar">
-        <button type="submit" class="form-button">
-            Upload
-        </button>
-        <progress id='progress' value='0' max='100' aria-label="Upload progress"></progress>
-
-        <span class="htmx-indicator loading-indicator" id="{{ dataset.slug }}-upload-indicator">
-          <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
-        </span>
-    </div>
-</form>
-<script>
-
-</script>
+{{ upload_form(dataset, parts) }}
 </div>

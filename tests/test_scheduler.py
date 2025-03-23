@@ -39,7 +39,7 @@ def test_add_interval(client_lifespan, capsys):
     Do a job at an interval
     """
     add_interval(do_a_print, seconds=0.1)
-    sleep(0.35)
+    sleep(0.4)
     events = _eventlines(capsys)
     assert len(events) == 3
 

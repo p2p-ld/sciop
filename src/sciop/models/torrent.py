@@ -10,6 +10,7 @@ import humanize
 from pydantic import ModelWrapValidatorHandler, field_validator, model_validator
 from sqlalchemy import ColumnElement, Connection, event
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
@@ -17,9 +18,9 @@ from torf import Torrent as Torrent_
 from torf import _errors, _torrent, _utils
 
 from sciop.config import config
-from sciop.models.mixin import TableMixin
+from sciop.models.mixins import EditableMixin, TableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
-from sciop.types import EscapedStr, IDField, MaxLenURL
+from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
 
 if TYPE_CHECKING:
     from sciop.models import Upload
@@ -207,7 +208,7 @@ _torrent.utils.key_exists_in_list_or_dict = _key_exists_in_list_or_dict
 _torrent.utils.assert_type = _assert_type
 
 
-class FileInTorrent(TableMixin, table=True):
+class FileInTorrent(TableMixin, EditableMixin, table=True):
     """A file within a torrent file"""
 
     __tablename__ = "files_in_torrent"
@@ -236,7 +237,7 @@ class FileInTorrentRead(FileInTorrentCreate):
 
 
 class TorrentFileBase(SQLModel):
-    file_name: str = Field(max_length=1024)
+    file_name: FileName = Field(max_length=1024)
     v1_infohash: str = Field(
         max_length=40, min_length=40, unique=True, index=True, description="SHA1 hash of infodict"
     )
@@ -280,7 +281,11 @@ class TorrentFileBase(SQLModel):
     @property
     def filesystem_path(self) -> Path:
         """Location of where this torrent is or should be on the filesystem"""
-        return config.torrent_dir / self.infohash / self.file_name
+        return self.get_filesystem_path(self.infohash, self.file_name)
+
+    @classmethod
+    def get_filesystem_path(cls, infohash: str, file_name: str) -> Path:
+        return config.torrent_dir / infohash / file_name
 
     @property
     def human_size(self) -> str:
@@ -307,7 +312,7 @@ class TorrentFileBase(SQLModel):
         return {link.tracker.announce_url: link for link in self.tracker_links}
 
 
-class TorrentFile(TorrentFileBase, TableMixin, table=True):
+class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
     __tablename__ = "torrent_files"
 
     torrent_file_id: IDField = Field(None, primary_key=True)
@@ -371,6 +376,18 @@ def _delete_torrent_file(mapper: Mapper, connection: Connection, target: Torrent
     When a reference to a torrent file is deleted, delete the torrent file itself
     """
     target.filesystem_path.unlink(missing_ok=True)
+
+
+@event.listens_for(TorrentFile.file_name, "set")
+def _rename_torrent_file(
+    target: TorrentFile, value: Path, oldvalue: Path, initiator: AttributeEventToken
+) -> None:
+    if (
+        filesystem_path := TorrentFile.get_filesystem_path(target.infohash, str(oldvalue))
+    ).exists():
+        filesystem_path.rename(
+            TorrentFile.get_filesystem_path(infohash=target.infohash, file_name=str(value))
+        )
 
 
 class TorrentFileCreate(TorrentFileBase):

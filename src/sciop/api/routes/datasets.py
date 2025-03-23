@@ -12,6 +12,7 @@ from sciop.api.deps import (
     CurrentAccount,
     RequireCurrentAccount,
     RequireDataset,
+    RequireEditableBy,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
     SessionDep,
@@ -24,6 +25,8 @@ from sciop.models import (
     DatasetPartCreate,
     DatasetPartRead,
     DatasetRead,
+    DatasetUpdate,
+    ModerationAction,
     Upload,
     UploadCreate,
 )
@@ -105,6 +108,40 @@ async def dataset_show(dataset_slug: str, dataset: RequireDataset) -> DatasetRea
     return dataset
 
 
+@datasets_router.patch("/{dataset_slug}")
+async def dataset_edit(
+    dataset_slug: str,
+    dataset_patch: Annotated[DatasetUpdate, Body()],
+    dataset: RequireVisibleDataset,
+    current_account: RequireEditableBy,
+    session: SessionDep,
+    request: Request,
+    response: Response,
+) -> DatasetRead:
+    """Edit a dataset!"""
+    updated_dataset = dataset.update(session, new=dataset_patch, commit=True)
+    if "HX-Request" in request.headers:
+        response.headers["HX-Redirect"] = f"/datasets/{updated_dataset.slug}"
+    return updated_dataset
+
+
+@datasets_router.delete("/{dataset_slug}")
+async def dataset_delete(
+    dataset_slug: str,
+    session: SessionDep,
+    current_account: RequireCurrentAccount,
+    dataset: RequireDataset,
+):
+    if not dataset.removable_by(current_account):
+        raise HTTPException(403, f"Not permitted to remove dataset {dataset.slug}")
+    dataset.is_removed = True
+    session.add(dataset)
+    session.commit()
+    crud.log_moderation_action(
+        session=session, actor=current_account, target=dataset, action=ModerationAction.remove
+    )
+
+
 @datasets_router.post("/{dataset_slug}/uploads")
 async def datasets_create_upload(
     upload: UploadCreate,
@@ -114,12 +151,11 @@ async def datasets_create_upload(
     session: SessionDep,
 ) -> Upload:
     """Create an upload of a dataset"""
-    torrent = crud.get_torrent_from_infohash(session=session, infohash=upload.torrent_infohash)
+    torrent = crud.get_torrent_from_infohash(session=session, infohash=upload.infohash)
     if not torrent:
         raise HTTPException(
             status_code=404,
-            detail=f"No torrent with short hash {upload.torrent_infohash} exists, "
-            "upload it first!",
+            detail=f"No torrent with short hash {upload.infohash} exists, " "upload it first!",
         )
     created_upload = crud.create_upload(
         session=session, created_upload=upload, dataset=dataset, account=account

@@ -1,16 +1,18 @@
+import asyncio
 import os
 
 import pytest
-from selenium.webdriver import Firefox
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from sciop.models import DatasetPart
 
+from ..fixtures.server import Firefox_
+
 
 def _wait_until_located(
-    driver: Firefox, locator: str, by: By = By.ID, timeout: float = 10, type: str = "visible"
+    driver: Firefox_, locator: str, by: By = By.ID, timeout: float = 10, type: str = "visible"
 ) -> None:
     if type == "clickable":
         element_present = EC.element_to_be_clickable((by, locator))
@@ -20,7 +22,7 @@ def _wait_until_located(
     WebDriverWait(driver, timeout).until(element_present)
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(20)
 @pytest.mark.asyncio
 @pytest.mark.xfail("IN_CI" in os.environ, reason="selenium still too flaky for CI")
 @pytest.mark.selenium
@@ -28,8 +30,10 @@ async def test_add_part(default_db, driver_as_admin):
     """
     A single dataset part can be added with a form as admin
     """
-    driver: Firefox = driver_as_admin
+    driver: Firefox_ = driver_as_admin
     driver.get("http://127.0.0.1:8080/datasets/default")
+    # wait to ensure htmx loads and executes
+    await asyncio.sleep(0.15)
 
     _wait_until_located(driver, "add-one-button", by=By.CLASS_NAME, type="clickable")
     add_one = driver.find_element(By.CLASS_NAME, "add-one-button")
@@ -38,7 +42,7 @@ async def test_add_part(default_db, driver_as_admin):
     _wait_until_located(driver, "dataset-parts-add-container", By.CLASS_NAME)
     assert driver.find_element(By.CLASS_NAME, "dataset-parts-add-container")
     driver.find_element(By.CSS_SELECTOR, 'input[name="part_slug"]').send_keys("new-part")
-    driver.find_element(By.CSS_SELECTOR, 'input[name="description"]').send_keys("A New Part")
+    driver.find_element(By.CSS_SELECTOR, 'textarea[name="description"]').send_keys("A New Part")
     driver.find_element(By.CSS_SELECTOR, 'textarea[name="paths"]').send_keys(
         "/one_path\n/two_path\n/three_path"
     )
@@ -53,7 +57,7 @@ async def test_add_part(default_db, driver_as_admin):
     assert len(paths) == 3
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(20)
 @pytest.mark.asyncio
 @pytest.mark.xfail("IN_CI" in os.environ, reason="selenium still too flaky for CI")
 @pytest.mark.selenium
@@ -61,8 +65,10 @@ async def test_add_parts(default_db, driver_as_admin):
     """
     A single dataset part can be added with a form as admin
     """
-    driver: Firefox = driver_as_admin
+    driver: Firefox_ = driver_as_admin
     driver.get("http://127.0.0.1:8080/datasets/default")
+    # wait to ensure htmx loads and executes
+    await asyncio.sleep(0.15)
 
     _wait_until_located(driver, "add-bulk-button", by=By.CLASS_NAME, type="clickable")
     add_bulk = driver.find_element(By.CLASS_NAME, "add-bulk-button")

@@ -1,0 +1,26 @@
+{% extends "layouts/default.html" %}
+{% from "macros/model-form.html" import model_form %}
+{% block head %}
+{% with title = "Editing " + dataset.title %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+<h1 class="dataset-title">Editing - {{ dataset.title }} </h1>
+
+{% set form_id="edit-dataset-" + dataset.slug %}
+{{ model_form(id=form_id, model=dataset, edit=True) }}
+
+<div class="button-row">
+    <button
+        class="form-button"
+        type="submit"
+        name="dataset"
+        hx-patch="{{ config.api_prefix }}/datasets/{{ dataset.slug }}"
+        hx-include="#{{ form_id }}"
+        hx-target="#{{ form_id }}"
+        hx-ext="form-json"
+    >Submit</button>
+</div>
+
+{% endblock %}

@@ -97,7 +97,7 @@ def test_upload_noscope(
         assert response.status_code == 200
 
     ul = UploadCreate(
-        torrent_infohash=torrent_.infohash,
+        infohash=torrent_.infohash,
     )
 
     res = client.post(

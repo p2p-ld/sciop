@@ -1,10 +1,10 @@
 import hashlib
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union, cast
 
 from annotated_types import MaxLen
-from pydantic import TypeAdapter, computed_field, field_validator, model_validator
+from pydantic import BaseModel, TypeAdapter, computed_field, field_validator, model_validator
 from sqlalchemy import event
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
@@ -13,7 +13,16 @@ from sqlmodel.main import FieldInfo
 
 from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PREFIX_LEN
 from sciop.models.account import Account
-from sciop.models.mixin import ModerableMixin, SearchableMixin, TableMixin, TableReadMixin
+from sciop.models.mixins import (
+    EditableMixin,
+    ListlikeMixin,
+    ModerableMixin,
+    SearchableMixin,
+    TableMixin,
+    TableReadMixin,
+    all_optional,
+    exclude_fields,
+)
 from sciop.models.tag import DatasetTagLink
 from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import (
@@ -34,6 +43,8 @@ from sciop.types import (
 )
 
 if TYPE_CHECKING:
+    from sqlmodel import Session
+
     from sciop.models import AuditLog, Tag, Upload, UploadRead
 
 PREFIX_PATTERN = re.compile(r"\w{6}-[A-Z]{3}_\S+")
@@ -70,6 +81,7 @@ class DatasetBase(ModerableMixin):
     """,
         min_length=3,
         max_length=512,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     slug: SlugStr = Field(
         title="Dataset Slug",
@@ -81,6 +93,7 @@ class DatasetBase(ModerableMixin):
     """,
         min_length=2,
         max_length=128,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     publisher: str = Field(
         title="Publisher",
@@ -90,7 +103,9 @@ class DatasetBase(ModerableMixin):
     using the autocompleted values if any correct matches are listed.
     """,
         max_length=256,
-        schema_extra={"json_schema_extra": {"autocomplete": "publisher"}},
+        schema_extra={
+            "json_schema_extra": {"autocomplete": "publisher", "input_type": InputType.input}
+        },
     )
     homepage: Optional[MaxLenURL] = Field(
         None,
@@ -100,6 +115,7 @@ class DatasetBase(ModerableMixin):
     If the dataset has multiple associated URLs, if e.g. an index page with metadata
     is different from the download URL, add ths index here and additional URLs below.
     """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     description: Optional[str] = Field(
         None,
@@ -121,6 +137,7 @@ class DatasetBase(ModerableMixin):
         description="""
         Datetime when dataset was originally created in UTC. May be approximate or left blank.
         """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     dataset_updated_at: Optional[UTCDateTime] = Field(
         None,
@@ -128,6 +145,7 @@ class DatasetBase(ModerableMixin):
         description="""
         Datetime when the dataset was last updated in UTC. May be approximate or left blank
         """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     source_type: SourceType = Field(
         "unknown",
@@ -137,6 +155,7 @@ class DatasetBase(ModerableMixin):
     Use "web" if the dataset is an archive of websites themselves,
     and "http" if the dataset is some other raw data available via http download.
     """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.select}},
     )
     source_available: bool = Field(
         default=True,
@@ -145,6 +164,7 @@ class DatasetBase(ModerableMixin):
         Whether the canonical source of this dataset is still available.
         Default true unless known to be taken down.
         """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     last_seen_at: Optional[UTCDateTime] = Field(
         default=None,
@@ -156,6 +176,7 @@ class DatasetBase(ModerableMixin):
         Otherwise, leave blank.
         Times should be in UTC.
         """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     source_access: AccessType = Field(
         default="unknown",
@@ -164,6 +185,7 @@ class DatasetBase(ModerableMixin):
     How the canonical source can be accessed, whether it needs credentials
     or is intended to be public.
     """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.select}},
     )
     scarcity: Scarcity = Field(
         default="unknown",
@@ -173,6 +195,7 @@ class DatasetBase(ModerableMixin):
     Datasets that are likely to only exist in one or a few places are prioritized over
     those that are widely available.
     """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.select}},
     )
     threat: Threat = Field(
         default="unknown",
@@ -183,10 +206,11 @@ class DatasetBase(ModerableMixin):
     or specific threats made against them are prioritized over those 
     for whom no specific threat exists.
     """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.select}},
     )
 
 
-class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
+class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, table=True):
     __tablename__ = "datasets"
     __searchable__ = {
         "title": 5.0,
@@ -217,6 +241,27 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, table=True):
     scrape_status: ScrapeStatus = "unknown"
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
     parts: list["DatasetPart"] = Relationship(back_populates="dataset")
+
+    def update(self, session: "Session", new: "DatasetUpdate", commit: bool = False) -> "Dataset":
+        from sciop import crud
+
+        updated = new.model_dump(exclude_unset=True)
+        if "tags" in updated:
+            updated["tags"] = crud.get_tags(session=session, tags=updated["tags"])
+        if "urls" in updated:
+            updated["urls"] = DatasetURL.get_items(self.urls, updated["urls"])
+        if "external_identifiers" in updated:
+            updated["external_identifiers"] = ExternalIdentifier.get_items(
+                self.external_identifiers, updated["external_identifiers"]
+            )
+        for field_name, new_value in updated.items():
+            setattr(self, field_name, new_value)
+
+        if commit:
+            session.add(self)
+            session.commit()
+            session.refresh(self)
+        return self
 
 
 event.listen(Dataset, "before_update", render_db_fields_to_html("description"))
@@ -280,6 +325,22 @@ class DatasetCreate(DatasetBase):
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
     )
 
+    @classmethod
+    def from_dataset(cls, dataset: Dataset) -> Self:
+        """Reverse a dataset into its creation form, e.g. for editing :)"""
+        return cls.model_validate(
+            dataset,
+            update={
+                "urls": [url.url for url in dataset.urls],
+                "tags": [tag.tag for tag in dataset.tags],
+                "external_identifiers": [
+                    ExternalIdentifierCreate.model_validate(ex)
+                    for ex in dataset.external_identifiers
+                ],
+                "parts": [DatasetPartCreate.model_validate(part) for part in dataset.parts],
+            },
+        )
+
     @field_validator("urls", "tags", mode="before")
     def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
         """Split lists of strings given as one entry per line"""
@@ -326,6 +387,17 @@ class DatasetCreate(DatasetBase):
         return slug
 
 
+@exclude_fields("parts")
+@all_optional
+class DatasetUpdate(DatasetCreate):
+    """
+    Version of dataset creation where all fields are optional
+    and we don't try and update the entire database in one call
+    (by excluding related items, except when they are strictly subordinate
+    to this object instance (like external identifiers) or scalar (tags))
+    """
+
+
 class DatasetRead(DatasetBase, TableReadMixin):
     slug: SlugStr = Field(min_length=2, max_length=_prefixed_len(DatasetBase.model_fields["slug"]))
     uploads: list["UploadRead"] = Field(default_factory=list)
@@ -349,8 +421,9 @@ class DatasetRead(DatasetBase, TableReadMixin):
         return sorted(val)
 
 
-class DatasetURL(SQLModel, table=True):
+class DatasetURL(EditableMixin, ListlikeMixin, table=True):
     __tablename__ = "dataset_urls"
+    __value_column_name__ = "url"
 
     dataset_url_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
@@ -374,7 +447,7 @@ class ExternalSourceBase(SQLModel):
     )
 
 
-class ExternalSource(ExternalSourceBase, TableMixin, table=True):
+class ExternalSource(ExternalSourceBase, TableMixin, EditableMixin, table=True):
     __tablename__ = "external_sources"
 
     external_source_id: IDField = Field(None, primary_key=True)
@@ -410,8 +483,11 @@ class ExternalIdentifierBase(SQLModel):
             return self.identifier
 
 
-class ExternalIdentifier(ExternalIdentifierBase, TableMixin, table=True):
+class ExternalIdentifier(
+    ExternalIdentifierBase, TableMixin, EditableMixin, ListlikeMixin, table=True
+):
     __tablename__ = "external_identifiers"
+    __value_column_name__ = ("type", "identifier")
 
     external_identifier_id: IDField = Field(None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
@@ -458,11 +534,13 @@ class DatasetPartBase(SQLModel):
         description="Unique identifier for this dataset part",
         min_length=1,
         max_length=256,
+        schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
     description: Optional[str] = Field(
         None,
         title="Description",
         description="Additional information about this part. Markdown input is supported.",
+        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
         max_length=4096,
     )
     description_html: Optional[str] = Field(
@@ -472,7 +550,7 @@ class DatasetPartBase(SQLModel):
     )
 
 
-class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, table=True):
+class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, EditableMixin, table=True):
     __tablename__ = "dataset_parts"
     __table_args__ = (UniqueConstraint("dataset_id", "part_slug", name="_dataset_part_slug_uc"),)
 
@@ -491,6 +569,20 @@ class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, table=True):
     )
     paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset_part")
+
+    def update(
+        self, session: "Session", new: "DatasetPartUpdate", commit: bool = False
+    ) -> "DatasetPart":
+        updated = new.model_dump(exclude_unset=True)
+        if "paths" in updated:
+            updated["paths"] = DatasetPath.get_items(self.paths, updated["paths"])
+        for key, value in updated.items():
+            setattr(self, key, value)
+        if commit:
+            session.add(self)
+            session.commit()
+            session.refresh(self)
+        return self
 
 
 @event.listens_for(DatasetPart.is_removed, "set")
@@ -523,10 +615,24 @@ class DatasetPartCreate(DatasetPartBase):
     def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
         return _split_lines(value)
 
+    @field_validator("paths", mode="before")
+    def unpack_dataset_path(cls, value: list[str] | list["DatasetPath"]) -> list[PathLike]:
+        if not value:
+            return value
+        if isinstance(value[0], DatasetPath):
+            value = cast(list[DatasetPath], value)
+            value = [v.path for v in value]
+        return value
+
     @field_validator("part_slug", mode="after")
     def not_reserved_slug(cls, slug: str) -> str:
         assert slug not in DATASET_PART_RESERVED_SLUGS, f"slug {slug} is reserved"
         return slug
+
+
+@all_optional
+class DatasetPartUpdate(DatasetPartCreate):
+    pass
 
 
 class DatasetPartRead(DatasetPartBase):
@@ -548,8 +654,9 @@ class DatasetPartRead(DatasetPartBase):
         return account
 
 
-class DatasetPath(TableMixin, table=True):
+class DatasetPath(TableMixin, ListlikeMixin, EditableMixin, table=True):
     __tablename__ = "dataset_paths"
+    __value_column_name__ = "path"
 
     dataset_path_id: IDField = Field(None, primary_key=True)
     dataset_part_id: Optional[int] = Field(None, foreign_key="dataset_parts.dataset_part_id")
@@ -557,18 +664,26 @@ class DatasetPath(TableMixin, table=True):
     path: str = Field(max_length=1024)
 
 
-def _split_lines(value: str | list[str]) -> Optional[list[str]]:
+def _split_lines(value: str | list[str] | BaseModel) -> Optional[list[str] | BaseModel]:
     if isinstance(value, str):
         if not value or value == "":
             return []
         value = value.splitlines()
-    elif isinstance(value, list) and len(value) == 1:
-        if "\n" in value[0]:
-            value = value[0].splitlines()
-        elif value[0] == "":
-            return []
+    elif isinstance(value, list):
+        if len(value) == 1 and isinstance(value[0], str):
+            if "\n" in value[0]:
+                value = value[0].splitlines()
+            elif value[0] == "":
+                return []
+        elif len(value) == 0:
+            return value
+        elif isinstance(value[0], SQLModel):
+            return value
     elif value is None:
         return []
+    elif isinstance(value, SQLModel):
+        # models aren't raw string input!
+        return value
 
     # filter empty strings
     value = [v for v in value if v and v.strip()]

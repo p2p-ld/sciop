@@ -5,6 +5,7 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
+from fasthx.dependencies import DependsHXRequest
 from sqlmodel import Session, select
 from starlette.datastructures import QueryParams
 from starlette.requests import Request
@@ -14,13 +15,14 @@ from sciop import crud
 from sciop.api.deps import (
     CurrentAccount,
     RequireCurrentAccount,
+    RequireEditableBy,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
     SessionDep,
 )
 from sciop.api.routes.upload import upload_torrent
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, DatasetRead, UploadCreate
+from sciop.models import Dataset, DatasetRead, DatasetUpdate, UploadCreate
 
 datasets_router = APIRouter(prefix="/datasets")
 
@@ -51,6 +53,19 @@ async def dataset_show(
     dataset_slug: str, dataset: RequireVisibleDataset, session: SessionDep, request: Request
 ):
     return templates.TemplateResponse(request, "pages/dataset.html", {"dataset": dataset})
+
+
+@datasets_router.get("/{dataset_slug}/edit", response_class=HTMLResponse)
+async def dataset_edit(
+    dataset_slug: str,
+    dataset: RequireVisibleDataset,
+    current_account: RequireEditableBy,
+    request: Request,
+):
+    dataset_update = DatasetUpdate.from_dataset(dataset)
+    return templates.TemplateResponse(
+        request, "pages/dataset-edit.html", {"dataset": dataset_update}
+    )
 
 
 @datasets_router.get("/{dataset_slug}/partial", response_class=HTMLResponse)
@@ -146,11 +161,17 @@ async def dataset_upload_torrent(
     session: SessionDep,
     request: Request,
     response: Response,
+    hx_request: DependsHXRequest,
 ):
     """Validate and create a torrent file,"""
 
     created_torrent = await upload_torrent(
-        account=account, file=file, session=session, request=request, response=response
+        account=account,
+        file=file,
+        session=session,
+        request=request,
+        response=response,
+        __hx_request=None,
     )
     parts = _parts_from_query(query=request.query_params, dataset=dataset, session=session)
 

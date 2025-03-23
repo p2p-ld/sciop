@@ -5,7 +5,7 @@ from sciop.config import config
 
 def test_config_monkeypatch(request):
     assert config.env == "test"
-    if request.config.getoption("--persist-db"):
+    if request.config.getoption("--file-db"):
         assert config.db.name == "db.test.sqlite"
     else:
         assert config.db is None

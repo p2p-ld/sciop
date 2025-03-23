@@ -3,8 +3,8 @@ Common source for template environments and decorators
 """
 
 from datetime import UTC, datetime
-from types import ModuleType
-from typing import TYPE_CHECKING, Optional
+from types import ModuleType, UnionType
+from typing import TYPE_CHECKING, Optional, Union, get_args, get_origin
 from typing import Literal as L
 
 from fastapi import Request
@@ -60,13 +60,31 @@ def template_nonce(request: Request) -> dict[L["nonce"], str]:
     return {"nonce": getattr(request.state, "nonce", "")}
 
 
+def unwrap_optional(typ: type) -> type:
+    if get_origin(typ) in (Union, UnionType):
+        args = [unwrap_optional(arg) for arg in get_args(typ)]
+        for arg in args:
+            if arg is not None:
+                return arg
+    return typ
+
+
 templates = Jinja2Templates(
     directory=TEMPLATE_DIR,
     context_processors=[template_account, template_config, template_models, template_nonce],
+    trim_blocks=True,
+    lstrip_blocks=True,
+    autoescape=True,
 )
 templates.env.globals["models"] = models
 templates.env.globals["now"] = datetime.now
 templates.env.globals["UTC"] = UTC
+templates.env.globals["unwrap_optional"] = unwrap_optional
+templates.env.tests.update(
+    {
+        "is_list": lambda x: isinstance(x, list),
+    }
+)
 
 jinja = Jinja(templates)
 """fasthx decorator, see https://github.com/volfpeter/fasthx"""
