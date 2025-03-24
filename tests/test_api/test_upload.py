@@ -118,7 +118,7 @@ def test_replace_orphaned_upload(
     Torrent files that are uploaded but not associated with an Upload
     should be replaced by a second upload
     """
-    existing_tf: TorrentFile = torrentfile()
+    existing_tf: TorrentFile = torrentfile(v2_infohash=False)
     existing_torrent_path = existing_tf.filesystem_path
     assert existing_tf.upload is None
     assert existing_torrent_path.exists()

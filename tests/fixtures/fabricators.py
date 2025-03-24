@@ -248,12 +248,17 @@ def torrentfile(
             f.write(hash_data)
 
         t = torrent(path=file_in_torrent)
-
         if kwargs.get("v1_infohash", None) is None:
             kwargs["v1_infohash"] = t.infohash
-        if kwargs.get("v2_infohash", None) is None and t.v2_infohash is None:
-            v2_infohash = hashlib.sha256(bencodepy.encode(t.metainfo["info"])).hexdigest()
+        if kwargs.get("v2_infohash", None) is None:
+            if t.v2_infohash is None:
+                v2_infohash = hashlib.sha256(bencodepy.encode(t.metainfo["info"])).hexdigest()
+            else:
+                v2_infohash = t.v2_infohash
             kwargs["v2_infohash"] = v2_infohash
+        elif "v2_infohash" in kwargs and not kwargs["v2_infohash"]:
+            # set to `False`, exclude v2_infohash
+            del kwargs["v2_infohash"]
 
         if extra_trackers is not None:
             kwargs["announce_urls"].extend(extra_trackers)
