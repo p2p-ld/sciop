@@ -66,10 +66,22 @@ async def upload_torrent(
         session=session, v1=torrent.infohash, v2=torrent.v2_infohash
     )
     if existing_torrent:
-        raise HTTPException(
-            status_code=400,
-            detail="An identical torrent file already exists!",
-        )
+        if existing_torrent.upload is not None:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "msg": "An identical torrent file already exists "
+                    "and is associated with an upload: "
+                    f'<a href="/uploads/{existing_torrent.infohash}">'
+                    f"{existing_torrent.infohash}"
+                    "</a>",
+                    "raw_html": True,
+                },
+            )
+        else:
+            upload_logger.debug("Replacing existing orphaned torrent with new torrent")
+            session.delete(existing_torrent)
+            session.commit()
 
     trackers = [tracker for tier in torrent.trackers for tracker in tier]
     if len(trackers) == 0:

@@ -68,13 +68,9 @@ def default_upload() -> dict:
 @pytest.fixture
 def default_torrentfile() -> dict:
     files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
-    hash_data = "".join([str(f) for f in files])
-    hash_data = hash_data.encode("utf-8")
     return {
         "file_name": "default.torrent",
         "file_hash": "abcdefghijklmnop",
-        "v1_infohash": hashlib.sha1(hash_data).hexdigest(),
-        "v2_infohash": hashlib.sha256(hash_data).hexdigest(),
         "version": "hybrid",
         "short_hash": "defaultt",  # needs to be 8 chars lol
         "total_size": sum(f["size"] for f in files),
@@ -242,20 +238,20 @@ def torrentfile(
             session_ = session
         if account_ is None:
             account_ = account(scopes=[Scopes.upload], session_=session_, username="uploader")
-
-        files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
-        hash_data = "".join([str(f) for f in files])
-        hash_data = hash_data.encode("utf-8")
-        if "v1_infohash" not in kwargs:
-            kwargs["v1_infohash"] = hashlib.sha1(hash_data).hexdigest()
-        if "v2_infohash" not in kwargs:
-            kwargs["v2_infohash"] = hashlib.sha256(hash_data).hexdigest()
         passed_announce_urls = "announce_urls" in kwargs
-
         kwargs = deepcopy({**default_torrentfile, **kwargs})
+
         file_in_torrent = tmp_path / "default.bin"
+        hash_data = random.randbytes(kwargs["total_size"])
         with open(file_in_torrent, "wb") as f:
-            f.write(random.randbytes(kwargs["total_size"]))
+            f.write(hash_data)
+
+        t = torrent(path=file_in_torrent)
+
+        if kwargs.get("v1_infohash", None) is None:
+            kwargs["v1_infohash"] = t.infohash
+        if kwargs.get("v2_infohash", None) is None:
+            kwargs["v2_infohash"] = t.v2_infohash
 
         if extra_trackers is not None:
             kwargs["announce_urls"].extend(extra_trackers)
@@ -263,7 +259,6 @@ def torrentfile(
             kwargs["announce_urls"].append(fake.url(schemes=["udp"]))
 
         tf = TorrentFileCreate(**kwargs)
-        t = torrent(path=file_in_torrent)
         tf.filesystem_path.parent.mkdir(exist_ok=True, parents=True)
         t.write(tf.filesystem_path, overwrite=True)
         created = crud.create_torrent(session=session_, created_torrent=tf, account=account_)

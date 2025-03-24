@@ -114,13 +114,11 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
         db_path.unlink(missing_ok=True)
     else:
         db_path = None
-    log_dir = TMP_DIR / "logs"
-    log_dir.mkdir(exist_ok=True)
 
     new_config = config.Config(
         env="test", db=db_path, torrent_dir=TORRENT_DIR, secret_key="12345", clear_jobs=True
     )
-    new_config.logs.dir = log_dir
+    new_config.logs.dir = LOGS_DIR
     new_config.logs.level_file = "DEBUG"
     monkeypatch_session.setattr(config, "config", new_config)
     for key, module in sys.modules.items():
