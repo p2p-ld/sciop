@@ -29,7 +29,7 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
     if request.config.getoption("--file-db"):
         engine, session, connection, trans = _file_session()
     else:
-        engine, session, connection, trans = _in_memory_session()
+        engine, session, connection, trans = _in_memory_session(request)
 
     def get_session_override() -> Session:
         yield session
@@ -62,13 +62,18 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
         connection.close()
 
 
-def _in_memory_session() -> tuple[Engine, Session, None, None]:
+def _in_memory_session(request: pytest.FixtureRequest) -> tuple[Engine, Session, None, None]:
     from sciop.db import create_tables
     from sciop.models.mixins import EditableMixin
 
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
+    engine_kwargs = {
+        "connect_args": {"check_same_thread": False},
+        "poolclass": StaticPool,
+    }
+    if request.config.getoption("--echo-queries"):
+        engine_kwargs["echo"] = True
+
+    engine = create_engine("sqlite://", **engine_kwargs)
     create_tables(engine, check_migrations=False)
     session = Session(engine)
     session = EditableMixin.editable_session(session)

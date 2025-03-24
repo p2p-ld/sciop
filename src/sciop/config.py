@@ -174,6 +174,8 @@ class Config(BaseSettings):
     """
     db_echo: bool = False
     """Echo all queries made to the database"""
+    db_pool_size: int = 10
+    db_overflow_size: int = 20
     logs: LogConfig = LogConfig()
     host: str = "localhost"
     port: int = 8000
