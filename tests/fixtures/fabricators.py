@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Concatenate, Optional, ParamSpec
 from typing import Literal as L
 
+import bencodepy
 import pytest
 from faker import Faker
 from sqlmodel import Session
@@ -250,8 +251,9 @@ def torrentfile(
 
         if kwargs.get("v1_infohash", None) is None:
             kwargs["v1_infohash"] = t.infohash
-        if kwargs.get("v2_infohash", None) is None:
-            kwargs["v2_infohash"] = t.v2_infohash
+        if kwargs.get("v2_infohash", None) is None and t.v2_infohash is None:
+            v2_infohash = hashlib.sha256(bencodepy.encode(t.metainfo["info"])).hexdigest()
+            kwargs["v2_infohash"] = v2_infohash
 
         if extra_trackers is not None:
             kwargs["announce_urls"].extend(extra_trackers)

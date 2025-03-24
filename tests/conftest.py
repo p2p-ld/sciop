@@ -129,10 +129,16 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
 
     from sciop import db
 
+    engine_kwargs = {}
+    if request.config.getoption("--file-db"):
+        engine_kwargs = {
+            "pool_size": new_config.db_pool_size,
+            "max_overflow": new_config.db_overflow_size,
+        }
     if request.config.getoption("--echo-queries"):
-        engine = create_engine(str(new_config.sqlite_path), echo=True)
-    else:
-        engine = create_engine(str(new_config.sqlite_path))
+        engine_kwargs["echo"] = True
+
+    engine = create_engine(str(new_config.sqlite_path), **engine_kwargs)
     monkeypatch_session.setattr(db, "engine", engine)
     maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
     monkeypatch_session.setattr(db, "maker", maker)

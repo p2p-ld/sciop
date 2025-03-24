@@ -60,6 +60,7 @@ def test_create_torrent_with_trackers(session, default_torrentfile, infohashes, 
     torrent_a["announce_urls"].append(a_tracker)
     torrent_b["announce_urls"].append(shared)
     torrent_b["announce_urls"].append(b_tracker)
+    torrent_a.update(infohashes())
     torrent_b.update(infohashes())
 
     a = crud.create_torrent(
