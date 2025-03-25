@@ -5,6 +5,7 @@ from sciop.models.mixins.list import ListlikeMixin
 from sciop.models.mixins.moderation import ModerableMixin
 from sciop.models.mixins.search import SearchableMixin
 from sciop.models.mixins.table import TableMixin, TableReadMixin
+from sciop.models.mixins.template import TemplateModel
 
 __all__ = [
     "EditableMixin",
@@ -14,6 +15,7 @@ __all__ = [
     "SearchableMixin",
     "TableMixin",
     "TableReadMixin",
+    "TemplateModel",
     "all_optional",
     "exclude_fields",
 ]

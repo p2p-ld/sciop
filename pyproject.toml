@@ -43,7 +43,7 @@ readme = "README.md"
 license = {text = "EUPL-1.2"}
 
 [project.scripts]
-sciop = "sciop.cli.main:main"
+sciop = "sciop.cli.main:_main"
 
 [project.optional-dependencies]
 test = [

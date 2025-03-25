@@ -14,7 +14,6 @@ from fasthx import Jinja
 from sciop import models, types
 from sciop.api import deps
 from sciop.config import Config, config
-from sciop.const import TEMPLATE_DIR
 from sciop.db import get_session
 from sciop.models.mixins.template import get_environment
 
@@ -61,7 +60,6 @@ def template_nonce(request: Request) -> dict[L["nonce"], str]:
 
 
 templates = Jinja2Templates(
-    directory=TEMPLATE_DIR,
     context_processors=[template_account, template_config, template_models, template_nonce],
     env=get_environment(),
 )

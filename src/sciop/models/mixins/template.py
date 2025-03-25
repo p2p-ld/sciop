@@ -67,8 +67,8 @@ def get_environment() -> Environment:
             lstrip_blocks=True,
             optimized=True,
         )
-        _environment.globals = get_env_globals()
-        _environment.tests = get_env_tests()
+        _environment.globals.update(get_env_globals())
+        _environment.tests.update(get_env_tests())
     return _environment
 
 
@@ -85,10 +85,8 @@ class TemplateModel(BaseModel):
     it receives it having already been rendered to a string. See the :meth:`.render` method.
     """
 
-    template: ClassVar[str]
+    __template__: ClassVar[str]
     _environment: ClassVar[Environment] = get_environment()
-
-    meta_exclude: ClassVar[List[str]] = None
 
     def render(self, environment: Optional[Environment] = None) -> str:
         """
@@ -102,13 +100,16 @@ class TemplateModel(BaseModel):
         Args:
             environment (:class:`jinja2.Environment`): Template environment
         """
+        if not hasattr(self, "__template__"):
+            raise AttributeError("All TemplateModel subclasses must declare __template__")
+
         if environment is None:
             environment = TemplateModel.environment()
 
         fields = {**self.model_fields, **self.model_computed_fields}
 
         data = {k: _render(getattr(self, k, None), environment) for k in fields}
-        template = environment.get_template(self.template)
+        template = environment.get_template(self.__template__)
         rendered = template.render(**data)
         return rendered
 
