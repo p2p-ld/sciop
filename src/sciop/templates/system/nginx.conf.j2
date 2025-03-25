@@ -23,10 +23,6 @@ server {
 
     client_max_body_size {{ max_upload_size }};
 
-    if ($badagent) {
-        return 403;
-    }
-
     location ~ /.well-known/acme-challenge/ {
       root /var/www/letsencrypt;
     }
