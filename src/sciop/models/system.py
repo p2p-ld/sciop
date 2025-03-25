@@ -25,11 +25,12 @@ class NginxConfig(TemplateModel):
     cache_enable: bool = Field(default=True, description="Enable caching of static pages")
     cache_files: int = Field(default=300, description="Number of files to cache")
     cache_size: str = Field(
-        default="200m", description="Size of cache in memory before entried are removed"
+        default="200m", description="Size of cache in memory before entrie are removed"
     )
     cache_keys_size: str = Field(
         default="10m", description="Size of memory used on mapping cache keys to values"
     )
+    cache_duration: str = Field(default="30m", description="Duration of cache for static files")
     ratelimit_enable: bool = Field(
         default=False,
         description="Enable rate limiting, configured in other options. "

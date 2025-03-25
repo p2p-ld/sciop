@@ -4,8 +4,8 @@ limit_req_zone $binary_remote_addr
   rate={{ ratelimit_rate }};
 {% endif %}
 {% if cache_enable %}
-proxy_cache_path /data/nginx/sciop_cache
-  keys_zone=sciop_cache:{{ cache_size }}
+proxy_cache_path /tmp/nginx/sciop_cache
+  keys_zone=sciop_cache:{{ cache_keys_size }}
   loader_threshold=300
   loader_files={{ cache_files }}
   max_size={{ cache_size }};
@@ -38,6 +38,21 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_redirect off;
     }
+
+    {% if cache_enable %}
+    location /static {
+        proxy_cache sciop_cache;
+        proxy_pass http://localhost:{{ port }}/static;
+        proxy_cache_valid any {{ cache_duration }};
+        proxy_cache_min_uses 3;
+    }
+    location /docs {
+        proxy_cache sciop_cache;
+        proxy_pass http://localhost:{{ port }}/docs;
+        proxy_cache_valid any {{ cache_duration }};
+        proxy_cache_min_uses 3;
+    }
+    {% endif %}
 
     ssl_certificate /etc/letsencrypt/live/{{ host }}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/{{ host }}/privkey.pem;
