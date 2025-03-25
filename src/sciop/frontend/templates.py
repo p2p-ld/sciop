@@ -2,9 +2,8 @@
 Common source for template environments and decorators
 """
 
-from datetime import UTC, datetime
-from types import ModuleType, UnionType
-from typing import TYPE_CHECKING, Optional, Union, get_args, get_origin
+from types import ModuleType
+from typing import TYPE_CHECKING, Optional
 from typing import Literal as L
 
 from fastapi import Request
@@ -15,8 +14,8 @@ from fasthx import Jinja
 from sciop import models, types
 from sciop.api import deps
 from sciop.config import Config, config
-from sciop.const import TEMPLATE_DIR
 from sciop.db import get_session
+from sciop.models.mixins.template import get_environment
 
 if TYPE_CHECKING:
     from sciop.models import Account
@@ -60,30 +59,9 @@ def template_nonce(request: Request) -> dict[L["nonce"], str]:
     return {"nonce": getattr(request.state, "nonce", "")}
 
 
-def unwrap_optional(typ: type) -> type:
-    if get_origin(typ) in (Union, UnionType):
-        args = [unwrap_optional(arg) for arg in get_args(typ)]
-        for arg in args:
-            if arg is not None:
-                return arg
-    return typ
-
-
 templates = Jinja2Templates(
-    directory=TEMPLATE_DIR,
     context_processors=[template_account, template_config, template_models, template_nonce],
-    trim_blocks=True,
-    lstrip_blocks=True,
-    autoescape=True,
-)
-templates.env.globals["models"] = models
-templates.env.globals["now"] = datetime.now
-templates.env.globals["UTC"] = UTC
-templates.env.globals["unwrap_optional"] = unwrap_optional
-templates.env.tests.update(
-    {
-        "is_list": lambda x: isinstance(x, list),
-    }
+    env=get_environment(),
 )
 
 jinja = Jinja(templates)

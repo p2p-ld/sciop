@@ -207,6 +207,15 @@ class Config(BaseSettings):
     """
     clear_jobs: bool = False
     """Clear any remaining scheduler jobs on startup"""
+    template_dir: Optional[Path] = None
+    """
+    If set, directory of template overrides.
+    Sciop will use any template within this directory rather than its own
+    builtin templates, if present.
+    
+    E.g. if a ``template_dir`` contains ``pages/datasets.html`` ,
+    that template will be used rather than ``sciop/templates/pages/datasets.html``
+    """
     tracker_scraping: ScrapeConfig = ScrapeConfig()
 
     @computed_field  # type: ignore[prop-decorator]
