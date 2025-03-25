@@ -79,8 +79,6 @@ def model_options(model: type[TemplateModel]) -> C[[click.Command], click.Comman
             if field.default is not pydantic_core.PydanticUndefined:
                 option_kwargs["default"] = field.default
 
-            # pdb.set_trace()
-
             f.params.append(click.Option((f"--{field_name}",), **option_kwargs))
         return f
 
