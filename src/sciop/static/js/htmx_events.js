@@ -171,3 +171,9 @@ function init_upload_progress(target) {
 htmx.on("htmx:afterSettle", (evt) => {
   init_upload_progress(evt.target)
 })
+
+function init_index_cancel_button(){
+  let btn = document.querySelector("#index-cancel-button");
+  btn.addEventListener("click", (e) => window.alert("No."))
+}
+init_index_cancel_button();
