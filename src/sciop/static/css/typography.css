@@ -178,38 +178,7 @@ blockquote {
     }
 }
 
-div.status-strip {
-    width: 100%;
-    padding: 2em 1em;
-    display: flex;
-    flex-direction: column;
-    gap: 1em;
-    h2 {
-        font-size: 2em;
-    }
-    h2, p {
-        background-color: var(--color-background);
-        padding: 1em;
-    }
-    p {
-        max-width: 400px;
-    }
-    .token {
-        margin-top: 1em;
-        line-height: 3em;
-    }
 
-    font-family: var(--font-mono);
-    & * {
-        margin: auto;
-    }
-    background: repeating-linear-gradient(
-        -45deg,
-        var(--color-background),
-        var(--color-background) 15px,
-        var(--color-alert) 15px,
-        var(--color-alert) 30px );
-}
 
 .seeders-icon {
     color: var(--color-good);
@@ -238,4 +207,214 @@ div.status-strip {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
+}
+
+/* Lifted from 98.css */
+
+
+div.status-strip {
+    width: 100%;
+    padding: 2em 1em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    h2 {
+        font-size: 2em;
+    }
+
+    background: repeating-linear-gradient(
+        -45deg,
+        var(--color-background),
+        var(--color-background) 15px,
+        var(--color-neutral-darker-1) 15px,
+        var(--color-neutral-darker-1) 30px );
+}
+
+div.status-strip {
+  --dialog-blue: #000080;
+  --dialog-blue-light: #1084d0;
+  --dialog-gray: #808080;
+  --dialog-gray-light: #b5b5b5;
+  --element-spacing: 8px;
+  --window-frame: #0a0a0a;
+  --button-face: #dfdfdf;
+  --button-shadow: #808080;
+  --button-highlight: #ffffff;
+  --border-window-outer: inset -1px -1px var(--window-frame),
+  inset 1px 1px var(--button-face);
+  --border-window-inner: inset -2px -2px var(--button-shadow),
+  inset 2px 2px var(--button-highlight);
+  --surface: #c0c0c0;
+  --border-raised-outer: inset -1px -1px var(--window-frame),
+  inset 1px 1px var(--button-highlight);
+  --border-raised-inner: inset -2px -2px var(--button-shadow),
+  inset 2px 2px var(--button-face);
+  --border-sunken-outer: inset -1px -1px var(--button-highlight),
+  inset 1px 1px var(--window-frame);
+  --border-sunken-inner: inset -2px -2px var(--button-face),
+  inset 2px 2px var(--button-shadow);
+
+
+  button,
+  label,
+  input,
+  textarea,
+  select,
+  option,
+  ul.tree-view,
+  .window,
+  .title-bar {
+    font-family: "Pixelated MS Sans Serif", Arial;
+    -webkit-font-smoothing: none;
+    font-size: 1em;
+  }
+
+  .title-bar {
+    background: linear-gradient(
+        90deg,
+        var(--dialog-blue),
+        var(--dialog-blue-light)
+    );
+    padding: 3px 2px 3px 3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .title-bar.inactive {
+    background: linear-gradient(
+        90deg,
+        var(--dialog-gray),
+        var(--dialog-gray-light)
+    );
+  }
+
+  .title-bar-text {
+    font-weight: bold;
+    color: white;
+    letter-spacing: 0;
+    margin: 0;
+    font-size: 1.5em;
+  }
+
+  .title-bar-controls {
+    display: flex;
+    margin: unset;
+  }
+
+  .title-bar-controls button {
+    padding: 0;
+    display: block;
+    min-width: 16px;
+    min-height: 14px;
+  }
+
+  .title-bar-controls button:active {
+    padding: 0;
+  }
+
+  .title-bar-controls button:focus {
+    outline: none;
+  }
+
+  .title-bar-controls button[aria-label="Close"] {
+    margin-left: 2px;
+    background-image: url("/static/img/close.svg");
+    background-repeat: no-repeat;
+    background-size: 60%;
+    background-position: center center;
+    height: 1.5em;
+    width: 1.5em;
+  }
+
+  .window-body {
+    margin: var(--element-spacing);
+    color: #222;
+  }
+
+  .window {
+    box-shadow: var(--border-window-outer), var(--border-window-inner);
+    background: var(--surface);
+    padding: 3px;
+    min-width: 300px;
+    margin: auto;
+    border: 1em solid var(--color-background);
+  }
+
+  button,
+  input[type="submit"],
+  input[type="reset"] {
+    box-sizing: border-box;
+    border: none;
+    background: var(--surface);
+    box-shadow: var(--border-raised-outer), var(--border-raised-inner);
+    border-radius: 0;
+    min-width: 5em;
+    min-height: 1.75em;
+    padding: 0 12px;
+    background: silver;
+    color: transparent;
+    text-shadow: 0 0 #222;
+    &:hover {
+      background-color: var(--surface);
+      color: unset;
+    }
+  }
+  a:hover {
+    color: unset;
+  }
+
+  button:not(:disabled):active,
+  input[type="submit"]:not(:disabled):active,
+  input[type="reset"]:not(:disabled):active {
+    box-shadow: var(--border-sunken-outer), var(--border-sunken-inner);
+    padding: 2px 11px 0 13px;
+  }
+
+  button:focus,
+  input[type="submit"]:focus,
+  input[type="reset"]:focus {
+    outline: 1px dotted #000000;
+    outline-offset: -4px;
+  }
+
+  button::-moz-focus-inner,
+  input[type="submit"]::-moz-focus-inner,
+  input[type="reset"]::-moz-focus-inner {
+    border: 0;
+  }
+
+  .status-bar {
+    margin: 0 1px;
+    display: flex;
+    gap: 1px;
+  }
+
+  .status-bar-field {
+    box-shadow: inset -1px -1px #dfdfdf, inset 1px 1px #808080;
+    flex-grow: 1;
+    padding: 2px 3px;
+    margin: 0;
+    color: #222;
+  }
+  .field-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-left: auto;
+    margin-top: 1em;
+    gap: 0.5em;
+    & * {
+      margin: unset;
+    }
+  }
+  .status-text{
+    font-size: 3em;
+    margin: 0.25em 0 0.25em 0;
+  }
+
+  @media screen and (max-width: 768px){
+    .title-bar-text {
+      font-size: 1rem;
+    }
+  }
 }
