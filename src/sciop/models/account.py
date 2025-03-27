@@ -37,9 +37,11 @@ class AccountScopeLink(TableMixin, table=True):
     __table_args__ = (UniqueConstraint("account_id", "scope_id", name="_account_scope_uc"),)
 
     account_id: Optional[int] = Field(
-        default=None, foreign_key="accounts.account_id", primary_key=True
+        default=None, foreign_key="accounts.account_id", primary_key=True, index=True
     )
-    scope_id: Optional[int] = Field(default=None, foreign_key="scopes.scope_id", primary_key=True)
+    scope_id: Optional[int] = Field(
+        default=None, foreign_key="scopes.scope_id", primary_key=True, index=True
+    )
 
 
 class AccountBase(SQLModel):

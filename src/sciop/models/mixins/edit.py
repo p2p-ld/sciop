@@ -6,14 +6,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generator, Iterable, Optional, 
 
 import sqlalchemy as sqla
 from pydantic import ConfigDict
-from sqlalchemy import (
-    Column,
-    ColumnElement,
-    ForeignKeyConstraint,
-    Table,
-    event,
-    inspect,
-)
+from sqlalchemy import Column, ColumnElement, ForeignKeyConstraint, Index, Table, event, inspect
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import (
     Mapper,
@@ -305,6 +298,7 @@ def _make_table(
     # append meta cols to table
     for col in meta_cols.values():
         table.append_column(col.col)
+
     return table, properties
 
 
@@ -347,10 +341,12 @@ def _make_orm_class(
 def _prepare_table(table: Table) -> Table:
     """Prepare history table by clearing constraints and etc."""
     table.sqlite_autoincrement = True
-    for idx in table.indexes:
-        if idx.name is not None:
-            idx.name += "_history"
+    for idx in list(table.indexes):
+        # if idx.name is not None:
+        #     idx.name += "_history"
         idx.unique = False
+        if any([c.foreign_keys or c.primary_key for c in idx.columns]):
+            table.indexes.discard(idx)
 
     # clear any remaining non-fk constraints
     for const in list(table.constraints):
@@ -379,6 +375,10 @@ def _prepare_columns(
         if history_c.primary_key:
             # primary key in parent table becomes foreign key in history table
             table.constraints.add(ForeignKeyConstraint([history_c], [orig_c]))
+            history_c.index = True
+            table.indexes.add(Index(f"ix_{table.name}_{history_c.name}", history_c))
+        elif history_c.foreign_keys:
+            table.indexes.add(Index(f"ix_{table.name}_{history_c.name}", history_c))
 
         orig_prop = mapper.get_property_by_column(orig_c)
         # carry over column re-mappings
@@ -422,7 +422,7 @@ def _make_meta_cols() -> dict[str, _MetaCol]:
             nullable=True,
             info=history_meta,
         ),
-        field=Field(default=None, nullable=True, foreign_key="accounts.account_id"),
+        field=Field(default=None, nullable=True, foreign_key="accounts.account_id", index=True),
         annotation={"version_created_by": Optional[int]},
     )
     cols["version_is_deletion"] = _MetaCol(

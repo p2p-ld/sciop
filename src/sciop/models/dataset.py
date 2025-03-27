@@ -236,7 +236,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, table=Tru
         sa_relationship_kwargs={"lazy": "selectin"},
         link_model=DatasetTagLink,
     )
-    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
+    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id", index=True)
     account: Optional["Account"] = Relationship(back_populates="datasets")
     scrape_status: ScrapeStatus = "unknown"
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
@@ -426,7 +426,7 @@ class DatasetURL(EditableMixin, ListlikeMixin, table=True):
     __value_column_name__ = "url"
 
     dataset_url_id: IDField = Field(default=None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
+    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id", index=True)
     dataset: Optional[Dataset] = Relationship(back_populates="urls")
 
     url: MaxLenURL
@@ -451,9 +451,9 @@ class ExternalSource(ExternalSourceBase, TableMixin, EditableMixin, table=True):
     __tablename__ = "external_sources"
 
     external_source_id: IDField = Field(None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
+    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id", index=True)
     dataset: Dataset = Relationship(back_populates="external_sources")
-    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
+    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id", index=True)
     account: Optional[Account] = Relationship(back_populates="external_submissions")
 
 
@@ -490,7 +490,7 @@ class ExternalIdentifier(
     __value_column_name__ = ("type", "identifier")
 
     external_identifier_id: IDField = Field(None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id")
+    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id", index=True)
     dataset: Dataset = Relationship(back_populates="external_identifiers")
 
 
@@ -521,10 +521,10 @@ class ExternalIdentifierRead(ExternalIdentifierBase):
 class UploadDatasetPartLink(SQLModel, table=True):
     __tablename__ = "upload_dataset_part_links"
     dataset_part_id: Optional[int] = Field(
-        default=None, foreign_key="dataset_parts.dataset_part_id", primary_key=True
+        default=None, foreign_key="dataset_parts.dataset_part_id", primary_key=True, index=True
     )
     upload_id: Optional[int] = Field(
-        default=None, foreign_key="uploads.upload_id", primary_key=True
+        default=None, foreign_key="uploads.upload_id", primary_key=True, index=True
     )
 
 
@@ -560,9 +560,9 @@ class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, EditableMixin, ta
         max_length=_prefixed_len(DatasetPartBase.model_fields["part_slug"]),
     )
     dataset_part_id: IDField = Field(None, primary_key=True)
-    dataset_id: Optional[int] = Field(None, foreign_key="datasets.dataset_id")
+    dataset_id: Optional[int] = Field(None, foreign_key="datasets.dataset_id", index=True)
     dataset: Optional[Dataset] = Relationship(back_populates="parts")
-    account_id: Optional[int] = Field(None, foreign_key="accounts.account_id")
+    account_id: Optional[int] = Field(None, foreign_key="accounts.account_id", index=True)
     account: Optional[Account] = Relationship(back_populates="dataset_parts")
     uploads: list["Upload"] = Relationship(
         back_populates="dataset_parts", link_model=UploadDatasetPartLink
@@ -659,7 +659,9 @@ class DatasetPath(TableMixin, ListlikeMixin, EditableMixin, table=True):
     __value_column_name__ = "path"
 
     dataset_path_id: IDField = Field(None, primary_key=True)
-    dataset_part_id: Optional[int] = Field(None, foreign_key="dataset_parts.dataset_part_id")
+    dataset_part_id: Optional[int] = Field(
+        None, foreign_key="dataset_parts.dataset_part_id", index=True
+    )
     dataset_part: DatasetPart = Relationship(back_populates="paths")
     path: str = Field(max_length=1024)
 

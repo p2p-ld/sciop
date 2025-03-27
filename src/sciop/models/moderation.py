@@ -39,9 +39,9 @@ class ModerationAction(StrEnum):
     """Remove an item"""
 
 
-_actor_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True)
+_actor_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True, index=True)
 _target_account_id = Column(
-    Integer, ForeignKey("accounts.account_id", ondelete="SET NULL"), nullable=True
+    Integer, ForeignKey("accounts.account_id", ondelete="SET NULL"), nullable=True, index=True
 )
 
 
@@ -67,19 +67,19 @@ class AuditLog(TableMixin, table=True):
     action: ModerationAction = Field(description="The action taken")
 
     target_dataset_id: Optional[int] = Field(
-        default=None, foreign_key="datasets.dataset_id", ondelete="SET NULL"
+        default=None, foreign_key="datasets.dataset_id", ondelete="SET NULL", index=True
     )
     target_dataset: Optional["Dataset"] = Relationship(
         back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
     )
     target_dataset_part_id: Optional[int] = Field(
-        default=None, foreign_key="dataset_parts.dataset_part_id", ondelete="SET NULL"
+        default=None, foreign_key="dataset_parts.dataset_part_id", ondelete="SET NULL", index=True
     )
     target_dataset_part: Optional["DatasetPart"] = Relationship(
         back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
     )
     target_upload_id: Optional[int] = Field(
-        default=None, foreign_key="uploads.upload_id", ondelete="SET NULL"
+        default=None, foreign_key="uploads.upload_id", ondelete="SET NULL", index=True
     )
     target_upload: Optional["Upload"] = Relationship(
         back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
