@@ -128,10 +128,6 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["dataset_id"],
             ["datasets.dataset_id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["dataset_id"],
-            ["datasets.dataset_id"],
             name=op.f("fk_datasets__history_dataset_id_datasets"),
         ),
         sa.ForeignKeyConstraint(
@@ -194,10 +190,6 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["dataset_part_id"],
             ["dataset_parts.dataset_part_id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["dataset_part_id"],
-            ["dataset_parts.dataset_part_id"],
             name=op.f("fk_dataset_parts__history_dataset_part_id_dataset_parts"),
         ),
         sa.ForeignKeyConstraint(
@@ -230,20 +222,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["dataset_id"],
             ["dataset_tag_links.dataset_id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["dataset_id"],
-            ["dataset_tag_links.dataset_id"],
             name=op.f("fk_dataset_tag_links__history_dataset_id_dataset_tag_links"),
         ),
         sa.ForeignKeyConstraint(
             ["dataset_id"],
             ["datasets.dataset_id"],
             name=op.f("fk_dataset_tag_links_dataset_id_datasets"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["tag_id"],
-            ["dataset_tag_links.tag_id"],
         ),
         sa.ForeignKeyConstraint(
             ["tag_id"],
@@ -281,10 +265,6 @@ def upgrade() -> None:
             ["dataset_id"],
             ["datasets.dataset_id"],
             name=op.f("fk_dataset_urls_dataset_id_datasets"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["dataset_url_id"],
-            ["dataset_urls.dataset_url_id"],
         ),
         sa.ForeignKeyConstraint(
             ["dataset_url_id"],
@@ -348,10 +328,6 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["external_identifier_id"],
             ["external_identifiers.external_identifier_id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["external_identifier_id"],
-            ["external_identifiers.external_identifier_id"],
             name=op.f(
                 "fk_external_identifiers__history_external_identifier_id_external_identifiers"
             ),
@@ -404,10 +380,6 @@ def upgrade() -> None:
             ["dataset_id"],
             ["datasets.dataset_id"],
             name=op.f("fk_external_sources_dataset_id_datasets"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["external_source_id"],
-            ["external_sources.external_source_id"],
         ),
         sa.ForeignKeyConstraint(
             ["external_source_id"],
@@ -471,10 +443,6 @@ def upgrade() -> None:
             ["dataset_id"], ["datasets.dataset_id"], name=op.f("fk_uploads_dataset_id_datasets")
         ),
         sa.ForeignKeyConstraint(
-            ["upload_id"],
-            ["uploads.upload_id"],
-        ),
-        sa.ForeignKeyConstraint(
             ["upload_id"], ["uploads.upload_id"], name=op.f("fk_uploads__history_upload_id_uploads")
         ),
         sa.ForeignKeyConstraint(
@@ -510,10 +478,6 @@ def upgrade() -> None:
             ["dataset_part_id"],
             ["dataset_parts.dataset_part_id"],
             name=op.f("fk_dataset_paths_dataset_part_id_dataset_parts"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["dataset_path_id"],
-            ["dataset_paths.dataset_path_id"],
         ),
         sa.ForeignKeyConstraint(
             ["dataset_path_id"],
@@ -585,10 +549,6 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["torrent_file_id"],
             ["torrent_files.torrent_file_id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["torrent_file_id"],
-            ["torrent_files.torrent_file_id"],
             name=op.f("fk_torrent_files__history_torrent_file_id_torrent_files"),
         ),
         sa.ForeignKeyConstraint(
@@ -635,10 +595,6 @@ def upgrade() -> None:
         sa.Column("version_comment", sa.Text(length=4096), nullable=True),
         sa.Column("version_created_by", sa.Integer(), nullable=True),
         sa.Column("version_is_deletion", sa.Boolean(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["file_in_torrent_id"],
-            ["files_in_torrent.file_in_torrent_id"],
-        ),
         sa.ForeignKeyConstraint(
             ["file_in_torrent_id"],
             ["files_in_torrent.file_in_torrent_id"],

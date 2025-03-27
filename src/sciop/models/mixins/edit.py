@@ -377,9 +377,7 @@ def _prepare_columns(
         history_c.autoincrement = False
 
         if history_c.primary_key:
-            # add fks back to parent tables
-            parent_fk = ForeignKey(orig_c)
-            history_c.foreign_keys.add(parent_fk)
+            # primary key in parent table becomes foreign key in history table
             table.constraints.add(ForeignKeyConstraint([history_c], [orig_c]))
 
         orig_prop = mapper.get_property_by_column(orig_c)
