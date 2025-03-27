@@ -1,0 +1,110 @@
+@property --x {
+  syntax: '<length-percentage>';
+  initial-value: 10px;
+  inherits: false
+}
+
+@property --y {
+  syntax: '<length-percentage>';
+  initial-value: 10px;
+  inherits: false
+}
+
+.md-header {
+  background-color: var(--md-footer-bg-color);
+  border-bottom: 1px solid var(--md-primary-fg-color--dark);
+  font-family: var(--font-mono), monospace;
+
+  .md-header__title {
+    font-style: italic;
+    font-family: Times, "Times New Roman", "Times LT Std", serif;
+    font-size: 2em;
+    color: var(--md-primary-fg-color);
+    & span {
+      color: var(--md-title-color);
+      text-shadow: 2px 2px var(--md-title-bg-color);
+      /*outline: var(--md-default-bg-color) groove 2px;*/
+      &:before {
+        background: var(--md-primary-fg-color);
+        width: 150%;
+        border-radius: 0.2em 0.1em;
+        box-shadow: 0 0 2px rgba(255,255,255,0.25);
+        content: " ";
+        width: 150%;
+        height: 0.75em;
+        left: -25%;
+        bottom: 0.65em;
+        position: absolute;
+        transform: skewY(-10deg) rotate(8deg);
+        z-index: -1;
+      }
+
+    }
+  }
+}
+
+div.index-linkbox {
+  display: flex;
+  flex-direction: row;
+  flex-wrap:wrap;
+  gap: 1em 2em;
+
+  a {
+    border: 1px solid var(--md-primary-fg-color--dark);
+
+    &:hover {
+      color: var(--md-primary-fg-color--dark);
+      border-color: var(--md-code-fg-color);
+    }
+  }
+}
+pre.index-link {
+  line-height: 1em;
+  margin: 0;
+  transition: font-size 10s ease-in;
+  &:hover {
+    color: var(--md-primary-fg-color--dark);
+    font-size: 10em;
+    transition: color 1s, font-size 100s;
+  }
+}
+
+@media screen and (max-width: 500px){
+  pre.index-link {
+    font-size: 0.8em;
+  }
+}
+
+.redacted {
+    color: var(--color-primary-contrast);
+    position: relative;
+
+    &>* {
+        color: var(--color-primary-contrast);
+    }
+
+    &:before {
+        background: var(--color-primary);
+        border-radius: 0.2em 0.1em;
+        box-shadow: 0 0 2px rgba(255,255,255,0.25);
+        content: " ";
+        width: 150%;
+        height: 0.8em;
+        left: -25%;
+        bottom: 0.1em;
+        position: absolute;
+        transform: skewY(-10deg) rotate(8deg);
+        z-index: -1;
+    }
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.big-emphasis {
+  padding: 2em;
+  border: 2px double var(--md-primary-fg-color);
+  font-family: var(--font-mono);
+  font-weight: bold;
+}

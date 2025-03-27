@@ -1,4 +1,4 @@
-# Running Sciop
+# Curating
 
 <div class="big-emphasis" markdown="1">
 

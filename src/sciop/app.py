@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import Generator
 
-import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -77,15 +76,3 @@ add_pagination(app)
 
 app.add_exception_handler(429, rate_limit_handler)
 app.add_exception_handler(StarletteHTTPException, http_handler)
-
-
-def main() -> None:
-    uvicorn.run(
-        "sciop.main:app",
-        host=config.host,
-        port=config.port,
-        reload=config.reload,
-        reload_includes=["*.py", "*.md", "*.yml"],
-        lifespan="on",
-        access_log=False,
-    )

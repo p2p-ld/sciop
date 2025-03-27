@@ -1,4 +1,4 @@
-# Running Sciop
+# Metadata
 
 <div class="big-emphasis" markdown="1">
 

@@ -1,4 +1,4 @@
-site_name: SciOp
+site_name: The Sci Op !
 repo_url: https://codeberg.org/Safeguarding/sciop
 repo_name: Codeberg
 edit_uri: _edit/main/docs/
@@ -8,28 +8,52 @@ copyright: CC BY-NC-SA 4.0
 
 nav:
   - index.md
-  - Scraper's Guide:
-    - Web Pages: scraping/webpages.md
-    - Checksums: scraping/checksums.md
+  - Intro:
+      - intro/overview.md
+      - intro/roadmap.md
+  - Using Sciop:
+      - using/browsing.md
+      - using/seeding.md
+      - using/rss.md
+      - using/moderation.md
+      - using/curating.md
+      - using/metadata.md
   - Uploading:
-    - Trackers: uploading/trackers.md
+      - uploading/rules.md
+      - uploading/formatting.md
+      - uploading/torrents.md
+      - uploading/checksums.md
+      - uploading/trackers.md
+  - Scraper's Guide:
+      - scraping/webpages.md
+      - scraping/s3.md
+      - scraping/ftp.md
+  - privacy.md
   - API: /docs/api
+  - API Examples:
+      - examples/uploading.md
   - Running:
-    - Maintenance: running/maintenance.md
+      - running/maintenance.md
   - Developers:
-    - Error Handling: sciop/error_handling.md
-    - Jobs: sciop/jobs.md
+      - develop/design.md
+      - develop/contributing.md
+      - develop/frontend.md
+      - develop/backend.md
+      - develop/error_handling.md
+      - develop/jobs.md
 
 theme:
   name: material
   palette:
     - media: "(prefers-color-scheme: dark)"
-      scheme: slate
+      scheme: sciop-dark
+      primary: custom
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: light)"
-      scheme: default
+      scheme: sciop-light
+      primary: custom
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -39,15 +63,27 @@ theme:
     - navigation.path
     - content.code.copy
 
+extra_css:
+  - css/fonts.css
+  - css/vars.css
+  - css/theme.css
+
 
 # this will get overridden by {config.public_url} + '/docs/'
 # when built by the app
 site_url: https://sciop.net/docs/
 
 markdown_extensions:
+  - admonition
+  - footnotes
+  - md_in_html
+  - pymdownx.details
   - pymdownx.snippets:
       base_path: ["docs/"]
-  - footnotes
-
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 
