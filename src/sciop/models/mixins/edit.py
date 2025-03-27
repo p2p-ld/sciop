@@ -342,9 +342,9 @@ def _prepare_table(table: Table) -> Table:
     """Prepare history table by clearing constraints and etc."""
     table.sqlite_autoincrement = True
     for idx in list(table.indexes):
-        # if idx.name is not None:
-        #     idx.name += "_history"
         idx.unique = False
+        # indexes will be created for primary and foreign keys in _prepare_columns
+        # but we do want to keep any other indexes that already exist on the parent table
         if any([c.foreign_keys or c.primary_key for c in idx.columns]):
             table.indexes.discard(idx)
 
