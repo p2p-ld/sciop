@@ -64,7 +64,7 @@ pre.index-link {
   transition: font-size 10s ease-in;
   &:hover {
     color: var(--md-primary-fg-color--dark);
-    font-size: 20em;
+    font-size: 10em;
     transition: color 1s, font-size 100s;
   }
 }
