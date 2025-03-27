@@ -84,6 +84,7 @@ class SourceType(StrEnum):
     http = "http"
     ftp = "ftp"
     s3 = "s3"
+    bittorrent = "bittorrent"
 
 
 class Threat(StrEnum):
