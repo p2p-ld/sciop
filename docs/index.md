@@ -1,11 +1,96 @@
-# SciOp Documentation
+# 
+<p class="font-mono">
+Welcome to sciop, a website online.
+</p>
+
+<p class="font-mono">
+Choose your path:
+</p>
 
 
-What up, this is just a placeholder and an invitation for our dear collaborators
-to help fill this baby in.
+<div class="index-linkbox">
+<a href="intro/overview">
+<pre class="index-link">
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+██▄██ ▄▄▀█▄ ▄█ ▄▄▀█▀▄▄▀
+██ ▄█ ██ ██ ██ ▀▀▄█ ██ 
+█▄▄▄█▄██▄██▄██▄█▄▄██▄▄█
+▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+</pre>
+</a>
 
-For further info on how mkdocs works, see:
-- the main docs at [mkdocs.org](https://www.mkdocs.org).
-- the [material theme](https://squidfunk.github.io/mkdocs-material/) docs
+<a href="using/browsing">
+<pre class="index-link">
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█ ██ █ ▄▄█ ▄▄▀█ ▄▄▄█ ▄▄
+█ ██ █▄▄▀█ ▀▀ █ █▄▀█ ▄▄
+██▄▄▄█▄▄▄█▄██▄█▄▄▄▄█▄▄▄
+▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+</pre>
+</a>
+
+<a href="uploading/rules">
+<pre class="index-link">
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█ ██ █▀▄▄▀█ ██▀▄▄▀█ ▄▄▀█ ▄▀██▄██ ▄▄▀█ ▄▄▄
+█ ██ █ ▀▀ █ ██ ██ █ ▀▀ █ █ ██ ▄█ ██ █ █▄▀
+██▄▄▄█ ████▄▄██▄▄██▄██▄█▄▄██▄▄▄█▄██▄█▄▄▄▄
+▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+</pre>
+</a>
+
+<a href="scraping/webpages">
+<pre class="index-link">
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█ ▄▄█▀▄▀█ ▄▄▀█ ▄▄▀█▀▄▄▀██▄██ ▄▄▀█ ▄▄▄
+█▄▄▀█ █▀█ ▀▀▄█ ▀▀ █ ▀▀ ██ ▄█ ██ █ █▄▀
+█▄▄▄██▄██▄█▄▄█▄██▄█ ████▄▄▄█▄██▄█▄▄▄▄
+▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+</pre>
+</a>
+<a href="api">
+<pre class="index-link">
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█ ▄▄▀█▀▄▄▀██▄█
+█ ▀▀ █ ▀▀ ██ ▄
+█▄██▄█ ████▄▄▄
+▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+</pre>
+</a>
+<a href="examples/index">
+<pre class="index-link">
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█ ▄▄█ █ █ ▄▄▀█ ▄▀▄ █▀▄▄▀█ ██ ▄▄█ ▄▄
+█ ▄▄█▀▄▀█ ▀▀ █ █▄█ █ ▀▀ █ ██ ▄▄█▄▄▀
+█▄▄▄█▄█▄█▄██▄█▄███▄█ ████▄▄█▄▄▄█▄▄▄
+▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+</pre>
+</a>
+<a href="running/index">
+<pre class="index-link">
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█ ▄▄▀█ ██ █ ▄▄▀█ ▄▄▀██▄██ ▄▄▀█ ▄▄▄
+█ ▀▀▄█ ██ █ ██ █ ██ ██ ▄█ ██ █ █▄▀
+█▄█▄▄██▄▄▄█▄██▄█▄██▄█▄▄▄█▄██▄█▄▄▄▄
+▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+</pre>
+</a>
+<a href="develop/design">
+<pre class="index-link">
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█ ▄▀█ ▄▄█▀███▀█ ▄▄█ ██▀▄▄▀█▀▄▄▀██▄██ ▄▄▀█ ▄▄▄
+█ █ █ ▄▄██ ▀ ██ ▄▄█ ██ ██ █ ▀▀ ██ ▄█ ██ █ █▄▀
+█▄▄██▄▄▄███▄███▄▄▄█▄▄██▄▄██ ████▄▄▄█▄██▄█▄▄▄▄
+▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+</pre>
+</a>
+</div>
+
+
 
 

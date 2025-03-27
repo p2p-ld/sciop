@@ -1,4 +1,4 @@
-site_name: SciOp
+site_name: The Sci Op !
 repo_url: https://codeberg.org/Safeguarding/sciop
 repo_name: Codeberg
 edit_uri: _edit/main/docs/
@@ -46,12 +46,14 @@ theme:
   name: material
   palette:
     - media: "(prefers-color-scheme: dark)"
-      scheme: slate
+      scheme: sciop-dark
+      primary: custom
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: light)"
-      scheme: default
+      scheme: sciop-light
+      primary: custom
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -61,6 +63,11 @@ theme:
     - navigation.path
     - content.code.copy
 
+extra_css:
+  - css/fonts.css
+  - css/vars.css
+  - css/theme.css
+
 
 # this will get overridden by {config.public_url} + '/docs/'
 # when built by the app
@@ -69,6 +76,7 @@ site_url: https://sciop.net/docs/
 markdown_extensions:
   - admonition
   - footnotes
+  - md_in_html
   - pymdownx.details
   - pymdownx.snippets:
       base_path: ["docs/"]

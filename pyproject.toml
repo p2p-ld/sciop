@@ -61,6 +61,7 @@ dev = [
     "sciop[test]",
     "ruff>=0.9.4",
     "black>=25.1.0",
+    "watchfiles>=1.0.4",
 ]
 [build-system]
 requires = ["pdm-backend"]
