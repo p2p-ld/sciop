@@ -2,7 +2,7 @@
 
 <div class="big-emphasis" markdown="1">
 
-*this a placeholder, help us out by [making a pull request](/docs/contributing.md)
+*this a placeholder, help us out by [making a pull request](/docs/develop/contributing/)
 to improve the docs <3*
 
 *we do uh care about your privacy though and for now will just say we store as

@@ -1,5 +1,13 @@
 # Contributing
 
+<div class="big-emphasis" markdown="1">
+
+* The code is here: <https://codeberg.org/Safeguarding/sciop>
+* The issues are here: <https://codeberg.org/Safeguarding/sciop/issues>
+* The PRs are here: <https://codeberg.org/Safeguarding/sciop/pulls>
+
+</div>
+
 ## Setting up a Development Environment
 
 ### Fork the repository
