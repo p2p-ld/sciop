@@ -2,6 +2,7 @@
 This needs to be out of the module to run at install time...
 """
 
+import os
 import subprocess
 from datetime import datetime, timedelta
 
@@ -18,13 +19,18 @@ def get_version() -> str:
         # get n commits in that day, 0-indexed
         yesterday = timestamp - timedelta(days=1)
         n_commits = max(_n_commits_between_timestamps(yesterday, timestamp) - 1, 0)
-        short_hash = _short_hash()
+        version = f"{timestamp.year}{timestamp.month:02}.{timestamp.day:02}.{n_commits}"
+        if "PYPI" not in os.environ:
+            short_hash = _short_hash()
+            version += f"+{short_hash}"
 
-        return f"{timestamp.year}{timestamp.month:02}.{timestamp.day:02}.{n_commits}+{short_hash}"
+        return version
     except:  # noqa: E722
         # version isn't really all that important for this project yet...
         # so if there are any git errors, just ignore them
-        return "000000.00.00+0000000"
+        if "PYPI" not in os.environ:
+            return "000000.00.00+0000000"
+        raise
 
 
 def _last_commit_timestamp(branch: str = "main") -> datetime:

@@ -97,11 +97,11 @@ table {
 }
 
 .uploads-table {
-  --item-cols: 1em 6em 7fr 5em 7em 1em;
+  --item-cols: 1em 6em 7fr 5em 3em 3em  4em 1em;
   display: grid;
 
   &.review {
-    --item-cols: 1em 6em 7fr 5em 7em 4em 4em;
+    --item-cols: 1em 6em 7fr 5em 4em 4em 4em;
   }
 }
 
@@ -170,7 +170,10 @@ table {
 
   .header {
     flex-grow: 1;
-    flex-basis: 50%
+    flex-basis: 49%;
+  }
+  .infobox {
+    flex-basis: 49%;
   }
 }
 
@@ -190,6 +193,10 @@ table {
   }
   .infobox-value {
     font-family: var(--font-mono);
+  }
+
+  .button {
+    margin: 0.4em 0;
   }
   td {
     border: 1px solid var(--color-border-deemphasized);
@@ -320,4 +327,35 @@ table {
   max-height: 50vh;
   overflow-y: scroll;
   padding-right: 1em;
+
+  &.container {
+    padding: 0.5em;
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
+    box-shadow: inset 0 0 1.5em var(--color-background-deemphasized);
+  }
+}
+
+.trackers-table {
+  width: 100%;
+
+  span.seeders, span.downloaders {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  .announce-url {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+  td.scraped-at {
+    text-align: center;
+  }
+  td.scraped-at time {
+    font-family: var(--font-mono);
+  }
+  .never {
+    font-style: italic;
+    font-size: 0.7em;
+  }
 }

@@ -1,3 +1,3 @@
-from sciop.main import main
+from sciop.cli.main import main
 
 main()

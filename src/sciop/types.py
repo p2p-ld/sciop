@@ -1,4 +1,5 @@
 import re
+from datetime import UTC, datetime
 from enum import StrEnum
 from html import escape
 from os import PathLike as PathLike_
@@ -20,6 +21,12 @@ def _validate_username(username: str) -> str:
     return username
 
 
+def _validate_no_traversal(path: PathLike_) -> PathLike_:
+    posix = Path(path).as_posix()
+    assert "/" not in posix, "Filesystem paths cannot have path separators in them"
+    return path
+
+
 IDField: TypeAlias = Optional[Annotated[int, Gt(0)]]
 EscapedStr: TypeAlias = Annotated[str, AfterValidator(escape)]
 SlugStr: TypeAlias = Annotated[str, AfterValidator(slugify)]
@@ -36,6 +43,10 @@ MaxLenURL = Annotated[
     str, MaxLen(512), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
 ]
 PathLike = Annotated[PathLike_[str], AfterValidator(lambda x: Path(x).as_posix())]
+FileName = Annotated[str, AfterValidator(_validate_no_traversal)]
+UTCDateTime = Annotated[datetime, AfterValidator(lambda x: x.replace(tzinfo=UTC))]
+# although this does not get applied when models are reloaded,
+# as it seems like values are populated by assignment, and we have validate_assignment=False
 
 
 class AccessType(StrEnum):
@@ -73,6 +84,7 @@ class SourceType(StrEnum):
     http = "http"
     ftp = "ftp"
     s3 = "s3"
+    bittorrent = "bittorrent"
 
 
 class Threat(StrEnum):
@@ -105,7 +117,8 @@ class Threat(StrEnum):
 
 
 class InputType(StrEnum):
-    text = "text"
+    input = "input"
+    select = "select"
     textarea = "textarea"
     tokens = "tokens"
     model_list = "model_list"

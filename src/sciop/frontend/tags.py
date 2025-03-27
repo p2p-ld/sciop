@@ -31,8 +31,10 @@ def tag_datasets(
     request: Request,
     current_account: CurrentAccount,
 ) -> Page[Dataset]:
-    stmt = select(Dataset).where(
-        Dataset.visible_to(current_account) == True, Dataset.tags.any(tag=tag)
+    stmt = (
+        select(Dataset)
+        .where(Dataset.visible_to(current_account) == True, Dataset.tags.any(tag=tag))
+        .order_by(Dataset.created_at.desc())
     )
     return paginate(conn=session, query=stmt)
 
@@ -50,5 +52,6 @@ def tag_uploads(
         select(Upload)
         .join(Dataset)
         .where(Dataset.tags.any(tag=tag), Upload.visible_to(current_account) == True)
+        .order_by(Upload.created_at.desc())
     )
     return paginate(conn=session, query=stmt)

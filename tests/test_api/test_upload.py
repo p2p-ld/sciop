@@ -1,9 +1,10 @@
 import pytest
+from sqlmodel import select
 from starlette.testclient import TestClient
 
 from sciop import crud
 from sciop.config import config
-from sciop.models import UploadCreate
+from sciop.models import TorrentFile, UploadCreate
 from sciop.models.torrent import TorrentVersion
 
 from ..fixtures.paths import DATA_DIR
@@ -97,7 +98,7 @@ def test_upload_noscope(
         assert response.status_code == 200
 
     ul = UploadCreate(
-        torrent_infohash=torrent_.infohash,
+        infohash=torrent_.infohash,
     )
 
     res = client.post(
@@ -107,3 +108,64 @@ def test_upload_noscope(
     ul = crud.get_upload_from_infohash(infohash=torrent_.infohash, session=session)
     assert not ul.is_approved
     assert ul.needs_review
+
+
+@pytest.mark.selenium
+def test_replace_orphaned_upload(
+    client: TestClient, session, torrentfile, uploader, get_auth_header
+):
+    """
+    Torrent files that are uploaded but not associated with an Upload
+    should be replaced by a second upload
+    """
+    existing_tf: TorrentFile = torrentfile(v2_infohash=False)
+    existing_torrent_path = existing_tf.filesystem_path
+    assert existing_tf.upload is None
+    assert existing_torrent_path.exists()
+
+    # make a copy with a different name to check
+    new_torrent_path = existing_torrent_path.with_name("new.torrent")
+
+    # try and upload
+    header = get_auth_header()
+    with open(existing_torrent_path, "rb") as f:
+        response = client.post(
+            config.api_prefix + "/upload/torrent",
+            headers=header,
+            files={"file": (new_torrent_path.name, f, "application/x-bittorrent")},
+        )
+
+        assert response.status_code == 200
+
+    # This also tests our handling of infohashes since paths contain them
+    assert not existing_torrent_path.exists()
+    assert new_torrent_path.exists()
+
+    tfs = session.exec(select(TorrentFile)).all()
+    assert len(tfs) == 1
+    assert tfs[0].file_name == new_torrent_path.name
+
+
+def test_reject_duplicated_upload(client, upload, uploader, get_auth_header):
+    """
+    Torrent files that are associated with an upload should reject duplicates
+    """
+    ul = upload()
+    existing_tf = ul.torrent
+    existing_torrent_path = existing_tf.filesystem_path
+    assert existing_torrent_path.exists()
+
+    # make a copy with a different name to check
+    new_torrent_path = existing_torrent_path.with_name("new.torrent")
+
+    # try and upload
+    header = get_auth_header()
+    with open(existing_torrent_path, "rb") as f:
+        response = client.post(
+            config.api_prefix + "/upload/torrent",
+            headers=header,
+            files={"file": (new_torrent_path.name, f, "application/x-bittorrent")},
+        )
+        assert response.status_code == 400
+
+    assert "identical torrent file" in response.json()["detail"]["msg"]

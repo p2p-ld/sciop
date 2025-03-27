@@ -1,0 +1,32 @@
+name: tests
+
+on:
+  workflow_dispatch:
+
+
+permissions:
+  contents: read
+
+jobs:
+  test-codeberg:
+    name: tests
+    runs-on: codeberg-tiny
+    steps:
+      - name: Checkout repo
+        uses: https://code.forgejo.org/actions/checkout@v4
+      - name: Echo github server url
+        run: |
+          echo "${{ env.GITHUB_SERVER_URL }}"
+      - name: Install python
+        uses: https://code.forgejo.org/actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install deps
+        run: pip install -e .[test]
+      - name: Install Firefox
+        run: |
+          sudo apt update && sudo apt install firefox xvfb -y
+      - name: Run tests
+        run: |
+          mkdir $HOME/tmp
+          IN_CI=true IN_CODEBERG_CI=true TMPDIR=$HOME/tmp xvfb-run pytest

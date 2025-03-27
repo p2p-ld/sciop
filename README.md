@@ -48,7 +48,7 @@ Two fields *must* be set:
 
 ### With pip
 
-    sciop
+    sciop start
 
 ### With pdm
 
@@ -69,6 +69,47 @@ However, it is also possible to install `pdm` within an existing venv.
 Then, `pdm` can install dependencies, implicitly creating a venv if not already within one:
 
     pdm install
+
+Sciop can then be run in development mode like
+
+```
+pdm run start
+```
+
+The default credentials in development mode are
+
+- for an `admin`-scoped account:
+  - username: `admin`
+  - password: `adminadmin12`
+- for a `root`-scoped account:
+  - username: `root`
+  - password: `rootroot1234`
+
+### .env configuration
+
+Sciop is configured using [`pydantic-settings`](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
+using the `sciop.config.Config` model.
+The primary interface is a `.env` file in the current working directory. 
+
+At a minimum, you'll need to create a `.env` file that sets some basic settings
+like your `env`, `secret_key` (described above):
+
+```env
+SCIOP_ENV=dev
+SCIOP_SECRET_KEY=<generate this with openssl rand -hex 32>
+```
+
+You may want to disable some of the interval-scheduled services that are active
+when working on an unrelated feature. And who knows, debug logging is often useful.
+You can set any of the keys in the `config` model from .env, e.g.
+
+```
+# ...
+SCIOP_LOGS__LEVEL=DEBUG
+SCIOP_TRACKER_SCRAPING__ENABLED=false
+SCIOP_CLEAR_JOBS=true
+# ...
+```
 
 ## Testing Your Changes
 
@@ -120,6 +161,20 @@ Migrations can be tested with pytest
 python -m pytest tests/test_migrations.py
 # or
 pdm run pytest tests/test_migrations.py
+```
+
+To test trickier migrations, you might want to create a version of the db in the previous state
+to compare what happens after the migration.
+
+```shell
+rm db.dev.sqlite
+git switch main
+pdm run start
+
+# wait for startup... then quit
+
+git switch {feature-branch}
+pdm run migrate
 ```
 
 # License

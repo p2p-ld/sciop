@@ -1,4 +1,4 @@
-{% from "macros/actions.html" import delete_button %}
+{% from "macros/actions.html" import delete_button, edit_button %}
 {% macro upload_row(upload, current_account, config, header_start=1) %}
 <div class="upload" id="upload-{{ upload.infohash }}">
     <div class="upload-topmatter topmatter">
@@ -51,6 +51,14 @@
                 </tr>
                 {% endif %}
                 <tr>
+                    <td class="infobox-key">Seeders</td>
+                    <td class="infobox-value">{{ seeders(upload.seeders) }}</td>
+                </tr>
+                <tr>
+                    <td class="infobox-key">Downloaders</td>
+                    <td class="infobox-value">{{ downloaders(upload.leechers) }}</td>
+                </tr>
+                <tr>
                     <td class="infobox-key">Size</td>
                     <td class="infobox-value">{{ upload.human_size }}</td>
                 </tr>
@@ -102,12 +110,21 @@
                         </time>
                     </td>
                 </tr>
-                {% if upload.removable_by(current_account) %}
-                {% set delete_url= config.api_prefix + "/uploads/" + upload.infohash %}
+                {% if current_account and (
+                    upload.removable_by(current_account) or
+                    upload.editable_by(current_account)
+                ) %}
                 <tr>
                     <td class="infobox-key">Actions</td>
-                    <td class="infobox-value">
+                    <td class="infobox-value flex row">
+                    {% if upload.editable_by(current_account) %}
+                    {% set edit_url="/uploads/" + upload.infohash + "/edit" %}
+                    {{ edit_button(url=edit_url, item_type="upload", name=upload.file_name)}}
+                    {% endif %}
+                    {% if upload.removable_by(current_account) %}
+                    {% set delete_url= config.api_prefix + "/uploads/" + upload.infohash %}
                     {{ delete_button(url=delete_url, item_type="upload", name=upload.infohash)}}
+                    {% endif %}
                     </td>
                 </tr>
                 {% endif %}
@@ -136,11 +153,39 @@
     <h{{ header_start + 1}}>
         Trackers
     </h{{ header_start + 1}}>
-    <div class="tracker-list scrollable">
-        {% for tracker in upload.torrent.trackers %}
-        <code>{{ tracker.url }}</code><br>
+    <div class="trackers-container container scrollable">
+    <table class="trackers-table">
+        <thead>
+        <tr>
+            <th class="announce-url">URL</th>
+            <th class="seeders"><span class="seeders-icon" aria-label="up arrow">⇧</span></th>
+            <th class="downloaders"><span class="downloaders-icon" aria-label="down-arrow">⇧</span></th>
+            <th class="scraped-at timestamp">Updated</th>
+        </tr>
+        </thead>
+<tbody>
+        {% for tracker_link in upload.torrent.tracker_links %}
+        <tr class="tracker-row tracker">
+            <td class="announce-url">{{ tracker_link.tracker.announce_url }}</td>
+            <td class="seeders">
+                {{ seeders(tracker_link.seeders) }}
+            </td>
+            <td class="downloaders">{{ downloaders(tracker_link.leechers) }}</td>
+            <td class="scraped-at">
+              {% if tracker_link.last_scraped_at %}
+                <time class="scraped-at-timestamp timestamp"
+                      datetime="{{ tracker_link.last_scraped_at.strftime('%y-%m-%d %H:%M') }}Z">
+                  {{ tracker_link.last_scraped_at.strftime("%y-%m-%d %H:%M") }} UTC
+                </time>
+              {% else %}
+                <span class="deemphasized">—</span>
+              {% endif %}
+            </td>
+        </tr>
         {% endfor %}
-    </div>
+        </tbody>
+    </table>
+        </div>
 </div>
 {% endmacro %}
 
@@ -160,8 +205,9 @@
         </span>
         <span class="upload-title title">{{ upload.file_name }}</span>
         <span class="upload-size size">{{ upload.human_size }}</span>
+        {{ torrent_stats(upload) }}
         <time class="upload-timestamp timestamp" datetime="{{ upload.created_at.strftime('%y-%m-%d %H:%M') }}Z">
-            {{ upload.created_at.strftime("%y-%m-%d %H:%M") }}
+            {{ upload.created_at.strftime("%y-%m-%d") }}
         </time>
         {% if review %}
         {{ review_buttons(upload, config) }}
@@ -187,4 +233,35 @@
         aria-controls="upload-collapsible-{{ upload.upload_id }}"
         hx-post="{{ config.api_prefix }}/uploads/{{ upload.infohash }}/deny">Deny
 </button>
+{% endmacro %}
+
+{% macro torrent_stats(upload, elt="span") %}
+{{ seeders(upload.seeders, elt=elt) }}
+{{ downloaders(upload.leechers, elt=elt) }}
+{% endmacro %}
+
+{% macro seeders(seeders, elt="span") %}
+<{{ elt }} class="upload-seeders seeders" title="{{ seeders }} seeders">
+  {% if seeders is none %}
+    <span class="deemphasized">—</span>
+  {% else %}
+    <span class="seeders-icon" aria-label="up arrow">⇧</span>
+    <span class="seeders-number">
+  {{ seeders }}
+    </span>
+  {% endif %}
+</{{ elt }}>
+{% endmacro %}
+
+{% macro downloaders(downloaders, elt="span") %}
+<{{ elt }} class="upload-downloaders downloaders" title="{{ downloaders }} downloaders">
+{% if downloaders is none %}
+<span class="deemphasized">—</span>
+{% else %}
+<span class="downloaders-icon" aria-label="down-arrow">⇧</span>
+<span class="downloaders-number">
+{{ downloaders }}
+</span>
+{% endif %}
+</{{ elt }}>
 {% endmacro %}

@@ -31,13 +31,19 @@ dependencies = [
     "content-negotiation>=1.1.2",
     "bencode-py>=4.0.0",
     "pymdown-extensions>=10.14.3",
+    "apscheduler>=3.11.0",
+    "aiodns>=3.2.0",
+    "mistune>=3.1.2",
+    "nh3>=0.2.21",
+    "pygments>=2.19.1",
+    "click>=8.1.8",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
 license = {text = "EUPL-1.2"}
 
 [project.scripts]
-sciop = "sciop.main:main"
+sciop = "sciop.cli.main:_main"
 
 [project.optional-dependencies]
 test = [
@@ -49,6 +55,7 @@ test = [
     "beautifulsoup4>=4.13.3",
     "lxml>=5.3.1",
     "pytest-alembic>=0.11.1",
+    "pytest-timeout>=2.3.1",
 ]
 dev = [
     "sciop[test]",
@@ -70,7 +77,7 @@ write_to = "sciop/_version.py"
 write_template = '__version__ = "{}"'
 
 [tool.pdm.scripts]
-start = { call = "sciop.main:main" }
+start = "sciop start"
 test = "pytest"
 lint.composite = [
     "ruff check",
@@ -80,8 +87,15 @@ format.composite = [
     "black .",
     "ruff check --fix",
 ]
-migrate = "alembic -c ./src/sciop/migrations/alembic.ini upgrade head"
+
 alembic = "alembic -c ./src/sciop/migrations/alembic.ini"
+migrate = "alembic -c ./src/sciop/migrations/alembic.ini upgrade head"
+migration.composite = [
+    "rm -f db.dev.sqlite",
+    "alembic -c ./src/sciop/migrations/alembic.ini upgrade head",
+    "alembic -c ./src/sciop/migrations/alembic.ini revision --autogenerate -m {args}"
+]
+
 
 
 [tool.ruff]
@@ -155,6 +169,12 @@ line-length = 100
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+addopts = "--strict-markers"
+asyncio_default_fixture_loop_scope = "function"
 markers = """
   selenium: tests that use the selenium webdriver
+  markdown: tests that render markdown within HTML
 """
+filterwarnings = [
+    'ignore:Python 3.14 will, by default, filter extracted tar archives'
+]

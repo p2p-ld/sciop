@@ -1,18 +1,3 @@
-{% from 'macros/model-form.html' import form_field, add_subform_button %}
-<div class="model-list-item">
-    <div class="constraint-gutter"><span class="error-feedback"></span></div>
-{% for subfield_name, subfield in model.model_fields.items() %}
-{% set subfield_form_name=field_name_prefix + subfield_name %}
-<div class="form-item">
-    <label for="{{ field_name }}-{{ idx }}-{{ subfield_name }}" class="form-label">
-        {% if subfield.title %}
-            {{ subfield.title }}
-        {% else %}
-            {{ subfield_name }}
-        {% endif %}
-    </label>
-    {{ form_field(subfield, subfield_form_name, form_id) }}
-</div>
-{% endfor %}
-</div>
+{% from 'macros/model-form.html' import form_field, add_subform_button, model_list_item %}
+{{ model_list_item(model, field_name, idx) }}
 {{ add_subform_button(form_id, field_name, idx + 1, model_name) }}

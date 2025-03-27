@@ -1,5 +1,6 @@
 {% from "macros/model-table.html" import model_table %}
 {% from "macros/tag.html" import feed_link %}
+{% from "macros/actions.html" import edit_button, delete_button %}
 {% macro dataset_row(dataset, current_account, config, header_start=1) %}
 <div class="dataset" id="dataset-{{ dataset.slug }}">
     <div class="dataset-topmatter topmatter">
@@ -88,7 +89,7 @@
                 {% if dataset.last_seen_at %}
                 <tr>
                     <td class="infobox-key">
-                        {%- if dataset.last_seen_at > now(UTC) %}
+                        {%- if dataset.last_seen_at.replace(tzinfo=UTC) > now(UTC) %}
                             To be removed at
                         {%- else %}
                             Last Seen
@@ -109,6 +110,25 @@
                     <td class="infobox-key">Record Last Updated</td>
                     <td class="infobox-value">{{ dataset.updated_at.strftime("%y-%m-%d %H:%M") }} UTC</td>
                 </tr>
+                {% if current_account and (
+                    dataset.editable_by(current_account) or
+                    dataset.removable_by(current_account)
+                ) %}
+
+                <tr>
+                    <td class="infobox-key">Actions</td>
+                    <td class="infobox-value flex row">
+                        {% if dataset.editable_by(current_account) %}
+                        {% set edit_url="/datasets/" + dataset.slug + "/edit" %}
+                        {{ edit_button(url=edit_url, item_type="dataset", name=dataset.slug)}}
+                        {% endif %}
+                        {% if dataset.removable_by(current_account) %}
+                        {% set delete_url= config.api_prefix + "/datasets/" + dataset.slug %}
+                        {{ delete_button(url=delete_url, item_type="dataset", name=dataset.title)}}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
                 {% if current_account and current_account.has_scope("review") and not dataset.is_approved %}
                 <tr>
                     <td colspan="2">
@@ -120,9 +140,9 @@
         </div>
     </div>
 
-    <p class="dataset-description">
-    {{ dataset.description }}
-    </p>
+    <div class="dataset-description">
+    {{ dataset.description_html | safe }}
+    </div>
 
     {% if dataset.urls | length > 0 %}
     <h{{ header_start + 1 }}>URLs</h{{ header_start + 1 }}>

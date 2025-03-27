@@ -149,6 +149,13 @@ function init_token_input(){
   token_inputs.forEach((e) => {
     e.addEventListener("keyup", addToken)
   })
+  let token_button_containers = document.querySelectorAll(".token-button-container");
+  token_button_containers.forEach((button_container) => {
+    let button = button_container.querySelector('.token-delete-button');
+    button.addEventListener("mouseup", (evt) => {
+      button_container.remove()
+    })
+  })
 }
 init_token_input();
 
@@ -164,3 +171,33 @@ function init_upload_progress(target) {
 htmx.on("htmx:afterSettle", (evt) => {
   init_upload_progress(evt.target)
 })
+
+function init_index_cancel_button(){
+  let idx = 0;
+  const negation_of_the_human_spirit = [
+    "No.",
+    "It can't be done.",
+    "It won't be done.",
+    "It never will be done.",
+    "There's no way you can make it be done.",
+    "You have no jurisdiction here.",
+    "On the advice of my lawyer I refuse to acknowledge your request.",
+    "Am I being detained?",
+    "The manager has been notified of your distress.",
+    "The button can remain unclicked longer than you can remain clicking.",
+    "Don't punish yourself like this.",
+    "Entering infinite no state to protect the user."
+  ]
+  let btns = document.querySelectorAll(".index-cancel-button");
+  btns.forEach(btn => btn.addEventListener("click", (e) => {
+    if (idx < negation_of_the_human_spirit.length) {
+      window.alert(negation_of_the_human_spirit[idx]);
+      idx += 1;
+    } else if (Math.random() < 0.1) {
+      window.alert("Maybe.")
+    } else {
+      window.alert("No.")
+    }
+  }))
+}
+init_index_cancel_button();

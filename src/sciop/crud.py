@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from sqlmodel import Session, select
 
@@ -19,7 +19,9 @@ from sciop.models import (
     Tag,
     TorrentFile,
     TorrentFileCreate,
-    TrackerInTorrent,
+    TorrentTrackerLink,
+    Tracker,
+    TrackerCreate,
     Upload,
     UploadCreate,
 )
@@ -51,7 +53,11 @@ def authenticate(*, session: Session, username: str, password: str) -> Account |
 
 
 def create_dataset(
-    *, session: Session, dataset_create: DatasetCreate, current_account: Optional[Account] = None
+    *,
+    session: Session,
+    dataset_create: DatasetCreate,
+    current_account: Optional[Account] = None,
+    **kwargs: Any,
 ) -> Dataset:
     is_approved = current_account is not None and current_account.has_scope("submit")
     urls = [DatasetURL(url=url) for url in dataset_create.urls]
@@ -66,22 +72,22 @@ def create_dataset(
         for part in dataset_create.parts
     ]
 
-    existing_tags = session.exec(select(Tag).filter(Tag.tag.in_(dataset_create.tags))).all()
-    existing_tag_str = set([e.tag for e in existing_tags])
-    new_tags = set(dataset_create.tags) - existing_tag_str
-    new_tags = [Tag(tag=tag) for tag in new_tags]
-    tags = [*existing_tags, *new_tags]
+    tags = get_tags(session=session, tags=dataset_create.tags)
+
+    params = {
+        "is_approved": is_approved,
+        "account": current_account,
+        "urls": urls,
+        "tags": tags,
+        "external_identifiers": external_identifiers,
+        "parts": parts,
+    }
+    # update from kwargs - kwargs are overrides that should mostly be used in tests
+    params.update(kwargs)
 
     db_obj = Dataset.model_validate(
         dataset_create,
-        update={
-            "is_approved": is_approved,
-            "account": current_account,
-            "urls": urls,
-            "tags": tags,
-            "external_identifiers": external_identifiers,
-            "parts": parts,
-        },
+        update=params,
     )
     session.add(db_obj)
     session.commit()
@@ -97,6 +103,18 @@ def create_dataset_part(
     account: Account | None = None,
     commit: bool = True,
 ) -> DatasetPart:
+    # check for existing part
+    if dataset:
+        existing = session.exec(
+            select(DatasetPart).where(
+                DatasetPart.part_slug == dataset_part.part_slug,
+                DatasetPart.dataset_id == dataset.dataset_id,
+            )
+        ).first()
+        if existing:
+            return existing
+
+    # create a new part!
     paths = [DatasetPath(path=str(path)) for path in dataset_part.paths]
     is_approved = bool(account) and account.has_scope("submit")
     part = DatasetPart.model_validate(
@@ -230,12 +248,30 @@ def get_torrent_from_short_hash(*, short_hash: str, session: Session) -> Optiona
 def create_torrent(
     *, session: Session, created_torrent: TorrentFileCreate, account: Account
 ) -> TorrentFile:
-    trackers = [TrackerInTorrent(url=url) for url in created_torrent.trackers]
+    existing_trackers = session.exec(
+        select(Tracker).filter(Tracker.announce_url.in_(created_torrent.announce_urls))
+    ).all()
+    existing_tracker_str = set([e.announce_url for e in existing_trackers])
+    new_tracker_urls = set(created_torrent.announce_urls) - existing_tracker_str
+    new_trackers = []
+    for url in new_tracker_urls:
+        tracker = Tracker.model_validate(TrackerCreate(announce_url=url))
+        session.add(tracker)
+        new_trackers.append(tracker)
+
     files = [FileInTorrent(path=file.path, size=file.size) for file in created_torrent.files]
     db_obj = TorrentFile.model_validate(
-        created_torrent, update={"trackers": trackers, "files": files, "account": account}
+        created_torrent, update={"files": files, "account": account}
     )
     session.add(db_obj)
+
+    # create link model entries
+    links = []
+    for tracker in (*existing_trackers, *new_trackers):
+        link = TorrentTrackerLink(tracker=tracker, torrent=db_obj)
+        session.add(link)
+        links.append(link)
+
     session.commit()
     session.refresh(db_obj)
     return db_obj
@@ -244,12 +280,12 @@ def create_torrent(
 def create_upload(
     *, session: Session, created_upload: UploadCreate, account: Account, dataset: Dataset
 ) -> Upload:
-    torrent = get_torrent_from_infohash(session=session, infohash=created_upload.torrent_infohash)
+    torrent = get_torrent_from_infohash(session=session, infohash=created_upload.infohash)
     update = {
         "torrent": torrent,
         "account": account,
         "dataset": dataset,
-        "infohash": created_upload.torrent_infohash,
+        "infohash": created_upload.infohash,
         "is_approved": account.has_scope("upload"),
     }
     if created_upload.part_slugs:
@@ -296,9 +332,15 @@ def get_uploads_from_tag(
             select(Upload)
             .join(Dataset)
             .where(Dataset.tags.any(tag=tag), Upload.is_visible == visible)
+            .order_by(Upload.created_at.desc())
         )
     else:
-        statement = select(Upload).join(Dataset).where(Dataset.tags.any(tag=tag))
+        statement = (
+            select(Upload)
+            .join(Dataset)
+            .where(Dataset.tags.any(tag=tag))
+            .order_by(Upload.created_at.desc())
+        )
     uploads = session.exec(statement).all()
     return uploads
 
@@ -382,3 +424,23 @@ def get_tag(*, session: Session, tag: str) -> Optional[Tag]:
     statement = select(Tag).where(Tag.tag == tag)
     tag = session.exec(statement).first()
     return tag
+
+
+def get_tags(*, session: Session, tags: list[str], commit: bool = False) -> list[Tag]:
+    """
+    Given a list of tags as strings,
+    get any existing tags and create non-existing ones, returning all.
+    """
+    existing_tags = session.exec(select(Tag).filter(Tag.tag.in_(tags))).all()
+    existing_tag_str = set([e.tag for e in existing_tags])
+    new_tags = set(tags) - existing_tag_str
+    new_tags = [Tag(tag=tag) for tag in new_tags]
+    if commit:
+        for tag in new_tags:
+            session.add(tag)
+        session.commit()
+        for tag in new_tags:
+            session.refresh(tag)
+
+    all_tags = [*existing_tags, *new_tags]
+    return all_tags

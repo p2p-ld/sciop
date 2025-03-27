@@ -3,19 +3,24 @@ import os
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generator, Optional, Self
+from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Self
 
 import bencodepy
 import humanize
-from pydantic import field_validator, model_validator
-from sqlalchemy import Connection, event
+from pydantic import ModelWrapValidatorHandler, field_validator, model_validator
+from sqlalchemy import ColumnElement, Connection, event
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 from torf import Torrent as Torrent_
+from torf import _errors, _torrent, _utils
 
 from sciop.config import config
-from sciop.models.mixin import TableMixin
-from sciop.types import EscapedStr, IDField, MaxLenURL
+from sciop.models.mixins import EditableMixin, TableMixin
+from sciop.models.tracker import TorrentTrackerLink, Tracker
+from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
 
 if TYPE_CHECKING:
     from sciop.models import Upload
@@ -49,14 +54,45 @@ class Torrent(Torrent_):
     and not spend literally eons processing torrent files
     """
 
+    MAX_TORRENT_FILE_SIZE = int(40e6)  # 40MB
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        # use these goofy names since `_infohash` is already used
+        self._internal_infohash = None
+        self._internal_infohash_v2 = None
+
     @property
     def v2_infohash(self) -> Optional[str]:
         """SHA256 hash of info dict, if `file tree` is present"""
-        self.validate()
-        if "file tree" not in self.metainfo["info"]:
-            return None
+        if self._internal_infohash_v2 is None:
+            if "file tree" not in self.metainfo["info"]:
+                return None
 
-        return hashlib.sha256(bencodepy.encode(self.metainfo["info"])).hexdigest()
+            self._internal_infohash_v2 = hashlib.sha256(
+                bencodepy.encode(self.metainfo["info"])
+            ).hexdigest()
+        return self._internal_infohash_v2
+
+    @property
+    def infohash(self) -> Optional[str]:
+        """Override parent impl to not validate when accessing an infohash..."""
+        if self._internal_infohash is None:
+            try:
+                try:
+                    info = _utils.encode_dict(self.metainfo["info"])
+                except ValueError as e:
+                    raise _errors.MetainfoError(e) from e
+                else:
+                    self._internal_infohash = hashlib.sha1(bencodepy.encode(info)).hexdigest()
+            except _errors.MetainfoError as e:
+                # If we can't calculate infohash, see if it was explicitly specifed.
+                # This is necessary to create a Torrent from a Magnet URI.
+                try:
+                    return self._infohash
+                except AttributeError:
+                    raise e from None
+        return self._internal_infohash
 
     @property
     def torrent_version(self) -> TorrentVersion:
@@ -104,7 +140,75 @@ class Torrent(Torrent_):
         pass
 
 
-class FileInTorrent(TableMixin, table=True):
+def _assert_type(
+    obj: list | dict,
+    keys: tuple[str | int],
+    exp_types: tuple[type],
+    must_exist: bool = True,
+    check: Optional[Callable] = None,
+) -> None:
+    """
+    Override torf's ridiculously inefficient validation function
+
+    Raise MetainfoError if value is not of a particular type
+
+    :param obj: The object to check
+    :type obj: sequence or mapping
+    :param keys: Sequence of keys so that ``obj[key[0]][key[1]]...`` resolves to
+        a value
+    :type obj: sequence
+    :param exp_types: Sequence of allowed types that the value specified by
+        `keys` must be an instance of
+    :type obj: sequence
+    :param bool must_exist: Whether to raise MetainfoError if `keys` does not
+         resolve to a value
+    :param callable check: Callable that gets the value specified by `keys` and
+        returns True if it is OK, False otherwise
+    """
+    keys = list(keys)
+    i = -1
+    for j, key in enumerate(keys[:-1]):
+        try:
+            obj = obj[key]
+        except (KeyError, IndexError):
+            i = j + 1
+            break
+
+    key = keys[i]
+
+    if not _utils.key_exists_in_list_or_dict(key, obj):
+        if must_exist:
+            raise _errors.MetainfoError(f"Missing {key!r} in {keys}")
+
+    elif not isinstance(obj[key], exp_types):
+        if len(exp_types) > 2:
+            exp_types_str = ", ".join(t.__name__ for t in exp_types[:-1])
+            exp_types_str += " or " + exp_types[-1].__name__
+        else:
+            exp_types_str = " or ".join(t.__name__ for t in exp_types)
+        type_str = type(obj[key]).__name__
+        raise _errors.MetainfoError(
+            f"{keys}[{key!r}] must be {exp_types_str}, " f"not {type_str}: {obj[key]!r}"
+        )
+
+    elif check is not None and not check(obj[key]):
+        raise _errors.MetainfoError(f"{keys}[{key!r}] is invalid: {obj[key]!r}")
+
+
+def _key_exists_in_list_or_dict(key: str | int, lst_or_dct: list | dict) -> bool:
+    """True if `lst_or_dct[key]` does not raise an Exception"""
+    try:
+        _ = lst_or_dct[key]
+        return True
+    except (KeyError, IndexError):
+        return False
+
+
+_torrent.utils.key_exists_in_list_or_dict = _key_exists_in_list_or_dict
+_torrent.utils.assert_type = _assert_type
+
+
+class FileInTorrent(TableMixin, EditableMixin, table=True):
     """A file within a torrent file"""
 
     __tablename__ = "files_in_torrent"
@@ -114,7 +218,7 @@ class FileInTorrent(TableMixin, table=True):
     size: int = Field(description="Size in bytes")
 
     torrent_id: Optional[int] = Field(
-        default=None, foreign_key="torrent_files.torrent_file_id", ondelete="CASCADE"
+        default=None, foreign_key="torrent_files.torrent_file_id", ondelete="CASCADE", index=True
     )
     torrent: Optional["TorrentFile"] = Relationship(back_populates="files")
 
@@ -132,26 +236,8 @@ class FileInTorrentRead(FileInTorrentCreate):
     pass
 
 
-class TrackerInTorrent(TableMixin, table=True):
-    """A tracker within a torrent file"""
-
-    __tablename__ = "trackers_in_torrent"
-
-    tracker_in_torrent_id: IDField = Field(None, primary_key=True)
-    url: MaxLenURL = Field(description="Tracker announce url")
-
-    torrent_id: Optional[int] = Field(
-        default=None, foreign_key="torrent_files.torrent_file_id", ondelete="CASCADE"
-    )
-    torrent: Optional["TorrentFile"] = Relationship(back_populates="trackers")
-
-
-class TrackerInTorrentRead(SQLModel):
-    url: MaxLenURL
-
-
 class TorrentFileBase(SQLModel):
-    file_name: str = Field(max_length=1024)
+    file_name: FileName = Field(max_length=1024)
     v1_infohash: str = Field(
         max_length=40, min_length=40, unique=True, index=True, description="SHA1 hash of infodict"
     )
@@ -195,7 +281,11 @@ class TorrentFileBase(SQLModel):
     @property
     def filesystem_path(self) -> Path:
         """Location of where this torrent is or should be on the filesystem"""
-        return config.torrent_dir / self.infohash / self.file_name
+        return self.get_filesystem_path(self.infohash, self.file_name)
+
+    @classmethod
+    def get_filesystem_path(cls, infohash: str, file_name: str) -> Path:
+        return config.torrent_dir / infohash / file_name
 
     @property
     def human_size(self) -> str:
@@ -211,23 +301,73 @@ class TorrentFileBase(SQLModel):
     def human_piece_size(self) -> str:
         return humanize.naturalsize(self.piece_size)
 
+    @property
+    def trackers(self) -> dict[MaxLenURL, Tracker]:
+        """Convenience accessor for trackers through tracker links, keyed by announce url"""
+        return {tl.tracker.announce_url: tl.tracker for tl in self.tracker_links}
 
-class TorrentFile(TorrentFileBase, TableMixin, table=True):
+    @property
+    def tracker_links_map(self) -> dict[str, TorrentTrackerLink]:
+        """Tracker links mapped by announce url"""
+        return {link.tracker.announce_url: link for link in self.tracker_links}
+
+
+class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
     __tablename__ = "torrent_files"
 
     torrent_file_id: IDField = Field(None, primary_key=True)
-    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
+    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id", index=True)
     account: "Account" = Relationship(back_populates="torrents")
-    upload_id: Optional[int] = Field(default=None, foreign_key="uploads.upload_id")
+    upload_id: Optional[int] = Field(default=None, foreign_key="uploads.upload_id", index=True)
     upload: Optional["Upload"] = Relationship(back_populates="torrent")
     files: list["FileInTorrent"] = Relationship(back_populates="torrent", cascade_delete=True)
-    trackers: list["TrackerInTorrent"] = Relationship(back_populates="torrent", cascade_delete=True)
+    tracker_links: list[TorrentTrackerLink] = Relationship(
+        back_populates="torrent", cascade_delete=True
+    )
     short_hash: str = Field(
         min_length=8,
         max_length=8,
         description="length-8 truncated version of the v2 infohash, if present, or the v1 infohash",
         index=True,
     )
+
+    @hybrid_property
+    def infohash(self) -> str:
+        """The v2 infohash, if present, else the v1 infohash"""
+        if self.v2_infohash:
+            return self.v2_infohash
+        else:
+            return self.v1_infohash
+
+    @infohash.inplace.expression
+    def _infohash(self) -> ColumnElement[str]:
+        return func.ifnull(self.v2_infohash, self.v1_infohash)
+
+    @hybrid_property
+    def seeders(self) -> Optional[int]:
+        seeders = [link.seeders for link in self.tracker_links if link.seeders is not None]
+        if not seeders:
+            return None
+        return max(seeders)
+
+    @seeders.inplace.expression
+    def _seeders(self) -> ColumnElement[Optional[int]]:
+        return func.max(TorrentTrackerLink.seeders).where(
+            TorrentTrackerLink.torrent_id == self.torrent_id
+        )
+
+    @hybrid_property
+    def leechers(self) -> Optional[int]:
+        leechers = [link.leechers for link in self.tracker_links if link.leechers is not None]
+        if not leechers:
+            return None
+        return max(leechers)
+
+    @leechers.inplace.expression
+    def _leechers(self) -> ColumnElement[Optional[int]]:
+        return func.max(TorrentTrackerLink.leechers).where(
+            TorrentTrackerLink.torrent_id == self.torrent_id
+        )
 
 
 @event.listens_for(TorrentFile, "after_delete")
@@ -238,9 +378,21 @@ def _delete_torrent_file(mapper: Mapper, connection: Connection, target: Torrent
     target.filesystem_path.unlink(missing_ok=True)
 
 
+@event.listens_for(TorrentFile.file_name, "set")
+def _rename_torrent_file(
+    target: TorrentFile, value: Path, oldvalue: Path, initiator: AttributeEventToken
+) -> None:
+    if (
+        filesystem_path := TorrentFile.get_filesystem_path(target.infohash, str(oldvalue))
+    ).exists():
+        filesystem_path.rename(
+            TorrentFile.get_filesystem_path(infohash=target.infohash, file_name=str(value))
+        )
+
+
 class TorrentFileCreate(TorrentFileBase):
     files: list[FileInTorrentCreate]
-    trackers: list[MaxLenURL]
+    announce_urls: list[MaxLenURL]
 
     @model_validator(mode="after")
     def get_short_hash(self) -> Self:
@@ -255,7 +407,6 @@ class TorrentFileCreate(TorrentFileBase):
 
 class TorrentFileRead(TorrentFileBase):
     files: list[str]
-    trackers: list[str] = Field(min_length=1, max_length=128)
     short_hash: str = Field(
         None,
         min_length=8,
@@ -263,11 +414,20 @@ class TorrentFileRead(TorrentFileBase):
         description="length-8 truncated version of the v2 infohash, if present, or the v1 infohash",
         index=True,
     )
+    announce_urls: list[MaxLenURL] = Field(default_factory=list)
+    seeders: Optional[int] = None
+    leechers: Optional[int] = None
 
     @field_validator("files", mode="before")
     def flatten_files(cls, val: list[FileInTorrentRead]) -> list[str]:
         return [v.path for v in val]
 
-    @field_validator("trackers", mode="before")
-    def flatten_trackers(cls, val: list[TrackerInTorrentRead]) -> list[str]:
-        return [v.url for v in val]
+    @model_validator(mode="wrap")
+    @classmethod
+    def flatten_trackers(cls, data: Any, handler: ModelWrapValidatorHandler[Self]) -> Self:
+        val = handler(data)
+
+        if isinstance(data, TorrentFile) and not val.announce_urls:
+            val.announce_urls = [v.tracker.announce_url for v in data.tracker_links]
+
+        return val

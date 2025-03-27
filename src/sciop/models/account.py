@@ -1,6 +1,5 @@
 import re
 import unicodedata
-from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
@@ -11,8 +10,8 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
-from sciop.models.mixin import EnumTableMixin, SearchableMixin, TableMixin
-from sciop.types import IDField, UsernameStr
+from sciop.models.mixins import EnumTableMixin, SearchableMixin, TableMixin
+from sciop.types import IDField, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import (
@@ -38,9 +37,11 @@ class AccountScopeLink(TableMixin, table=True):
     __table_args__ = (UniqueConstraint("account_id", "scope_id", name="_account_scope_uc"),)
 
     account_id: Optional[int] = Field(
-        default=None, foreign_key="accounts.account_id", primary_key=True
+        default=None, foreign_key="accounts.account_id", primary_key=True, index=True
     )
-    scope_id: Optional[int] = Field(default=None, foreign_key="scopes.scope_id", primary_key=True)
+    scope_id: Optional[int] = Field(
+        default=None, foreign_key="scopes.scope_id", primary_key=True, index=True
+    )
 
 
 class AccountBase(SQLModel):
@@ -179,7 +180,7 @@ class AccountCreate(AccountBase):
 
 class AccountRead(AccountBase):
     scopes: list["Scope"]
-    created_at: datetime
+    created_at: UTCDateTime
 
 
 class Scope(TableMixin, EnumTableMixin, table=True):

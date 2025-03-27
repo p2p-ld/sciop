@@ -1,5 +1,6 @@
 import importlib.resources
 import random
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from random import randint
@@ -10,6 +11,7 @@ from alembic.config import Config as AlembicConfig
 from alembic.util.exc import CommandError
 from sqlalchemy import text
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine, func, select
 
@@ -20,12 +22,20 @@ if TYPE_CHECKING:
 
     from sciop.models import Account, Dataset, DatasetCreate, Upload
 
-engine = create_engine(str(config.sqlite_path))
+engine = create_engine(
+    str(config.sqlite_path),
+    echo=config.db_echo,
+    pool_size=config.db_pool_size,
+    max_overflow=config.db_overflow_size,
+)
 maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
 
 
 def get_session() -> Generator[Session, None, None]:
+    from sciop.models.mixins import EditableMixin
+
     with maker() as session:
+        session = EditableMixin.editable_session(session)
         yield session
     #     session = Session(engine)
     # try:
@@ -36,7 +46,11 @@ def get_session() -> Generator[Session, None, None]:
     #     session.close()
 
 
-def create_tables(engine: Engine = engine) -> None:
+def get_engine() -> Engine:
+    return engine
+
+
+def create_tables(engine: Engine = engine, check_migrations: bool = True) -> None:
     """
     Create tables and stamps with an alembic version
 
@@ -48,13 +62,15 @@ def create_tables(engine: Engine = engine) -> None:
     # FIXME: Super janky, do this in a __new__ or a decorator
     models.Dataset.register_events()
     models.Account.register_events()
+    models.Upload.register_events()
 
     SQLModel.metadata.create_all(engine)
-    # check version here since creating the table is the same action as
-    # ensuring our migration metadata is correct!
-    ensure_alembic_version()
+    if check_migrations and "pytest" not in sys.modules:
+        # check version here since creating the table is the same action as
+        # ensuring our migration metadata is correct!
+        ensure_alembic_version(engine)
 
-    with maker() as session:
+    with Session(engine) as session:
         models.Scope.ensure_enum_values(session=session)
         if config.env != "test":
             ensure_root(session=session)
@@ -62,7 +78,7 @@ def create_tables(engine: Engine = engine) -> None:
     create_seed_data()
 
 
-def ensure_alembic_version() -> None:
+def ensure_alembic_version(engine: Engine) -> None:
     """
     Make sure that our database is correctly stamped and migrations are applied.
 
@@ -73,7 +89,7 @@ def ensure_alembic_version() -> None:
     alembic_config = get_alembic_config()
 
     command.ensure_version(alembic_config)
-    version = alembic_version()
+    version = alembic_version(engine)
 
     # Check to see if we are up to date
     if version is None:
@@ -85,14 +101,14 @@ def ensure_alembic_version() -> None:
             command.check(alembic_config)
         except CommandError as e:
             # don't automatically migrate since it could be destructive
-            raise RuntimeError("Database needs to be migrated! Run `pdm run migrate`") from e
+            raise RuntimeError(f"Database needs to be migrated! Run `pdm run migrate`\n{e}") from e
 
 
 def get_alembic_config() -> AlembicConfig:
     return AlembicConfig(str(importlib.resources.files("sciop") / "migrations" / "alembic.ini"))
 
 
-def alembic_version() -> Optional[str]:
+def alembic_version(engine: Engine) -> Optional[str]:
     """
     for some godforsaken reason alembic's command for getting the
     db version ONLY PRINTS IT and does not return it.
@@ -106,14 +122,20 @@ def alembic_version() -> Optional[str]:
         str: Alembic version revision
         None: if there is no version yet!
     """
-    with engine.connect() as connection:
-        result = connection.execute(text("SELECT version_num FROM alembic_version"))
-        version = result.fetchone()
+    try:
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT version_num FROM alembic_version"))
+            version = result.fetchone()
 
-    if version is not None:
-        version = version[0]
+        if version is not None:
+            version = version[0]
 
-    return version
+        return version
+    except OperationalError as e:
+        if "no such table" in str(e):
+            return None
+        else:
+            raise e
 
 
 def create_seed_data() -> None:
@@ -158,8 +180,8 @@ def create_seed_data() -> None:
 
         # generate a bunch of approved datasets to test pagination
         n_datasets = session.exec(select(func.count(Dataset.dataset_id))).one()
-        if n_datasets < 200:
-            for _ in range(200):
+        if n_datasets < 100:
+            for _ in range(100):
                 generated_dataset = _generate_dataset(fake)
                 dataset = crud.create_dataset(session=session, dataset_create=generated_dataset)
                 dataset.dataset_created_at = datetime.now(UTC)
@@ -316,7 +338,7 @@ def _generate_upload(
     torrent = Torrent(
         path=torrent_file,
         name=f"Example Torrent {name}",
-        trackers=[["http://example.com/announce"]],
+        trackers=[["udp://opentracker.io:6969/announce"]],
         comment="My comment",
         piece_size=16384,
     )
@@ -333,7 +355,7 @@ def _generate_upload(
         piece_size=16384,
         torrent_size=64,
         files=[FileInTorrentCreate(path=str(torrent_file.name), size=file_size)],
-        trackers=["http://example.com/announce"],
+        announce_urls=["udp://opentracker.io:6969/announce"],
     )
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
     torrent.write(created_torrent.filesystem_path, overwrite=True)
@@ -344,7 +366,7 @@ def _generate_upload(
     upload = UploadCreate(
         method="I downloaded it",
         description="Its all here bub",
-        torrent_infohash=created_torrent.infohash,
+        infohash=created_torrent.infohash,
     )
 
     created_upload = crud.create_upload(

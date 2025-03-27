@@ -6,7 +6,7 @@
 {% endblock %}
 {% block content %}
 {% include "includes/self-tabs.html" %}
-<h1>Hello {{ current_account.username }}</h1>
+<h1 class="self-greeting">Hello {{ current_account.username }}</h1>
 
 <p>
 <button class="button" id="logout-button" hx-post="{{ config.api_prefix }}/logout">Logout</button>

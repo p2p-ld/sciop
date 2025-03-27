@@ -1,5 +1,5 @@
 site_name: SciOp
-repo_url: https://codeberg.org/sneakers-the-rat/sciop
+repo_url: https://codeberg.org/Safeguarding/sciop
 repo_name: Codeberg
 edit_uri: _edit/main/docs/
 site_description: ''
@@ -7,37 +7,40 @@ site_author: ''
 copyright: CC BY-NC-SA 4.0
 
 nav:
+  - index.md
   - Intro:
-    - intro/overview.md
-    - intro/roadmap.md
-  - Using:
-    - using/browsing.md
-    - using/seeding.md
-    - using/rss.md
-    - using/moderation.md
-    - using/curating.md
-    - using/metadata.md
+      - intro/overview.md
+      - intro/roadmap.md
+  - Using Sciop:
+      - using/browsing.md
+      - using/seeding.md
+      - using/rss.md
+      - using/moderation.md
+      - using/curating.md
+      - using/metadata.md
   - Uploading:
-    - uploading/rules.md
-    - uploading/formatting.md
-    - uploading/torrents.md
-    - uploading/checksums.md
-    - uploading/trackers.md
+      - uploading/rules.md
+      - uploading/formatting.md
+      - uploading/torrents.md
+      - uploading/checksums.md
+      - uploading/trackers.md
   - Scraper's Guide:
-    - scraping/web.md
-    - scraping/http.md
-    - scraping/s3.md
-    - scraping/ftp.md
+      - scraping/webpages.md
+      - scraping/s3.md
+      - scraping/ftp.md
   - privacy.md
   - API: /docs/api
   - API Examples:
-    - examples/uploading.md
-  - Developing:
-    - develop/design.md
-    - develop/contributing.md
-    - develop/frontend.md
-    - develop/backend.md
-    - develop/error_handling.md
+      - examples/uploading.md
+  - Running:
+      - running/maintenance.md
+  - Developers:
+      - develop/design.md
+      - develop/contributing.md
+      - develop/frontend.md
+      - develop/backend.md
+      - develop/error_handling.md
+      - develop/jobs.md
 
 theme:
   name: material
@@ -65,6 +68,7 @@ site_url: https://sciop.net/docs/
 
 markdown_extensions:
   - admonition
+  - footnotes
   - pymdownx.details
   - pymdownx.snippets:
       base_path: ["docs/"]

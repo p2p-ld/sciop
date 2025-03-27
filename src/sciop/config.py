@@ -105,6 +105,51 @@ class CSPConfig(BaseModel):
         return "; ".join(format_parts)
 
 
+class JobConfig(BaseModel):
+    """Abstract shared class for job configs"""
+
+    enabled: bool = True
+
+
+class ScrapeErrorBackoffs(BaseModel):
+    default: float = 1
+    unpack: float = 1
+    timeout: float = 2
+    connection: float = 5
+    dns: float = 10
+
+
+class ScrapeConfig(JobConfig):
+    interval: int = 30
+    """Frequency of tracker scraping, in minutes - 
+    how frequently a given tracker/torrent pair should be scraped"""
+    job_interval: int = 10
+    """Frequency of executing the scrape job, in minutes - 
+    only scrapes torrents that haven't been scraped in more than `interval` minutes."""
+    n_workers: int = 24
+    """Number of trackers to scrape in parallel"""
+    connection_timeout: int = 10
+    """
+    Timeout for initializing UDP requests, in seconds
+    """
+    scrape_timeout: int = 30
+    """
+    Timeout for scrape responses, in seconds
+    """
+    backoff: ScrapeErrorBackoffs = ScrapeErrorBackoffs()
+    """
+    Exponential penalties for different kinds of tracker errors,
+    computed like:
+    
+    interval * backoff_multiplier * 2^{n_errors}
+    """
+    max_backoff: float = 60 * 24 * 30
+    """
+    Maximum time that a tracker can be backed off, in minutes
+    Default: 30 days (yes, in minutes)
+    """
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -127,6 +172,10 @@ class Config(BaseSettings):
     
     Optional, if explicitly set to ``None`` , use the in-memory sqlite DB
     """
+    db_echo: bool = False
+    """Echo all queries made to the database"""
+    db_pool_size: int = 10
+    db_overflow_size: int = 20
     logs: LogConfig = LogConfig()
     host: str = "localhost"
     port: int = 8000
@@ -156,6 +205,18 @@ class Config(BaseSettings):
     
     This value is set to `None` by `db.ensure_root` when the program is started normally.    
     """
+    clear_jobs: bool = False
+    """Clear any remaining scheduler jobs on startup"""
+    template_dir: Optional[Path] = None
+    """
+    If set, directory of template overrides.
+    Sciop will use any template within this directory rather than its own
+    builtin templates, if present.
+    
+    E.g. if a ``template_dir`` contains ``pages/datasets.html`` ,
+    that template will be used rather than ``sciop/templates/pages/datasets.html``
+    """
+    tracker_scraping: ScrapeConfig = ScrapeConfig()
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -194,7 +255,8 @@ class Config(BaseSettings):
     @field_validator("db", mode="after")
     def create_parent_dir(cls, value: Path) -> Path:
         """Ensure parent directory exists"""
-        value.parent.mkdir(exist_ok=True, parents=True)
+        if value is not None:
+            value.parent.mkdir(exist_ok=True, parents=True)
         return value
 
     @model_validator(mode="before")

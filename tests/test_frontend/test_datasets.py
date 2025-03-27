@@ -1,3 +1,49 @@
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
+
+from selenium.webdriver.common.by import By
+from sqlmodel import select
+
+from sciop.models import Torrent, Upload
+
+if TYPE_CHECKING:
+    from ..fixtures.server import Firefox_
+
+import pytest
+
+
+@pytest.mark.selenium
+def test_upload_from_download(driver_as_admin: "Firefox_", torrent, dataset, session):
+    """We can upload a torrent"""
+    driver = driver_as_admin
+    ds = dataset()
+    t: Torrent = torrent()
+    t.path.parent.mkdir(exist_ok=True, parents=True)
+    t.write(t.path, overwrite=True)
+    expected = {
+        "method": "downloaded",
+        "description": "it was downloaded",
+        "infohash": t.infohash,
+    }
+
+    driver.get("http://127.0.0.1:8080/datasets/default")
+    # initiate upload partial
+    driver.wait_for("upload-button", type="clickable").click()
+    # upload file
+    driver.wait_for('input[type="file"]', by=By.CSS_SELECTOR).send_keys(str(t.path))
+    driver.find_element(By.CSS_SELECTOR, ".upload-form button[type=submit]").click()
+    # input model fields
+    driver.wait_for("upload-form-method").send_keys(expected["method"])
+    driver.find_element(By.ID, "upload-form-description").send_keys(expected["description"])
+    driver.find_element(By.ID, "submit-upload-button").click()
+    # wait for upload to finalize
+    driver.wait_for(f"upload-{t.infohash}")
+
+    upload = session.exec(select(Upload)).first()
+    for k, v in expected.items():
+        assert getattr(upload, k) == v
+
+
 def test_no_show_unapproved(client, dataset):
     ds_ = dataset(slug="unapproved", is_approved=False)
     res = client.get("/datasets/unapproved")
@@ -62,3 +108,18 @@ def test_no_include_removed_if_reviewer(client, dataset, reviewer, get_auth_head
     slugs = [i["slug"] for i in items]
     assert "removed" not in slugs
     assert "approved" in slugs
+
+
+@pytest.mark.parametrize("when", ["future", "past"])
+def test_last_seen_at(client, dataset, when):
+    if when == "future":
+        ds = dataset(last_seen_at=datetime.now(UTC) + timedelta(days=1))
+    else:
+        ds = dataset(last_seen_at=datetime.now(UTC) + timedelta(days=1))
+
+    res = client.get("/datasets/default")
+    assert res.status_code == 200
+    if when == "future":
+        assert "to be removed at" in res.text.lower()
+    else:
+        assert "removed at" in res.text.lower()

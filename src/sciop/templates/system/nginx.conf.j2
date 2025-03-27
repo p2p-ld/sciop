@@ -1,0 +1,72 @@
+{% if ratelimit_enable %}
+limit_req_zone $binary_remote_addr
+  zone={{  ratelimit_name }}:{{ ratelimit_period }}
+  rate={{ ratelimit_rate }};
+{% endif %}
+{% if cache_enable %}
+proxy_cache_path /tmp/nginx/sciop_cache
+  keys_zone=sciop_cache:{{ cache_keys_size }}
+  loader_threshold=300
+  loader_files={{ cache_files }}
+  max_size={{ cache_size }};
+{% endif %}
+
+log_format compression '$remote_addr - $remote_user [$time_local] '
+                       '"$request" $status $body_bytes_sent '
+                       '"$http_referer" "$http_user_agent" "$gzip_ratio"';
+
+server {
+    server_name {{ host }};
+    listen [::]:443 ssl ipv6only=on;
+    listen 443 ssl;
+    access_log  /tmp/nginx-access.log compression;
+
+    client_max_body_size {{ max_upload_size }};
+
+    location ~ /.well-known/acme-challenge/ {
+      root /var/www/letsencrypt;
+    }
+
+    location / {
+        {% if ratelimit_enable %}
+        limit_req zone={{ ratelimit_name }} burst={{ ratelimit_burst }} delay={{ ratelimit_delay }};
+        {% endif %}
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+    }
+
+    {% if cache_enable %}
+    location /static {
+        proxy_cache sciop_cache;
+        proxy_pass http://localhost:{{ port }}/static;
+        proxy_cache_valid any {{ cache_duration }};
+        proxy_cache_min_uses 3;
+    }
+    location /docs {
+        proxy_cache sciop_cache;
+        proxy_pass http://localhost:{{ port }}/docs;
+        proxy_cache_valid any {{ cache_duration }};
+        proxy_cache_min_uses 3;
+    }
+    {% endif %}
+
+    ssl_certificate /etc/letsencrypt/live/{{ host }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ host }}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+
+server {
+    if ($host = {{ host }}) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+    listen 80 ;
+    listen [::]:80 ;
+    server_name {{ host }};
+    return 404; # managed by Certbot
+}

@@ -1,27 +1,38 @@
+from collections import defaultdict
 from enum import StrEnum
 from typing import Optional
 
 import pytest
 from sqlmodel import Field, Session, select
 
-from sciop.models import Dataset
-from sciop.models.mixin import EnumTableMixin
+from sciop.models import Dataset, DatasetPart, DatasetTagLink, DatasetURL, Tag
+from sciop.models.mixins import SearchableMixin
+from sciop.models.mixins.enum import EnumTableMixin
 
 
-def test_full_text_search(session):
+@pytest.mark.parametrize("reindex", [True, False])
+def test_full_text_search(session, reindex: bool):
     """
     Weak test for whether full text search merely works.
     """
 
     match_ok = Dataset(
-        title="Matches a single thing once like key",
+        title="Unrelated title that doesn't match but its description does",
+        description="Matches a single thing once like key",
         slug="matching-ok",
         publisher="Agency of matching ok",
     )
     match_good = Dataset(
-        title="Matches several keywords like key and word several times, see key key key",
+        title="Unrelated title that doesn't match but its description does even better",
+        description="Matches several keywords like key and word several times, see key key key",
         slug="matching-good",
         publisher="Agency of matching good",
+    )
+    match_better = Dataset(
+        title="Matches with title containing key",
+        description="Matches two times key key ",
+        slug="matching-better",
+        publisher="Agency of matching better",
     )
     no_match = Dataset(
         title="Nothing in here",
@@ -31,14 +42,24 @@ def test_full_text_search(session):
 
     session.add(match_ok)
     session.add(match_good)
+    session.add(match_better)
     session.add(no_match)
     session.commit()
 
-    results = Dataset.search("key", session)
+    if reindex:
+        from sciop.db import get_engine
 
-    assert len(results) == 2
-    assert results[0].Dataset.slug == match_good.slug
-    assert results[1].Dataset.slug == match_ok.slug
+        engine = get_engine()
+        for subcls in SearchableMixin.__subclasses__():
+            subcls.fts_rebuild(engine)
+
+    stmt = Dataset.search("key")
+    results = session.execute(stmt).fetchall()
+
+    assert len(results) == 3
+    assert results[0].Dataset.slug == match_better.slug
+    assert results[1].Dataset.slug == match_good.slug
+    assert results[2].Dataset.slug == match_ok.slug
 
 
 def test_ensure_enum(recreate_models):
@@ -146,3 +167,175 @@ def test_visible_to_expression(dataset, account, is_approved, is_removed, sessio
         )
         assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(creator))).all()
         assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(reviewer))).all()
+
+
+def test_editable_base(dataset, session):
+    """
+    Editable items preserve history when basic attributes are changed
+    """
+    ds: Dataset = dataset()
+
+    # one change
+    ds.title = "NewTitle"
+    session.add(ds)
+    session.commit()
+
+    # multiple changed
+    ds.title = "ThirdTitle"
+    ds.description = "A different description"
+    session.add(ds)
+    session.commit()
+
+    # set to null
+    ds.description = None
+    session.add(ds)
+    session.commit()
+
+    # assign same value
+    # FIXME: since we are using an after_flush event, we can't detect changes accurately
+    # so this is incorrectly detected as a new version - which is not a huge deal,
+    # but it's not perfect.
+    ds.title = "ThirdTitle"
+    session.add(ds)
+    session.commit()
+
+    ds_versions = session.exec(select(Dataset.history_cls())).all()
+    # 4 because initial creation should be stored
+    assert len(ds_versions) == 5
+    assert ds_versions[1].title == "NewTitle"
+    assert ds_versions[2].title == "ThirdTitle"
+    assert ds_versions[1].description != "A different description"
+    assert ds_versions[2].description == "A different description"
+    assert ds_versions[3].description is None
+
+
+def test_editable_one_to_many(dataset, session):
+    """
+    Editable child objects preserve history when they are changed within their parents
+
+    By "child" objects we mean objects that are never used on their own,
+    and we would expect the parent to be the one being committed -
+    or at least in the session - when they are updated.
+    We probably shouldn't reversion every related object every time anything changes.
+    """
+    ds: Dataset = dataset()
+
+    # need to create a version of the parent here even if it doesn't change
+    # otherwise we wouldn't be able to associate the new part with this version of the dataset
+    part = DatasetPart(part_slug="part")
+    ds.parts.append(part)
+    session.add(ds)
+    session.commit()
+
+    # update history in a editable child object but not the parent
+    # this one we can't detect with a version, but detect by selecting
+    # related items that were edited prior to the following version of the parent
+    ds.parts[0].part_slug = "part2"
+    session.add(ds)
+    session.commit()
+
+    ds_versions = session.exec(select(Dataset.history_cls())).all()
+    part_versions = session.exec(select(DatasetPart.history_cls())).all()
+
+    assert len(ds_versions) == 2
+    assert len(part_versions) == 2
+    assert part_versions[0].part_slug == "part"
+    assert part_versions[1].part_slug == "part2"
+    assert part_versions[0].version_created_at == ds_versions[1].version_created_at
+
+
+def test_editable_one_to_many_deletion(dataset, session):
+    """Record deletions in one to many as versions that have their fk to the parent nulled out"""
+    ds: Dataset = dataset()
+
+    url1 = DatasetURL.get_item("https://example.com/1", session=session)
+    url2 = DatasetURL.get_item("https://example.com/2", session=session)
+    url3 = DatasetURL.get_item("https://example.com/3", session=session)
+    ds.urls = [url1, url2, url3]
+    session.add(ds)
+    session.commit()
+
+    ds.urls = [url1, url3]
+    session.add(ds)
+    session.commit()
+
+    urls = session.exec(select(DatasetURL)).all()
+    ds_history = session.exec(select(Dataset.history_cls())).all()
+    url_history = session.exec(select(DatasetURL.history_cls())).all()
+    assert len(ds_history) == 3
+    history_groups = defaultdict(list)
+    for item in url_history:
+        history_groups[item.version_created_at].append(item)
+
+    # didn't make new urls each time
+    assert len(urls) == 3
+
+    assert len(history_groups) == 3
+    timestamps = list(history_groups.keys())
+    # two initial urls
+    assert len(history_groups[timestamps[0]]) == 2
+    # then three assigned
+    assert len(history_groups[timestamps[1]]) == 3
+    # two assigned and one removed
+    assert len(history_groups[timestamps[2]]) == 3
+
+    # unassigned url2 in the last step
+    assert [item for item in history_groups[timestamps[2]] if item.url == url2.url][
+        0
+    ].dataset_id is None
+
+
+def test_editable_many_to_many(dataset, session):
+    ds: Dataset = dataset()
+    tag_states = []
+    n_tags = len(ds.tags)
+    tag_states.append([t.tag for t in ds.tags])
+
+    ds.title = "NewTitle"
+    ds.tags.append(Tag(tag="newtag"))
+    session.add(ds)
+    session.commit()
+    session.refresh(ds)
+    n_tags += len(ds.tags)
+    tag_states.append([t.tag for t in ds.tags])
+
+    ds.title = "ThirdTitle"
+    del ds.tags[0]
+    n_tags += 1
+    session.add(ds)
+    session.commit()
+    session.refresh(ds)
+    n_tags += len(ds.tags)
+    tag_states.append([t.tag for t in ds.tags])
+
+    # change tags without changing parent
+    ds.tags.append(Tag(tag="thirdtag"))
+    session.add(ds)
+    session.commit()
+    session.refresh(ds)
+    n_tags += len(ds.tags)
+    tag_states.append([t.tag for t in ds.tags])
+
+    ds_versions = session.exec(select(Dataset.history_cls())).all()
+    tag_link_versions = session.exec(select(DatasetTagLink.history_cls())).all()
+    tags = session.exec(select(Tag)).all()
+    tags_by_id = {tag.tag_id: tag.tag for tag in tags}
+
+    assert len(ds_versions) == 4
+    assert len(tag_link_versions) == n_tags
+
+    uq_timestamps = list(dict.fromkeys([t.version_created_at for t in tag_link_versions]))
+    assert len(uq_timestamps) == len(ds_versions)
+    assert len(uq_timestamps) == len(tag_states)
+    for i, state in enumerate(tag_states):
+        version_tags = [
+            tags_by_id[t.tag_id]
+            for t in tag_link_versions
+            if t.version_created_at == uq_timestamps[i] and not t.version_is_deletion
+        ]
+        assert set(version_tags) == set(state)
+
+    deleted = [t for t in tag_link_versions if t.version_is_deletion]
+    assert len(deleted) == 1
+    deleted_tag = [t for t in tags if t.tag_id == deleted[0].tag_id][0]
+    assert deleted_tag.tag == tag_states[0][0]

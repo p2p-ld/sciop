@@ -1,5 +1,6 @@
 import gzip
 import logging
+import traceback
 from io import BytesIO
 from secrets import token_urlsafe
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, MutableMapping, Optional
@@ -124,7 +125,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             )
             raise e
         except Exception as e:
-            msg = f"Unhandled exception: {str(e)}"
+            msg = f"Unhandled exception: {str(e)}\n{traceback.format_exc()}"
             self._log_message(response_code=500, request=request, msg=msg, level=logging.ERROR)
             raise e
 

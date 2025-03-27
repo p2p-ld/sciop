@@ -16,7 +16,7 @@ from sciop.api.deps import (
 from sciop.frontend.templates import jinja
 from sciop.middleware import limiter
 from sciop.models import ModerationAction, Scope, SuccessResponse
-from sciop.models.mixin import _Friedolin
+from sciop.models.mystery import _Friedolin
 
 review_router = APIRouter()
 
@@ -56,6 +56,7 @@ async def deny_dataset(
 @review_router.post("/datasets/{dataset_slug}/{dataset_part_slug}/approve")
 async def approve_dataset_part(
     dataset_slug: str,
+    dataset_part_slug: str,
     account: RequireReviewer,
     session: SessionDep,
     dataset: RequireDataset,
@@ -74,7 +75,12 @@ async def approve_dataset_part(
 
 @review_router.post("/datasets/{dataset_slug}/{dataset_part_slug}/deny")
 async def deny_dataset_part(
-    account: RequireReviewer, session: SessionDep, dataset: RequireDataset, part: RequireDatasetPart
+    dataset_slug: str,
+    dataset_part_slug: str,
+    account: RequireReviewer,
+    session: SessionDep,
+    dataset: RequireDataset,
+    part: RequireDatasetPart,
 ) -> SuccessResponse:
     part.is_removed = True
     session.add(part)

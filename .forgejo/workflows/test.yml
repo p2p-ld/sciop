@@ -4,14 +4,17 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
-  test-codeberg:
+  test-solaris:
     name: tests
-    runs-on: codeberg-tiny
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: https://code.forgejo.org/actions/checkout@v4
@@ -22,11 +25,12 @@ jobs:
         uses: https://code.forgejo.org/actions/setup-python@v5
         with:
           python-version: '3.13'
+          cache: 'pip'
       - name: Install deps
         run: pip install -e .[test]
-      - name: Install Firefox
+      - name: Install XVFB
         run: |
-          sudo apt update && sudo apt install firefox xvfb -y
+          sudo apt-get update && sudo apt-get install xvfb -y
       - name: Run tests
         run: |
           mkdir $HOME/tmp

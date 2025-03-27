@@ -2,7 +2,6 @@
 Common source for template environments and decorators
 """
 
-from datetime import UTC, datetime
 from types import ModuleType
 from typing import TYPE_CHECKING, Optional
 from typing import Literal as L
@@ -15,8 +14,8 @@ from fasthx import Jinja
 from sciop import models, types
 from sciop.api import deps
 from sciop.config import Config, config
-from sciop.const import TEMPLATE_DIR
 from sciop.db import get_session
+from sciop.models.mixins.template import get_environment
 
 if TYPE_CHECKING:
     from sciop.models import Account
@@ -61,12 +60,9 @@ def template_nonce(request: Request) -> dict[L["nonce"], str]:
 
 
 templates = Jinja2Templates(
-    directory=TEMPLATE_DIR,
     context_processors=[template_account, template_config, template_models, template_nonce],
+    env=get_environment(),
 )
-templates.env.globals["models"] = models
-templates.env.globals["now"] = datetime.now()
-templates.env.globals["UTC"] = UTC
 
 jinja = Jinja(templates)
 """fasthx decorator, see https://github.com/volfpeter/fasthx"""

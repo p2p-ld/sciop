@@ -1,10 +1,13 @@
 import hashlib
 import random
+import string
 from collections.abc import Callable as C
+from copy import deepcopy
 from pathlib import Path
-from typing import Concatenate, ParamSpec
+from typing import Concatenate, Optional, ParamSpec
 from typing import Literal as L
 
+import bencodepy
 import pytest
 from faker import Faker
 from sqlmodel import Session
@@ -66,21 +69,33 @@ def default_upload() -> dict:
 @pytest.fixture
 def default_torrentfile() -> dict:
     files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
-    hash_data = "".join([str(f) for f in files])
-    hash_data = hash_data.encode("utf-8")
     return {
         "file_name": "default.torrent",
         "file_hash": "abcdefghijklmnop",
-        "v1_infohash": hashlib.sha1(hash_data).hexdigest(),
-        "v2_infohash": hashlib.sha256(hash_data).hexdigest(),
         "version": "hybrid",
         "short_hash": "defaultt",  # needs to be 8 chars lol
         "total_size": sum(f["size"] for f in files),
         "piece_size": 16384,
         "torrent_size": 64,
         "files": files,
-        "trackers": ["http://example.com/announce"],
+        "announce_urls": ["http://example.com/announce", "udp://example.com/announce"],
     }
+
+
+@pytest.fixture
+def infohashes() -> C[[], dict[L["v1_infohash", "v2_infohash"], str]]:
+    """Fixture function to generate "unique" infohashes"""
+
+    def _infohashes() -> dict[L["v1_infohash", "v2_infohash"], str]:
+        files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
+        hash_data = "".join([str(f) for f in files])
+        hash_data = hash_data.encode("utf-8")
+        return {
+            "v1_infohash": hashlib.sha1(hash_data).hexdigest(),
+            "v2_infohash": hashlib.sha256(hash_data).hexdigest(),
+        }
+
+    return _infohashes
 
 
 @pytest.fixture
@@ -88,7 +103,7 @@ def default_torrent() -> dict:
     return {
         "path": "default.bin",
         "name": "Default Torrent",
-        "trackers": [["http://example.com/announce"]],
+        "trackers": [["udp://example.com/announce"]],
         "comment": "My comment",
         "piece_size": 16384,
     }
@@ -113,7 +128,7 @@ def account(
         account_ = crud.get_account(session=session_, username=kwargs["username"])
         if not account_:
             account_ = AccountCreate(**kwargs)
-            account_ = crud.create_account(session=session, account_create=account_)
+            account_ = crud.create_account(session=session_, account_create=account_)
         account_.scopes = scopes
         account_.is_suspended = is_suspended
         session_.add(account_)
@@ -164,7 +179,7 @@ def reviewer(account: C[..., "Account"], session: Session) -> Account:
 @pytest.fixture
 def dataset(
     default_dataset: dict, session: Session
-) -> C[Concatenate[bool, Session | None, P], Dataset]:
+) -> C[Concatenate[bool, bool, Session | None, P], Dataset]:
     def _dataset(
         is_approved: bool = True,
         is_removed: bool = False,
@@ -176,13 +191,9 @@ def dataset(
         kwargs = {**default_dataset, **kwargs}
 
         created = DatasetCreate(**kwargs)
-        dataset = crud.create_dataset(session=session_, dataset_create=created)
-        dataset.is_approved = is_approved
-        dataset.is_removed = is_removed
-        session_.add(dataset)
-        session_.commit()
-        session_.flush()
-        session_.refresh(dataset)
+        dataset = crud.create_dataset(
+            session=session_, dataset_create=created, is_approved=is_approved, is_removed=is_removed
+        )
         return dataset
 
     return _dataset
@@ -192,12 +203,15 @@ def dataset(
 def torrent(default_torrent: dict, tmp_path: Path) -> C[P, Torrent]:
 
     def _torrent(**kwargs: P.kwargs) -> Torrent:
-        kwargs = {**default_torrent, **kwargs}
+        kwargs = {**default_torrent.copy(), **kwargs}
         file_in_torrent = Path(default_torrent["path"])
         if not file_in_torrent.is_absolute():
             file_in_torrent = tmp_path / file_in_torrent
+
+        hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
+        hash_data = hash_data.encode("utf-8")
         with open(file_in_torrent, "wb") as f:
-            f.write(b"0" * 16384 * 4)
+            f.write(hash_data)
         kwargs["path"] = file_in_torrent
 
         t = Torrent(**kwargs)
@@ -216,28 +230,42 @@ def torrentfile(
     tmp_path: Path,
 ) -> C[Concatenate[Account | None, Session | None, P], TorrentFile]:
     def _torrentfile(
-        account_: Account | None = None, session_: Session | None = None, **kwargs: P.kwargs
+        extra_trackers: Optional[list[str]] = None,
+        account_: Account | None = None,
+        session_: Session | None = None,
+        **kwargs: P.kwargs,
     ) -> TorrentFile:
         if session_ is None:
             session_ = session
         if account_ is None:
             account_ = account(scopes=[Scopes.upload], session_=session_, username="uploader")
+        passed_announce_urls = "announce_urls" in kwargs
+        kwargs = deepcopy({**default_torrentfile, **kwargs})
 
-        files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
-        hash_data = "".join([str(f) for f in files])
-        hash_data = hash_data.encode("utf-8")
-        if "v1_infohash" not in kwargs:
-            kwargs["v1_infohash"] = hashlib.sha1(hash_data).hexdigest()
-        if "v2_infohash" not in kwargs:
-            kwargs["v2_infohash"] = hashlib.sha256(hash_data).hexdigest()
-
-        kwargs = {**default_torrentfile, **kwargs}
         file_in_torrent = tmp_path / "default.bin"
+        hash_data = random.randbytes(kwargs["total_size"])
         with open(file_in_torrent, "wb") as f:
-            f.write(b"0" * kwargs["total_size"])
+            f.write(hash_data)
+
+        t = torrent(path=file_in_torrent)
+        if kwargs.get("v1_infohash", None) is None:
+            kwargs["v1_infohash"] = t.infohash
+        if kwargs.get("v2_infohash", None) is None:
+            if t.v2_infohash is None:
+                v2_infohash = hashlib.sha256(bencodepy.encode(t.metainfo["info"])).hexdigest()
+            else:
+                v2_infohash = t.v2_infohash
+            kwargs["v2_infohash"] = v2_infohash
+        elif "v2_infohash" in kwargs and not kwargs["v2_infohash"]:
+            # set to `False`, exclude v2_infohash
+            del kwargs["v2_infohash"]
+
+        if extra_trackers is not None:
+            kwargs["announce_urls"].extend(extra_trackers)
+        elif not passed_announce_urls:
+            kwargs["announce_urls"].append(fake.url(schemes=["udp"]))
 
         tf = TorrentFileCreate(**kwargs)
-        t = torrent(path=file_in_torrent)
         tf.filesystem_path.parent.mkdir(exist_ok=True, parents=True)
         t.write(tf.filesystem_path, overwrite=True)
         created = crud.create_torrent(session=session_, created_torrent=tf, account=account_)
@@ -274,8 +302,8 @@ def upload(
             dataset_ = dataset(is_approved=True, session=session_)
 
         kwargs = {**default_upload, **kwargs}
-        if "torrent_infohash" not in kwargs:
-            kwargs["torrent_infohash"] = torrentfile_.infohash
+        if "infohash" not in kwargs:
+            kwargs["infohash"] = torrentfile_.infohash
         created = UploadCreate(**kwargs)
         created = crud.create_upload(
             session=session_, created_upload=created, dataset=dataset_, account=account_

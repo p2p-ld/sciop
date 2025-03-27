@@ -3,8 +3,10 @@ from typing import Callable
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from alembic.config import Config as AlembicConfig
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Connection, Engine, Transaction, create_engine
+from sqlalchemy.exc import ProgrammingError
 from sqlmodel import Session, SQLModel
+from sqlmodel.pool import StaticPool
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -13,37 +15,82 @@ def create_tables(monkeypatch_session: "MonkeyPatch", monkeypatch_config: None) 
     from sciop.db import create_tables
 
     engine = create_engine(str(config.sqlite_path))
-    create_tables(engine)
+    create_tables(engine, check_migrations=False)
 
 
 @pytest.fixture
-def session(monkeypatch: MonkeyPatch) -> Session:
-    from sciop import db
+def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session:
+    from sciop import db, scheduler
     from sciop.api import deps
     from sciop.app import app
-    from sciop.db import engine, get_session, maker
+    from sciop.db import get_session
     from sciop.frontend import templates
+
+    if request.config.getoption("--file-db"):
+        engine, session, connection, trans = _file_session()
+    else:
+        engine, session, connection, trans = _in_memory_session(request)
+
+    def get_session_override() -> Session:
+        yield session
+
+    def get_engine_override() -> Engine:
+        return engine
+
+    monkeypatch.setattr(db, "get_session", get_session_override)
+    monkeypatch.setattr(templates, "get_session", get_session_override)
+    monkeypatch.setattr(deps, "get_session", get_session_override)
+    monkeypatch.setattr(db, "get_engine", get_engine_override)
+    monkeypatch.setattr(scheduler, "get_engine", get_engine_override)
+
+    app.dependency_overrides[get_session] = get_session_override
+
+    yield session
+
+    try:
+        session.close()
+    except ProgrammingError as e:
+        if "closed database" not in str(e):
+            # fine, from tearing down server in selenium tests
+            raise e
+
+    if request.config.getoption("--file-db"):
+        if request.config.getoption("--persist-db"):
+            trans.commit()
+        else:
+            trans.rollback()  # roll back to the SAVEPOINT
+        connection.close()
+
+
+def _in_memory_session(request: pytest.FixtureRequest) -> tuple[Engine, Session, None, None]:
+    from sciop.db import create_tables
+    from sciop.models.mixins import EditableMixin
+
+    engine_kwargs = {
+        "connect_args": {"check_same_thread": False},
+        "poolclass": StaticPool,
+    }
+    if request.config.getoption("--echo-queries"):
+        engine_kwargs["echo"] = True
+
+    engine = create_engine("sqlite://", **engine_kwargs)
+    create_tables(engine, check_migrations=False)
+    session = Session(engine)
+    session = EditableMixin.editable_session(session)
+    return engine, session, None, None
+
+
+def _file_session() -> tuple[Engine, Session, Connection, Transaction]:
+    from sciop.db import engine, maker
+    from sciop.models.mixins import EditableMixin
 
     connection = engine.connect()
 
     # begin a non-ORM transaction
     trans = connection.begin()
     session = maker(bind=connection)
-
-    def get_session_override() -> Session:
-        yield session
-
-    monkeypatch.setattr(db, "get_session", get_session_override)
-    monkeypatch.setattr(templates, "get_session", get_session_override)
-    monkeypatch.setattr(deps, "get_session", get_session_override)
-
-    app.dependency_overrides[get_session] = get_session_override
-
-    yield session
-
-    session.close()
-    trans.rollback()  # roll back to the SAVEPOINT
-    connection.close()
+    session = EditableMixin.editable_session(session)
+    return engine, session, connection, trans
 
 
 @pytest.fixture

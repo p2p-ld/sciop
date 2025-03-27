@@ -34,12 +34,15 @@ from sciop.models.dataset import (
     DatasetPartRead,
     DatasetPath,
     DatasetRead,
+    DatasetUpdate,
     DatasetURL,
     ExternalIdentifier,
     ExternalIdentifierCreate,
     ExternalSource,
 )
+from sciop.models.mixins import EditableMixin
 from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
+from sciop.models.mystery import _Friedolin
 from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.tag import DatasetTagLink, Tag, TagSummary
 from sciop.models.torrent import (
@@ -49,14 +52,17 @@ from sciop.models.torrent import (
     TorrentFile,
     TorrentFileCreate,
     TorrentFileRead,
-    TrackerInTorrent,
 )
-from sciop.models.upload import Upload, UploadCreate, UploadRead
+from sciop.models.tracker import TorrentTrackerLink, Tracker, TrackerCreate
+from sciop.models.upload import Upload, UploadCreate, UploadRead, UploadUpdate
 
+Account.model_rebuild()
 Dataset.model_rebuild()
 DatasetRead.model_rebuild()
 DatasetPart.model_rebuild()
 DatasetPartRead.model_rebuild()
+Scope.model_rebuild()
+EditableMixin.rebuild_history_models(namespace=locals())
 
 __all__ = [
     "Account",
@@ -72,6 +78,7 @@ __all__ = [
     "DatasetPartRead",
     "DatasetPath",
     "DatasetRead",
+    "DatasetUpdate",
     "DatasetURL",
     "DatasetTagLink",
     "ExternalIdentifier",
@@ -93,8 +100,12 @@ __all__ = [
     "TorrentFileCreate",
     "TorrentFileRead",
     "TorrentItem",
-    "TrackerInTorrent",
+    "TorrentTrackerLink",
+    "Tracker",
+    "TrackerCreate",
     "Upload",
     "UploadCreate",
     "UploadRead",
+    "UploadUpdate",
+    "_Friedolin",
 ]

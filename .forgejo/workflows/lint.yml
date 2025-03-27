@@ -1,12 +1,17 @@
+name: lint
+
 on:
   pull_request:
+    branches:
+      - main
+  push:
     branches:
       - main
 
 jobs:
   lint:
     if: contains(env.GITHUB_SERVER_URL, 'codeberg')
-    runs-on: codeberg-tiny
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: https://code.forgejo.org/actions/checkout@v4

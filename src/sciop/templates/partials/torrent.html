@@ -1,0 +1,3 @@
+{% from "macros/torrent.html" import torrent_form_partial %}
+{% set form="upload-edit-" + torrent.infohash %}
+{{ torrent_form_partial(torrent, form=form, response=True) }}

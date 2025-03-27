@@ -46,7 +46,7 @@ class RSSFeed(BaseModel):
         """
         attrs = None
         if hasattr(value, "attrs"):
-            attrs = value.attrs.dict()
+            attrs = value.attrs.model_dump()
         elif "attrs" in value:
             attrs = value["attrs"]
 
@@ -124,5 +124,5 @@ class RSSFeed(BaseModel):
         nsmap = nsmap or {}
         rss = etree.Element("rss", version="2.0", nsmap=nsmap)
         channel = etree.SubElement(rss, "channel")
-        self.generate_tree(channel, self.dict())
+        self.generate_tree(channel, self.model_dump())
         return etree.tostring(rss, pretty_print=True, xml_declaration=True, encoding="utf-8")
