@@ -31,9 +31,13 @@ class TorrentTrackerLink(TableMixin, table=True):
         foreign_key="torrent_files.torrent_file_id",
         primary_key=True,
         ondelete="CASCADE",
+        index=True,
     )
     tracker_id: Optional[int] = Field(
-        default=None, foreign_key="trackers.tracker_id", primary_key=True
+        default=None,
+        foreign_key="trackers.tracker_id",
+        primary_key=True,
+        index=True,
     )
     torrent: "TorrentFile" = Relationship(back_populates="tracker_links")
     tracker: "Tracker" = Relationship(back_populates="torrent_links")

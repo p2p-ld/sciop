@@ -218,7 +218,7 @@ class FileInTorrent(TableMixin, EditableMixin, table=True):
     size: int = Field(description="Size in bytes")
 
     torrent_id: Optional[int] = Field(
-        default=None, foreign_key="torrent_files.torrent_file_id", ondelete="CASCADE"
+        default=None, foreign_key="torrent_files.torrent_file_id", ondelete="CASCADE", index=True
     )
     torrent: Optional["TorrentFile"] = Relationship(back_populates="files")
 
@@ -316,9 +316,9 @@ class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
     __tablename__ = "torrent_files"
 
     torrent_file_id: IDField = Field(None, primary_key=True)
-    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id")
+    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id", index=True)
     account: "Account" = Relationship(back_populates="torrents")
-    upload_id: Optional[int] = Field(default=None, foreign_key="uploads.upload_id")
+    upload_id: Optional[int] = Field(default=None, foreign_key="uploads.upload_id", index=True)
     upload: Optional["Upload"] = Relationship(back_populates="torrent")
     files: list["FileInTorrent"] = Relationship(back_populates="torrent", cascade_delete=True)
     tracker_links: list[TorrentTrackerLink] = Relationship(

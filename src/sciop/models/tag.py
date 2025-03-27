@@ -12,9 +12,11 @@ if TYPE_CHECKING:
 class DatasetTagLink(TableMixin, EditableMixin, table=True):
     __tablename__ = "dataset_tag_links"
     dataset_id: Optional[int] = Field(
-        default=None, foreign_key="datasets.dataset_id", primary_key=True
+        default=None, foreign_key="datasets.dataset_id", primary_key=True, index=True
     )
-    tag_id: Optional[int] = Field(default=None, foreign_key="tags.tag_id", primary_key=True)
+    tag_id: Optional[int] = Field(
+        default=None, foreign_key="tags.tag_id", primary_key=True, index=True
+    )
 
 
 class Tag(ListlikeMixin, table=True):
