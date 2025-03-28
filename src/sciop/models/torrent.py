@@ -54,7 +54,7 @@ class Torrent(Torrent_):
     and not spend literally eons processing torrent files
     """
 
-    MAX_TORRENT_FILE_SIZE = int(40e6)  # 40MB
+    MAX_TORRENT_FILE_SIZE = config.upload_limit
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
