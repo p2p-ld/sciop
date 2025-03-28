@@ -9,8 +9,8 @@ Choose your path:
 
 
 <div class="index-linkbox">
-<a href="intro/overview">
-<pre class="index-link">
+<a href="intro/overview" aria-label="Intro">
+<pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 ██▄██ ▄▄▀█▄ ▄█ ▄▄▀█▀▄▄▀
 ██ ▄█ ██ ██ ██ ▀▀▄█ ██ 
@@ -19,8 +19,8 @@ Choose your path:
 </pre>
 </a>
 
-<a href="using/browsing">
-<pre class="index-link">
+<a href="using/browsing" aria-label="Usage">
+<pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █ ██ █ ▄▄█ ▄▄▀█ ▄▄▄█ ▄▄
 █ ██ █▄▄▀█ ▀▀ █ █▄▀█ ▄▄
@@ -29,8 +29,8 @@ Choose your path:
 </pre>
 </a>
 
-<a href="uploading/rules">
-<pre class="index-link">
+<a href="uploading/rules" aria-label="Uploading">
+<pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █ ██ █▀▄▄▀█ ██▀▄▄▀█ ▄▄▀█ ▄▀██▄██ ▄▄▀█ ▄▄▄
 █ ██ █ ▀▀ █ ██ ██ █ ▀▀ █ █ ██ ▄█ ██ █ █▄▀
@@ -40,8 +40,8 @@ Choose your path:
 </pre>
 </a>
 
-<a href="scraping/webpages">
-<pre class="index-link">
+<a href="scraping/webpages" aria-label="Scraping">
+<pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █ ▄▄█▀▄▀█ ▄▄▀█ ▄▄▀█▀▄▄▀██▄██ ▄▄▀█ ▄▄▄
 █▄▄▀█ █▀█ ▀▀▄█ ▀▀ █ ▀▀ ██ ▄█ ██ █ █▄▀
@@ -50,8 +50,8 @@ Choose your path:
 
 </pre>
 </a>
-<a href="api">
-<pre class="index-link">
+<a href="api" aria-label="API">
+<pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █ ▄▄▀█▀▄▄▀██▄█
 █ ▀▀ █ ▀▀ ██ ▄
@@ -60,8 +60,8 @@ Choose your path:
 
 </pre>
 </a>
-<a href="examples/index">
-<pre class="index-link">
+<a href="examples/index" aria-label="Examples">
+<pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █ ▄▄█ █ █ ▄▄▀█ ▄▀▄ █▀▄▄▀█ ██ ▄▄█ ▄▄
 █ ▄▄█▀▄▀█ ▀▀ █ █▄█ █ ▀▀ █ ██ ▄▄█▄▄▀
@@ -69,8 +69,8 @@ Choose your path:
 ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 </pre>
 </a>
-<a href="running/index">
-<pre class="index-link">
+<a href="running/index" aria-label="Running">
+<pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █ ▄▄▀█ ██ █ ▄▄▀█ ▄▄▀██▄██ ▄▄▀█ ▄▄▄
 █ ▀▀▄█ ██ █ ██ █ ██ ██ ▄█ ██ █ █▄▀
@@ -79,8 +79,8 @@ Choose your path:
 
 </pre>
 </a>
-<a href="develop/design">
-<pre class="index-link">
+<a href="develop/design" aria-label="Developing">
+<pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █ ▄▀█ ▄▄█▀███▀█ ▄▄█ ██▀▄▄▀█▀▄▄▀██▄██ ▄▄▀█ ▄▄▄
 █ █ █ ▄▄██ ▀ ██ ▄▄█ ██ ██ █ ▀▀ ██ ▄█ ██ █ █▄▀

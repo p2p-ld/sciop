@@ -62,6 +62,8 @@ pre.index-link {
   line-height: 1em;
   margin: 0;
   transition: font-size 10s ease-in;
+  font-family: ui-monospace, monospace;
+
   &:hover {
     color: var(--md-primary-fg-color--dark);
     font-size: 10em;
