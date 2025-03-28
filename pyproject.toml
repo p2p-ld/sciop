@@ -37,6 +37,7 @@ dependencies = [
     "nh3>=0.2.21",
     "pygments>=2.19.1",
     "click>=8.1.8",
+    "mkdocs-redirects>=1.2.2",
 ]
 requires-python = ">=3.11"
 readme = "README.md"

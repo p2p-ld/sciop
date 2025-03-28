@@ -3,7 +3,8 @@
   --font-times: Times, "Times New Roman", "Times LT Std", serif;
    --md-primary-fg-color:               lch(44% 132 317);
    --md-primary-fg-color--dark:         color-mix(in lch, var(--md-primary-fg-color) 80%, black);
-
+  /*when to break and hide the left navbar*/
+  --breakpoint-narrow: 50em;
 }
 
 [data-md-color-scheme="sciop-dark"] {

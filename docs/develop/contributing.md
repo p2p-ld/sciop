@@ -278,5 +278,56 @@ python -m pytest tests/test_migrations.py
 pdm run pytest tests/test_migrations.py
 ```
 
+## Writing Docs
+
+The docs are written with [mkdocs](https://www.mkdocs.org/) and 
+[mkdocs-material](https://squidfunk.github.io/mkdocs-material/).
+
+### Adding a new page
+
+To add a new page, create a new `.md` file in the relevant folder and add it to the 
+`nav` section in the `mkdocs.yml` configuration.
+Rather than setting the title in the `nav` section, 
+set the title in the markdown document.
+
+If the section has an index page, make sure to also add your new page to the index.
+
+e.g. for my new page:
+
+`docs/intro/new.md`
+```markdown
+# My New Page
+
+Hello this is a new page
+```
+
+Add this 
+
+```yaml
+nav:
+  - index.md
+  - Intro:
+    - intro/index.md
+    - # ...
+    - intro/new.md
+```
+
+
+### Moving a page
+
+If you need to move/rename a page, make a redirect from the old page.
+
+So e.g. if i am moving `docs/intro/old.md` to `docs/intro/new.md`, add
+
+```yaml
+plugins:
+  - redirects:
+      redirect_maps:
+        "intro/old.md": "intro/new.md"
+```
+
+
+
+
 
 

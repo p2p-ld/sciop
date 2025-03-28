@@ -1,3 +1,9 @@
+---
+hide:
+  - navigation
+  - toc
+---
+
 # 
 <p class="font-mono">
 Welcome to sciop, a website online.

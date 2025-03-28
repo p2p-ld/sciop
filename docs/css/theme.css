@@ -1,15 +1,3 @@
-@property --x {
-  syntax: '<length-percentage>';
-  initial-value: 10px;
-  inherits: false
-}
-
-@property --y {
-  syntax: '<length-percentage>';
-  initial-value: 10px;
-  inherits: false
-}
-
 .md-header {
   background-color: var(--md-footer-bg-color);
   border-bottom: 1px solid var(--md-primary-fg-color--dark);
