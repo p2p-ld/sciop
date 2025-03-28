@@ -17,7 +17,7 @@
 
   .md-header__title {
     font-style: italic;
-    font-family: Times, "Times New Roman", "Times LT Std", serif;
+    font-family: var(--font-times);
     font-size: 2em;
     color: var(--md-primary-fg-color);
     & span {
@@ -51,10 +51,29 @@ div.index-linkbox {
 
   a {
     border: 1px solid var(--md-primary-fg-color--dark);
+    position:relative;
 
     &:hover {
       color: var(--md-primary-fg-color--dark);
       border-color: var(--md-code-fg-color);
+      .index-link-label {
+        width: 100%;
+        transition: width 1s;
+      }
+    }
+    .index-link-label {
+      width: 0;
+      display: inline-block;
+      overflow: hidden;
+      text-wrap: nowrap;
+      position: absolute;
+      top: 0;
+      font-family: var(--font-times);
+      font-size: 4em;
+      pointer-events: none;
+      color: var(--md-typeset-color);
+      font-style: italic;
+      text-shadow: 5px 5px var(--md-default-bg-color);
     }
   }
 }
