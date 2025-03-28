@@ -10,7 +10,7 @@ hide:
 
 Scraping files over http, making high-quality WARCZ and zim archives of websites.
 
-## [S3](./sd.md)
+## [S3](./s3.md)
 
 AWS-like object storage
 
