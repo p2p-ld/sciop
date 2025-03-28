@@ -1,4 +1,4 @@
-# Seeding
+# Torrenting
 
 <div class="big-emphasis" markdown="1">
 
