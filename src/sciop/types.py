@@ -45,8 +45,9 @@ UTCDateTime = Annotated[datetime, AfterValidator(lambda x: x.replace(tzinfo=UTC)
 def _username_col() -> sqla.Column:
     return sqla.Column(
         sqla.String(64, collation="NOCASE"),
-        index=True,
+        index=False,  # unique creates an internal index
         nullable=False,
+        unique=True,
     )
 
 

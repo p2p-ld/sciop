@@ -111,7 +111,6 @@ class AccountBase(SQLModel):
 class Account(AccountBase, TableMixin, SearchableMixin, table=True):
     __tablename__ = "accounts"
     __searchable__ = ["username"]
-    __table_args__ = (sqla.UniqueConstraint("username"),)
 
     account_id: IDField = Field(default=None, primary_key=True)
     hashed_password: str
