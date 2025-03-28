@@ -20,7 +20,7 @@
 {{ model_table(id="torrent-table", model=torrent) }}
 {% endmacro %}
 
-{% macro upload_form(dataset, parts=None, id=None, target=None, post_to="datasets", config=None) %}
+{% macro upload_form(dataset, parts=None, id=None, target=None, post_to="datasets") %}
 {% if id is none %}
 {% set id = dataset.slug + "-upload-form" %}
 {% endif %}
@@ -36,7 +36,14 @@
       hx-target="{{ target }}"
       {% endif %}
 >
-    <input type='file' name='file'>
+    <div class="input-bar">
+      <input type='file' name='file' accept=".torrent,application/x-bittorrent">
+      <div
+        class="value-label upload-size-limit">
+        <div class="key"><span>Max size</span></div>
+        <div class="value"><span>{{ humanize.naturalsize(config.upload_limit, binary=True) }}</span></div>
+      </div>
+    </div>
     <div class="status-bar">
         <button type="submit" class="form-button">
             Upload

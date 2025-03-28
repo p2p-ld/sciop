@@ -16,7 +16,7 @@
 
 <div id="torrent-container" class="surface flex column">
     <p>Upload a new torrent</p>
-{{ upload_form(dataset, parts, target="#torrent-metadata", post_to="upload", config=config) }}
+{{ upload_form(dataset, parts, target="#torrent-metadata", post_to="upload") }}
 
 <div id="torrent-metadata">
 {{ torrent_form_partial(torrent, form=form_id) }}

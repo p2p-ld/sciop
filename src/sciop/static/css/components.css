@@ -424,11 +424,44 @@ progress {
 
 progress::-webkit-progress-bar,
 progress::-moz-progress-bar {
-    background: repeating-linear-gradient(
-        90deg,
-        var(--color-primary) ,
-        var(--color-primary) 10px,
-        var(--color-background) 10px,
-        var(--color-background) 13px
-    );
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-primary) ,
+    var(--color-primary) 10px,
+    var(--color-background) 10px,
+    var(--color-background) 13px
+  );
+}
+
+.input-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.5em;
+
+  input {
+    flex-grow: 1;
   }
+}
+
+.value-label {
+  border-radius: 0.25em;
+  background-color: var(--color-background-shade);
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  font-family: var(--font-mono);
+
+  & > div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.1em 0.75em;
+  }
+
+  .value {
+    border-left: 1px solid var(--color-primary-shade-3);
+    border-radius: 0 0.25em 0.25em 0;
+    background-color: var(--color-background);
+  }
+}
