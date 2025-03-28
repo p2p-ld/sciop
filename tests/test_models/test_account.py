@@ -1,4 +1,5 @@
 import pytest
+import sqlalchemy
 from pydantic import ValidationError
 from sqlmodel import select
 
@@ -92,3 +93,9 @@ def test_has_scope_from_enum(admin_user, scope):
     assert admin_user.has_scope(scope)
     assert admin_user.has_scope(scope, Scopes.upload)
     assert admin_user.has_scope(scope, "upload")
+
+
+def test_username_uniqueness_case_insensitive(account):
+    acct1 = account(username="Original", create_only=True)
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        acct2 = account(username="original", create_only=True)

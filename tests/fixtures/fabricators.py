@@ -117,6 +117,7 @@ def account(
         scopes: list[Scopes] = None,
         is_suspended: bool = False,
         session_: Session | None = None,
+        create_only: bool = False,
         **kwargs: P.kwargs,
     ) -> Account:
         if not session_:
@@ -125,7 +126,9 @@ def account(
         scopes = [] if scopes is None else [Scope.get_item(s, session=session_) for s in scopes]
         kwargs = {**default_account.copy(), **kwargs}
 
-        account_ = crud.get_account(session=session_, username=kwargs["username"])
+        account_ = None
+        if not create_only:
+            account_ = crud.get_account(session=session_, username=kwargs["username"])
         if not account_:
             account_ = AccountCreate(**kwargs)
             account_ = crud.create_account(session=session_, account_create=account_)

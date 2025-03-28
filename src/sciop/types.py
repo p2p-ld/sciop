@@ -6,6 +6,7 @@ from os import PathLike as PathLike_
 from pathlib import Path
 from typing import Annotated, Optional, TypeAlias
 
+import sqlalchemy as sqla
 from annotated_types import Gt, MaxLen, MinLen
 from pydantic import AfterValidator, AnyUrl, BeforeValidator, TypeAdapter
 from slugify import slugify
@@ -30,14 +31,6 @@ def _validate_no_traversal(path: PathLike_) -> PathLike_:
 IDField: TypeAlias = Optional[Annotated[int, Gt(0)]]
 EscapedStr: TypeAlias = Annotated[str, AfterValidator(escape)]
 SlugStr: TypeAlias = Annotated[str, AfterValidator(slugify)]
-UsernameStr: TypeAlias = Annotated[
-    str,
-    MinLen(1),
-    MaxLen(64),
-    # Need a specific functional validator because sqlmodel regex validation is busted
-    AfterValidator(_validate_username),
-    Field(regex=USERNAME_PATTERN.pattern, unique=True),
-]
 AnyUrlTypeAdapter = TypeAdapter(AnyUrl)
 MaxLenURL = Annotated[
     str, MaxLen(512), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
@@ -47,6 +40,29 @@ FileName = Annotated[str, AfterValidator(_validate_no_traversal)]
 UTCDateTime = Annotated[datetime, AfterValidator(lambda x: x.replace(tzinfo=UTC))]
 # although this does not get applied when models are reloaded,
 # as it seems like values are populated by assignment, and we have validate_assignment=False
+
+
+def _username_col() -> sqla.Column:
+    return sqla.Column(
+        sqla.String(64, collation="NOCASE"),
+        index=False,  # unique creates an internal index
+        nullable=False,
+        unique=True,
+    )
+
+
+UsernameStr: TypeAlias = Annotated[
+    str,
+    MinLen(1),
+    MaxLen(64),
+    # Need a specific functional validator because sqlmodel regex validation is busted
+    AfterValidator(_validate_username),
+    Field(
+        ...,
+        regex=USERNAME_PATTERN.pattern,
+        sa_column=_username_col(),
+    ),
+]
 
 
 class AccessType(StrEnum):

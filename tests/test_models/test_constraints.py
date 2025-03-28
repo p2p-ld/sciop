@@ -19,5 +19,7 @@ def test_known_uniques(model: str, field: str):
     Regression test to protect against shit handling of mutiple `Field` annotations
     by sqlmodel
     """
-    col = [c for c in getattr(models, model).__table__.columns if c.name == field][0]
+    table = getattr(models, model).__table__
+    col = [c for c in table.columns if c.name == field][0]
+
     assert col.unique
