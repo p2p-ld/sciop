@@ -26,7 +26,7 @@ Choose your path:
 <span class="index-link-label" aria-hidden="true">"intro"</span>
 </a>
 
-<a href="using/browsing" aria-label="Usage">
+<a href="using/" aria-label="Usage">
 <pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █░██░█░▄▄█░▄▄▀█░▄▄▄█░▄▄
@@ -38,7 +38,7 @@ Choose your path:
 <span class="index-link-label" aria-hidden="true">"usage"</span>
 </a>
 
-<a href="uploading/rules" aria-label="Uploading">
+<a href="uploading/" aria-label="Uploading">
 <pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █░██░█▀▄▄▀█░██▀▄▄▀█░▄▄▀█░▄▀██▄██░▄▄▀█░▄▄▄
@@ -50,7 +50,7 @@ Choose your path:
 <span class="index-link-label" aria-hidden="true">"uploading"</span>
 </a>
 
-<a href="scraping/webpages" aria-label="Scraping">
+<a href="scraping/" aria-label="Scraping">
 <pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █░▄▄█▀▄▀█░▄▄▀█░▄▄▀█▀▄▄▀██▄██░▄▄▀█░▄▄▄
@@ -72,7 +72,7 @@ Choose your path:
 </pre>
 <span class="index-link-label" aria-hidden="true">"api"</span>
 </a>
-<a href="examples/index" aria-label="Examples">
+<a href="examples/" aria-label="Examples">
 <pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █░▄▄█░█░█░▄▄▀█░▄▀▄░█▀▄▄▀█░██░▄▄█░▄▄
@@ -83,7 +83,7 @@ Choose your path:
 </pre>
 <span class="index-link-label" aria-hidden="true">"examples"</span>
 </a>
-<a href="running/index" aria-label="Running">
+<a href="running/" aria-label="Running">
 <pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █░▄▄▀█░██░█░▄▄▀█░▄▄▀██▄██░▄▄▀█░▄▄▄
@@ -94,7 +94,7 @@ Choose your path:
 </pre>
 <span class="index-link-label" aria-hidden="true">"running"</span>
 </a>
-<a href="develop/design" aria-label="Developing">
+<a href="develop/" aria-label="Developing">
 <pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 █░▄▀█░▄▄█▀███▀█░▄▄█░██▀▄▄▀█▀▄▄▀██▄██░▄▄▀█░▄▄▄
