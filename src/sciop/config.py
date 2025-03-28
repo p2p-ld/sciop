@@ -183,7 +183,7 @@ class Config(BaseSettings):
     public_url: str = "http://localhost"
     token_expire_minutes: int = 60 * 24  # AKA 1 day
     api_prefix: str = "/api/v1"
-    upload_limit: int = 2**24
+    upload_limit: int = 100 * (2**20)  # 100MB
     """in bytes"""
     torrent_dir: Path = Path(_dirs.user_data_dir) / "torrents"
     """Directory to store uploaded torrents"""

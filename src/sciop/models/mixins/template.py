@@ -8,6 +8,7 @@ from copy import copy
 from datetime import UTC, datetime
 from typing import Any, ClassVar, Dict, List, Optional, Union
 
+import humanize
 import jinja2
 from jinja2 import Environment
 from pydantic import BaseModel
@@ -29,8 +30,16 @@ def get_env_globals() -> dict:
     # const within closure to avoid the infinite monkeypatching hell problem
     # since we need to import models here
     from sciop import models
+    from sciop.config import config
 
-    return {"models": models, "now": datetime.now, "UTC": UTC, "unwrap_optional": unwrap_optional}
+    return {
+        "models": models,
+        "now": datetime.now,
+        "UTC": UTC,
+        "unwrap_optional": unwrap_optional,
+        "config": config,
+        "humanize": humanize,
+    }
 
 
 def get_env_tests() -> dict:
