@@ -8,10 +8,10 @@ from copy import copy
 from datetime import UTC, datetime
 from typing import Any, ClassVar, Dict, List, Optional, Union
 
+import humanize
 import jinja2
 from jinja2 import Environment
 from pydantic import BaseModel
-import humanize
 
 from sciop.const import TEMPLATE_DIR
 from sciop.helpers.type import unwrap_optional
