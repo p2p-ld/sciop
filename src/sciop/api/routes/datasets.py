@@ -1,4 +1,9 @@
-from typing import Annotated, TypedDict
+import sys
+from typing import Annotated
+if sys.version_info < (3, 12):
+    from typing_extensions import TypedDict
+else:
+    from typing import TypedDict
 
 from fastapi import APIRouter, Body, Form, HTTPException
 from fastapi_pagination import Page
