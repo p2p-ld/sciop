@@ -154,10 +154,14 @@ table {
 }
 
 #torrent-table {
+  width: 100%;
+  overflow: hidden;
+
   .model-table-value {
     max-height: 50vh;
     overflow-y: scroll;
     display: block;
+    word-break: break-all;
   }
 }
 

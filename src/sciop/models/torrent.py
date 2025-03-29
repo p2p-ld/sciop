@@ -54,7 +54,7 @@ class Torrent(Torrent_):
     and not spend literally eons processing torrent files
     """
 
-    MAX_TORRENT_FILE_SIZE = int(40e6)  # 40MB
+    MAX_TORRENT_FILE_SIZE = config.upload_limit
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -208,7 +208,7 @@ _torrent.utils.key_exists_in_list_or_dict = _key_exists_in_list_or_dict
 _torrent.utils.assert_type = _assert_type
 
 
-class FileInTorrent(TableMixin, EditableMixin, table=True):
+class FileInTorrent(TableMixin, table=True):
     """A file within a torrent file"""
 
     __tablename__ = "files_in_torrent"
