@@ -170,9 +170,12 @@ async def run_server(session: Session) -> Server_:
         yield server
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def driver_executable_path() -> str:
-    return firefox.GeckoDriverManager(cache_manager=LazyCacheManager()).install()
+    try:
+        return firefox.GeckoDriverManager(cache_manager=LazyCacheManager()).install()
+    except ValueError as e:
+        pytest.skip(f"couldn't download webdriver {str(e)}")
 
 
 @pytest.fixture()
