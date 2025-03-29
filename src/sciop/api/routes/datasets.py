@@ -1,5 +1,6 @@
 import sys
 from typing import Annotated
+
 if sys.version_info < (3, 12):
     from typing_extensions import TypedDict
 else:
