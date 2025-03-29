@@ -2,7 +2,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 import sciop
-from sciop.api.deps import CurrentAccount, RequireCurrentAccount
+from sciop import crud
+from sciop.api.deps import CurrentAccount, RequireCurrentAccount, SessionDep
 from sciop.const import STATIC_DIR
 from sciop.frontend.templates import templates
 from sciop.models import DatasetCreate
@@ -11,18 +12,18 @@ index_router = APIRouter()
 
 
 @index_router.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def index(request: Request, session: SessionDep):
     try:
         short_hash = sciop.__version__.split("+")[1]
     except IndexError:
         short_hash = ""
+
+    stats = crud.get_latest_site_stats(session=session)
+
     return templates.TemplateResponse(
         request,
         "pages/index.html",
-        {
-            "version": sciop.__version__,
-            "short_hash": short_hash,
-        },
+        {"version": sciop.__version__, "short_hash": short_hash, "stats": stats},
     )
 
 

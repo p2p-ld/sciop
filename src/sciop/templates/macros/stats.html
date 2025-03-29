@@ -1,0 +1,51 @@
+{% macro site_stats(stats) %}
+<div class="site-stats">
+  <p>
+  <span>Tracking
+    <span class="value-phrase">
+    <span class="value">{{ stats.n_datasets }}</span>
+    datasets
+    </span>
+    <br>
+    with
+    <span class="value-phrase">
+      <span class="value">{{ stats.n_uploads }}</span>
+    uploads.
+    </span>
+  </span>
+  </p>
+  <p>
+  <span>
+    <span class="value-phrase">
+    <span class="value">{{ stats.n_seeders + stats.n_downloaders }}</span>
+      peers,
+    </span>
+
+    <span class="value-phrase">
+      <span class="value">{{ stats.n_seeders }}</span>
+      seeders
+    </span>
+  </span>
+  <span>
+    sharing
+    <br>
+    <span class="value-phrase">
+      <span class="value">{{ humanize.naturalsize(stats.total_size) }}</span>
+    </span>
+      in
+    <span class="value-phrase">
+      <span class="value">{{ stats.n_files }}</span>
+      files.
+    </span>
+  </span>
+  </p>
+  <p>
+  <span class="fourth">
+    Swarm capacity
+    <span class="value-phrase">
+    <span class="value">{{ humanize.naturalsize(stats.total_capacity) }}</span>
+    </span>
+  </span>
+  </p>
+</div>
+{% endmacro %}

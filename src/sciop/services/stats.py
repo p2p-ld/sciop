@@ -28,7 +28,7 @@ class PeerStats(TypedDict):
     total_size: int
 
 
-def update_site_stats() -> None:
+async def update_site_stats() -> None:
     global logger
     from sciop.db import get_session
 
