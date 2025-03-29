@@ -14,6 +14,9 @@ permissions:
 jobs:
   test-solaris:
     name: tests
+    strategy:
+      matrix:
+        python-version: [ "3.11", "3.12", "3.13" ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -24,7 +27,7 @@ jobs:
       - name: Install python
         uses: https://code.forgejo.org/actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: ${{ matrix.python-version }}
           cache: 'pip'
       - name: Install deps
         run: pip install -e .[test]
