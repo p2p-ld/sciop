@@ -208,7 +208,7 @@ _torrent.utils.key_exists_in_list_or_dict = _key_exists_in_list_or_dict
 _torrent.utils.assert_type = _assert_type
 
 
-class FileInTorrent(TableMixin, EditableMixin, table=True):
+class FileInTorrent(TableMixin, table=True):
     """A file within a torrent file"""
 
     __tablename__ = "files_in_torrent"
