@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   test-solaris:
-    name: tests
+    name: tests-python_${{ matrix.python-version }}
     strategy:
       matrix:
         python-version: [ "3.11", "3.12", "3.13" ]
