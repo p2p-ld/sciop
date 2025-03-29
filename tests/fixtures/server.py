@@ -170,9 +170,19 @@ async def run_server(session: Session) -> Server_:
         yield server
 
 
+@pytest.fixture(scope="session")
+def driver_executable_path() -> str:
+    try:
+        return firefox.GeckoDriverManager(cache_manager=LazyCacheManager()).install()
+    except ValueError as e:
+        pytest.skip(f"couldn't download webdriver {str(e)}")
+
+
 @pytest.fixture()
-async def driver(run_server: Server_, request: pytest.FixtureRequest) -> webdriver.Firefox:
-    executable_path = firefox.GeckoDriverManager(cache_manager=LazyCacheManager()).install()
+async def driver(
+    run_server: Server_, request: pytest.FixtureRequest, driver_executable_path: str
+) -> webdriver.Firefox:
+    executable_path = driver_executable_path
     options = FirefoxOptions()
     options.add_argument("--disable-dev-shm-usage")
     if not request.config.getoption("--show-browser"):
