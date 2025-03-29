@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Self
 import bencodepy
 import humanize
 from pydantic import ModelWrapValidatorHandler, field_validator, model_validator
-from sqlalchemy import ColumnElement, Connection, event
+from sqlalchemy import ColumnElement, Connection, SQLColumnExpression, event
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.orm.mapper import Mapper
@@ -311,6 +311,24 @@ class TorrentFileBase(SQLModel):
         """Tracker links mapped by announce url"""
         return {link.tracker.announce_url: link for link in self.tracker_links}
 
+    @property
+    def seeders(self) -> int | None:
+        seeders = [link.seeders for link in self.tracker_links if link.seeders is not None]
+        if not seeders:
+            return None
+        return max(seeders)
+
+    @property
+    def leechers(self) -> int | None:
+        leechers = [link.leechers for link in self.tracker_links if link.leechers is not None]
+        if not leechers:
+            return None
+        return max(leechers)
+
+    @property
+    def n_files(self) -> int:
+        return len(self.files)
+
 
 class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
     __tablename__ = "torrent_files"
@@ -351,10 +369,8 @@ class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
         return max(seeders)
 
     @seeders.inplace.expression
-    def _seeders(self) -> ColumnElement[Optional[int]]:
-        return func.max(TorrentTrackerLink.seeders).where(
-            TorrentTrackerLink.torrent_id == self.torrent_id
-        )
+    def _seeders(self) -> SQLColumnExpression[int]:
+        return func.max(TorrentTrackerLink.seeders)
 
     @hybrid_property
     def leechers(self) -> Optional[int]:
@@ -365,9 +381,17 @@ class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
 
     @leechers.inplace.expression
     def _leechers(self) -> ColumnElement[Optional[int]]:
-        return func.max(TorrentTrackerLink.leechers).where(
-            TorrentTrackerLink.torrent_id == self.torrent_id
-        )
+        return func.max(TorrentTrackerLink.leechers)
+
+    @hybrid_property
+    def n_files(self) -> int:
+        return len(self.files)
+
+    @n_files.inplace.expression
+    @classmethod
+    def _n_files(cls) -> ColumnElement[int]:
+        return func.count(cls.files)
+        # .where(FileInTorrent.torrent_id == cls.torrent_file_id))
 
 
 @event.listens_for(TorrentFile, "after_delete")

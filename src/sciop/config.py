@@ -150,6 +150,13 @@ class ScrapeConfig(JobConfig):
     """
 
 
+class StatsConfig(JobConfig):
+    """Computation of site statistics"""
+
+    job_interval: int = 60
+    """frequency of recalculating stats, in minutes"""
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -217,6 +224,7 @@ class Config(BaseSettings):
     that template will be used rather than ``sciop/templates/pages/datasets.html``
     """
     tracker_scraping: ScrapeConfig = ScrapeConfig()
+    site_stats: StatsConfig = StatsConfig()
 
     @computed_field  # type: ignore[prop-decorator]
     @property
