@@ -44,6 +44,7 @@ from sciop.models.mixins import EditableMixin
 from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
 from sciop.models.mystery import _Friedolin
 from sciop.models.rss import TorrentFeed, TorrentItem
+from sciop.models.stats import SiteStats, SiteStatsRead
 from sciop.models.tag import DatasetTagLink, Tag, TagSummary
 from sciop.models.torrent import (
     FileInTorrent,
@@ -62,6 +63,7 @@ DatasetRead.model_rebuild()
 DatasetPart.model_rebuild()
 DatasetPartRead.model_rebuild()
 Scope.model_rebuild()
+TorrentFile.model_rebuild()
 EditableMixin.rebuild_history_models(namespace=locals())
 
 __all__ = [
@@ -89,6 +91,8 @@ __all__ = [
     "ModerationAction",
     "Scope",
     "Scopes",
+    "SiteStats",
+    "SiteStatsRead",
     "SuccessResponse",
     "Tag",
     "TagSummary",

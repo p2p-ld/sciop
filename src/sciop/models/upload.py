@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Self
+from typing import TYPE_CHECKING, Optional, Self, cast
 from urllib.parse import urljoin
 
 import sqlalchemy as sqla
@@ -111,6 +111,18 @@ class UploadBase(ModerableMixin):
             </p>
         """
 
+    @property
+    def n_files(self) -> int:
+        return self.torrent.n_files
+
+    @property
+    def seeders(self) -> int:
+        return self.torrent.seeders
+
+    @property
+    def leechers(self) -> int:
+        return self.torrent.leechers
+
 
 class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, table=True):
     __tablename__ = "uploads"
@@ -158,6 +170,28 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, table=True)
     @seeders.inplace.expression
     def _leechers(self) -> ColumnElement[Optional[int]]:
         return self.torrent._leechers()
+
+    @hybrid_property
+    def size(self) -> int:
+        return self.torrent.total_size
+
+    @size.inplace.expression
+    def _size(self) -> ColumnElement[int]:
+        return cast(
+            "ColumnElement[int]",
+            TorrentFile.total_size,
+        )
+
+    @hybrid_property
+    def n_files(self) -> int:
+        return self.torrent.n_files
+
+    @n_files.inplace.expression
+    def _n_files(self) -> ColumnElement[int]:
+        return cast(
+            "ColumnElement[int]",
+            TorrentFile.n_files,
+        )
 
     @hybrid_property
     def is_visible(self) -> bool:
