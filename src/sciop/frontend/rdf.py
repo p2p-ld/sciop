@@ -82,7 +82,8 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
         g.add((n, DCAT["downloadURL"], URIRef(u.url)))
     for i in d.external_identifiers:
         g.add((DSID[d.slug], DCTERMS["identifier"], Literal(i.identifier)))
-        g.add((DSID[d.slug], SCIOP[i.type], URIRef(i.uri)))
+        if i.uri is not None:
+            g.add((DSID[d.slug], SCIOP[i.type], URIRef(i.uri)))
         if i.type in ("doi", "isbn", "issn"):
             g.add((DSID[d.slug], BIBO[i.type], Literal(i.identifier)))
     for u in d.uploads:
