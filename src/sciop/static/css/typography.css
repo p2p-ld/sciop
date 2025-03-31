@@ -427,14 +427,14 @@ div.status-strip {
 }
 
 .site-stats {
+  --color-bg: lch(from var(--color-accent) calc(l - 30) calc(c - 90) h);
+
   max-width: var(--width-container);
   font-size: 1.5em;
   text-align: left;
   margin: 1em auto;
   padding: 0.5em 0;
   position: relative;
-
-  --color-bg: lch(from var(--color-accent) calc(l - 30) calc(c - 90) h);
 
   span {
     font-weight: bold;
@@ -445,7 +445,6 @@ div.status-strip {
     top: 0;
     right: 1em;
     font-size: 0.8rem;
-
 
     span {
       font-family: var(--font-mono);
@@ -459,16 +458,14 @@ div.status-strip {
     font-family: var(--font-mono);
     font-weight: normal;
   }
+
   .value-phrase {
     position: relative;
     color: var(--color-accent);
     z-index: 1;
     text-shadow: 2px 2px var(--color-background), 2px 2px var(--color-background);
 
-    /*mix-blend-mode: difference;*/
-
     &:before {
-
       content: " ";
       width: 100%;
       height: 0.4em;
@@ -485,6 +482,7 @@ div.status-strip {
       z-index: -1;
     }
   }
+
   & > p {
     margin: 0.5em 0;
   }
@@ -519,7 +517,6 @@ div.status-strip {
     p, li {
       font-size: 1rem;
     }
-
   }
 }
 
