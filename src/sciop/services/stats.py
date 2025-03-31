@@ -20,7 +20,7 @@ logger = init_logger("sciop.stats")
 
 
 class PeerStats(TypedDict):
-    """Just the counts that can be grabbed simply"""
+    """Counts that can be grabbed efficiently together in get_peer_stats"""
 
     n_seeders: int
     n_downloaders: int
@@ -29,6 +29,10 @@ class PeerStats(TypedDict):
 
 
 async def update_site_stats() -> None:
+    """
+    Update the site stats, a summary of the current number of datasets indexed,
+    their peers (if present), and size.
+    """
     global logger
     from sciop.db import get_session
 
