@@ -70,6 +70,7 @@ def get_peer_stats(session: Session) -> PeerStats:
         .join(TorrentFile.upload)
         .group_by(TorrentFile.torrent_file_id)
         .where(Upload.is_visible == True)
+        .subquery()
     )
     # then take the sum of all leechers, seeders, and multiply by size to get capacity
     peer_count_stmt = select(

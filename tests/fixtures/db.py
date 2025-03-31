@@ -98,9 +98,9 @@ def recreate_models() -> Callable[[], "Engine"]:
     """Callable fixture to recreate models after any inline definitions of tables"""
 
     def _recreate_models() -> "Engine":
-        from sciop.config import config
+        from sciop.db import get_engine
 
-        engine = create_engine(str(config.sqlite_path))
+        engine = get_engine()
         SQLModel.metadata.create_all(engine)
         return engine
 
