@@ -47,6 +47,16 @@ pre {
   border-radius: 3px;
 }
 
+code {
+  background-color: var(--color-background-shade);
+  border: 1px solid var(--color-border-deemphasized);
+  border-radius: 3px;
+  color: var(--color-primary-shade-3);
+  font-family: var(--font-mono);
+  font-size: 85%;
+  padding: 0.15em 0.25em;
+}
+
 .flex {
   display: flex;
   row-gap: 0.5em;

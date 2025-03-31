@@ -27,9 +27,11 @@
             href="https://codeberg.org/Safeguarding/sciop/issues">the repo.</a>
         </p>
 
+        {% if stats %}
         <div class="site-stats-container">
         {{ site_stats(stats) }}
         </div>
+        {% endif %}
 
         <div class="status-strip">
             <div class="window">

@@ -5,13 +5,19 @@ from sciop.types import IDField, UTCDateTime
 
 
 class SiteStatsBase(SQLModel):
-    n_seeders: int
-    n_downloaders: int
+    """
+    Site summary stats
+
+    Items that require tracker scraping to be enabled are optional
+    """
+
+    n_seeders: int | None = None
+    n_downloaders: int | None = None
     n_datasets: int
     n_uploads: int
     n_files: int
     total_size: int
-    total_capacity: int
+    total_capacity: int | None = None
 
 
 class SiteStats(SiteStatsBase, TableMixin, table=True):

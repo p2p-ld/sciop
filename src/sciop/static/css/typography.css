@@ -427,12 +427,12 @@ div.status-strip {
 }
 
 .site-stats {
-  width: var(--width-container);
+  max-width: var(--width-container);
   font-size: 1.5em;
   text-align: left;
   margin: 1em auto;
-  max-width: var(--width-container);
   padding: 0.5em 0;
+  position: relative;
 
   --color-bg: lch(from var(--color-accent) calc(l - 30) calc(c - 90) h);
 
@@ -440,10 +440,23 @@ div.status-strip {
     font-weight: bold;
   }
 
+  .info-tab {
+    position: absolute;
+    top: 0;
+    right: 1em;
+    font-size: 0.8rem;
+
+
+    span {
+      font-family: var(--font-mono);
+      font-weight: normal;
+      font-style: italic;
+      color: var(--color-text-deemphasized);
+    }
+  }
 
   .value {
     font-family: var(--font-mono);
-
     font-weight: normal;
   }
   .value-phrase {
@@ -497,4 +510,24 @@ div.status-strip {
       --color-bg: lch(from var(--color-accent) calc(l - 5) calc(c - 50) h / 0.35);
     }
   }
+
+  #site-stats-info {
+    max-width: unset;
+    .modal-header {
+      font-size: 1em;
+    }
+    p, li {
+      font-size: 1rem;
+    }
+
+  }
+}
+
+@media only screen and (max-width: 768px) {
+ .site-stats-container {
+   padding: 0 1em;
+   .site-stats {
+     padding: 1em 1em;
+   }
+ }
 }

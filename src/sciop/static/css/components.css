@@ -38,6 +38,17 @@ button,
     color: var(--color-primary-contrast);
   }
 
+  &.deemphasized {
+    border-color: var(--color-border-deemphasized);
+    color: var(--color-text-deemphasized);
+    box-shadow: 2px 2px 0 var(--color-background-deemphasized);
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-text-deemphasized);
+      color: var(--color-background-deemphasized);
+    }
+  }
+
   &.caution {
     border-color: var(--color-caution);
     color: var(--color-caution);
@@ -270,23 +281,23 @@ a.button:hover {
   transition: opacity 200ms ease-in;
 }
 
-#error-modal-container {
+.modal-container {
   display: none;
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  /*z-index: -99;*/
   background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
 
-  &:has(.error-modal) {
+  &.visible {
     display: flex;
     align-items: center;
     align-content: center;
   }
 
-  .error-modal {
+  .modal {
     background-color: var(--color-background);
     margin: auto;
     width: 80%;
@@ -301,9 +312,19 @@ a.button:hover {
       justify-content: space-between;
       padding: 0.2em 0.5em;
     }
+
     .modal-body {
       padding: 1em;
     }
+  }
+
+}
+
+#error-modal-container {
+  &:has(.error-modal) {
+    display: flex;
+    align-items: center;
+    align-content: center;
   }
 }
 

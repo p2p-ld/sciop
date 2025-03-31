@@ -1,20 +1,21 @@
 {% macro site_stats(stats) %}
 <div class="site-stats">
   <p>
-  <span>Tracking
-    <span class="value-phrase">
+  <span>Indexing
+    <a href="/datasets" class="value-phrase">
     <span class="value">{{ stats.n_datasets }}</span>
     datasets
-    </span>
+    </a>
     <br>
     with
-    <span class="value-phrase">
+    <a href="/uploads" class="value-phrase">
       <span class="value">{{ stats.n_uploads }}</span>
     uploads.
-    </span>
+    </a>
   </span>
   </p>
   <p>
+  {% if stats.n_seeders is not none and stats.n_downloaders is not none %}
   <span>
     <span class="value-phrase">
     <span class="value">{{ stats.n_seeders + stats.n_downloaders }}</span>
@@ -26,9 +27,12 @@
       seeders
     </span>
   </span>
+  {% endif %}
   <span>
     sharing
+    {% if stats.n_seeders is not none and stats.n_downloaders is not none %}
     <br>
+    {% endif %}
     <span class="value-phrase">
       <span class="value">{{ humanize.naturalsize(stats.total_size) }}</span>
     </span>
@@ -39,6 +43,7 @@
     </span>
   </span>
   </p>
+  {% if stats.total_capacity is not none %}
   <p>
   <span class="fourth">
     Swarm capacity
@@ -47,5 +52,61 @@
     </span>
   </span>
   </p>
+  {% endif %}
+  <div class="info-tab">
+    <span>last updated {{ stats.created_at.strftime("%y-%m-%dT%H:%M") }}</span>
+    <button class="site-stats-info-button deemphasized modal-button"
+      data-modal-target="#site-stats-info-container"
+      aria-label="site stats information"
+      >&#9432;</button>
+  </div>
+  {{ stats_info() }}
+</div>
+{% endmacro %}
+
+{% macro stats_info() %}
+<div id="site-stats-info-container" class="modal-container">
+<div id="site-stats-info" class="modal">
+  <div class="modal-header">
+    <span class="modal-title">Site Stats Info</span>
+    <button class="close-button modal-button" data-modal-target="#site-stats-info-container">
+      close
+    </button>
+  </div>
+  <div class="modal-body">
+    <p>
+      Peer stats are reported according to the current capabilities of sciop to scrape stats from other trackers,
+      since sciop is not yet a bittorrent tracker in its own right.
+      Peer stats are thus necessarily an <i>undercount</i>: for the number of seeders and downloaders in a torrent,
+      we take the maximum count given by any of the listed trackers, which does not account for
+      duplicate peers across multiple trackers.
+    </p>
+    <p>
+      Being a <i>unique</i> source of data is an anti-goal of sciop:
+      we do not claim that these peers or datasets are unique to this instance of sciop,
+      since its entire purpose is to aggregate and disperse information to and from many different sources.
+      Uploads and peers may have originated on other trackers or archival systems,
+      and that's a good thing.
+    </p>
+    <p>
+      Notes on specific values:
+      <ul>
+       <li>
+         <b>Peer and seeder counts</b> are calculated <i>per torrent swarm</i> -
+        e.g. if there were 3 torrents, and each of them had 3 seeders,
+        that would be reported here as 9 seeders.
+        Tracking and reporting the number of unique peers is an information leak,
+        and sciop attempts to minimize the amount of PII it stores.
+       </li>
+      <li>
+        <b>Swam capacity</b> is the total instantaneous proven storage in the swarm,
+        the sum of the number of seeders * torrent size for each torrent,
+        or, in pseudo-python,
+        <code>sum([torrent.seeders * torrent.size for torrent in sciop])</code>.
+      </li>
+      </ul>
+    </p>
+  </div>
+</div>
 </div>
 {% endmacro %}

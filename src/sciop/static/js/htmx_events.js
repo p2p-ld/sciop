@@ -60,7 +60,10 @@ htmx.on("htmx:beforeOnLoad", (evt) => {
   }
 })
 
-// Close buttons on modals
+// Close buttons on error modals
+// Distinct from other modals, because closing deletes the internal error element
+// rather than making the container invisible,
+// as one would do for a modal that would be expected to reappear
 htmx.on("htmx:afterSwap", (evt) => {
   if (evt.detail.xhr.status<400){ return }
   let modal = evt.detail.target.querySelector(".error-modal");
@@ -201,3 +204,14 @@ function init_index_cancel_button(){
   }))
 }
 init_index_cancel_button();
+
+function init_modal_buttons(){
+  let modal_buttons = document.querySelectorAll(".modal-button");
+  modal_buttons.forEach(btn => {
+    let target = document.querySelector(btn.getAttribute('data-modal-target'));
+    btn.addEventListener("mouseup", (evt) => {
+      target.classList.toggle('visible')
+    })
+  })
+}
+init_modal_buttons()

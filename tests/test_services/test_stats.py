@@ -1,29 +1,9 @@
 from typing import TYPE_CHECKING
 
-import pytest
-from faker import Faker
-
 from sciop.services.stats import get_n_files, get_peer_stats
 
 if TYPE_CHECKING:
-    from sciop.models import Dataset, TorrentFile
-
-
-@pytest.fixture
-def countables(dataset, upload, torrentfile, uploader) -> list["Dataset"]:
-    fake = Faker()
-    datasets = []
-    for _ in range(3):
-        ds: Dataset = dataset(
-            slug="-".join(fake.words(3)),
-        )
-        for _ in range(3):
-            tf: TorrentFile = torrentfile(total_size=1000)
-            tf.tracker_links[0].seeders = 5
-            tf.tracker_links[0].leechers = 10
-            upload(dataset_=ds, torrentfile_=tf)
-        datasets.append(ds)
-    return datasets
+    from sciop.models import Dataset
 
 
 def test_peer_stats(countables: list[Dataset], session):
