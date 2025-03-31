@@ -59,6 +59,8 @@ body {
   &.light-theme {
     --color-primary: lch(75.67% 48.81 313.27);
     --color-text: #000;
+    --color-text-deemphasized: color-mix(in srgb, var(--color-text) 65%, var(--color-background));
+
     --color-background: var(--color-light-background);
     --color-background-shade: color-mix(in lch, var(--color-background) 95%, var(--color-dark-background));
     --color-background-deemphasized: color-mix(in lch, var(--color-background) 96%, var(--color-dark-background));
