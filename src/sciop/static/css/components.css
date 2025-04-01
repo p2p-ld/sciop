@@ -389,11 +389,20 @@ a.button:hover {
       transition-delay: 0s;
   }
 }
+body.light-theme {
+  .rss-link {
+    box-shadow: 1px 0 1px var(--color-dark-background);
+    z-index: 2
+  }
 
-body.light-theme .tag-item .rss-icon {
-  filter: invert(1);
-  &:hover {
-    filter: invert(0);
+  .tag-item {
+    .rss-icon, .rdf-icon {
+      filter: invert(1);
+
+      &:hover {
+        filter: invert(0);
+      }
+    }
   }
 }
 

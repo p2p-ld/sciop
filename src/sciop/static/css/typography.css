@@ -43,7 +43,7 @@
     color: var(--color-link);
     font-family: var(--font-mono);
     font-size: 85%;
-    padding: 0.15em 0.25em;
+    padding: 0.25em 0.35em;
     text-wrap: nowrap;
 }
 
