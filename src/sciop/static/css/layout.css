@@ -80,28 +80,34 @@ table {
 /* --- Datasets layout --- */
 
 .datasets-table {
-  --item-cols: 1em minmax(12em, 2fr) 7fr 1em 7em;
+  --item-cols: 1em minmax(12em, 2fr) 7fr 1em 6.5em;
   display: grid;
 
   &.review {
-    --item-cols: 1em minmax(12em, 2fr) 7fr 1em 7em 4em 4em;
+    --item-cols: 1em minmax(12em, 2fr) 7fr 1em 6.5em 5em 4em;
   }
 }
 
 .dataset-parts-table {
-  --item-cols: 1em 1fr 7em 1em 1em;
+  --item-cols: 1em 1fr 6.5em 1em 1em;
 
   &.review {
-    --item-cols: 1em 1fr 7em 4em 4em;
+    --item-cols: 1em 1fr 6.5em 5em 4em;
   }
 }
 
 .uploads-table {
-  --item-cols: 1em 6em 7fr 5em 3em 3em  4em 1em;
+  --item-cols: 1em 5em 7fr 5em 3em 3em 4em 1em;
   display: grid;
 
   &.review {
-    --item-cols: 1em 6em 7fr 5em 4em 4em 4em;
+    --item-cols: 1em 5em 7fr 5em 3em 3em 4em 5em 4em;
+  }
+
+  #uploads-table-head {
+    .seeders-icon, .downloaders-icon {
+      text-align: center;
+    }
   }
 }
 
@@ -147,6 +153,11 @@ table {
   .timestamp
   {
     font-family: var(--font-mono);
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .upload-title {
     text-wrap: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
