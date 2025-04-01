@@ -395,6 +395,13 @@ def _generate_dataset(fake: "Faker") -> "DatasetCreate":
         part = DatasetPartCreate(part_slug=str(part_slug), paths=paths)
         parts.append(part)
 
+    tags = []
+    for _ in range(3):
+        tag = fake.word().lower()
+        while len(tag) < 3:
+            tag = fake.word().lower()
+        tags.append(tag)
+
     return DatasetCreate(
         slug=slug,
         title=title,
@@ -408,7 +415,7 @@ def _generate_dataset(fake: "Faker") -> "DatasetCreate":
         threat=random.choice(list(Threat.__members__.values())),
         scarcity=random.choice(list(Scarcity.__members__.values())),
         urls=[fake.url() for _ in range(3)],
-        tags=[f for f in [fake.word().lower() for _ in range(3)] if len(f) > 2],
+        tags=tags,
         external_identifiers=[
             ExternalIdentifierCreate(
                 type="doi",

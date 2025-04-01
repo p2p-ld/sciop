@@ -22,7 +22,7 @@ def account_partial(username: str):
     return None
 
 
-@accounts_router.get("/{username}/datasets", response_class=HTMLResponse)
+@accounts_router.get("/{username}/datasets")
 @jinja.hx("partials/datasets.html")
 def account_datasets(
     username: str,
@@ -39,7 +39,7 @@ def account_datasets(
     return paginate(conn=session, query=stmt)
 
 
-@accounts_router.get("/{username}/uploads", response_class=HTMLResponse)
+@accounts_router.get("/{username}/uploads")
 @jinja.hx("partials/uploads.html")
 def account_uploads(
     username: str,

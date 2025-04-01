@@ -22,7 +22,7 @@ def tag_show(tag: str, tag_obj: RequireTag, request: Request):
     )
 
 
-@tags_router.get("/{tag}/datasets", response_class=HTMLResponse)
+@tags_router.get("/{tag}/datasets")
 @jinja.hx("partials/datasets.html")
 def tag_datasets(
     tag: str,
@@ -39,7 +39,7 @@ def tag_datasets(
     return paginate(conn=session, query=stmt)
 
 
-@tags_router.get("/{tag}/uploads", response_class=HTMLResponse)
+@tags_router.get("/{tag}/uploads")
 @jinja.hx("partials/uploads.html")
 def tag_uploads(
     tag: str,

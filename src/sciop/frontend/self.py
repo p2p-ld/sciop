@@ -51,7 +51,7 @@ async def log(request: Request, account: RequireReviewer):
     return templates.TemplateResponse(request, "pages/self/log.html")
 
 
-@self_router.get("/datasets", response_class=HTMLResponse)
+@self_router.get("/datasets")
 @jinja.hx("partials/datasets.html")
 async def datasets(
     request: Request, account: RequireCurrentAccount, session: SessionDep
@@ -64,7 +64,7 @@ async def datasets(
     return paginate(conn=session, query=stmt)
 
 
-@self_router.get("/uploads", response_class=HTMLResponse)
+@self_router.get("/uploads")
 @jinja.hx("partials/uploads.html")
 async def uploads(
     request: Request, account: RequireCurrentAccount, session: SessionDep
@@ -77,21 +77,21 @@ async def uploads(
     return paginate(conn=session, query=stmt)
 
 
-@self_router.get("/review/datasets", response_class=HTMLResponse)
+@self_router.get("/review/datasets")
 @jinja.hx("partials/review-datasets.html")
 async def review_datasets(account: RequireReviewer, session: SessionDep) -> Page[Dataset]:
     stmt = select(Dataset).where(Dataset.needs_review == True)
     return paginate(conn=session, query=stmt)
 
 
-@self_router.get("/review/dataset-parts", response_class=HTMLResponse)
+@self_router.get("/review/dataset-parts")
 @jinja.hx("partials/review-parts.html")
 async def review_parts(account: RequireReviewer, session: SessionDep) -> Page[DatasetPart]:
     stmt = select(DatasetPart).where(DatasetPart.needs_review == True)
     return paginate(conn=session, query=stmt)
 
 
-@self_router.get("/review/uploads", response_class=HTMLResponse)
+@self_router.get("/review/uploads")
 @jinja.hx("partials/review-uploads.html")
 async def review_uploads(
     request: Request, account: RequireReviewer, session: SessionDep

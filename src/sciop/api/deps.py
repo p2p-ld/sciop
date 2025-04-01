@@ -302,7 +302,7 @@ RequireAnyAccount = Annotated[Account, Depends(require_any_account)]
 
 def require_tag(tag: str, session: SessionDep) -> Tag:
     existing_tag = crud.get_tag(session=session, tag=tag)
-    if not tag:
+    if not existing_tag:
         raise HTTPException(
             status_code=404,
             detail=f"No such tag {tag} exists!",
