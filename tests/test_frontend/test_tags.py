@@ -16,6 +16,7 @@ def test_tags_datasets_json(client, dataset):
 
     res = client.get("/tags/atag/datasets")
     assert res.status_code == 200
+    data = res.json()
 
-    got_slugs = [item["slug"] for item in res["items"]]
+    got_slugs = [item["slug"] for item in data["items"]]
     assert set(slugs) == set(got_slugs)
