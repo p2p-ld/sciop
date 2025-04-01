@@ -37,7 +37,7 @@ def login(
     response.set_cookie(
         key="access_token", value=token, httponly=True, secure=True, samesite="strict"
     )
-    response.headers["HX-Location"] = "/self"
+    response.headers["HX-Location"] = "/self/"
     return Token(access_token=token)
 
 
@@ -68,5 +68,5 @@ def register(
     response.set_cookie(
         key="access_token", value=token, httponly=True, secure=True, samesite="strict"
     )
-    response.headers["HX-Location"] = "/self"
+    response.headers["HX-Location"] = "/self/"
     return created_account

@@ -16,7 +16,7 @@
     {% include "includes/theme-toggle.html" %}
 		<a class="nav-button outline" href="/request">Add Dataset</a>
 		{% if current_account %}
-		<a href="/self" class="nav-button">{{ current_account.username }}</a>
+		<a href="/self/" class="nav-button">{{ current_account.username }}</a>
 		{% else %}
 		<a href="/login" class="nav-button">Login</a>
 		{% endif %}
