@@ -1,5 +1,5 @@
 <nav class="tabs self-tabs" id="self-tabs">
-  <a href="/self" class="nav-link tab-link {% if request.url.path.endswith('self/') %}current{% endif %}">Profile</a>
+  <a href="/self/" class="nav-link tab-link {% if request.url.path.endswith('self/') %}current{% endif %}">Profile</a>
   {% if current_account.has_scope("review") %}
     <a href="/self/review" class="nav-link tab-link {% if 'review' in request.url.path %}current{% endif %}">Review</a>
   {% endif %}
