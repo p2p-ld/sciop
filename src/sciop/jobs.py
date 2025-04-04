@@ -12,3 +12,8 @@ async def scrape_torrent_stats() -> None:
 @scheduler.interval(minutes=config.site_stats.job_interval, enabled=config.site_stats.enabled)
 async def update_site_stats() -> None:
     await services.update_site_stats()
+
+
+@scheduler.interval(minutes=config.backups.job_interval, enabled=config.backups.enabled)
+async def backup_db() -> None:
+    await services.create_db_backup()

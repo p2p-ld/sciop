@@ -5,7 +5,6 @@ from platformdirs import PlatformDirs
 from pydantic import BaseModel, Field, SecretStr, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_default_userdir = Path().home() / ".config" / "mio"
 _dirs = PlatformDirs("sciop", "sciop")
 LOG_LEVELS = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 
@@ -157,6 +156,19 @@ class StatsConfig(JobConfig):
     """frequency of recalculating stats, in minutes"""
 
 
+class BackupConfig(JobConfig):
+    """Backup the database!"""
+
+    job_interval: int = 60 * 24
+    """Frequency of backup job, in minutes"""
+    dir: Path = Path(_dirs.user_data_dir) / "backups"
+
+    @field_validator("dir", mode="after")
+    def create_dir(cls, value: Path) -> Path:
+        value.mkdir(parents=True, exist_ok=True)
+        return value
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -225,6 +237,7 @@ class Config(BaseSettings):
     """
     tracker_scraping: ScrapeConfig = ScrapeConfig()
     site_stats: StatsConfig = StatsConfig()
+    backups: BackupConfig = BackupConfig()
 
     @computed_field  # type: ignore[prop-decorator]
     @property
