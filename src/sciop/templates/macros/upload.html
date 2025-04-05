@@ -27,9 +27,9 @@
             </ul>
             {% endif %}
             <h{{ header_start + 1}} class="description">Description</h{{ header_start + 1}}>
-            <p>{{ upload.description }}</p>
+            <p>{{ upload.description_html | safe }}</p>
             <h{{ header_start + 1}} class="method">Method</h{{ header_start + 1}}>
-            <p>{{ upload.method }}</p>
+            <p>{{ upload.method_html | safe }}</p>
 
         </div>
         <div class="upload-infobox infobox">
