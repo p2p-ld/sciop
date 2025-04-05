@@ -8,7 +8,7 @@ hide:
 
 ## [Web Pages](./webpages.md)
 
-Scraping files over http, making high-quality WARCZ and zim archives of websites.
+Whether you are archiving a single page, an entire website, or anywhere in between, we've got you covered with [instructions](./webpages.md) for creating high-quality web archives.
 
 ## [S3](./s3.md)
 
