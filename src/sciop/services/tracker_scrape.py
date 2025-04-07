@@ -1,16 +1,20 @@
 import asyncio
 import binascii
 import enum
+import re
 import struct
+import warnings
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from logging import Logger
 from types import TracebackType
-from typing import Any, Optional
-from urllib.parse import urlparse
+from typing import Any, Optional, cast
+from urllib.parse import ParseResult, urlencode, urlparse, urlunparse
 
 import aiodns
+import flatbencode
+import httpx
 import sqlalchemy as sqla
 from sqlmodel import select, update
 
@@ -435,6 +439,115 @@ class UDPTrackerClient:
         return results
 
 
+class HTTPTrackerClient:
+    """
+    References:
+        - https://www.bittorrent.org/beps/bep_0048.html
+    """
+
+    def __init__(
+        self,
+        url: str,
+        max_scrape: int = MAX_SCRAPE,
+        timeout: int = config.tracker_scraping.connection_timeout,
+    ):
+        self.announce_url = url
+        if "announce" not in self.announce_url:
+            raise ValueError(f"HTTP trackers must have announce in the url: {self.announce_url}")
+        self.scrape_url = re.sub("announce", "scrape", self.announce_url)
+
+        self.timeout = timeout
+        self.max_scrape = max_scrape
+        self.logger = init_logger("tracker.http.client")
+
+    async def scrape(self, infohashes: list[str]) -> ScrapeResult:
+        self.logger.debug("Scraping %s with %s", self.scrape_url, infohashes)
+        results = ScrapeResult()
+        async with httpx.AsyncClient() as client:
+            for i in range(0, len(infohashes), self.max_scrape):
+                results += await self._scrape_page(infohashes[i : i + self.max_scrape], client)
+
+        return results
+
+    def make_scrape_url(self, infohashes: list[str]) -> str:
+        """Encode the infohashes and add them to a query parameter"""
+        parts = urlparse(self.scrape_url)
+        encoded_hashes = [bytes.fromhex(ih)[0:20] for ih in infohashes]
+        query = urlencode({"info_hash": encoded_hashes}, doseq=True)
+        full_scrape_url = urlunparse(
+            ParseResult(
+                scheme=parts.scheme,
+                netloc=parts.netloc,
+                path=parts.path,
+                params=parts.params,
+                query=query,
+                fragment=parts.fragment,
+            )
+        )
+        full_scrape_url = cast(str, full_scrape_url)
+        return full_scrape_url
+
+    async def _scrape_page(self, infohashes: list[str], client: httpx.AsyncClient) -> ScrapeResult:
+        """
+        Http tracker scrapes seem to handle multi-hash requests poorly,
+        so we attempt doing it all in one go, but if that fails we fallback to doing it one by one
+        """
+        scrape_url = self.make_scrape_url(infohashes)
+        responses = {}
+        try:
+            response = await client.get(scrape_url, timeout=self.timeout)
+            if (
+                len(infohashes) > 1
+                and response.status_code != 200
+                and self.announce_url in config.tracker_scraping.http_tracker_single_only
+            ):
+                # tracker doesn't handle multiple infohashes, do them indvidually
+                return await self._scrape_single(infohashes, client)
+
+            response.raise_for_status()
+            decoded = flatbencode.decode(response.content)
+            files = decoded[b"files"]
+            if (
+                len(files) <= 1
+                and len(infohashes) > 1
+                and self.announce_url in config.tracker_scraping.http_tracker_single_only
+            ):
+                # tracker doesn't handle multiple infohashes, do them indvidually
+                return await self._scrape_single(infohashes, client)
+
+            for ih_encoded, value in files.items():
+                infohash = ih_encoded.hex()
+                responses[infohash] = ScrapeResponse(
+                    infohash=infohash,
+                    announce_url=self.announce_url,
+                    seeders=value.get(b"complete", 0),
+                    completed=value.get(b"downloaded", 0),
+                    leechers=value.get(b"incomplete", 0),
+                )
+            return ScrapeResult(responses=responses)
+
+        except (TimeoutError, httpx.ConnectTimeout) as e:
+            return ScrapeResult(
+                errors=[ScrapeError(type="timeout", announce_url=self.announce_url, msg=str(e))]
+            )
+        except Exception as e:
+            return ScrapeResult(
+                errors=[ScrapeError(type="default", announce_url=self.announce_url, msg=str(e))]
+            )
+
+    async def _scrape_single(
+        self, infohashes: list[str], client: httpx.AsyncClient
+    ) -> ScrapeResult:
+        """
+        Scrape one by one if batch scraping fails.
+        """
+        results = await asyncio.gather(*[self._scrape_page([ih], client) for ih in infohashes])
+        result = ScrapeResult()
+        for res in results:
+            result += res
+        return result
+
+
 async def resolve_host(url: str) -> tuple[str, int]:
     parsed = urlparse(url)
     hostname = parsed.hostname
@@ -505,11 +618,11 @@ def gather_scrapable_torrents() -> dict[str, list[str]]:
 
     last_scrape_time = datetime.now(UTC) - timedelta(minutes=config.tracker_scraping.interval)
     statement = (
-        select(TorrentFile.infohash, Tracker.announce_url)
+        select(TorrentFile.v1_infohash, TorrentFile.v2_infohash, Tracker.announce_url)
         .join(TorrentFile.tracker_links)
         .join(TorrentTrackerLink.tracker)
         .filter(
-            Tracker.protocol == "udp",
+            Tracker.protocol.in_(("udp", "http", "https")),
             sqla.and_(
                 sqla.or_(
                     TorrentTrackerLink.last_scraped_at == None,  # noqa: E711
@@ -528,7 +641,11 @@ def gather_scrapable_torrents() -> dict[str, list[str]]:
     # group by tracker
     gathered = defaultdict(list)
     for res in results:
-        gathered[res.announce_url].append(res.infohash)
+        if res.v1_infohash:
+            gathered[res.announce_url].append(res.v1_infohash)
+        else:
+            warnings.warn(f"skipping v2-only torrent {res.v2_infohash}", stacklevel=1)
+            continue
     return gathered
 
 
@@ -538,21 +655,53 @@ async def scrape_tracker(
     logger = init_logger("jobs.scrape_stats.scrape_tracker")
     logger.debug("scraping tracker %s with %s", url, infohashes)
     async with semaphore:
-        try:
-            client = await UDPTrackerClient.from_url(
-                url, timeout=config.tracker_scraping.scrape_timeout
+        if url.startswith("udp"):
+            results = await _scrape_udp_tracker(url, infohashes, logger=logger)
+        elif url.startswith("http"):
+            results = await scrape_http_tracker(url, infohashes)
+        else:
+            results = ScrapeResult(
+                errors=[
+                    ScrapeError(
+                        type="protocol",
+                        announce_url=url,
+                        msg="Unknown tracker protocol, must be udp or http(s)",
+                    )
+                ]
             )
-            results = await client.scrape(infohashes)
-        except DNSException as e:
-            results = ScrapeResult(errors=[ScrapeError(type="dns", announce_url=url, msg=str(e))])
-        except Exception as e:
-            msg = str(e)
-            logger.debug(msg)
-            results = ScrapeResult(errors=[ScrapeError(type="default", announce_url=url, msg=msg)])
 
     _update_scrape_results(results, logger=logger)
     _handle_tracker_error(results, logger=logger)
     _touch_tracker(url, results)
+    return results
+
+
+async def _scrape_udp_tracker(url: str, infohashes: list[str], logger: Logger) -> ScrapeResult:
+    logger.debug("scraping tracker %s with %s", url, infohashes)
+    try:
+        client = await UDPTrackerClient.from_url(
+            url, timeout=config.tracker_scraping.scrape_timeout
+        )
+        results = await client.scrape(infohashes)
+    except DNSException as e:
+        results = ScrapeResult(errors=[ScrapeError(type="dns", announce_url=url, msg=str(e))])
+    except Exception as e:
+        msg = str(e)
+        logger.debug(msg)
+        results = ScrapeResult(errors=[ScrapeError(type="default", announce_url=url, msg=msg)])
+    return results
+
+
+async def scrape_http_tracker(url: str, infohashes: list[str]) -> ScrapeResult:
+    """
+    References:
+        - https://www.bittorrent.org/beps/bep_0048.html
+    """
+    try:
+        client = HTTPTrackerClient(url=url)
+        results = await client.scrape(infohashes)
+    except Exception as e:
+        results = ScrapeResult(errors=[ScrapeError(type="default", announce_url=url, msg=str(e))])
     return results
 
 
@@ -580,7 +729,7 @@ def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
         .join(TorrentTrackerLink.tracker)
         .where(
             Tracker.announce_url == announce_url,
-            TorrentFile.infohash.in_([res.infohash for res in results.responses.values()]),
+            TorrentFile.v1_infohash.in_([res.infohash for res in results.responses.values()]),
         )
     )
     with next(get_session()) as session:
