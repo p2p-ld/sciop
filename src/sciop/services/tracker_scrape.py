@@ -541,6 +541,7 @@ class HTTPTrackerClient:
         """
         Scrape one by one if batch scraping fails.
         """
+        self.logger.debug("Scraping infohashes individually for %s", self.announce_url)
         results = await asyncio.gather(*[self._scrape_page([ih], client) for ih in infohashes])
         result = ScrapeResult()
         for res in results:
