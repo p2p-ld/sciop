@@ -1,6 +1,7 @@
 import asyncio
 import binascii
 import enum
+import pdb
 import re
 import struct
 import warnings
@@ -725,7 +726,7 @@ def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
     announce_url = list(announce_url)[0]
 
     update_select_stmt = (
-        select(TorrentTrackerLink.torrent_file_id, TorrentTrackerLink.tracker_id)
+        select(TorrentTrackerLink)
         .join(TorrentFile.tracker_links)
         .join(TorrentTrackerLink.tracker)
         .where(
@@ -735,21 +736,15 @@ def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
     )
     with next(get_session()) as session:
         scrape_time = datetime.now(UTC)
-        link_ids = session.exec(update_select_stmt).all()
-        session.exec(
-            update(TorrentTrackerLink),
-            params=[
-                {
-                    "torrent_file_id": tllid.torrent_file_id,
-                    "tracker_id": tllid.tracker_id,
-                    "seeders": res.seeders,
-                    "leechers": res.leechers,
-                    "completed": res.completed,
-                    "last_scraped_at": scrape_time,
-                }
-                for tllid, res in zip(link_ids, results.responses.values())
-            ],
-        )
+        links = session.exec(update_select_stmt).all()
+        for link in links:
+            response = results.responses[link.torrent.v1_infohash]
+            link.seeders = response.seeders
+            link.leechers = response.leechers
+            link.completed = response.completed
+            link.last_scraped_at = scrape_time
+            session.add(link)
+
         session.commit()
 
 
