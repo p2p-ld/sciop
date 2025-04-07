@@ -10,6 +10,7 @@ from sciop.models import TorrentFile, TorrentTrackerLink
 from sciop.services.tracker_scrape import (
     UDPTrackerClient,
     gather_scrapable_torrents,
+    scrape_http_tracker,
     scrape_torrent_stats,
 )
 
@@ -125,7 +126,7 @@ def test_gather_scrapable_torrents(torrentfile, session):
     assert unresponsive not in scrapable
     assert len(scrapable[extra]) == 2
     assert len(scrapable[not_recent]) == 1
-    assert not any([k.startswith("http") for k in scrapable])
+    assert not any([k.startswith("wss") for k in scrapable])
 
 
 @pytest.mark.asyncio
@@ -148,10 +149,43 @@ async def test_scrape_torrent_stats(torrentfile, session, unused_udp_port_factor
     links = session.exec(select(TorrentTrackerLink)).all()
     for link in links:
         if link.tracker.announce_url == trackers[0]:
-            assert ta_proto.stats[link.torrent.infohash[0:40]]["seeders"] == link.seeders
-            assert ta_proto.stats[link.torrent.infohash[0:40]]["leechers"] == link.leechers
-            assert ta_proto.stats[link.torrent.infohash[0:40]]["completed"] == link.completed
+            assert ta_proto.stats[link.torrent.v1_infohash[0:40]]["seeders"] == link.seeders
+            assert ta_proto.stats[link.torrent.v1_infohash[0:40]]["leechers"] == link.leechers
+            assert ta_proto.stats[link.torrent.v1_infohash[0:40]]["completed"] == link.completed
         else:
-            assert tb_proto.stats[link.torrent.infohash[0:40]]["seeders"] == link.seeders
-            assert tb_proto.stats[link.torrent.infohash[0:40]]["leechers"] == link.leechers
-            assert tb_proto.stats[link.torrent.infohash[0:40]]["completed"] == link.completed
+            assert tb_proto.stats[link.torrent.v1_infohash[0:40]]["seeders"] == link.seeders
+            assert tb_proto.stats[link.torrent.v1_infohash[0:40]]["leechers"] == link.leechers
+            assert tb_proto.stats[link.torrent.v1_infohash[0:40]]["completed"] == link.completed
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "tracker",
+    [
+        "https://academictorrents.com/announce.php",
+    ],
+)
+async def test_scrape_http_tracker(tracker, monkeypatch):
+    """
+    TODO: fix live network requests, record responses and replay
+    """
+    from sciop.services import tracker_scrape
+
+    monkeypatch.setattr(
+        tracker_scrape.config.tracker_scraping,
+        "http_tracker_single_only",
+        ["https://academictorrents.com/announce.php"],
+    )
+    infohashes = [
+        "0a246d40b8f8293583f954a72ea58980edd11ef4",
+        "ba051999301b109eab37d16f027b3f49ade2de13",
+        "4ba681158876d839973ba99314b7f28ff356bbf1",
+    ]
+    res = await scrape_http_tracker(tracker, infohashes)
+    assert len(res.errors) == 0
+    assert len(res.responses) == 3
+    for ih, response in res.responses.items():
+        assert ih in infohashes
+        assert response.seeders > 0
+        assert response.completed > 0
+        assert response.announce_url == tracker
