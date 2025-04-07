@@ -2,8 +2,8 @@
 
 <div class="big-emphasis" markdown="1">
 
-*this a placeholder, help us out by [making a pull request](/docs/develop/contributing/)
-to improve the docs <3*
+This page is about hands-on, practical information about how to torrent,
+for a conceptual description of what bittorrent is, see [What is Bittorrent?](../intro/bittorrent.md)
 
 </div>
 

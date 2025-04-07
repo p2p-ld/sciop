@@ -11,6 +11,7 @@ nav:
   - Intro:
       - intro/overview.md
       - intro/roadmap.md
+      - intro/bittorrent.md
   - Using Sciop:
       - using/index.md
       - using/browsing.md
