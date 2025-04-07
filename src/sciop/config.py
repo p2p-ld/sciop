@@ -148,6 +148,14 @@ class ScrapeConfig(JobConfig):
     Maximum time that a tracker can be backed off, in minutes
     Default: 30 days (yes, in minutes)
     """
+    http_tracker_single_only: list[str] = Field(default_factory=list)
+    """
+    Announce URLs of HTTP trackers that are known to only respond to single infohash at a time
+    in their scrape responses.
+    It can be very expensive to scrape these trackers,
+    so we only try and scrape from them if they are special trackers we
+    really want peer information from.
+    """
 
 
 class StatsConfig(JobConfig):

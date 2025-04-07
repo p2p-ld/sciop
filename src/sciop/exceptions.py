@@ -46,6 +46,8 @@ class ScrapeErrorType(StrEnum):
     """Timeout when communicating"""
     unpack = "unpack"
     """Error unpacking scraped values"""
+    protocol = "protocol"
+    """Unknown tracker protocol"""
     default = "default"
     """Unhandled or unknown exception type"""
 
