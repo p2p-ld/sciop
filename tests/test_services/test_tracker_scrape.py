@@ -149,13 +149,13 @@ async def test_scrape_torrent_stats(torrentfile, session, unused_udp_port_factor
     links = session.exec(select(TorrentTrackerLink)).all()
     for link in links:
         if link.tracker.announce_url == trackers[0]:
-            assert ta_proto.stats[link.torrent.infohash[0:40]]["seeders"] == link.seeders
-            assert ta_proto.stats[link.torrent.infohash[0:40]]["leechers"] == link.leechers
-            assert ta_proto.stats[link.torrent.infohash[0:40]]["completed"] == link.completed
+            assert ta_proto.stats[link.torrent.v1_infohash[0:40]]["seeders"] == link.seeders
+            assert ta_proto.stats[link.torrent.v1_infohash[0:40]]["leechers"] == link.leechers
+            assert ta_proto.stats[link.torrent.v1_infohash[0:40]]["completed"] == link.completed
         else:
-            assert tb_proto.stats[link.torrent.infohash[0:40]]["seeders"] == link.seeders
-            assert tb_proto.stats[link.torrent.infohash[0:40]]["leechers"] == link.leechers
-            assert tb_proto.stats[link.torrent.infohash[0:40]]["completed"] == link.completed
+            assert tb_proto.stats[link.torrent.v1_infohash[0:40]]["seeders"] == link.seeders
+            assert tb_proto.stats[link.torrent.v1_infohash[0:40]]["leechers"] == link.leechers
+            assert tb_proto.stats[link.torrent.v1_infohash[0:40]]["completed"] == link.completed
 
 
 @pytest.mark.asyncio
