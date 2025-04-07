@@ -1,7 +1,6 @@
 import asyncio
 import binascii
 import enum
-import pdb
 import re
 import struct
 import warnings
