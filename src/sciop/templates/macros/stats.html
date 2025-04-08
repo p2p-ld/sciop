@@ -35,7 +35,7 @@
     {% endif %}
     <span class="value-phrase">
       <span class="value" data-key="total_size" data-value="{{ stats.total_size }}">
-        {{ humanize.naturalsize(stats.total_size) }}
+        {{ humanize.naturalsize(stats.total_size, binary=True) }}
       </span>
     </span>
       in
@@ -51,7 +51,7 @@
     Swarm capacity
     <span class="value-phrase">
     <span class="value" data-key="total_capacity" data-value="{{ stats.total_capacity }}">
-      {{ humanize.naturalsize(stats.total_capacity) }}
+      {{ humanize.naturalsize(stats.total_capacity, binary=True) }}
     </span>
     </span>
   </span>

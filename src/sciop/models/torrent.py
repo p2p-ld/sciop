@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -26,6 +27,8 @@ from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
 if TYPE_CHECKING:
     from sciop.models import Upload
     from sciop.models.dataset import Account
+
+PADFILE_PATTERN = re.compile(r"(.*/|^)\.pad/\d+$")
 
 
 class TorrentVersion(StrEnum):
@@ -117,11 +120,15 @@ class Torrent(Torrent_):
         elif self.mode == "multifile":
 
             basedir = _to_str(info.get("name", b""))
+
             for fileinfo in info["files"]:
+                path = os.path.join(
+                    basedir, *(_to_str(file_part) for file_part in fileinfo["path"])
+                )
+                if PADFILE_PATTERN.match(path):
+                    continue
                 yield _File(
-                    path=os.path.join(
-                        basedir, *(_to_str(file_part) for file_part in fileinfo["path"])
-                    ),
+                    path=path,
                     size=fileinfo["length"],
                 )
 
@@ -135,6 +142,16 @@ class Torrent(Torrent_):
             return 1
         else:
             return len(self.metainfo["info"]["files"])
+
+    @property
+    def size(self) -> int:
+        """Total size of content in bytes"""
+        if self.mode == "singlefile":
+            return self.metainfo["info"]["length"]
+        elif self.mode == "multifile":
+            return sum(file.size for file in self.files)
+        else:
+            return 0
 
     def _filters_changed(self, _: Any) -> None:
         """Make this a no-op because it's wildly expensive"""
@@ -225,7 +242,7 @@ class FileInTorrent(TableMixin, table=True):
 
     @property
     def human_size(self) -> str:
-        return humanize.naturalsize(self.size)
+        return humanize.naturalsize(self.size, binary=True)
 
 
 class FileInTorrentCreate(SQLModel):
@@ -291,16 +308,16 @@ class TorrentFileBase(SQLModel):
     @property
     def human_size(self) -> str:
         """Human-sized string representation of the torrent size"""
-        return humanize.naturalsize(self.total_size)
+        return humanize.naturalsize(self.total_size, binary=True)
 
     @property
     def human_torrent_size(self) -> str:
         """Human-sized string representation of the torrent file size"""
-        return humanize.naturalsize(self.torrent_size)
+        return humanize.naturalsize(self.torrent_size, binary=True)
 
     @property
     def human_piece_size(self) -> str:
-        return humanize.naturalsize(self.piece_size)
+        return humanize.naturalsize(self.piece_size, binary=True)
 
     @property
     def trackers(self) -> dict[MaxLenURL, Tracker]:
@@ -451,6 +468,11 @@ class TorrentFileCreate(TorrentFileBase):
                 )
             )
         return stripped
+
+    @field_validator("files", mode="after")
+    def remove_padfiles(cls, val: list[FileInTorrentCreate]) -> list[FileInTorrentCreate]:
+        """Remove .pad/d+ files"""
+        return [v for v in val if not PADFILE_PATTERN.match(v.path)]
 
 
 class TorrentFileRead(TorrentFileBase):
