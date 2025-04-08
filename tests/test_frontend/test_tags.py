@@ -10,7 +10,7 @@ def test_tags_datasets_json(client, dataset):
     fake = Faker()
     slugs = []
     for _ in range(5):
-        new_slug = '-'.join([w.lower() for w in fake.words(nb=3)])
+        new_slug = "-".join([w.lower() for w in fake.words(nb=3)])
         slugs.append(new_slug)
         dataset(slug=new_slug, tags=["atag"])
 
