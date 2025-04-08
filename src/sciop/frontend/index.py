@@ -35,7 +35,7 @@ async def feeds(request: Request):
 @index_router.get("/login", response_class=HTMLResponse)
 async def login(request: Request, current_account: CurrentAccount):
     if current_account:
-        return RedirectResponse("/self")
+        return RedirectResponse("/self/")
     return templates.TemplateResponse(request, "pages/login.html")
 
 

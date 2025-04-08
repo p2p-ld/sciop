@@ -129,8 +129,8 @@ nav.navbar {
       font-size: 1rem;
       content: "";
       position: absolute;
-      top: .26em;
-      left: .26em;
+      top: .45em;
+      left: .3em;
       width: .85em;
       height: .85em;
       border-radius: 50%;
@@ -184,7 +184,7 @@ nav.navbar {
     }
     .slider:has(+ button[aria-pressed="true"]) {
       &::before {
-        transform: translateX(1.35em);
+        transform: translateX(1.75em);
         background-color: var(--color-dark-background);
         box-shadow: none;
         box-sizing: border-box;
@@ -198,9 +198,9 @@ nav.navbar {
     }
     button[aria-pressed="true"] ~ .beam {
       height: 0.06em;
-      width: 0.25em;
-      right: 0.55em;
-      top: 0.65em;
+      width: 0.30em;
+      top: 0.85em;
+      right: 0.65em;
       background-color: var(--color-dark-background);
       position: absolute;
       outline: 1px solid var(--color-light-background);
@@ -210,9 +210,10 @@ nav.navbar {
 
     #beam-1, #beam-2, #beam-3, #beam-4, #beam-5, #beam-6, #beam-7 {
       transform: rotate(0deg) translatex(0px);
+
     }
 
-    --beam-offset: 0.65em;
+    --beam-offset: 0.75em;
     button[aria-pressed="true"] {
       & ~ #beam-1 {
         transform: rotate(0deg) translateX(var(--beam-offset));

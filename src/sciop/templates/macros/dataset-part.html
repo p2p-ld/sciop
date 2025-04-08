@@ -15,7 +15,11 @@
   {% if current_account and (part.needs_review and current_account.has_scope("review")) %}
   <div >{{ review_buttons(dataset, part, config) }}</div>
   {% endif %}
-
+  {% if part.description_html %}
+  <div class="dataset-description">
+    {{ part.description_html | safe }}
+  </div>
+  {% endif %}
   {% if part.paths %}
   <h3>Paths</h3>
   <pre class="path-list">
