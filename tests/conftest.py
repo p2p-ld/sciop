@@ -120,6 +120,7 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
     )
     new_config.logs.dir = LOGS_DIR
     new_config.logs.level_file = "DEBUG"
+    new_config.logs.level_stdout = "DEBUG"
     monkeypatch_session.setattr(config, "config", new_config)
     for key, module in sys.modules.items():
         if not key.startswith("sciop.") and not key.startswith("tests."):
