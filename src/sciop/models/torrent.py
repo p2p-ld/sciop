@@ -125,8 +125,8 @@ class Torrent(Torrent_):
                 path = os.path.join(
                     basedir, *(_to_str(file_part) for file_part in fileinfo["path"])
                 )
-                # if PADFILE_PATTERN.match(path):
-                #     continue
+                if PADFILE_PATTERN.match(path):
+                    continue
                 yield _File(
                     path=path,
                     size=fileinfo["length"],
@@ -469,11 +469,10 @@ class TorrentFileCreate(TorrentFileBase):
             )
         return stripped
 
-    # @field_validator("files", mode="after")
-    # def remove_padfiles(cls, val: list[FileInTorrentCreate]) -> list[FileInTorrentCreate]:
-    #     """Remove .pad/d+ files"""
-    #     return [v for v in val if not PADFILE_PATTERN.match(v.path)]
-    #
+    @field_validator("files", mode="after")
+    def remove_padfiles(cls, val: list[FileInTorrentCreate]) -> list[FileInTorrentCreate]:
+        """Remove .pad/d+ files"""
+        return [v for v in val if not PADFILE_PATTERN.match(v.path)]
 
 
 class TorrentFileRead(TorrentFileBase):
