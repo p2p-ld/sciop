@@ -1,6 +1,9 @@
 from sciop.models import TorrentFileCreate
 
 
+from ..conftest import DATA_DIR
+
+
 def test_torrent_max_size_from_config():
     """
     Torrent class shouldn't have its own independent max size.
@@ -29,3 +32,10 @@ def test_strip_query_params():
         announce_urls=["https://example.com/announce?secret_key=abcdefg"],
     )
     assert c.announce_urls[0] == "https://example.com/announce"
+
+
+def test_torrent_exclude_padfiles():
+    from sciop.models import Torrent
+
+    torrent = Torrent.read(DATA_DIR / "test_hybrid_w_pad.torrent")
+    files = torrent.files

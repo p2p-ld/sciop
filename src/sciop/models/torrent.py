@@ -1,5 +1,6 @@
 import hashlib
 import os
+import pdb
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -118,10 +119,11 @@ class Torrent(Torrent_):
 
             basedir = _to_str(info.get("name", b""))
             for fileinfo in info["files"]:
+                path = os.path.join(
+                    basedir, *(_to_str(file_part) for file_part in fileinfo["path"])
+                )
                 yield _File(
-                    path=os.path.join(
-                        basedir, *(_to_str(file_part) for file_part in fileinfo["path"])
-                    ),
+                    path=path,
                     size=fileinfo["length"],
                 )
 
