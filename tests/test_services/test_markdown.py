@@ -129,6 +129,47 @@ bs = partial(BeautifulSoup, features="html.parser")
                 "</details>"
             ),
         ),
+        (
+            dedent(
+                """
+                Other text
+                
+                > I am quoting something here
+                
+                And not here
+                """
+            ),
+            bs(
+                "<p>Other text</p>"
+                "<blockquote>I am quoting something here</blockquote>"
+                "<p>And not here</p>"
+            ),
+        ),
+        (
+            dedent(
+                """
+                    Other text
+            
+                    > I am quoting something here
+                    >
+                    > And another line here
+                    > 
+                    > and that one had whitespace
+            
+                    And not here
+                    """
+            ),
+            bs(
+                "<p>Other text</p>"
+                "<blockquote>I am quoting something here"
+                "<br/><br/>\n"
+                "And another line here"
+                "<br/><br/>\n"
+                "and that one had whitespace"
+                "</blockquote>"
+                "<p>And not here</p>"
+            ),
+        ),
     ],
     ids=[
         "empty",
@@ -149,6 +190,8 @@ bs = partial(BeautifulSoup, features="html.parser")
         "python_code_block",
         "details",
         "details_markdown",
+        "blockquote",
+        "blockquote_multi",
     ],
 )
 def test_render_markdown(text: str, expected_html: str | BeautifulSoup) -> None:

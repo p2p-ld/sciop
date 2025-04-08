@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import mistune
@@ -17,6 +18,8 @@ if TYPE_CHECKING:
     _O = TypeVar("_O", bound=SQLModel)
 
 MAX_HEADING_LEVEL = 4
+quote_pattern = re.compile(r"^&gt;", flags=re.MULTILINE)
+quote_linebreak = re.compile(r"^&gt;\s*$", flags=re.MULTILINE)
 
 ALLOWED_TAGS = {
     *(f"h{level+1}" for level in range(MAX_HEADING_LEVEL)),
@@ -62,6 +65,16 @@ class HighlightRenderer(mistune.HTMLRenderer):
         if level > MAX_HEADING_LEVEL:
             return self.strong(text, **attrs)
         return super().heading(text, level, **attrs)
+
+    def paragraph(self, text: str) -> str:
+        """
+        Rescue blockquotes
+        """
+        if quote_pattern.match(text):
+            text = quote_linebreak.sub("<br/><br/>", text)
+            text = quote_pattern.sub("", text)
+            return self.block_quote(text)
+        return super().paragraph(text)
 
 
 _markdown_renderer = mistune.Markdown(renderer=HighlightRenderer(escape=False), plugins=[table])
