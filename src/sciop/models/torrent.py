@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Self
+from urllib.parse import ParseResult, urlparse, urlunparse
 
 import bencodepy
 import humanize
@@ -427,6 +428,29 @@ class TorrentFileCreate(TorrentFileBase):
             else:
                 self.short_hash = self.v1_infohash[0:8]
         return self
+
+    @field_validator("announce_urls", mode="after")
+    def remove_query_params(cls, val: list[MaxLenURL]) -> MaxLenURL:
+        """
+        Remove query params from trackers, as these often contain passkeys
+        and shouldn't be necessary for tracker metata we persist to the db
+        """
+        stripped = []
+        for url in val:
+            parsed: ParseResult = urlparse(url)
+            stripped.append(
+                urlunparse(
+                    ParseResult(
+                        scheme=parsed.scheme,
+                        netloc=parsed.netloc,
+                        path=parsed.path,
+                        params=parsed.params,
+                        query="",
+                        fragment=parsed.fragment,
+                    )
+                )
+            )
+        return stripped
 
 
 class TorrentFileRead(TorrentFileBase):

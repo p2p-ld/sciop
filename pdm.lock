@@ -5,7 +5,7 @@
 groups = ["default", "dev", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:8d8155def248bc6218a82667fefdd53af59935c35f1562384be8d946a510a5e3"
+content_hash = "sha256:eb0396cd6b0350a28c8259b3397187d7e3b3bc1e8c2bf942c6ac648f4aaea2cd"
 
 [[metadata.targets]]
 requires_python = ">=3.11"
@@ -1296,6 +1296,21 @@ dependencies = [
 files = [
     {file = "pytest_asyncio-0.26.0-py3-none-any.whl", hash = "sha256:7b51ed894f4fbea1340262bdae5135797ebbe21d8638978e35d31c6d19f72fb0"},
     {file = "pytest_asyncio-0.26.0.tar.gz", hash = "sha256:c4df2a697648241ff39e7f0e4a73050b03f123f760673956cf0d72a4990e312f"},
+]
+
+[[package]]
+name = "pytest-httpx"
+version = "0.35.0"
+requires_python = ">=3.9"
+summary = "Send responses to httpx."
+groups = ["dev", "test"]
+dependencies = [
+    "httpx==0.28.*",
+    "pytest==8.*",
+]
+files = [
+    {file = "pytest_httpx-0.35.0-py3-none-any.whl", hash = "sha256:ee11a00ffcea94a5cbff47af2114d34c5b231c326902458deed73f9c459fd744"},
+    {file = "pytest_httpx-0.35.0.tar.gz", hash = "sha256:d619ad5d2e67734abfbb224c3d9025d64795d4b8711116b1a13f72a251ae511f"},
 ]
 
 [[package]]

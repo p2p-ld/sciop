@@ -3,7 +3,9 @@ import random
 from datetime import UTC, datetime, timedelta
 from math import ceil, floor
 
+import flatbencode
 import pytest
+from pytest_httpx import HTTPXMock
 from sqlmodel import select
 
 from sciop.models import TorrentFile, TorrentTrackerLink
@@ -165,9 +167,11 @@ async def test_scrape_torrent_stats(torrentfile, session, unused_udp_port_factor
         "https://academictorrents.com/announce.php",
     ],
 )
-async def test_scrape_http_tracker(tracker, monkeypatch):
+async def test_scrape_http_tracker_single(tracker, monkeypatch, httpx_mock: HTTPXMock):
     """
-    TODO: fix live network requests, record responses and replay
+    When an HTTP tracker doesn't return all the infohashes results for us,
+    and we have configured ourselves to do so,
+    we should request each infohash individually
     """
     from sciop.services import tracker_scrape
 
@@ -176,6 +180,27 @@ async def test_scrape_http_tracker(tracker, monkeypatch):
         "http_tracker_single_only",
         ["https://academictorrents.com/announce.php"],
     )
+
+    # mock responses
+    httpx_mock.add_response(
+        url="https://academictorrents.com/scrape.php?info_hash=%0A%24m%40%B8%F8%295%83%F9T%A7.%A5%89%80%ED%D1%1E%F4"
+        "&info_hash=%BA%05%19%990%1B%10%9E%AB7%D1o%02%7B%3FI%AD%E2%DE%13"
+        "&info_hash=K%A6%81%15%88v%D89%97%3B%A9%93%14%B7%F2%8F%F3V%BB%F1",
+        content=b"d5:filesd20:K\xa6\x81\x15\x88v\xd89\x97;\xa9\x93\x14\xb7\xf2\x8f\xf3V\xbb\xf1d8:completei40e10:downloadedi58e10:incompletei1eeee",
+    )
+    httpx_mock.add_response(
+        url="https://academictorrents.com/scrape.php?info_hash=%0A%24m%40%B8%F8%295%83%F9T%A7.%A5%89%80%ED%D1%1E%F4",
+        content=b"d5:filesd20:\n$m@\xb8\xf8)5\x83\xf9T\xa7.\xa5\x89\x80\xed\xd1\x1e\xf4d8:completei31e10:downloadedi39e10:incompletei2eeee",
+    )
+    httpx_mock.add_response(
+        url="https://academictorrents.com/scrape.php?info_hash=K%A6%81%15%88v%D89%97%3B%A9%93%14%B7%F2%8F%F3V%BB%F1",
+        content=b"d5:filesd20:K\xa6\x81\x15\x88v\xd89\x97;\xa9\x93\x14\xb7\xf2\x8f\xf3V\xbb\xf1d8:completei40e10:downloadedi58e10:incompletei1eeee",
+    )
+    httpx_mock.add_response(
+        url="https://academictorrents.com/scrape.php?info_hash=%BA%05%19%990%1B%10%9E%AB7%D1o%02%7B%3FI%AD%E2%DE%13",
+        content=b"d5:filesd20:\xba\x05\x19\x990\x1b\x10\x9e\xab7\xd1o\x02{?I\xad\xe2\xde\x13d8:completei31e10:downloadedi205e10:incompletei22eeee",
+    )
+
     infohashes = [
         "0a246d40b8f8293583f954a72ea58980edd11ef4",
         "ba051999301b109eab37d16f027b3f49ade2de13",
@@ -189,3 +214,16 @@ async def test_scrape_http_tracker(tracker, monkeypatch):
         assert response.seeders > 0
         assert response.completed > 0
         assert response.announce_url == tracker
+
+
+@pytest.mark.parametrize("infohashes", [["0" * 40], ["0" * 40, "1" * 40]])
+async def test_empty_responses_are_errors(httpx_mock: HTTPXMock, infohashes):
+    """
+    Empty responses should be treated as errors,
+    this causes us to exponentially back off making requests to them
+    """
+    httpx_mock.add_response(content=flatbencode.encode({b"files": {}}), is_reusable=True)
+    res = await scrape_http_tracker("http://example.com/announce", infohashes)
+
+    assert len(res.errors) == 1
+    assert res.errors[0].type == "no_response"
