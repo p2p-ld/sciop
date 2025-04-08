@@ -116,11 +116,11 @@ These options are similar to zimit, but there are a lot more possibilities:
   - `--generateWACZ` indicates that a WACZ archive should be written using the collection name in `./crawls/collections/`
   - `--screencastPort` 9037 says to make a screencast of the different worker browsers available on port 9037. If you've used `--publish` above then you'll be able to open http://localhost:9037 in your browser and watch the crawl!
 
-[![browsertrix-crawler screencast](../../img/btrix.gif)](../../img/btrix.gif)
+[![browsertrix-crawler screencast](../img/btrix.gif)](../img/btrix.gif)
 
 Once your crawl is complete you should be able to find the WACZ file at `crawls/collections/constitution-annotated/constitution-annotated.wacz`. This contains all the archived content and metadata in a ZIP file. You can unzip it with standard zip tools if you want to see what it contains. It is perfect for making available as a torrent, and if you want you can use the client-side JavaScript application at https://replayweb.page to view the contents.
 
-[![A screenshot of ReplayWebPage displaying the contents of the constitution.congress.gov archive](../../img/replaywebpage.png)](../../img/replaywebpage.png)
+[![A screenshot of ReplayWebPage displaying the contents of the constitution.congress.gov archive](../img/replaywebpage.png)](../img/replaywebpage.png)
 
 The [browsertrix-crawler documentation] includes information for setting the length and size of the crawl, where to write the crawl, and the types of behaviors that it uses when viewing a page. You can even create (and publish) your own custom behaviors for archiving particular sites.
 

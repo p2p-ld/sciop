@@ -1,5 +1,5 @@
 from types import UnionType
-from typing import Union, get_args, get_origin
+from typing import Annotated, Union, get_args, get_origin
 
 
 def unwrap_optional(typ: type) -> type:
@@ -8,4 +8,10 @@ def unwrap_optional(typ: type) -> type:
         for arg in args:
             if arg is not None:
                 return arg
+    return typ
+
+
+def unwrap_annotated(typ: type) -> type:
+    if get_origin(typ) is Annotated:
+        return get_args(typ)[0]
     return typ

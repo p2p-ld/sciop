@@ -11,6 +11,7 @@
 {%- set closing_tag=False %}
 {%- set input_type=None %}
 {% set annotation = unwrap_optional(field.annotation) %}
+{% set annotation = unwrap_annotated(annotation) %}
 {% set autocomplete=field.json_schema_extra.autocomplete %}
 {% set disabled = False %}
 {% if field.json_schema_extra and field.json_schema_extra.get('disabled', False) %}

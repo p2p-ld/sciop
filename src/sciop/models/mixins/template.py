@@ -14,7 +14,7 @@ from jinja2 import Environment
 from pydantic import BaseModel
 
 from sciop.const import TEMPLATE_DIR
-from sciop.helpers.type import unwrap_optional
+from sciop.helpers.type import unwrap_annotated, unwrap_optional
 
 _loader: Optional[jinja2.BaseLoader] = None
 _environment: Optional[jinja2.Environment] = None
@@ -37,6 +37,7 @@ def get_env_globals() -> dict:
         "now": datetime.now,
         "UTC": UTC,
         "unwrap_optional": unwrap_optional,
+        "unwrap_annotated": unwrap_annotated,
         "config": config,
         "humanize": humanize,
     }

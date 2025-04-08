@@ -3,6 +3,7 @@ import os
 
 import pytest
 import requests
+from bs4 import BeautifulSoup as bs
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -146,3 +147,23 @@ async def test_rm_subform_items(driver_as_admin):
     assert len(api_dois) == 2
     assert all([expected["identifier"] in api_dois for expected in expected_ext_ids])
     assert rm_ext_ids["identifier"] not in api_dois
+
+
+def test_datetimes(client, admin_auth_header):
+    """
+    Request form datetime fields should be datetime
+    :param client:
+    :param admin_auth_header:
+    :return:
+    """
+    datetimes = (
+        "dataset_created_at",
+        "dataset_updated_at",
+        "last_seen_at",
+    )
+    res = client.get("/request", headers=admin_auth_header)
+    assert res.status_code == 200
+    soup = bs(res.text, "html.parser")
+    for field in datetimes:
+        elem = soup.select_one(f'input[name="{field}"]')
+        assert elem.attrs["type"] == "datetime-local"
