@@ -1,4 +1,3 @@
-
 from sciop.models import TorrentFileCreate
 
 from ..conftest import DATA_DIR
