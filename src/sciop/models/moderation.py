@@ -1,15 +1,15 @@
 from enum import StrEnum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Literal, Optional
 
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship, SQLModel
 
-from sciop.models.mixins import TableMixin
+from sciop.models.mixins import ModerableMixin, TableMixin
 from sciop.types import IDField, UTCDateTime
 
 if TYPE_CHECKING:
-    from sciop.models import Account, AccountRead, Dataset, DatasetPart, Upload
+    from sciop.models import Account, AccountRead, Dataset, DatasetPart, Scopes, Upload
 
 
 class ModerationAction(StrEnum):
@@ -37,6 +37,29 @@ class ModerationAction(StrEnum):
     """Restore a suspended account"""
     remove = "remove"
     """Remove an item"""
+
+
+class ScopeRequest(ModerableMixin, table=True):
+    __tablename__ = "scope_requests"
+    scope_context: Literal["global"] = Field(
+        default="global", description="placeholder for fine-grained scopes by context"
+    )
+    scope: Scopes
+    account_id: Optional[int] = Field(foreign_key="accounts.account_id")
+    account: "Account" = Relationship(
+        back_populates="scope_requests",
+    )
+    request: Optional[str] = Field(
+        None,
+        description=(
+            "Tell the moderators why you are requesting this scope! "
+            "How they might know you, how you are planning on using it, etc."
+        ),
+        max_length=2048,
+    )
+    response: Optional[str] = Field(None, max_length=2048)
+    audit_log_target: "ModerationAction" = Relationship(back_populates="target_scope_request")
+    dismissed_by_user: bool = Field(default=False)
 
 
 _actor_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True, index=True)
@@ -94,6 +117,11 @@ class AuditLog(TableMixin, table=True):
             back_populates="audit_log_target",
         ),
     )
+    target_scope_request_id: Optional[int] = Field(
+        default=None, foreign_key="scope_requests.scope_request_id"
+    )
+    target_scope_request: Optional[ScopeRequest] = Relationship(back_populates="audit_log_target")
+
     value: Optional[str] = Field(
         None,
         description="The value of the action, if any, e.g. the scope added to an account",

@@ -41,7 +41,7 @@ from sciop.models.dataset import (
     ExternalSource,
 )
 from sciop.models.mixins import EditableMixin
-from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
+from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction, ScopeRequest
 from sciop.models.mystery import _Friedolin
 from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.stats import SiteStats, SiteStatsRead
@@ -91,6 +91,7 @@ __all__ = [
     "ModerationAction",
     "Scope",
     "Scopes",
+    "ScopeRequest",
     "SiteStats",
     "SiteStatsRead",
     "SuccessResponse",

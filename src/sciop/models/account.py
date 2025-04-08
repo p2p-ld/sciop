@@ -19,6 +19,7 @@ if TYPE_CHECKING:
         Dataset,
         DatasetPart,
         ExternalSource,
+        ScopeRequest,
         TorrentFile,
         Upload,
     )
@@ -138,6 +139,7 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
             primaryjoin="Account.account_id == AuditLog.target_account_id",
         ),
     )
+    scope_requests: list["ScopeRequest"] = Relationship(back_populates="account")
     is_suspended: bool = False
 
     def can_suspend(self, account: "Account") -> bool:
