@@ -510,6 +510,7 @@ class HTTPTrackerClient:
             if (
                 len(infohashes) > 1
                 and response.status_code != 200
+                and response.status_code != 429
                 and self.announce_url in config.tracker_scraping.http_tracker_single_only
             ):
                 # tracker doesn't handle multiple infohashes, do them indvidually
@@ -538,9 +539,9 @@ class HTTPTrackerClient:
                     # we've been told to try and scrape each of these individually
                     return await self._scrape_single(infohashes, client)
                 else:
-                    # grab one randomly, but don't reuse this one since it's unclear
-                    # which infohash it corresponds to
-                    # eventually we should cycle through on longer timescales
+                    # grab one randomly, but don't reuse this one since
+                    # otherwise we would always be getting the same one.
+                    # this cycles through the info we need over time.
                     return await self._scrape_page([random.choice(infohashes)], client)
 
             for ih_encoded, value in files.items():
