@@ -58,6 +58,7 @@ test = [
     "lxml>=5.3.1",
     "pytest-alembic>=0.11.1",
     "pytest-timeout>=2.3.1",
+    "pytest-httpx>=0.35.0",
 ]
 dev = [
     "sciop[test]",

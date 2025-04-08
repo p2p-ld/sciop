@@ -48,6 +48,8 @@ class ScrapeErrorType(StrEnum):
     """Error unpacking scraped values"""
     protocol = "protocol"
     """Unknown tracker protocol"""
+    no_response = "no_response"
+    """No responses but error wasn't thrown"""
     default = "default"
     """Unhandled or unknown exception type"""
 

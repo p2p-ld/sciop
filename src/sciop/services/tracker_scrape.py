@@ -1,6 +1,7 @@
 import asyncio
 import binascii
 import enum
+import random
 import re
 import struct
 import warnings
@@ -461,11 +462,20 @@ class HTTPTrackerClient:
         self.logger = init_logger("tracker.http.client")
 
     async def scrape(self, infohashes: list[str]) -> ScrapeResult:
-        self.logger.debug("Scraping %s with %s", self.scrape_url, infohashes)
         results = ScrapeResult()
         async with httpx.AsyncClient() as client:
             for i in range(0, len(infohashes), self.max_scrape):
                 results += await self._scrape_page(infohashes[i : i + self.max_scrape], client)
+
+        if len(results.responses) == 0 and len(results.errors) == 0:
+            self.logger.warning(f"Got no responses for {self.announce_url}, {infohashes}")
+            results.errors.append(
+                ScrapeError(
+                    announce_url=self.announce_url,
+                    type="no_response",
+                    msg="No responses and no error thrown",
+                )
+            )
 
         return results
 
@@ -494,6 +504,7 @@ class HTTPTrackerClient:
         """
         scrape_url = self.make_scrape_url(infohashes)
         responses = {}
+        errors = []
         try:
             response = await client.get(scrape_url, timeout=self.timeout)
             if (
@@ -504,16 +515,33 @@ class HTTPTrackerClient:
                 # tracker doesn't handle multiple infohashes, do them indvidually
                 return await self._scrape_single(infohashes, client)
 
+            if response.status_code == 429:
+                self.logger.debug(f"429 for {self.announce_url}")
+                # Fine, we'll catch it on the next iteration.
+                # Don't return an error because that delays next scrape.
+                return ScrapeResult()
+
             response.raise_for_status()
             decoded = flatbencode.decode(response.content)
+            if b"failure_reason" in decoded:
+                errors.append(
+                    ScrapeError(
+                        announce_url=self.announce_url,
+                        type="default",
+                        msg=decoded[b"failure_reason"].decode("utf-8"),
+                    )
+                )
+
             files = decoded[b"files"]
-            if (
-                len(files) <= 1
-                and len(infohashes) > 1
-                and self.announce_url in config.tracker_scraping.http_tracker_single_only
-            ):
-                # tracker doesn't handle multiple infohashes, do them indvidually
-                return await self._scrape_single(infohashes, client)
+            if len(files) <= 1 and len(infohashes) > 1:
+                if self.announce_url in config.tracker_scraping.http_tracker_single_only:
+                    # we've been told to try and scrape each of these individually
+                    return await self._scrape_single(infohashes, client)
+                else:
+                    # grab one randomly, but don't reuse this one since it's unclear
+                    # which infohash it corresponds to
+                    # eventually we should cycle through on longer timescales
+                    return await self._scrape_page([random.choice(infohashes)], client)
 
             for ih_encoded, value in files.items():
                 infohash = ih_encoded.hex()
@@ -524,7 +552,7 @@ class HTTPTrackerClient:
                     completed=value.get(b"downloaded", 0),
                     leechers=value.get(b"incomplete", 0),
                 )
-            return ScrapeResult(responses=responses)
+            return ScrapeResult(responses=responses, errors=errors)
 
         except (TimeoutError, httpx.ConnectTimeout) as e:
             return ScrapeResult(

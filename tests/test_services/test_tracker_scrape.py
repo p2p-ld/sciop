@@ -3,7 +3,9 @@ import random
 from datetime import UTC, datetime, timedelta
 from math import ceil, floor
 
+import flatbencode
 import pytest
+from pytest_httpx import HTTPXMock
 from sqlmodel import select
 
 from sciop.models import TorrentFile, TorrentTrackerLink
@@ -189,3 +191,16 @@ async def test_scrape_http_tracker(tracker, monkeypatch):
         assert response.seeders > 0
         assert response.completed > 0
         assert response.announce_url == tracker
+
+
+@pytest.mark.parametrize("infohashes", [["0" * 40], ["0" * 40, "1" * 40]])
+async def test_empty_responses_are_errors(httpx_mock: HTTPXMock, infohashes):
+    """
+    Empty responses should be treated as errors,
+    this causes us to exponentially back off making requests to them
+    """
+    httpx_mock.add_response(content=flatbencode.encode({b"files": {}}), is_reusable=True)
+    res = await scrape_http_tracker("http://example.com/announce", infohashes)
+
+    assert len(res.errors) == 1
+    assert res.errors[0].type == "no_response"
