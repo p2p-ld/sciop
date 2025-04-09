@@ -66,6 +66,9 @@ dev = [
     "black>=25.1.0",
     "watchfiles>=1.0.4",
 ]
+docs = [
+    "mkdocs-git-authors-plugin>=0.9.4",
+]
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"

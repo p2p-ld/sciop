@@ -190,7 +190,7 @@ Since our files are both all zeros,
 we can see that this is actually the same hash repeated twice! (ctrl+f for `8972`)
 
 (being able to recognize identical files is one of the motivations for
-[bittorrent v2](./bittorrent_v2.md), more on that elsewhere.)
+[bittorrent v2](bittorrent_v2.md), more on that elsewhere.)
 
 ### The Infohash
 
@@ -224,9 +224,9 @@ as defined by the file metadata in the `info` dict.
 
 Trackers serve two roles:
 
-1) They coordinate swarms of peers, and connect you to other people who
+1. They coordinate swarms of peers, and connect you to other people who
    have or want the files in the torrent.
-2) They serve as sites of coordination, curation, and social organization.
+2. They serve as sites of coordination, curation, and social organization.
 
 ### Connecting Peers
 

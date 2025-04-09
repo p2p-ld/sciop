@@ -11,6 +11,7 @@ nav:
   - Intro:
       - intro/overview.md
       - intro/bittorrent.md
+      - intro/bittorrent_v2.md
       - intro/roadmap.md
   - Using Sciop:
       - using/index.md
@@ -96,7 +97,8 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 plugins:
-- redirects:
-    redirect_maps:
-      "using/seeding.md": "using/torrenting.md"
+  - git-authors
+  - redirects:
+      redirect_maps:
+        "using/seeding.md": "using/torrenting.md"
 
