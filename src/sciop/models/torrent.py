@@ -493,7 +493,6 @@ class TorrentFileCreate(TorrentFileBase):
 
 
 class TorrentFileRead(TorrentFileBase):
-    files: list[str]
     short_hash: str = Field(
         None,
         min_length=8,
