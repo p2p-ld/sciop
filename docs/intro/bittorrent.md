@@ -145,8 +145,8 @@ but that's the minimum to qualify as a torrent file.
 
 `.torrent` files are encoded in a fancy file encoding called "[bencoding](https://en.wikipedia.org/wiki/Bencode),"
 
-The details aren't important, but for concreteness, bencoding is *effectively*
-the same thing abstract structure as JSON: dictionaries, arrays, strings, and integers.
+The details aren't important, but for concreteness, bencoding has *effectively*
+the same abstract structure as JSON: dictionaries, arrays, strings, and integers.
 
 For example, this JSON:
 
