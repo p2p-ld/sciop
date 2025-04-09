@@ -185,7 +185,8 @@
     >
         x
     </a>
-    {% for subfield_name, subfield in model.model_fields.items() %}
+    {% set model_fields = model | get_model_fields %}
+    {% for subfield_name, subfield in model_fields.items() %}
     {% set subfield_form_name=field_name_prefix + subfield_name %}
     <div class="form-item">
         <label for="{{ field_name }}-{{ idx }}-{{ subfield_name }}" class="form-label">
@@ -213,7 +214,8 @@
 {% endmacro %}
 
 {% macro inner_model_form(id=None, model=None, exclude = [], edit=False) %}
-{% for field_name, field in model.model_fields.items() if field_name not in exclude %}
+{% set model_fields = model | get_model_fields %}
+{% for field_name, field in model_fields.items() if field_name not in exclude %}
 {% if field.json_schema_extra
    and field.json_schema_extra.get('input_type', False)
    and field.json_schema_extra.get('input_type', None) != 'none'

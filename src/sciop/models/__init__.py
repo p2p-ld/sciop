@@ -5,7 +5,7 @@
 # so as a result...
 # ruff: noqa: E402
 
-from sqlmodel import SQLModel
+from sciop.models.base import SQLModel
 
 SQLModel.metadata.naming_convention = {
     "ix": "ix_%(column_0_label)s",

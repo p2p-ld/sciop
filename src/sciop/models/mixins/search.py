@@ -2,10 +2,11 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from sqlalchemy import Column, Connection, MetaData, Select, Table, TextClause, event, select, text
 from sqlalchemy.exc import OperationalError
-from sqlmodel import SQLModel, literal_column
+from sqlmodel import literal_column
 from sqlmodel.main import FieldInfo
 
 from sciop.logging import init_logger
+from sciop.models.base import SQLModel
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.base import Engine

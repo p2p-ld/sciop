@@ -8,8 +8,9 @@ from pydantic import ConfigDict, SecretStr, field_validator
 from sqlalchemy.ext.hybrid import hybrid_method
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import UniqueConstraint
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship
 
+from sciop.models.base import SQLModel
 from sciop.models.mixins import EnumTableMixin, SearchableMixin, TableMixin
 from sciop.types import IDField, UsernameStr, UTCDateTime
 

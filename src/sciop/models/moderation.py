@@ -3,8 +3,9 @@ from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import RelationshipProperty
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship
 
+from sciop.models.base import SQLModel
 from sciop.models.mixins import TableMixin
 from sciop.types import IDField, UTCDateTime
 

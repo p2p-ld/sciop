@@ -1,7 +1,9 @@
 from typing import Any, ClassVar, Self, cast
 
 from sqlalchemy import select
-from sqlmodel import Session, SQLModel
+from sqlmodel import Session
+
+from sciop.models.base import SQLModel
 
 
 class ListlikeMixin(SQLModel):

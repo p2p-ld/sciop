@@ -5,7 +5,8 @@ Model decorators for modifying class creation :)
 from typing import Callable, Optional, TypeVar
 
 from pydantic_core import PydanticUndefined
-from sqlmodel import SQLModel
+
+from sciop.models.base import SQLModel
 
 T = TypeVar("T", bound=type[SQLModel])
 

@@ -15,11 +15,12 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql import func
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship
 from torf import Torrent as Torrent_
 from torf import _errors, _torrent, _utils
 
 from sciop.config import config
+from sciop.models.base import SQLModel
 from sciop.models.mixins import EditableMixin, TableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.types import EscapedStr, FileName, IDField, MaxLenURL

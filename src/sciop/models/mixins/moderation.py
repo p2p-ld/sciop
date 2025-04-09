@@ -4,8 +4,9 @@ import sqlalchemy as sqla
 from pydantic import ConfigDict
 from sqlalchemy import ColumnElement
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
 
+from sciop.models.base import SQLModel
 from sciop.types import InputType
 
 if TYPE_CHECKING:

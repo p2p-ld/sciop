@@ -20,10 +20,11 @@ from sqlalchemy.orm.exc import UnmappedColumnError
 from sqlalchemy.orm.relationships import _RelationshipDeclared
 from sqlalchemy.orm.unitofwork import UOWTransaction
 from sqlalchemy.sql.schema import ForeignKey
-from sqlmodel import Field, Session, SQLModel
+from sqlmodel import Field, Session
 from sqlmodel.main import RelationshipInfo
 
 from sciop.logging import init_logger
+from sciop.models.base import SQLModel
 
 if TYPE_CHECKING:
     from sciop.models import Account

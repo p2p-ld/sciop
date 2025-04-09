@@ -3,8 +3,9 @@ from typing import Optional, get_origin
 
 from pydantic import ConfigDict
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
 
+from sciop.models.base import SQLModel
 from sciop.types import IDField, UTCDateTime
 
 
@@ -24,7 +25,7 @@ class TableMixin(SQLModel):
         """
         The value of the primary key, `table_id` property.
         """
-        for name, field in self.model_fields.items():
+        for name, field in self.__class__.model_fields.items():
             try:
                 if field.annotation is IDField or IDField in get_origin(field.annotation):
                     return getattr(self, name)
