@@ -192,6 +192,22 @@ we can see that this is actually the same hash repeated twice! (ctrl+f for `8972
 (being able to recognize identical files is one of the motivations for
 [bittorrent v2](bittorrent_v2.md), more on that elsewhere.)
 
+??? note "Mapping pieces to files"
+
+    Usually files are not exactly the same size as the piece size!
+    In that case, bittorrent (v1) treats all the files in the list as one big long continuous file,
+    and the piece hashes that correspond to the boundaries between two files will
+    describe some data from the previous file and some data from the next file.
+
+    Bittorrent v1 uses the file lengths and the piece length to map each piece to a file.
+    If you were to download a single file from a multi-file torrent,
+    you would also download a small amount of data from the adjacent files.
+
+    e.g. if there were three files each 10 bytes long, and the piece size was 3 bytes,
+    if you were to download the second file you would download the 4th-7th pieces
+    (the 9th-21st bytes) even though the file only occupies the 11th-20th bytes.
+      
+
 ### The Infohash
 
 A torrent is uniquely identified by the hash of the `"info"` dictionary,
@@ -289,7 +305,7 @@ First, you [create a torrent](../uploading/torrents) for it.
 Then you open a bittorrent client, add that torrent, and start "seeding."
 When you start seeding, you connect to a tracker and tell it that you have those files!
 Then you send the torrent to your friend and they add it to their torrent client.
-They contact the tracker which tell them that you have said you have the files.
+They contact the tracker which tells them that you have said you have the files.
 They connect to you and start downloading the file in chunks.
 
 Now say you also sent the torrent to a few more friends.
@@ -335,12 +351,14 @@ For whatever "the law" is worth, US courts have [repeatedly ruled](https://torre
 that [an IP address it not a person](https://torrentfreak.com/ip-address-not-person-140324/).
 They have also ruled that [collecting IP addresses is not an invasion of privacy](https://www.mayerbrown.com/en/insights/publications/2025/02/collecting-ip-addresses-not-an-invasion-of-privacy-says-new-york-federal-court-in-cipa-pen-register-action)
 and that people should have [no expectation of privacy](https://www.lexology.com/library/detail.aspx?g=d2ca30a5-542c-48ed-a700-c6dad7911357)
-with respect to their IP address. 
+with respect to their IP address
 So in the US, if the law is meaningful, 
 you both can't necessarily be convicted of a crime based on your IP address alone,
 and you should not rely on obscuring your IP address as a primary means of obscuring your identity.
+In the EU, the situation is different, 
+where the [GDPR considers an IP address a personal identifier](https://gdpr.eu/eu-gdpr-personal-data/).
 
-One of the few well-founded uses of a VPN is to mask your IP address
+One use of a VPN is to mask your IP address
 and make it appear as if you are another computer,
 and many VPNs allow you to torrent through them.
 TorrentFreak keeps an annual, trustworthy set of interviews with VPN providers:
@@ -390,6 +408,9 @@ so you should practice basic precautions with any data you download.
 
 Since much of the content of sciop is a secondary scrape of some primary source,
 it is very difficult to establish authenticity or accuracy.
+It is possible to [cryptographically sign torrents](https://www.bittorrent.org/beps/bep_0035.html),
+but unless that signature is from the original source of the file,
+there is always some gap in provenance from the source to the torrent.
 The only mechanism we have (and the only mechanism that really exists anywhere)
 is *social proof* - if something is fake or incomplete, say so!
 
