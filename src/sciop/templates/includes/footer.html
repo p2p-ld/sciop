@@ -19,6 +19,11 @@
       <p>
         With consultation from <a href="https://piracy.solutions">Peertech Industrial Concern Intl.</a>, Corporate Outreach, Waste-Metal Corrosives, & Archives Division.
       </p>
+      {% if config.instance.contact_email %}
+      <p>
+        Contact: <a href="mailto:{{ config.instance.contact_email }}">{{ config.instance.contact_email }}</a>
+      </p>
+      {% endif %}
     </div>
   </div>
 </footer>
