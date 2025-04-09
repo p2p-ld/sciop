@@ -2,7 +2,15 @@ from pathlib import Path
 from typing import Literal, Optional, Self
 
 from platformdirs import PlatformDirs
-from pydantic import BaseModel, Field, SecretStr, computed_field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    SecretStr,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _default_userdir = Path().home() / ".config" / "mio"
@@ -14,6 +22,16 @@ DEFAULT_DB_LOCATIONS = {
     "test": "db.test.sqlite",
     "prod": "db.sqlite",
 }
+
+
+class InstanceConfig(BaseModel):
+    """
+    Configuration for the public-facing parts of this instance
+    """
+
+    contact_email: Optional[EmailStr] = Field(
+        None, description="Email to list as contact in page footer"
+    )
 
 
 class LogConfig(BaseModel):
@@ -233,6 +251,7 @@ class Config(BaseSettings):
     """
     tracker_scraping: ScrapeConfig = ScrapeConfig()
     site_stats: StatsConfig = StatsConfig()
+    instance: InstanceConfig = InstanceConfig()
 
     @computed_field  # type: ignore[prop-decorator]
     @property
