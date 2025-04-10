@@ -23,6 +23,7 @@ from sqlalchemy.sql.schema import ForeignKey
 from sqlmodel import Field, Session
 from sqlmodel.main import RelationshipInfo
 
+from sciop.config import config
 from sciop.logging import init_logger
 from sciop.models.base import SQLModel
 
@@ -158,6 +159,8 @@ class EditableMixin(SQLModel):
     def editable_session(session: Session) -> Session:
         @event.listens_for(session, "after_flush")
         def after_flush(session: Session, flush_context: UOWTransaction) -> None:
+            if not config.enable_versions:
+                return
             timestamp = datetime.now(UTC)
             for obj in EditableMixin.editable_objects(session.new):
                 create_version(obj, session, flush_context, timestamp, new=True)

@@ -220,6 +220,8 @@ class Config(BaseSettings):
     """in bytes"""
     torrent_dir: Path = Path(_dirs.user_data_dir) / "torrents"
     """Directory to store uploaded torrents"""
+    enable_versions: bool = True
+    """Keep version histories of editable objects"""
     csp: CSPConfig = CSPConfig()
     root_user: str = "root"
     """

@@ -1,4 +1,7 @@
+import contextlib
 import logging
+import sys
+from typing import Any
 from typing import Callable as C
 
 import pytest
@@ -50,3 +53,16 @@ def countables(
             upload(dataset_=ds, torrentfile_=tf)
         datasets.append(ds)
     return datasets
+
+
+@pytest.fixture
+def set_config(monkeypatch: MonkeyPatch) -> C:
+    def _set_config(**kwargs: Any) -> None:
+        for k, v in kwargs.items():
+            for mod_name, mod in sys.modules.items():
+                if not mod_name.startswith("sciop") and not mod_name.startswith("tests."):
+                    continue
+                with contextlib.suppress(AttributeError):
+                    monkeypatch.setattr(mod.config, k, v)
+
+    return _set_config

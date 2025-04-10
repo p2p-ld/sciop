@@ -339,3 +339,19 @@ def test_editable_many_to_many(dataset, session):
     assert len(deleted) == 1
     deleted_tag = [t for t in tags if t.tag_id == deleted[0].tag_id][0]
     assert deleted_tag.tag == tag_states[0][0]
+
+
+def test_editable_disable(dataset, session, set_config):
+    """
+    We can disable editing
+    """
+    set_config(enable_versions=False)
+    ds: Dataset = dataset()
+
+    # one change
+    ds.title = "NewTitle"
+    session.add(ds)
+    session.commit()
+
+    ds_versions = session.exec(select(Dataset.history_cls())).all()
+    assert len(ds_versions) == 0
