@@ -7,14 +7,11 @@ from typing import TYPE_CHECKING, Optional
 from typing import Literal as L
 
 from fastapi import Request
-from fastapi.security.utils import get_authorization_scheme_param
 from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 
 from sciop import models, types
-from sciop.api import deps
 from sciop.config import Config, config
-from sciop.db import get_session
 from sciop.models.mixins.template import get_environment
 
 if TYPE_CHECKING:
@@ -28,22 +25,7 @@ def template_account(request: Request) -> dict[L["current_account"], Optional["A
     (can only use sync functions in context processors, so can't use deps directly,
     so we can't re-use the reusable oauth2, and mimic its __call__ method)
     """
-
-    token = request.cookies.get("access_token", None)
-
-    # try to get from headers if cookie not present
-    if token is None and "Authorization" in request.headers:
-        authorization = request.headers.get("Authorization")
-        scheme, param = get_authorization_scheme_param(authorization)
-        if scheme.lower() == "bearer":
-            token = param
-
-    if token is None:
-        return {"current_account": None}
-    else:
-        session = next(get_session())
-        account = deps.get_current_account(session, token)
-        return {"current_account": account}
+    return {"current_account": getattr(request.state, "current_account", None)}
 
 
 def template_config(request: Request) -> dict[L["config"], Config]:

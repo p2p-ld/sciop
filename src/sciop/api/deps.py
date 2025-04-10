@@ -49,9 +49,10 @@ RawSessionDep = Annotated[Session, Depends(raw_session)]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 
-def require_current_account(session: RawSessionDep, token: TokenDep) -> Account:
+async def require_current_account(
+    session: RawSessionDep, token: TokenDep, request: Request
+) -> Account:
     if not token:
-
         raise HTTPException(401, detail="Not authorized", headers={"HX-Redirect": "/login"})
 
     try:
@@ -69,12 +70,15 @@ def require_current_account(session: RawSessionDep, token: TokenDep) -> Account:
         raise HTTPException(
             status_code=403, detail="Account is suspended", headers={"HX-Redirect": "/login"}
         )
+    request.state.current_account = account
     return account
 
 
-def get_current_account(session: RawSessionDep, token: TokenDep) -> Optional[Account]:
+async def get_current_account(
+    session: RawSessionDep, token: TokenDep, request: Request
+) -> Optional[Account]:
     try:
-        return require_current_account(session, token)
+        return await require_current_account(session, token, request)
     except HTTPException:
         return None
 
@@ -83,7 +87,9 @@ RequireCurrentAccount = Annotated[Account, Depends(require_current_account)]
 CurrentAccount = Annotated[Optional[Account], Depends(get_current_account)]
 
 
-def get_accountable_session(session: RawSessionDep, account: CurrentAccount) -> Session:
+async def get_accountable_session(
+    session: RawSessionDep, account: CurrentAccount, request: Request
+) -> Session:
     """Attach the current account to the session"""
     if account is not None:
         session.info["current_account_id"] = account.account_id
@@ -93,7 +99,7 @@ def get_accountable_session(session: RawSessionDep, account: CurrentAccount) -> 
 SessionDep = Annotated[Session, Depends(get_accountable_session)]
 
 
-def get_current_dataset(
+async def get_current_dataset(
     session: SessionDep, dataset_slug: Optional[str] = None
 ) -> Optional[Dataset]:
     if dataset_slug is None:
