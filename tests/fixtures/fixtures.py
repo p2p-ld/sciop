@@ -2,6 +2,7 @@ import logging
 from typing import Callable as C
 
 import pytest
+import pytest_asyncio
 from _pytest.monkeypatch import MonkeyPatch
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from faker import Faker
@@ -19,7 +20,7 @@ def log_console_width(monkeypatch: "MonkeyPatch") -> None:
     monkeypatch.setattr(root_logger.handlers[1].console, "width", 1000)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture(loop_scope="function")
 async def clean_scheduler(monkeypatch: "MonkeyPatch") -> AsyncIOScheduler:
     """Ensure scheduler state is clean during a test function"""
     scheduler.remove_all_jobs()
