@@ -1,7 +1,7 @@
 import json
 from collections import defaultdict
 
-from sqlmodel import select
+from sqlmodel import Session, select
 from starlette.testclient import TestClient
 
 from sciop.config import config
@@ -44,7 +44,7 @@ def test_edit_scalars(client, dataset, admin_auth_header):
     assert all([res_json[k] == patched[k] for k, v in res_json.items() if k not in ("updated_at",)])
 
 
-def test_edit_relations(client, dataset, admin_auth_header, session):
+def test_edit_relations(client, dataset, admin_auth_header, session: Session):
     """
     We can edit multivalued relation fields with some reasonable interface
     """
@@ -55,6 +55,7 @@ def test_edit_relations(client, dataset, admin_auth_header, session):
         ]
     )
     original = json.loads(DatasetRead.model_validate(ds).model_dump_json())
+    session.expire(ds)
 
     # add and remove items
     new_tags = ["default", "newtag", "thirdtag"]

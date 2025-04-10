@@ -1,4 +1,3 @@
-import asyncio
 import re
 
 import pytest
@@ -44,26 +43,19 @@ async def test_add_parts(default_db, page_as_admin):
     """
     A single dataset part can be added with a form as admin
     """
-    page: Firefox_ = page_as_admin
+    page = page_as_admin
     await page.goto("http://127.0.0.1:8080/datasets/default")
-    # wait to ensure htmx loads and executes
-    await asyncio.sleep(0.15)
 
-    _wait_until_located(driver, "add-bulk-button", by=By.CLASS_NAME, type="clickable")
-    add_bulk = driver.find_element(By.CLASS_NAME, "add-bulk-button")
-    add_bulk.click()
+    add_bulk = page.locator(".add-bulk-button")
+    await expect(add_bulk).to_be_enabled()
+    await add_bulk.click()
 
-    _wait_until_located(driver, "dataset-parts-add-container", By.CLASS_NAME)
-    slugs_input = driver.find_element(By.CSS_SELECTOR, 'textarea[name="parts"]')
-    slugs_input.send_keys("one-part\ntwo-part\nthree-part")
-    driver.find_element(
-        By.CSS_SELECTOR, '.dataset-parts-add-container button[type="submit"]'
-    ).click()
+    await page.locator('textarea[name="parts"]').fill("one-part\ntwo-part\nthree-part")
+    await page.locator('.dataset-parts-add-container button[type="submit"]').click()
 
-    _wait_until_located(driver, "dataset-part-collapsible-default-one-part")
-    assert driver.find_element(By.ID, "dataset-part-collapsible-default-one-part")
-    assert driver.find_element(By.ID, "dataset-part-collapsible-default-two-part")
-    assert driver.find_element(By.ID, "dataset-part-collapsible-default-three-part")
+    await expect(page.locator("#dataset-part-collapsible-default-one-part")).to_be_visible()
+    await expect(page.locator("#dataset-part-collapsible-default-two-part")).to_be_visible()
+    await expect(page.locator("#dataset-part-collapsible-default-three-part")).to_be_visible()
 
 
 @pytest.mark.playwright

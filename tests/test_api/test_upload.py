@@ -86,7 +86,7 @@ def test_upload_noscope(
     acct = account()
     header = get_auth_header()
     torrent_ = torrent()
-    ds = dataset()
+    ds = dataset(session_=session)
     tfile = tmp_path / "test.torrent"
     torrent_.write(tfile)
     with open(tfile, "rb") as f:

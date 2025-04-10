@@ -16,8 +16,8 @@ TEST_PAGES = (
 )
 
 
-@pytest.mark.parametrize("page", TEST_PAGES)
-def test_headers(client, page, default_db, admin_auth_header):
+@pytest.mark.parametrize("url", TEST_PAGES)
+def test_headers(client, url, default_db, admin_auth_header):
     """
     Pages should
     - all have an h1 at the top of the page
@@ -25,7 +25,7 @@ def test_headers(client, page, default_db, admin_auth_header):
 
     TODO: These should probably be playwright tests but i am so tired
     """
-    result = client.get(page, headers=admin_auth_header)
+    result = client.get(url, headers=admin_auth_header)
     assert result.status_code == 200
     soup = BeautifulSoup(result.content, "lxml")
 
