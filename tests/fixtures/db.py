@@ -4,32 +4,25 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from alembic.config import Config as AlembicConfig
 from sqlalchemy import Connection, Engine, Transaction, create_engine
+from sqlalchemy.exc import ProgrammingError
 from sqlmodel import Session, SQLModel
 from sqlmodel.pool import StaticPool
-
-# @pytest.fixture(scope="session", autouse=True)
-# def create_tables(monkeypatch_session: "MonkeyPatch", monkeypatch_config: None) -> None:
-#     from sciop.config import config
-#     from sciop.db import create_tables
-#
-#     engine = create_engine(str(config.sqlite_path))
-#     create_tables(engine, check_migrations=False)
 
 
 @pytest.fixture()
 def engine(request: pytest.FixtureRequest) -> Engine:
     if request.config.getoption("--file-db"):
-        engine, connection, trans = _file_session()
+        from sciop.db import engine
     else:
-        engine, connection, trans = _in_memory_engine(request)
+        engine = _in_memory_engine(request)
+    return engine
 
 
 @pytest.fixture
-def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session:
+def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest, engine: Engine) -> Session:
     from sciop import db, scheduler
     from sciop.api import deps
     from sciop.app import app
-    from sciop.frontend import templates
     from sciop.models.mixins import EditableMixin
 
     transactions = []
@@ -48,15 +41,14 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
             yield session
 
     else:
-        engine = _in_memory_engine(request)
-        session = Session(engine)
+        session = Session(engine, autoflush=False, autocommit=False)
 
         def get_engine_override() -> Engine:
             nonlocal engine
             return engine
 
         def get_session_override() -> Session:
-            session = Session(engine)
+            session = Session(engine, autoflush=False, autocommit=False)
             session = EditableMixin.editable_session(session)
             yield session
 
@@ -64,7 +56,6 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
         monkeypatch.setattr(db, "get_engine", get_engine_override)
 
     monkeypatch.setattr(db, "get_session", get_session_override)
-    monkeypatch.setattr(templates, "get_session", get_session_override)
     monkeypatch.setattr(deps, "get_session", get_session_override)
 
     app.dependency_overrides[deps.raw_session] = get_session_override
@@ -72,12 +63,12 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
     session = EditableMixin.editable_session(session)
     yield session
 
-    # try:
-    session.close()
-    # except ProgrammingError as e:
-    #     if "closed database" not in str(e):
-    #         # fine, from tearing down server in selenium tests
-    #         raise e
+    try:
+        session.close()
+    except ProgrammingError as e:
+        if "closed database" not in str(e):
+            # fine, from tearing down server in selenium tests
+            raise e
 
     if request.config.getoption("--file-db"):
         for trans, connection in transactions:
@@ -117,13 +108,10 @@ def _file_session() -> tuple[Session, Connection, Transaction]:
 
 
 @pytest.fixture
-def recreate_models() -> Callable[[], "Engine"]:
+def recreate_models(engine: Engine) -> Callable[[], "Engine"]:
     """Callable fixture to recreate models after any inline definitions of tables"""
 
     def _recreate_models() -> "Engine":
-        from sciop.db import get_engine
-
-        engine = get_engine()
         SQLModel.metadata.create_all(engine)
         return engine
 

@@ -1,22 +1,19 @@
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING
 
+import pytest
+from playwright.async_api import Page, expect
 from sqlmodel import select
 
 from sciop.models import Torrent, Upload
 
-if TYPE_CHECKING:
-    from ..fixtures.server import Firefox_
-
-import pytest
-
 
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.playwright
-def test_upload_from_download(page_as_admin: "Firefox_", torrent, dataset, session):
+async def test_upload_from_download(page_as_admin: "Page", torrent, dataset, session):
     """We can upload a torrent"""
-    driver = driver_as_admin
-    ds = dataset()
+    page = page_as_admin
+    ds = dataset(session_=session)
+    session.expire(ds)
     t: Torrent = torrent()
     t.path.parent.mkdir(exist_ok=True, parents=True)
     t.write(t.path, overwrite=True)
@@ -28,16 +25,16 @@ def test_upload_from_download(page_as_admin: "Firefox_", torrent, dataset, sessi
 
     await page.goto("http://127.0.0.1:8080/datasets/default")
     # initiate upload partial
-    driver.wait_for("upload-button", type="clickable").click()
+    await page.locator("#upload-button").click()
     # upload file
-    driver.wait_for('input[type="file"]', by=By.CSS_SELECTOR).send_keys(str(t.path))
-    driver.find_element(By.CSS_SELECTOR, ".upload-form button[type=submit]").click()
+    await page.locator('input[type="file"]').set_input_files(str(t.path))
+    await page.locator(".upload-form button[type=submit]").click()
     # input model fields
-    driver.wait_for("upload-form-method").send_keys(expected["method"])
-    driver.find_element(By.ID, "upload-form-description").send_keys(expected["description"])
-    driver.find_element(By.ID, "submit-upload-button").click()
+    await page.locator("#upload-form-method").fill(expected["method"])
+    await page.locator("#upload-form-description").fill(expected["description"])
+    await page.locator("#submit-upload-button").click()
     # wait for upload to finalize
-    driver.wait_for(f"upload-{t.infohash}")
+    await expect(page.locator(f"#upload-{t.infohash}")).to_be_visible()
 
     upload = session.exec(select(Upload)).first()
     for k, v in expected.items():

@@ -1,8 +1,9 @@
 import asyncio
 
+import httpx
 import pytest
-import requests
 from bs4 import BeautifulSoup as bs
+from playwright.async_api import Page, expect
 
 from sciop.config import config
 
@@ -10,27 +11,26 @@ from sciop.config import config
 @pytest.mark.timeout(15)
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.playwright
-async def test_request(default_db, page_as_admin):
-    driver_as_admin.get("http://127.0.0.1:8080/request")
-    # allow htmx to load and execute
-    await asyncio.sleep(0.15)
+async def test_request(default_db, page_as_admin: Page):
+    page = page_as_admin
+    await page.goto("http://127.0.0.1:8080/request")
+    await asyncio.sleep(0.1)
 
     title = "Test Item"
     slug = "test-item"
     publisher = "test publisher"
     tags = "tag1, tag2"
-    element_present = EC.presence_of_element_located((By.ID, "request-form-title"))
-    WebDriverWait(driver_as_admin, 3).until(element_present)
 
-    driver_as_admin.find_element(By.ID, "request-form-title").send_keys(title)
-    driver_as_admin.find_element(By.ID, "request-form-slug").send_keys(slug)
-    driver_as_admin.find_element(By.ID, "request-form-publisher").send_keys(publisher)
-    driver_as_admin.find_element(By.ID, "request-form-tags").send_keys(tags)
-    driver_as_admin.find_element(By.CLASS_NAME, "form-button").click()
-    element_present = EC.presence_of_element_located((By.ID, "dataset-test-item"))
-    WebDriverWait(driver_as_admin, 3).until(element_present)
+    await page.locator("#request-form-title").fill(title)
+    await page.locator("#request-form-slug").fill(slug)
+    await page.locator("#request-form-publisher").fill(publisher)
+    await page.locator("#request-form-tags").fill(tags)
+    await page.locator(".form-button").click()
+    await page.wait_for_timeout(250)
+    await expect(page).to_have_url("http://127.0.0.1:8080/datasets/test-item")
 
-    res = requests.get(f"http://127.0.0.1:8080{config.api_prefix}/datasets/test-item")
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"http://127.0.0.1:8080{config.api_prefix}/datasets/test-item")
     dataset = res.json()
     assert dataset["title"] == title
     assert dataset["slug"] == slug
@@ -41,12 +41,10 @@ async def test_request(default_db, page_as_admin):
 @pytest.mark.timeout(20)
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.playwright
-async def test_rm_subform_items(page_as_admin):
-    driver_as_admin.get("http://127.0.0.1:8080/request")
-    # allow htmx to load and execute
-    await asyncio.sleep(0.15)
-    element_present = EC.presence_of_element_located((By.ID, "request-form-title"))
-    WebDriverWait(driver_as_admin, 3).until(element_present)
+async def test_rm_subform_items(page_as_admin: Page):
+    page = page_as_admin
+    await page.goto("http://127.0.0.1:8080/request")
+    await page.wait_for_timeout(250)
 
     title = "Test Item"
     slug = "test-item"
@@ -59,84 +57,65 @@ async def test_rm_subform_items(page_as_admin):
     ]
     rm_ext_ids = {"type": "doi", "identifier": "10.10000/bad-1"}
 
-    driver_as_admin.find_element(By.ID, "request-form-title").send_keys(title)
-    driver_as_admin.find_element(By.ID, "request-form-slug").send_keys(slug)
-    driver_as_admin.find_element(By.ID, "request-form-publisher").send_keys(publisher)
-    driver_as_admin.find_element(By.ID, "request-form-tags").send_keys(tags)
+    await page.locator("#request-form-title").fill(title)
+    await page.locator("#request-form-slug").fill(slug)
+    await page.locator("#request-form-publisher").fill(publisher)
+    await page.locator("#request-form-tags").fill(tags)
 
-    ext_ids = driver_as_admin.find_element(
-        By.CSS_SELECTOR, '.form-item[data-field-name="external_identifiers"]'
-    )
+    ext_ids = page.locator('.form-item[data-field-name="external_identifiers"]')
 
     # add first item
-    ext_ids.find_element(By.CLASS_NAME, "add-subform-button").click()
-    await asyncio.sleep(0.1)
-    element_present = EC.presence_of_element_located(
-        (By.ID, "request-form-external_identifiers[0].type")
-    )
-    WebDriverWait(driver_as_admin, 1).until(element_present)
-    ext_ids.find_element(By.ID, "request-form-external_identifiers[0].type").send_keys(
+    await ext_ids.locator(".add-subform-button").click()
+    await ext_ids.locator('[name="external_identifiers[0].type"]').select_option(
         expected_ext_ids[0]["type"]
     )
-    ext_ids.find_element(By.ID, "request-form-external_identifiers[0].identifier").send_keys(
+    await ext_ids.locator('[name="external_identifiers[0].identifier"]').fill(
         expected_ext_ids[0]["identifier"]
     )
 
     # add second item
-    ext_ids.find_element(By.CLASS_NAME, "add-subform-button").click()
-    await asyncio.sleep(0.1)
-    element_present = EC.presence_of_element_located(
-        (By.ID, "request-form-external_identifiers[1].type")
-    )
-    WebDriverWait(driver_as_admin, 1).until(element_present)
-    ext_ids.find_element(By.ID, "request-form-external_identifiers[1].type").send_keys(
-        rm_ext_ids["type"]
-    )
-    ext_ids.find_element(By.ID, "request-form-external_identifiers[1].identifier").send_keys(
+    await ext_ids.locator(".add-subform-button").click()
+    # await expect(page.locator("#external_identifiers[1].type")).to_be_visible()
+    await ext_ids.locator('[name="external_identifiers[1].type"]').select_option(rm_ext_ids["type"])
+    await ext_ids.locator('[name="external_identifiers[1].identifier"]').fill(
         rm_ext_ids["identifier"]
     )
 
     # but then delete it
-    ext_ids.find_element(By.CSS_SELECTOR, '.close-button[data-idx="1"]').click()
-    await asyncio.sleep(0.1)
+    await ext_ids.locator('.close-button[data-idx="1"]').click()
 
     # assert it's no longer there
-    element_not_present = EC.invisibility_of_element_located(
-        (By.ID, "request-form-external_identifiers[1].type")
-    )
-    assert element_not_present(driver_as_admin)
+    await expect(page.locator('[name="external_identifiers[1].type"]')).not_to_be_visible()
 
     # add the third item
-    ext_ids.find_element(By.CLASS_NAME, "add-subform-button").click()
-    await asyncio.sleep(0.1)
-    element_present = EC.presence_of_element_located(
-        (By.ID, "request-form-external_identifiers[2].type")
-    )
-    WebDriverWait(driver_as_admin, 1).until(element_present)
-    ext_ids.find_element(By.ID, "request-form-external_identifiers[2].type").send_keys(
+    await ext_ids.locator(".add-subform-button").click()
+
+    await ext_ids.locator('[name="external_identifiers[2].type"]').select_option(
         expected_ext_ids[1]["type"]
     )
-    ext_ids.find_element(By.ID, "request-form-external_identifiers[2].identifier").send_keys(
+    await ext_ids.locator('[name="external_identifiers[2].identifier"]').fill(
         expected_ext_ids[1]["identifier"]
     )
 
     # submit
-    driver_as_admin.find_element(By.CLASS_NAME, "form-button").click()
-    await asyncio.sleep(0.1)
-    element_present = EC.presence_of_element_located((By.ID, "dataset-test-item"))
-    WebDriverWait(driver_as_admin, 3).until(element_present)
+    await page.locator(".form-button").click()
+    await expect(page).to_have_url("http://127.0.0.1:8080/datasets/test-item")
 
     # extract dois from infobox
-    infobox_keys = driver_as_admin.find_elements(By.CSS_SELECTOR, ".infobox-key")
-    infobox_vals = driver_as_admin.find_elements(By.CSS_SELECTOR, ".infobox-value")
-    infobox = [{"key": key.text, "value": val.text} for key, val in zip(infobox_keys, infobox_vals)]
+    infobox_keys = await page.locator(".infobox-key").all()
+    infobox_vals = await page.locator(".infobox-value").all()
+    infobox = [
+        {"key": await key.text_content(), "value": await val.text_content()}
+        for key, val in zip(infobox_keys, infobox_vals)
+    ]
     dois = [item["value"] for item in infobox if item["key"] == "doi"]
     assert len(dois) == 2
     assert all([expected["identifier"] in dois for expected in expected_ext_ids])
     assert rm_ext_ids["identifier"] not in dois
 
     # and confirm with api copy
-    res = requests.get(f"http://127.0.0.1:8080{config.api_prefix}/datasets/test-item")
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"http://127.0.0.1:8080{config.api_prefix}/datasets/test-item")
     dataset = res.json()
     external_ids = dataset["external_identifiers"]
     api_dois = [ext["identifier"] for ext in external_ids]

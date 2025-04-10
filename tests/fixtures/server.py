@@ -1,29 +1,33 @@
 import asyncio
 import contextlib
-import re
 import socket
 import time
+from datetime import timedelta
 from threading import Thread
+from typing import TYPE_CHECKING
 from typing import Callable as C
 
 import pytest
 import pytest_asyncio
-from playwright.async_api import BrowserContext, Page, expect
+from playwright.async_api import BrowserContext, Page
 from sqlmodel import Session
 from starlette.testclient import TestClient
 from uvicorn import Config, Server
+
+if TYPE_CHECKING:
+    from sciop.models import Token
 
 
 @pytest.fixture()
 def client(session: Session) -> TestClient:
     """Client that runs the lifespan actions"""
     from sciop.app import app
-    from sciop.db import get_session
 
-    def get_session_override() -> Session:
-        return session
-
-    app.dependency_overrides[get_session] = get_session_override
+    #
+    # def get_session_override() -> Session:
+    #     return session
+    #
+    # app.dependency_overrides[raw_session] = get_session_override
 
     return TestClient(app)
 
@@ -32,12 +36,6 @@ def client(session: Session) -> TestClient:
 def client_lifespan(session: Session) -> TestClient:
     """Client that runs the lifespan actions"""
     from sciop.app import app
-    from sciop.db import get_session
-
-    def get_session_override() -> Session:
-        return session
-
-    app.dependency_overrides[get_session] = get_session_override
 
     with TestClient(app) as client:
         yield client
@@ -78,15 +76,50 @@ class Server_(Server):
             thread.join()
 
 
+class UvicornTestServer(Server):
+    """Uvicorn test server
+    https://stackoverflow.com/a/64454876/13113166
+    """
+
+    def __init__(self, config: Config):
+        """Create a Uvicorn test server
+
+        Args:
+            app (FastAPI, optional): the FastAPI app. Defaults to main.app.
+            host (str, optional): the host ip. Defaults to '127.0.0.1'.
+            port (int, optional): the port. Defaults to PORT.
+        """
+        self._startup_done = asyncio.Event()
+        super().__init__(config=config)
+
+    async def startup(self, sockets: list | None = None) -> None:
+        """Override uvicorn startup"""
+        await super().startup(sockets=sockets)
+        self.config.setup_event_loop()
+        self._startup_done.set()
+
+    async def up(self) -> None:
+        """Start up server asynchronously"""
+        loop = asyncio.get_event_loop()
+        self._serve_task = loop.create_task(self.serve())
+        await self._startup_done.wait()
+
+    async def down(self) -> None:
+        """Shut down server asynchronously"""
+        self.should_exit = True
+        await self._serve_task
+
+
 @pytest.fixture
 async def run_server(session: Session) -> Server_:
     from sciop.app import app
-    from sciop.db import get_session
 
-    def get_session_override() -> Session:
-        return session
-
-    app.dependency_overrides[get_session] = get_session_override
+    # from sciop.api.deps import raw_session
+    #
+    # def get_session_override() -> Session:
+    #     return session
+    #
+    # app.dependency_overrides[raw_session] = get_session_override
 
     config = Config(
         app=app,
@@ -96,44 +129,64 @@ async def run_server(session: Session) -> Server_:
         access_log=False,
         log_config=None,
     )
-    server = Server_(config=config)
-    await asyncio.sleep(0.1)
-    with server.run_in_thread():
-        yield server
+
+    server = UvicornTestServer(config=config)
+    await server.up()
+    yield
+    await server.down()
+
+    # await asyncio.sleep(0.1)
+
+    # with server.run_in_thread():
+    #     yield server
 
 
 @pytest.fixture
 async def context(context: BrowserContext) -> BrowserContext:
-    context.set_default_timeout(5 * 1000)
+    context.set_default_timeout(10 * 1000)
     yield context
 
 
 @pytest.fixture
 async def page(page: Page) -> Page:
-    page.set_default_navigation_timeout(5 * 1000)
+    page.set_default_navigation_timeout(10 * 1000)
     yield page
 
 
 @pytest.fixture()
-async def page_as_admin(run_server: Server_, admin_auth_header: dict, page: Page) -> Page:
-    await page.goto("http://127.0.0.1:8080/login")
-
-    await page.locator("#username").fill("admin")
-    await page.locator("#password").fill("adminadmin12")
-    await page.locator("#login-button").click()
-
-    await expect(page).to_have_url(re.compile(r".*self.*"))
+async def page_as_admin(
+    run_server: Server_, context: BrowserContext, admin_token: "Token", page: Page
+) -> Page:
+    await context.add_cookies(
+        [
+            {
+                "name": "access_token",
+                "value": admin_token.access_token,
+                "path": "/",
+                "domain": "127.0.0.1",
+            }
+        ]
+    )
     return page
 
 
 @pytest_asyncio.fixture(loop_scope="session")
-async def page_as_user(page: Page, run_server: Server_, account: C) -> Page:
+async def page_as_user(
+    context: BrowserContext, run_server: Server_, account: C, page: Page
+) -> Page:
     """Driver as a regular user with no privs"""
-    _ = account(username="user", password="userpassword123")
+    from sciop.api.auth import create_access_token
 
-    await page.locator("#username").fill("user")
-    await page.locator("#password").fill("userpassword123")
-    await page.locator("#login-button").click()
-
-    await expect(page).to_have_url(re.compile(r".*self.*"))
+    acct = account(username="user", password="userpassword123")
+    token = create_access_token(acct.account_id, expires_delta=timedelta(minutes=5))
+    await context.add_cookies(
+        [
+            {
+                "name": "access_token",
+                "value": token,
+                "path": "/",
+                "domain": "127.0.0.1",
+            }
+        ]
+    )
     return page
