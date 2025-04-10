@@ -1,7 +1,7 @@
 import contextlib
 import logging
 import sys
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from typing import Callable as C
 
 import pytest
@@ -12,9 +12,6 @@ from faker import Faker
 
 from sciop import scheduler
 from sciop.models import Account, Dataset, TorrentFile, Upload
-
-if TYPE_CHECKING:
-    pass
 
 
 @pytest.fixture
