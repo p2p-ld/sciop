@@ -1,73 +1,17 @@
 import asyncio
 import contextlib
-import os
 import re
 import socket
 import time
 from threading import Thread
 from typing import Callable as C
-from typing import Literal as L
-from typing import Optional
 
 import pytest
 import pytest_asyncio
 from playwright.async_api import BrowserContext, Page, expect
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from selenium.webdriver.firefox.service import Service as FirefoxService
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
 from sqlmodel import Session
 from starlette.testclient import TestClient
 from uvicorn import Config, Server
-from webdriver_manager import firefox
-from webdriver_manager.core.driver_cache import DriverCacheManager
-
-# from pytest_playwright_asyncio.pytest_playwright import page as page_
-
-
-class LazyCacheManager(DriverCacheManager):
-    """Cache manager that doesn't fail if github ratelimit exceeded"""
-
-    def find_driver(self, driver: firefox.GeckoDriver) -> Optional[str]:
-        """Find driver by '{os_type}_{driver_name}_{driver_version}_{browser_version}'."""
-        browser_type = driver.get_browser_type()
-        browser_version = self._os_system_manager.get_browser_version_from_os(browser_type)
-        if not browser_version:
-            return None
-
-        metadata = self.load_metadata_content()
-        try:
-            key = self.__get_metadata_key(driver)
-            if key not in metadata:
-                return None
-        except Exception as e:
-            if len(metadata.keys()) > 0:
-                key = list(metadata.keys())[-1]
-            else:
-                raise e
-
-        driver_info = metadata[key]
-        path = driver_info["binary_path"]
-        if not os.path.exists(path):
-            return None
-
-        path = driver_info["binary_path"]
-        return path
-
-    def __get_metadata_key(self, driver: firefox.GeckoDriver) -> str:
-        if self._metadata_key:
-            return self._metadata_key
-
-        driver_version = self.get_cache_key_driver_version(driver)
-        browser_version = driver.get_browser_version_from_os()
-        browser_version = browser_version if browser_version else ""
-        self._metadata_key = (
-            f"{self.get_os_type()}_{driver.get_name()}_{driver_version}" f"_for_{browser_version}"
-        )
-        return self._metadata_key
 
 
 @pytest.fixture()
@@ -134,26 +78,6 @@ class Server_(Server):
             thread.join()
 
 
-class Firefox_(webdriver.Firefox):
-
-    def wait_for(
-        self,
-        locator: str,
-        by: By = By.ID,
-        timeout: float = 3,
-        type: L["visible", "clickable"] = "visible",
-    ) -> WebElement:
-        if type == "clickable":
-            element_present = EC.element_to_be_clickable((by, locator))
-        elif type == "visible":
-            element_present = EC.visibility_of_element_located((by, locator))
-        else:
-            raise ValueError("Dont know what ur type is lol")
-
-        WebDriverWait(self, timeout).until(element_present)
-        return self.find_element(by, locator)
-
-
 @pytest.fixture
 async def run_server(session: Session) -> Server_:
     from sciop.app import app
@@ -178,46 +102,6 @@ async def run_server(session: Session) -> Server_:
         yield server
 
 
-@pytest.fixture(scope="session")
-def driver_executable_path() -> str:
-    try:
-        return firefox.GeckoDriverManager(cache_manager=LazyCacheManager()).install()
-    except ValueError as e:
-        pytest.skip(f"couldn't download webdriver {str(e)}")
-
-
-@pytest.fixture()
-async def driver(
-    run_server: Server_, request: pytest.FixtureRequest, driver_executable_path: str
-) -> webdriver.Firefox:
-    executable_path = driver_executable_path
-    options = FirefoxOptions()
-    options.add_argument("--disable-dev-shm-usage")
-    if not request.config.getoption("--show-browser"):
-        options.add_argument("--headless")
-        options.headless = True
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-    _service = FirefoxService(executable_path=executable_path)
-    try:
-        browser = Firefox_(service=_service, options=options)
-        browser.set_window_size(1920, 1080)
-        browser.maximize_window()
-        browser.implicitly_wait(0.25)
-        # hail mary to avoid some thread synchronization problems
-        await asyncio.sleep(0.25)
-
-        yield browser
-
-    finally:
-        if "browser" in locals():
-            browser.close()
-            browser.quit()
-
-        await asyncio.sleep(0.25)
-
-
 @pytest.fixture
 async def context(context: BrowserContext) -> BrowserContext:
     context.set_default_timeout(5 * 1000)
@@ -231,7 +115,7 @@ async def page(page: Page) -> Page:
 
 
 @pytest.fixture()
-async def driver_as_admin(run_server: Server_, admin_auth_header: dict, page: Page) -> Page:
+async def page_as_admin(run_server: Server_, admin_auth_header: dict, page: Page) -> Page:
     await page.goto("http://127.0.0.1:8080/login")
 
     await page.locator("#username").fill("admin")
@@ -243,17 +127,13 @@ async def driver_as_admin(run_server: Server_, admin_auth_header: dict, page: Pa
 
 
 @pytest_asyncio.fixture(loop_scope="session")
-async def driver_as_user(page: Page, run_server: Server_, account: C) -> Page:
+async def page_as_user(page: Page, run_server: Server_, account: C) -> Page:
     """Driver as a regular user with no privs"""
     _ = account(username="user", password="userpassword123")
 
-    username = await page.query_selector("#username")
-    await username.fill("user")
-    password = await page.query_selector("#password")
-    await password.fill("userpassword123")
-    button = await page.query_selector("#login-button")
-    await button.click()
+    await page.locator("#username").fill("user")
+    await page.locator("#password").fill("userpassword123")
+    await page.locator("#login-button").click()
 
-    greeting = await page.query_selector(".self-greeting")
-    expect(greeting).to_be_visible()
+    await expect(page).to_have_url(re.compile(r".*self.*"))
     return page

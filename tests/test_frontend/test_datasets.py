@@ -1,7 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from selenium.webdriver.common.by import By
 from sqlmodel import select
 
 from sciop.models import Torrent, Upload
@@ -12,8 +11,9 @@ if TYPE_CHECKING:
 import pytest
 
 
+@pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.playwright
-def test_upload_from_download(driver_as_admin: "Firefox_", torrent, dataset, session):
+def test_upload_from_download(page_as_admin: "Firefox_", torrent, dataset, session):
     """We can upload a torrent"""
     driver = driver_as_admin
     ds = dataset()
@@ -26,7 +26,7 @@ def test_upload_from_download(driver_as_admin: "Firefox_", torrent, dataset, ses
         "infohash": t.infohash,
     }
 
-    driver.get("http://127.0.0.1:8080/datasets/default")
+    await page.goto("http://127.0.0.1:8080/datasets/default")
     # initiate upload partial
     driver.wait_for("upload-button", type="clickable").click()
     # upload file

@@ -57,12 +57,7 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 
 def pytest_collection_modifyitems(items: list[Function]) -> None:
     for item in items:
-        if any(
-            [
-                "driver" in fixture_name or "page" in fixture_name
-                for fixture_name in getattr(item, "fixturenames", ())
-            ]
-        ):
+        if any(["page" in fixture_name for fixture_name in getattr(item, "fixturenames", ())]):
             item.add_marker("playwright")
 
 

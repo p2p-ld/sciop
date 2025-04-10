@@ -1,20 +1,16 @@
 import asyncio
-import os
 
 import pytest
 import requests
 from bs4 import BeautifulSoup as bs
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
 
 from sciop.config import config
 
 
 @pytest.mark.timeout(15)
-@pytest.mark.xfail("IN_CI" in os.environ, reason="selenium still too flaky for CI")
+@pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.playwright
-async def test_request(default_db, driver_as_admin):
+async def test_request(default_db, page_as_admin):
     driver_as_admin.get("http://127.0.0.1:8080/request")
     # allow htmx to load and execute
     await asyncio.sleep(0.15)
@@ -43,9 +39,9 @@ async def test_request(default_db, driver_as_admin):
 
 
 @pytest.mark.timeout(20)
-@pytest.mark.xfail("IN_CI" in os.environ, reason="selenium still too flaky for CI")
+@pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.playwright
-async def test_rm_subform_items(driver_as_admin):
+async def test_rm_subform_items(page_as_admin):
     driver_as_admin.get("http://127.0.0.1:8080/request")
     # allow htmx to load and execute
     await asyncio.sleep(0.15)

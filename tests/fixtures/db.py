@@ -4,7 +4,6 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from alembic.config import Config as AlembicConfig
 from sqlalchemy import Connection, Engine, Transaction, create_engine
-from sqlalchemy.exc import ProgrammingError
 from sqlmodel import Session, SQLModel
 from sqlmodel.pool import StaticPool
 
@@ -73,12 +72,12 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
     session = EditableMixin.editable_session(session)
     yield session
 
-    try:
-        session.close()
-    except ProgrammingError as e:
-        if "closed database" not in str(e):
-            # fine, from tearing down server in selenium tests
-            raise e
+    # try:
+    session.close()
+    # except ProgrammingError as e:
+    #     if "closed database" not in str(e):
+    #         # fine, from tearing down server in selenium tests
+    #         raise e
 
     if request.config.getoption("--file-db"):
         for trans, connection in transactions:
