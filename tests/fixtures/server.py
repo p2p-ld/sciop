@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import os
+import re
 import socket
 import time
 from threading import Thread
@@ -9,6 +10,8 @@ from typing import Literal as L
 from typing import Optional
 
 import pytest
+import pytest_asyncio
+from playwright.async_api import BrowserContext, Page, expect
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
@@ -21,6 +24,8 @@ from starlette.testclient import TestClient
 from uvicorn import Config, Server
 from webdriver_manager import firefox
 from webdriver_manager.core.driver_cache import DriverCacheManager
+
+# from pytest_playwright_asyncio.pytest_playwright import page as page_
 
 
 class LazyCacheManager(DriverCacheManager):
@@ -113,6 +118,9 @@ class Server_(Server):
     Borrowed from https://github.com/encode/uvicorn/discussions/1455
     """
 
+    def install_signal_handlers(self) -> None:
+        pass
+
     @contextlib.contextmanager
     def run_in_thread(self) -> None:
         thread = Thread(target=self.run)
@@ -146,7 +154,7 @@ class Firefox_(webdriver.Firefox):
         return self.find_element(by, locator)
 
 
-@pytest.fixture()
+@pytest.fixture
 async def run_server(session: Session) -> Server_:
     from sciop.app import app
     from sciop.db import get_session
@@ -210,38 +218,42 @@ async def driver(
         await asyncio.sleep(0.25)
 
 
-@pytest.fixture()
-async def driver_as_admin(driver: webdriver.Firefox, admin_auth_header: dict) -> webdriver.Firefox:
-    driver.get("http://127.0.0.1:8080/login")
+@pytest.fixture
+async def context(context: BrowserContext) -> BrowserContext:
+    context.set_default_timeout(5 * 1000)
+    yield context
 
-    username = driver.find_element(By.ID, "username")
-    wait = WebDriverWait(driver, timeout=3)
-    wait.until(lambda _: username.is_displayed())
-    username.send_keys("admin")
-    password = driver.find_element(By.ID, "password")
-    password.send_keys("adminadmin12")
-    submit = driver.find_element(By.ID, "login-button")
-    submit.click()
-    username_greeting = driver.find_element(By.CLASS_NAME, "self-greeting")
-    wait = WebDriverWait(driver, timeout=3)
-    wait.until(lambda _: username_greeting.is_displayed())
-    return driver
+
+@pytest.fixture
+async def page(page: Page) -> Page:
+    page.set_default_navigation_timeout(5 * 1000)
+    yield page
 
 
 @pytest.fixture()
-async def driver_as_user(driver: webdriver.Firefox, account: C) -> webdriver.Firefox:
+async def driver_as_admin(run_server: Server_, admin_auth_header: dict, page: Page) -> Page:
+    await page.goto("http://127.0.0.1:8080/login")
+
+    await page.locator("#username").fill("admin")
+    await page.locator("#password").fill("adminadmin12")
+    await page.locator("#login-button").click()
+
+    await expect(page).to_have_url(re.compile(r".*self.*"))
+    return page
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def driver_as_user(page: Page, run_server: Server_, account: C) -> Page:
     """Driver as a regular user with no privs"""
     _ = account(username="user", password="userpassword123")
-    driver.get("http://127.0.0.1:8080/login")
-    username = driver.find_element(By.ID, "username")
-    wait = WebDriverWait(driver, timeout=3)
-    wait.until(lambda _: username.is_displayed())
-    username.send_keys("user")
-    password = driver.find_element(By.ID, "password")
-    password.send_keys("userpassword123")
-    submit = driver.find_element(By.ID, "login-button")
-    submit.click()
-    username_greeting = driver.find_element(By.CLASS_NAME, "self-greeting")
-    wait = WebDriverWait(driver, timeout=3)
-    wait.until(lambda _: username_greeting.is_displayed())
-    return driver
+
+    username = await page.query_selector("#username")
+    await username.fill("user")
+    password = await page.query_selector("#password")
+    await password.fill("userpassword123")
+    button = await page.query_selector("#login-button")
+    await button.click()
+
+    greeting = await page.query_selector(".self-greeting")
+    expect(greeting).to_be_visible()
+    return page

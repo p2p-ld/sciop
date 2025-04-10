@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 import pytest
 
 
-@pytest.mark.selenium
+@pytest.mark.playwright
 def test_upload_from_download(driver_as_admin: "Firefox_", torrent, dataset, session):
     """We can upload a torrent"""
     driver = driver_as_admin

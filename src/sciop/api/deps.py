@@ -36,7 +36,7 @@ reusable_oauth2 = OAuth2PasswordBearerCookie(
 )
 
 
-def _raw_session() -> Session:
+def raw_session() -> Session:
     """
     Get a session - put this in a wrapper function so it's invoked once per
     resolution of the dependency graph, rather than multiple times
@@ -45,7 +45,7 @@ def _raw_session() -> Session:
     return next(get_session())
 
 
-RawSessionDep = Annotated[Session, Depends(_raw_session)]
+RawSessionDep = Annotated[Session, Depends(raw_session)]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 

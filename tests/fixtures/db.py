@@ -8,14 +8,21 @@ from sqlalchemy.exc import ProgrammingError
 from sqlmodel import Session, SQLModel
 from sqlmodel.pool import StaticPool
 
+# @pytest.fixture(scope="session", autouse=True)
+# def create_tables(monkeypatch_session: "MonkeyPatch", monkeypatch_config: None) -> None:
+#     from sciop.config import config
+#     from sciop.db import create_tables
+#
+#     engine = create_engine(str(config.sqlite_path))
+#     create_tables(engine, check_migrations=False)
 
-@pytest.fixture(scope="session", autouse=True)
-def create_tables(monkeypatch_session: "MonkeyPatch", monkeypatch_config: None) -> None:
-    from sciop.config import config
-    from sciop.db import create_tables
 
-    engine = create_engine(str(config.sqlite_path))
-    create_tables(engine, check_migrations=False)
+@pytest.fixture()
+def engine(request: pytest.FixtureRequest) -> Engine:
+    if request.config.getoption("--file-db"):
+        engine, connection, trans = _file_session()
+    else:
+        engine, connection, trans = _in_memory_engine(request)
 
 
 @pytest.fixture
@@ -23,28 +30,47 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
     from sciop import db, scheduler
     from sciop.api import deps
     from sciop.app import app
-    from sciop.db import get_session
     from sciop.frontend import templates
+    from sciop.models.mixins import EditableMixin
+
+    transactions = []
 
     if request.config.getoption("--file-db"):
-        engine, session, connection, trans = _file_session()
+        session, connection, trans = _file_session()
+        transactions.append((trans, connection))
+
+        def get_session_override() -> Session:
+            nonlocal transactions
+            session, connection, trans = _file_session()
+            # don't rollback here, or we'll rollback in the middle of the test.
+            # rollback at the end
+            transactions.append((trans, connection))
+            session = EditableMixin.editable_session(session)
+            yield session
+
     else:
-        engine, session, connection, trans = _in_memory_session(request)
+        engine = _in_memory_engine(request)
+        session = Session(engine)
 
-    def get_session_override() -> Session:
-        yield session
+        def get_engine_override() -> Engine:
+            nonlocal engine
+            return engine
 
-    def get_engine_override() -> Engine:
-        return engine
+        def get_session_override() -> Session:
+            session = Session(engine)
+            session = EditableMixin.editable_session(session)
+            yield session
+
+        monkeypatch.setattr(scheduler, "get_engine", get_engine_override)
+        monkeypatch.setattr(db, "get_engine", get_engine_override)
 
     monkeypatch.setattr(db, "get_session", get_session_override)
     monkeypatch.setattr(templates, "get_session", get_session_override)
     monkeypatch.setattr(deps, "get_session", get_session_override)
-    monkeypatch.setattr(db, "get_engine", get_engine_override)
-    monkeypatch.setattr(scheduler, "get_engine", get_engine_override)
 
-    app.dependency_overrides[get_session] = get_session_override
+    app.dependency_overrides[deps.raw_session] = get_session_override
 
+    session = EditableMixin.editable_session(session)
     yield session
 
     try:
@@ -55,16 +81,16 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest) -> Session
             raise e
 
     if request.config.getoption("--file-db"):
-        if request.config.getoption("--persist-db"):
-            trans.commit()
-        else:
-            trans.rollback()  # roll back to the SAVEPOINT
-        connection.close()
+        for trans, connection in transactions:
+            if request.config.getoption("--persist-db"):
+                trans.commit()
+            else:
+                trans.rollback()  # roll back to the SAVEPOINT
+            connection.close()
 
 
-def _in_memory_session(request: pytest.FixtureRequest) -> tuple[Engine, Session, None, None]:
+def _in_memory_engine(request: pytest.FixtureRequest) -> Engine:
     from sciop.db import create_tables
-    from sciop.models.mixins import EditableMixin
 
     engine_kwargs = {
         "connect_args": {"check_same_thread": False},
@@ -75,22 +101,20 @@ def _in_memory_session(request: pytest.FixtureRequest) -> tuple[Engine, Session,
 
     engine = create_engine("sqlite://", **engine_kwargs)
     create_tables(engine, check_migrations=False)
-    session = Session(engine)
-    session = EditableMixin.editable_session(session)
-    return engine, session, None, None
+
+    return engine
 
 
-def _file_session() -> tuple[Engine, Session, Connection, Transaction]:
+def _file_session() -> tuple[Session, Connection, Transaction]:
     from sciop.db import engine, maker
-    from sciop.models.mixins import EditableMixin
 
     connection = engine.connect()
 
     # begin a non-ORM transaction
     trans = connection.begin()
     session = maker(bind=connection)
-    session = EditableMixin.editable_session(session)
-    return engine, session, connection, trans
+
+    return session, connection, trans
 
 
 @pytest.fixture

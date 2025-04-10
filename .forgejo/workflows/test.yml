@@ -33,10 +33,36 @@ jobs:
           cache: 'pip'
       - name: Install deps
         run: pip install -e .[test]
-      - name: Install XVFB
-        run: |
-          sudo apt-get update && sudo apt-get install xvfb -y
       - name: Run tests
         run: |
           mkdir $HOME/tmp
-          IN_CI=true TMPDIR=$HOME/tmp xvfb-run pytest
+          pytest -m "not playwright"
+
+  test-playwright:
+    name: tests-python${{ matrix.python-version }}
+    strategy:
+      matrix:
+        python-version: [ "3.11", "3.12", "3.13" ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: https://code.forgejo.org/actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Echo github server url
+        run: |
+          echo "${{ env.GITHUB_SERVER_URL }}"
+      - name: Install python
+        uses: https://code.forgejo.org/actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      - name: Install deps
+        run:
+          pip install -e .[test]
+          playwright install firefox
+
+      - name: Run tests
+        run: |
+          mkdir $HOME/tmp
+          pytest -m "playwright"

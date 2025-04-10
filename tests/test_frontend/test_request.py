@@ -13,7 +13,7 @@ from sciop.config import config
 
 @pytest.mark.timeout(15)
 @pytest.mark.xfail("IN_CI" in os.environ, reason="selenium still too flaky for CI")
-@pytest.mark.selenium
+@pytest.mark.playwright
 async def test_request(default_db, driver_as_admin):
     driver_as_admin.get("http://127.0.0.1:8080/request")
     # allow htmx to load and execute
@@ -44,7 +44,7 @@ async def test_request(default_db, driver_as_admin):
 
 @pytest.mark.timeout(20)
 @pytest.mark.xfail("IN_CI" in os.environ, reason="selenium still too flaky for CI")
-@pytest.mark.selenium
+@pytest.mark.playwright
 async def test_rm_subform_items(driver_as_admin):
     driver_as_admin.get("http://127.0.0.1:8080/request")
     # allow htmx to load and execute
