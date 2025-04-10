@@ -11,9 +11,7 @@ mpatch = MonkeyPatch()
 mpatch.setenv("SCIOP_SECRET_KEY", "12345")
 mpatch.setenv("SCIOP_ENV", "test")
 
-
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import Session, create_engine
 
 from .fixtures import *
 from .fixtures import LOGS_DIR, TMP_DIR, TORRENT_DIR
@@ -23,9 +21,6 @@ from .fixtures import LOGS_DIR, TMP_DIR, TORRENT_DIR
 # hooks
 # --------------------------------------------------
 def pytest_addoption(parser: argparse.ArgumentParser) -> None:
-    parser.addoption(
-        "--show-browser", action="store_true", default=False, help="Show browser in selenium tests"
-    )
     parser.addoption(
         "--echo-queries",
         action="store_true",
@@ -55,15 +50,15 @@ def pytest_addoption(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def pytest_sessionstart(session: Session) -> None:
+def pytest_sessionstart(session: pytest.Session) -> None:
     TMP_DIR.mkdir(exist_ok=True)
     TORRENT_DIR.mkdir(exist_ok=True)
 
 
 def pytest_collection_modifyitems(items: list[Function]) -> None:
     for item in items:
-        if any(["driver" in fixture_name for fixture_name in getattr(item, "fixturenames", ())]):
-            item.add_marker("selenium")
+        if any(["page" in fixture_name for fixture_name in getattr(item, "fixturenames", ())]):
+            item.add_marker("playwright")
 
 
 def pytest_collection_finish(session: pytest.Session) -> None:
@@ -106,6 +101,7 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
     After we are able to declare environmental variables in session start,
     patch the config
     """
+    from sqlmodel import Session, create_engine
 
     from sciop import config
 

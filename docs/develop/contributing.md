@@ -226,22 +226,25 @@ def test_api_request(client):
 
 ```
 
-**Selenium Tests**
+**Playwright Tests**
 
 For tests that not only require the client, but need to simulate a full browser session,
-use the `driver` fixture (or `driver_as_admin`, `driver_as_user` for a pre-logged in session):
+use the `page` fixture (or `page_as_admin`, `page_as_user` for a pre-logged in session):
 
 ```python
-@pytest.mark.selenium
-def test_selenium_thing(driver):
-    driver.get("http://127.0.0.1:8080/datasets/")
+@pytest.mark.playwright
+@pytest.mark.asyncio(loop_scope="session")
+async def test_playwright_thing(page):
+    await page.toto("http://127.0.0.1:8080/datasets/")
 ```
 
-Mark all selenium tests with `pytest.mark.selenium` as above
+Mark all playwright tests with `pytest.mark.playwright` as above.
 
-Note that *most tests do not require selenium,* 
-and selenium tests are very expensive and should be used sparingly.
-Selenium tests are mostly useful when one needs to specifically test ux or accessibility behavior
+Playwright tests must be async and must set their loop scope to session in order to work.
+
+Note that *most tests do not require playwright,* 
+and playwright tests are comparatively expensive and should be used sparingly.
+Playwright tests are mostly useful when one needs to specifically test ux or accessibility behavior
 that can't be tested using the static HTML returned by the `TestClient`
 
 

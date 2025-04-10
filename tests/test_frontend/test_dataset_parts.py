@@ -1,95 +1,66 @@
-import asyncio
-import os
+import re
 
 import pytest
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
+from playwright.async_api import Page, expect
 
 from sciop.models import DatasetPart
 
-from ..fixtures.server import Firefox_
-
-
-def _wait_until_located(
-    driver: Firefox_, locator: str, by: By = By.ID, timeout: float = 10, type: str = "visible"
-) -> None:
-    if type == "clickable":
-        element_present = EC.element_to_be_clickable((by, locator))
-    else:
-        element_present = EC.visibility_of_element_located((by, locator))
-
-    WebDriverWait(driver, timeout).until(element_present)
-
 
 @pytest.mark.timeout(20)
-@pytest.mark.asyncio
-@pytest.mark.xfail("IN_CI" in os.environ, reason="selenium still too flaky for CI")
-@pytest.mark.selenium
-async def test_add_part(default_db, driver_as_admin):
+@pytest.mark.playwright
+@pytest.mark.asyncio(loop_scope="session")
+async def test_add_one_part(default_db, page_as_admin: Page):
     """
     A single dataset part can be added with a form as admin
     """
-    driver: Firefox_ = driver_as_admin
-    driver.get("http://127.0.0.1:8080/datasets/default")
-    # wait to ensure htmx loads and executes
-    await asyncio.sleep(0.15)
+    page: Page = page_as_admin
+    await page.goto("http://127.0.0.1:8080/datasets/default")
+    await expect(page).to_have_url(re.compile(r".*default.*"))
 
-    _wait_until_located(driver, "add-one-button", by=By.CLASS_NAME, type="clickable")
-    add_one = driver.find_element(By.CLASS_NAME, "add-one-button")
-    add_one.click()
+    add_one = page.locator(".add-one-button")
+    await expect(add_one).to_be_enabled()
+    await add_one.click()
 
-    _wait_until_located(driver, "dataset-parts-add-container", By.CLASS_NAME)
-    assert driver.find_element(By.CLASS_NAME, "dataset-parts-add-container")
-    driver.find_element(By.CSS_SELECTOR, 'input[name="part_slug"]').send_keys("new-part")
-    driver.find_element(By.CSS_SELECTOR, 'textarea[name="description"]').send_keys("A New Part")
-    driver.find_element(By.CSS_SELECTOR, 'textarea[name="paths"]').send_keys(
-        "/one_path\n/two_path\n/three_path"
-    )
-    driver.find_element(
-        By.CSS_SELECTOR, '.dataset-parts-add-container button[type="submit"]'
-    ).click()
+    # create da part
+    await page.locator('input[name="part_slug"]').fill("new-part")
+    await page.locator('textarea[name="description"]').fill("A New Part")
+    await page.locator('textarea[name="paths"]').fill("/one_path\n/two_path\n/three_path")
+    await page.locator('.dataset-parts-add-container button[type="submit"]').click()
 
-    _wait_until_located(driver, "dataset-part-collapsible-default-new-part")
-    created_part = driver.find_element(By.ID, "dataset-part-collapsible-default-new-part")
-    created_part.click()
-    paths = created_part.find_elements(By.CSS_SELECTOR, ".path-list code")
-    assert len(paths) == 3
+    # Open it
+    await page.locator("#dataset-part-collapsible-default-new-part").click()
+
+    # the paths should be there!
+    # (api correctness tested elsewhere, this just tests the buttons)
+    paths = page.locator("#dataset-part-collapsible-default-new-part .path-list code")
+    await expect(paths).to_have_count(3)
 
 
 @pytest.mark.timeout(20)
-@pytest.mark.asyncio
-@pytest.mark.xfail("IN_CI" in os.environ, reason="selenium still too flaky for CI")
-@pytest.mark.selenium
-async def test_add_parts(default_db, driver_as_admin):
+@pytest.mark.playwright
+@pytest.mark.asyncio(loop_scope="session")
+async def test_add_parts(default_db, page_as_admin):
     """
     A single dataset part can be added with a form as admin
     """
-    driver: Firefox_ = driver_as_admin
-    driver.get("http://127.0.0.1:8080/datasets/default")
-    # wait to ensure htmx loads and executes
-    await asyncio.sleep(0.15)
+    page = page_as_admin
+    await page.goto("http://127.0.0.1:8080/datasets/default")
 
-    _wait_until_located(driver, "add-bulk-button", by=By.CLASS_NAME, type="clickable")
-    add_bulk = driver.find_element(By.CLASS_NAME, "add-bulk-button")
-    add_bulk.click()
+    add_bulk = page.locator(".add-bulk-button")
+    await expect(add_bulk).to_be_enabled()
+    await add_bulk.click()
 
-    _wait_until_located(driver, "dataset-parts-add-container", By.CLASS_NAME)
-    slugs_input = driver.find_element(By.CSS_SELECTOR, 'textarea[name="parts"]')
-    slugs_input.send_keys("one-part\ntwo-part\nthree-part")
-    driver.find_element(
-        By.CSS_SELECTOR, '.dataset-parts-add-container button[type="submit"]'
-    ).click()
+    await page.locator('textarea[name="parts"]').fill("one-part\ntwo-part\nthree-part")
+    await page.locator('.dataset-parts-add-container button[type="submit"]').click()
 
-    _wait_until_located(driver, "dataset-part-collapsible-default-one-part")
-    assert driver.find_element(By.ID, "dataset-part-collapsible-default-one-part")
-    assert driver.find_element(By.ID, "dataset-part-collapsible-default-two-part")
-    assert driver.find_element(By.ID, "dataset-part-collapsible-default-three-part")
+    await expect(page.locator("#dataset-part-collapsible-default-one-part")).to_be_visible()
+    await expect(page.locator("#dataset-part-collapsible-default-two-part")).to_be_visible()
+    await expect(page.locator("#dataset-part-collapsible-default-three-part")).to_be_visible()
 
 
-@pytest.mark.selenium
+@pytest.mark.playwright
 @pytest.mark.skip(reason="todo")
-def test_add_part_unauth(driver_as_user, default_db):
+def test_add_part_unauth(page_as_user, default_db):
     """
     A dataset part should be addable by a user without 'submit' scope,
     and then it is shown as being disabled

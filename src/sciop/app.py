@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Generator
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.cors import CORSMiddleware
 
 from sciop import jobs  # noqa: F401 - import to register
+from sciop.api.deps import get_current_account
 from sciop.api.main import api_router
 from sciop.config import config
 from sciop.const import DOCS_DIR, STATIC_DIR
@@ -40,11 +41,11 @@ async def lifespan(app: FastAPI) -> Generator[None, None, None]:
 app = FastAPI(
     title="sciop",
     openapi_url=f"{config.api_prefix}/openapi.json",
-    # generate_unique_id_function=custom_generate_unique_id,
     lifespan=lifespan,
     license_info={"name": "European Union Public License - 1.2", "identifier": "EUPL-1.2"},
     docs_url="/docs/api",
     redoc_url="/docs/redoc",
+    dependencies=[Depends(get_current_account)],
 )
 
 app.state.limiter = limiter

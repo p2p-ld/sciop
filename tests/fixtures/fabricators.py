@@ -3,6 +3,7 @@ import random
 import string
 from collections.abc import Callable as C
 from copy import deepcopy
+from datetime import timedelta
 from pathlib import Path
 from typing import Concatenate, Optional, ParamSpec
 from typing import Literal as L
@@ -11,7 +12,6 @@ import bencodepy
 import pytest
 from faker import Faker
 from sqlmodel import Session
-from starlette.testclient import TestClient
 
 from sciop import crud
 from sciop.models import (
@@ -321,37 +321,21 @@ def upload(
 
 
 @pytest.fixture
-def admin_token(client: "TestClient", admin_user: "Account", session: Session) -> "Token":
-    from sciop.config import config
+def admin_token(admin_user: "Account") -> "Token":
+    from sciop.api.auth import create_access_token
     from sciop.models import Token
 
-    session.add(admin_user)
-    session.commit()
-
-    response = client.post(
-        config.api_prefix + "/login",
-        data={"username": "admin", "password": "adminadmin12"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    )
-    assert response.status_code == 200
-    yield Token(**response.json())
+    token = create_access_token(admin_user.account_id, expires_delta=timedelta(minutes=5))
+    return Token(access_token=token)
 
 
 @pytest.fixture
-def root_token(client: "TestClient", root_user: "Account", session: Session) -> "Token":
-    from sciop.config import config
+def root_token(root_user: "Account") -> "Token":
+    from sciop.api.auth import create_access_token
     from sciop.models import Token
 
-    session.add(root_user)
-    session.commit()
-
-    response = client.post(
-        config.api_prefix + "/login",
-        data={"username": "root", "password": "rootroot1234"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    )
-    assert response.status_code == 200
-    yield Token(**response.json())
+    token = create_access_token(root_user.account_id, expires_delta=timedelta(minutes=5))
+    return Token(access_token=token)
 
 
 @pytest.fixture
@@ -365,20 +349,17 @@ def root_auth_header(root_token: "Token") -> dict[L["Authorization"], str]:
 
 
 @pytest.fixture
-def get_auth_header(client: "TestClient") -> C[[str, str], dict[L["Authorization"], str]]:
-    from sciop.config import config
+def get_auth_header(session: Session) -> C[[str, str], dict[L["Authorization"], str]]:
 
     def _get_auth_header(
         username: str = "default", password: str = "averystrongpassword123"
     ) -> dict[L["Authorization"], str]:
-        response = client.post(
-            config.api_prefix + "/login",
-            data={"username": username, "password": password},
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-        assert response.status_code == 200
-        token = Token(**response.json())
-        return {"Authorization": f"Bearer {token.access_token}"}
+        from sciop.api.auth import create_access_token
+        from sciop.crud import get_account
+
+        account = get_account(username=username, session=session)
+        token = create_access_token(account.account_id, expires_delta=timedelta(minutes=5))
+        return {"Authorization": f"Bearer {token}"}
 
     return _get_auth_header
 

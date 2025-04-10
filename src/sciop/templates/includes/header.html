@@ -14,11 +14,11 @@
 
 	<div class="cta-wrapper">
     {% include "includes/theme-toggle.html" %}
-		<a class="nav-button outline" href="/request">Add Dataset</a>
+		<a class="nav-button outline request-button" href="/request">Add Dataset</a>
 		{% if current_account %}
-		<a href="/self/" class="nav-button">{{ current_account.username }}</a>
+		<a href="/self/" class="nav-button account-button">{{ current_account.username }}</a>
 		{% else %}
-		<a href="/login" class="nav-button">Login</a>
+		<a href="/login" class="nav-button login-button">Login</a>
 		{% endif %}
 	</div>
 </nav>
