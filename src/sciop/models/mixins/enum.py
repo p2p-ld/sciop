@@ -3,7 +3,9 @@ from enum import StrEnum
 from typing import ClassVar, Self
 
 from sqlalchemy import select
-from sqlmodel import Session, SQLModel
+from sqlmodel import Session
+
+from sciop.models.base import SQLModel
 
 
 class EnumTableMixin(SQLModel):

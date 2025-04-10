@@ -37,6 +37,6 @@ def test_utc_datetime(dataset, session):
     # after loading from db
     ds_loaded = session.exec(select(Dataset)).first()
     # need to revalidate to actually get utc timestamps after loading...
-    ds_loaded = Dataset.model_validate(ds_loaded)
+    ds_loaded = Dataset.model_validate(ds_loaded.model_dump())
     assert ds_loaded.last_seen_at.tzinfo is UTC
     assert ds_loaded.last_seen_at == now_naive.replace(tzinfo=UTC)

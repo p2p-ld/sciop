@@ -8,11 +8,12 @@ from pydantic import BaseModel, TypeAdapter, computed_field, field_validator, mo
 from sqlalchemy import event
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship
 from sqlmodel.main import FieldInfo
 
 from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PREFIX_LEN
 from sciop.models.account import Account
+from sciop.models.base import SQLModel
 from sciop.models.mixins import (
     EditableMixin,
     ListlikeMixin,

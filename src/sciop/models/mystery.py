@@ -3,7 +3,9 @@ from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import CheckConstraint, Connection, Table, event, text
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
+
+from sciop.models.base import SQLModel
 
 
 class _FriedolinType(StrEnum):

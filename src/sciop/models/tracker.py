@@ -4,9 +4,10 @@ from urllib.parse import urlparse
 
 from pydantic import computed_field
 from sqlalchemy.schema import UniqueConstraint
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship
 
 from sciop.exceptions import ScrapeErrorType
+from sciop.models.base import SQLModel
 from sciop.models.mixins import TableMixin
 from sciop.types import IDField, MaxLenURL, UTCDateTime
 

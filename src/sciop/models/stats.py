@@ -1,5 +1,6 @@
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
 
+from sciop.models.base import SQLModel
 from sciop.models.mixins import TableMixin
 from sciop.types import IDField, UTCDateTime
 

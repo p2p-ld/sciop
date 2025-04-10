@@ -315,7 +315,7 @@ class Config(BaseSettings):
         """When env == prod, root_password can't be equal to the default"""
         if self.env == "prod":
             assert (
-                self.root_password != self.model_fields["root_password"].default
+                self.root_password != self.__class__.model_fields["root_password"].default
             ), "root_password cannot be equal to the default in prod, and must be set explicitly"
         return self
 

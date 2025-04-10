@@ -6,18 +6,32 @@ See :mod:`.linkml.generators.pydanticgen.template` for example implementation
 
 from copy import copy
 from datetime import UTC, datetime
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional, Union, cast
 
 import humanize
 import jinja2
 from jinja2 import Environment
 from pydantic import BaseModel
+from sqlmodel.main import FieldInfo
 
 from sciop.const import TEMPLATE_DIR
 from sciop.helpers.type import unwrap_annotated, unwrap_optional
+from sciop.models.base import SQLModel
 
 _loader: Optional[jinja2.BaseLoader] = None
 _environment: Optional[jinja2.Environment] = None
+
+
+def get_model_fields(model: SQLModel | type[SQLModel]) -> dict[str, FieldInfo]:
+    """
+    Get pydantic model fields from the class not the instance,
+    pydantic>2.11 compatibility.
+    """
+    if isinstance(model, type):
+        model = cast(type[BaseModel], model)
+        return model.model_fields
+    else:
+        return type(model).model_fields
 
 
 def get_env_globals() -> dict:
@@ -79,6 +93,7 @@ def get_environment() -> Environment:
         )
         _environment.globals.update(get_env_globals())
         _environment.tests.update(get_env_tests())
+        _environment.filters.update({"get_model_fields": get_model_fields})
     return _environment
 
 
@@ -116,7 +131,7 @@ class TemplateModel(BaseModel):
         if environment is None:
             environment = TemplateModel.environment()
 
-        fields = {**self.model_fields, **self.model_computed_fields}
+        fields = {**self.__class__model_fields, **self.__class__.model_computed_fields}
 
         data = {k: _render(getattr(self, k, None), environment) for k in fields}
         template = environment.get_template(self.__template__)
@@ -147,7 +162,7 @@ def _render(
     elif isinstance(item, dict):
         return {k: _render(v, environment) for k, v in item.items()}
     elif isinstance(item, BaseModel):
-        fields = {**item.model_fields, **item.model_computed_fields}
+        fields = {**item.__class__.model_fields, **item.__class__.model_computed_fields}
         return {k: _render(getattr(item, k, None), environment) for k in fields}
     else:
         return item

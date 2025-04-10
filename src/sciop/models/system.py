@@ -64,7 +64,7 @@ class NginxConfig(TemplateModel):
     @model_validator(mode="after")
     def ensure_ratelimits_set(cls, value: Self) -> Self:
         if value.ratelimit_enable:
-            for field in value.model_fields:
+            for field in value.__class__.model_fields:
                 if not field.startswith("ratelimit"):
                     continue
                 assert (
