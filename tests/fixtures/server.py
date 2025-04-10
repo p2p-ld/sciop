@@ -1,9 +1,7 @@
 import asyncio
 import contextlib
 import socket
-import time
 from datetime import timedelta
-from threading import Thread
 from typing import TYPE_CHECKING
 from typing import Callable as C
 
@@ -22,12 +20,6 @@ if TYPE_CHECKING:
 def client(session: Session) -> TestClient:
     """Client that runs the lifespan actions"""
     from sciop.app import app
-
-    #
-    # def get_session_override() -> Session:
-    #     return session
-    #
-    # app.dependency_overrides[raw_session] = get_session_override
 
     return TestClient(app)
 
@@ -53,27 +45,6 @@ def _unused_port(socket_type: int) -> int:
 @pytest.fixture
 def unused_tcp_port() -> int:
     return _unused_port(socket.SOCK_STREAM)
-
-
-class Server_(Server):
-    """
-    Borrowed from https://github.com/encode/uvicorn/discussions/1455
-    """
-
-    def install_signal_handlers(self) -> None:
-        pass
-
-    @contextlib.contextmanager
-    def run_in_thread(self) -> None:
-        thread = Thread(target=self.run)
-        thread.start()
-        try:
-            while not self.started:
-                time.sleep(1e-3)
-            yield
-        finally:
-            self.should_exit = True
-            thread.join()
 
 
 class UvicornTestServer(Server):
@@ -111,15 +82,8 @@ class UvicornTestServer(Server):
 
 
 @pytest.fixture
-async def run_server(session: Session) -> Server_:
+async def run_server(session: Session) -> UvicornTestServer:
     from sciop.app import app
-
-    # from sciop.api.deps import raw_session
-    #
-    # def get_session_override() -> Session:
-    #     return session
-    #
-    # app.dependency_overrides[raw_session] = get_session_override
 
     config = Config(
         app=app,
@@ -134,11 +98,6 @@ async def run_server(session: Session) -> Server_:
     await server.up()
     yield
     await server.down()
-
-    # await asyncio.sleep(0.1)
-
-    # with server.run_in_thread():
-    #     yield server
 
 
 @pytest.fixture
@@ -155,7 +114,7 @@ async def page(page: Page) -> Page:
 
 @pytest.fixture()
 async def page_as_admin(
-    run_server: Server_, context: BrowserContext, admin_token: "Token", page: Page
+    run_server: UvicornTestServer, context: BrowserContext, admin_token: "Token", page: Page
 ) -> Page:
     await context.add_cookies(
         [
@@ -172,7 +131,7 @@ async def page_as_admin(
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def page_as_user(
-    context: BrowserContext, run_server: Server_, account: C, page: Page
+    context: BrowserContext, run_server: UvicornTestServer, account: C, page: Page
 ) -> Page:
     """Driver as a regular user with no privs"""
     from sciop.api.auth import create_access_token
