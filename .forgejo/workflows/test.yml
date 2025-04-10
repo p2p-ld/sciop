@@ -39,7 +39,7 @@ jobs:
           pytest -m "not playwright"
 
   test-playwright:
-    name: tests-python${{ matrix.python-version }}
+    name: tests-playwright-python${{ matrix.python-version }}
     strategy:
       matrix:
         python-version: [ "3.11", "3.12", "3.13" ]
@@ -58,10 +58,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
       - name: Install deps
-        run:
-          pip install -e .[test]
-          playwright install firefox
-
+        run: pip install -e .[test]
+      - name: Install firefox
+        run: playwright install firefox
       - name: Run tests
         run: |
           mkdir $HOME/tmp
