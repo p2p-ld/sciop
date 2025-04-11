@@ -16,8 +16,12 @@ def test_logging(
     monkeypatch.setattr(config.logs, "dir", tmp_path)
 
     # clear the root logger so it gets recreated
+    # but monkeypatch so we don't mess up other tests
     root_logger = logging.getLogger("sciop")
-    root_logger.handlers = []
+    logger = logging.getLogger("sciop.requests")
+    monkeypatch.setattr(root_logger, "handlers", [])
+    monkeypatch.setattr(root_logger, "level", level)
+    monkeypatch.setattr(logger, "level", level)
 
     init_logger("sciop.requests", level=level, log_dir=tmp_path)
     init_logger("sciop", level=level, log_dir=tmp_path)
