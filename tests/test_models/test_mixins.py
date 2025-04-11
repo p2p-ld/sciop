@@ -62,6 +62,134 @@ def test_full_text_search(session, reindex: bool):
     assert results[2].Dataset.slug == match_ok.slug
 
 
+def test_full_text_search_mixed_order(session):
+    """
+    We should still find matches when the query is out of order compared to the source text
+    """
+
+    match_good = Dataset(
+        title="Title matches a long out of order search query",
+        description="Description matches lots of words in it, and matches a long search query. ",
+        slug="matching-good",
+        publisher="Agency of matching ok",
+    )
+    match_ok = Dataset(
+        title="Sort of medium good matches",
+        description="Description matches a long query sort of ok I suppose. "
+        "it says order of and out",
+        slug="matching-ok",
+        publisher="Agency of matching good",
+    )
+    no_match = Dataset(
+        title="Nothing in here",
+        description="Nothing at all, no sir" * 100,
+        slug="not-good",
+        publisher="Agency of not good",
+    )
+
+    session.add(match_ok)
+    session.add(match_good)
+    session.add(no_match)
+    session.commit()
+
+    stmt = Dataset.search("long order out of query match")
+    results = session.execute(stmt).fetchall()
+
+    assert len(results) == 2
+    assert results[0].Dataset.slug == match_good.slug
+    assert results[1].Dataset.slug == match_ok.slug
+
+
+def test_full_text_search_filter(session):
+    """
+    Full text search with an additional "where" query
+    """
+    matches = Dataset(
+        title="Matches something",
+        description="Has matches in it",
+        slug="matching",
+        publisher="Matching",
+        is_approved=True,
+    )
+    matches_not_visible = Dataset(
+        title="Matches something",
+        description="Has matches in it",
+        slug="matching-invisible",
+        publisher="Matching",
+        is_approved=False,
+    )
+    no_match = Dataset(
+        title="Nothing",
+        description="nothing, still visible tho",
+        slug="nothing",
+        publisher="Nothing",
+        is_approved=True,
+    )
+    session.add(matches)
+    session.add(matches_not_visible)
+    session.add(no_match)
+    session.commit()
+
+    stmt = Dataset.search("match").where(Dataset.is_visible == True)
+    results = session.execute(stmt).fetchall()
+    assert len(results) == 1
+    assert results[0].Dataset.slug == matches.slug
+
+
+def test_search_editing(session):
+    """
+    Search index updates when items are updated
+    """
+    ds = Dataset(
+        title="Nothing",
+        description="Initially bad, but then good",
+        slug="nothing",
+        publisher="Nothing",
+    )
+    session.add(ds)
+    session.commit()
+    session.refresh(ds)
+    stmt = Dataset.search("matches something")
+    results = session.execute(stmt).fetchall()
+    assert len(results) == 0
+
+    ds.title = "Matches something now"
+    ds.description = "the item matches something now"
+    session.add(ds)
+    session.commit()
+
+    stmt = Dataset.search("matches something")
+    results = session.execute(stmt).fetchall()
+    assert len(results) == 1
+
+
+def test_search_spicy_characters(session):
+    """
+    We can search with non-alphabetic characters
+    """
+    match1 = Dataset(
+        title="It's in the slug",
+        description="the sluuuuuggggg",
+        slug="match-1",
+        publisher="Nothing",
+    )
+    match2 = Dataset(
+        title="Still in the slug",
+        description="",
+        slug="match-1-2",
+        publisher="Nothing",
+    )
+    session.add(match1)
+    session.add(match2)
+    session.commit()
+    session.refresh(match1)
+    session.refresh(match2)
+
+    stmt = Dataset.search("match-1")
+    results = session.execute(stmt).fetchall()
+    assert len(results) == 2
+
+
 def test_ensure_enum(recreate_models):
     """
     ensure_enum creates all values from an enum
