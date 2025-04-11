@@ -110,7 +110,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 level = logging.INFO
             elif response.status_code < 500:
                 msg = await self._decode_body(response)
-                level = logging.WARNING
+                level = logging.INFO
             else:
                 msg = await self._decode_body(response)
                 level = logging.ERROR

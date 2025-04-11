@@ -1,32 +1,55 @@
 import logging
 
+import pytest
+
 from sciop.config import config
+from sciop.logging import init_logger
 
 
-def test_logging(client, monkeypatch, capsys, tmp_path, log_dir, log_console_width):
-    monkeypatch.setattr(config.logs, "level_file", logging.DEBUG)
-    monkeypatch.setattr(config.logs, "level_stdout", logging.DEBUG)
+@pytest.mark.parametrize("level", (logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR))
+@pytest.mark.parametrize("status_code", (200, 404, 500))
+def test_logging(
+    client, monkeypatch, capsys, tmp_path, log_dir, log_console_width, level, status_code
+):
+    monkeypatch.setattr(config.logs, "level_file", level)
+    monkeypatch.setattr(config.logs, "level_stdout", level)
     monkeypatch.setattr(config.logs, "dir", tmp_path)
 
-    logger = logging.getLogger("sciop.requests")
+    # clear the root logger so it gets recreated
     root_logger = logging.getLogger("sciop")
+    root_logger.handlers = []
 
-    expected_lines = ["[200] GET: /", "[404] GET: /somefakeurlthatshouldneverexist"]
+    init_logger("sciop.requests", level=level, log_dir=tmp_path)
+    init_logger("sciop", level=level, log_dir=tmp_path)
 
-    response_200 = client.get("/")
-    response_404 = client.get("/somefakeurlthatshouldneverexist")
+    expected = None
+    if status_code == 200:
+        response = client.get("/")
+        if level in (logging.DEBUG, logging.INFO):
+            expected = "[200] GET: /"
+    elif status_code == 404:
+        response = client.get("/somefakeurlthatshouldneverexist")
+        if level in (logging.DEBUG, logging.INFO):
+            expected = "[404] GET: /somefakeurlthatshouldneverexist"
+    elif status_code == 500:
+        response = client.post("/test/500")
+        # 500s are internal server errors so we should log them like errors yno
+        expected = '[500] POST: /test/500 - {"detail":'
+    else:
+        raise ValueError()
 
-    # both logged to stdout
     stdout = capsys.readouterr().out.split("\n")
-    assert expected_lines[0] in stdout[0]
-    assert expected_lines[1] in stdout[1]
-
-    # and to file - root logger should hold the file handler
     with open(log_dir) as f:
         log_entries = f.readlines()
 
-    assert expected_lines[0] in log_entries[0]
-    assert expected_lines[1] in log_entries[1]
+    if expected:
+        # logged to stdout and file
+        assert expected in stdout[0]
+        assert expected in log_entries[-1]
+    else:
+        assert len(stdout) == 1
+        assert stdout[0] == ""
+        assert len(log_entries) == 0
 
 
 def test_security_headers(client):
