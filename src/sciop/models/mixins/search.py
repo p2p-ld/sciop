@@ -126,6 +126,12 @@ class SearchableMixin(SQLModel):
         if len(query) < 3:
             query = query + "*"
 
+        # '-'s specifically break the full text query since they are logical NOT
+        # we should be able to use a "phrase query" here by double quoting them,
+        # but can't figure out how to do that safely with bound params instead of
+        # literal string interpolation
+        query = query.replace("-", "*")
+
         where_clause = text(f"{cls.fts_table_name()} = :query").bindparams(query=query)
         return select(
             table.c.rowid,
