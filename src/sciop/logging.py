@@ -16,8 +16,8 @@ from sciop.config import LOG_LEVELS, config
 def init_logger(
     name: str,
     log_dir: Union[Optional[Path], bool] = None,
-    level: Optional[LOG_LEVELS] = None,
-    file_level: Optional[LOG_LEVELS] = None,
+    level: Optional[LOG_LEVELS | int] = None,
+    file_level: Optional[LOG_LEVELS | int] = None,
     log_file_n: Optional[int] = None,
     log_file_size: Optional[int] = None,
 ) -> logging.Logger:
@@ -62,7 +62,9 @@ def init_logger(
 
     # set our logger to the minimum of the levels so that it always handles at least that severity
     # even if one or the other handlers might not.
-    min_level = min([getattr(logging, level), getattr(logging, file_level)])
+    stdout_level_int = getattr(logging, level) if isinstance(level, str) else level
+    file_level_int = getattr(logging, file_level) if isinstance(file_level, str) else file_level
+    min_level = min([stdout_level_int, file_level_int])
 
     if not name.startswith("sciop"):
         name = "sciop." + name
