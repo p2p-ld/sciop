@@ -1,6 +1,5 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
-from time import sleep
 
 import pytest
 
@@ -38,10 +37,11 @@ async def test_add_interval(client_lifespan, capsys):
     """
     Do a job at an interval
     """
-    add_interval(do_a_print, seconds=0.1)
-    await asyncio.sleep(0.5)
+    add_interval(do_a_print, seconds=0.01)
+    await asyncio.sleep(0.2)
     events = _eventlines(capsys)
-    assert len(events) == 3
+    # we're not testing precision here
+    assert len(events) >= 5
 
 
 async def test_add_date(client_lifespan, capsys):
