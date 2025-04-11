@@ -1,6 +1,5 @@
 import importlib.resources
 import random
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from random import randint
@@ -50,7 +49,9 @@ def get_engine() -> Engine:
     return engine
 
 
-def create_tables(engine: Engine = engine, check_migrations: bool = True) -> None:
+def create_tables(
+    engine: Engine = engine, check_migrations: bool = True, check_existing: bool = True
+) -> None:
     """
     Create tables and stamps with an alembic version
 
@@ -64,8 +65,8 @@ def create_tables(engine: Engine = engine, check_migrations: bool = True) -> Non
     models.Account.register_events()
     models.Upload.register_events()
 
-    SQLModel.metadata.create_all(engine)
-    if check_migrations and "pytest" not in sys.modules:
+    SQLModel.metadata.create_all(engine, checkfirst=check_existing)
+    if check_migrations and config.env != "test":
         # check version here since creating the table is the same action as
         # ensuring our migration metadata is correct!
         ensure_alembic_version(engine)

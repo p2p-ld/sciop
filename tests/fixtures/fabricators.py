@@ -5,10 +5,11 @@ from collections.abc import Callable as C
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Concatenate, Optional, ParamSpec
+from typing import Any, Concatenate, Optional, ParamSpec
 from typing import Literal as L
 
 import bencodepy
+import numpy as np
 import pytest
 from faker import Faker
 from sqlmodel import Session
@@ -28,6 +29,8 @@ from sciop.models import (
     Upload,
     UploadCreate,
 )
+
+from .paths import TMP_DIR
 
 fake = Faker()
 
@@ -68,7 +71,13 @@ def default_upload() -> dict:
 
 @pytest.fixture
 def default_torrentfile() -> dict:
-    files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
+    files = [
+        {
+            "path": fake.file_name(),
+            "size": np.random.default_rng().integers(16 * (2**10), 64 * (2**10)),
+        }
+        for i in range(5)
+    ]
     return {
         "file_name": "default.torrent",
         "file_hash": "abcdefghijklmnop",
@@ -87,7 +96,13 @@ def infohashes() -> C[[], dict[L["v1_infohash", "v2_infohash"], str]]:
     """Fixture function to generate "unique" infohashes"""
 
     def _infohashes() -> dict[L["v1_infohash", "v2_infohash"], str]:
-        files = [{"path": fake.file_name(), "size": random.randint(2**16, 2**24)} for i in range(5)]
+        files = [
+            {
+                "path": fake.file_name(),
+                "size": np.random.default_rng().integers(16 * (2**10), 32 * (2**10)),
+            }
+            for i in range(5)
+        ]
         hash_data = "".join([str(f) for f in files])
         hash_data = hash_data.encode("utf-8")
         return {
@@ -98,7 +113,7 @@ def infohashes() -> C[[], dict[L["v1_infohash", "v2_infohash"], str]]:
     return _infohashes
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def default_torrent() -> dict:
     return {
         "path": "default.bin",
@@ -109,10 +124,19 @@ def default_torrent() -> dict:
     }
 
 
+_HASH_CACHE = {}
+"""
+map of passwords to hashes
+o ya we're attackin ourselves now
+"""
+
+
 @pytest.fixture
 def account(
     default_account: dict, session: Session
 ) -> C[Concatenate[list[Scopes] | None, Session | None, P], "Account"]:
+    global _HASH_CACHE
+
     def _account(
         scopes: list[Scopes] = None,
         is_suspended: bool = False,
@@ -130,8 +154,15 @@ def account(
         if not create_only:
             account_ = crud.get_account(session=session_, username=kwargs["username"])
         if not account_:
-            account_ = AccountCreate(**kwargs)
-            account_ = crud.create_account(session=session_, account_create=account_)
+            account_create = AccountCreate(**kwargs)
+            if kwargs.get("password") not in _HASH_CACHE:
+                account_ = crud.create_account(session=session_, account_create=account_create)
+                _HASH_CACHE[kwargs.get("password")] = account_.hashed_password
+            else:
+                account_ = Account.model_validate(
+                    account_create, update={"hashed_password": _HASH_CACHE[kwargs.get("password")]}
+                )
+
         account_.scopes = scopes
         account_.is_suspended = is_suspended
         session_.add(account_)
@@ -202,24 +233,28 @@ def dataset(
     return _dataset
 
 
+def _make_torrent(tmp_path: Path, **kwargs: Any) -> Torrent:
+    file_in_torrent = Path(kwargs["path"])
+    if not file_in_torrent.is_absolute():
+        file_in_torrent = tmp_path / file_in_torrent
+
+    hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
+    hash_data = hash_data.encode("utf-8")
+    with open(file_in_torrent, "wb") as f:
+        f.write(hash_data)
+    kwargs["path"] = file_in_torrent
+
+    t = Torrent(**kwargs)
+    t.generate()
+    return t
+
+
 @pytest.fixture
 def torrent(default_torrent: dict, tmp_path: Path) -> C[P, Torrent]:
 
     def _torrent(**kwargs: P.kwargs) -> Torrent:
         kwargs = {**default_torrent.copy(), **kwargs}
-        file_in_torrent = Path(default_torrent["path"])
-        if not file_in_torrent.is_absolute():
-            file_in_torrent = tmp_path / file_in_torrent
-
-        hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
-        hash_data = hash_data.encode("utf-8")
-        with open(file_in_torrent, "wb") as f:
-            f.write(hash_data)
-        kwargs["path"] = file_in_torrent
-
-        t = Torrent(**kwargs)
-        t.generate()
-        return t
+        return _make_torrent(tmp_path=kwargs.get("torrent_dir", tmp_path), **kwargs)
 
     return _torrent
 
@@ -231,6 +266,7 @@ def torrentfile(
     session: Session,
     account: C[..., Account],
     tmp_path: Path,
+    default_created_torrent: Torrent,
 ) -> C[Concatenate[Account | None, Session | None, P], TorrentFile]:
     def _torrentfile(
         extra_trackers: Optional[list[str]] = None,
@@ -245,12 +281,16 @@ def torrentfile(
         passed_announce_urls = "announce_urls" in kwargs
         kwargs = deepcopy({**default_torrentfile, **kwargs})
 
-        file_in_torrent = tmp_path / "default.bin"
-        hash_data = random.randbytes(kwargs["total_size"])
-        with open(file_in_torrent, "wb") as f:
-            f.write(hash_data)
+        if "torrent" in kwargs:
+            t = kwargs.pop("torrent")
+        else:
+            file_in_torrent = tmp_path / "default.bin"
+            hash_data = np.random.default_rng().bytes(kwargs["total_size"])
+            with open(file_in_torrent, "wb") as f:
+                f.write(hash_data)
 
-        t = torrent(path=file_in_torrent)
+            t = torrent(path=file_in_torrent)
+
         if kwargs.get("v1_infohash", None) is None:
             kwargs["v1_infohash"] = t.infohash
         if kwargs.get("v2_infohash", None) is None:
@@ -269,8 +309,9 @@ def torrentfile(
             kwargs["announce_urls"].append(fake.url(schemes=["udp"]))
 
         tf = TorrentFileCreate(**kwargs)
-        tf.filesystem_path.parent.mkdir(exist_ok=True, parents=True)
-        t.write(tf.filesystem_path, overwrite=True)
+        if not tf.filesystem_path.exists():
+            tf.filesystem_path.parent.mkdir(exist_ok=True, parents=True)
+            t.write(tf.filesystem_path, overwrite=True)
         created = crud.create_torrent(session=session_, created_torrent=tf, account=account_)
         return created
 
@@ -364,6 +405,27 @@ def get_auth_header(session: Session) -> C[[str, str], dict[L["Authorization"], 
     return _get_auth_header
 
 
+@pytest.fixture(scope="session")
+def default_created_torrent(default_torrent: dict) -> Torrent:
+    # only make this once for yno perf
+
+    torrent = _make_torrent(TMP_DIR, **deepcopy(default_torrent))
+    tf = TorrentFileCreate(
+        file_name="default.torrent",
+        v1_infohash=torrent.infohash,
+        v2_infohash=torrent.v2_infohash,
+        version="hybrid",
+        total_size=torrent.size,
+        piece_size=torrent.piece_size,
+        files=[{"path": "default.bin", "size": 100}],
+        announce_urls=["udp://example.com:6969/announce"],
+    )
+
+    tf.filesystem_path.parent.mkdir(exist_ok=True, parents=True)
+    torrent.write(tf.filesystem_path, overwrite=True)
+    return torrent
+
+
 @pytest.fixture()
 def default_db(
     account: C[..., Account],
@@ -371,6 +433,7 @@ def default_db(
     upload: C[..., Upload],
     session: Session,
     torrentfile: C[..., TorrentFile],
+    default_created_torrent: Torrent,
 ) -> tuple[Account, Account, TorrentFile, Dataset, Upload]:
     admin = account(
         scopes=[Scopes.admin, Scopes.upload, Scopes.review],
@@ -379,7 +442,7 @@ def default_db(
         password="adminadmin12",
     )
     uploader = account(scopes=[Scopes.upload], session_=session, username="uploader")
-    tfile = torrentfile(account_=uploader, session_=session)
+    tfile = torrentfile(account_=uploader, session_=session, torrent=default_created_torrent)
     dataset_ = dataset(is_approved=True, session_=session)
     upload_ = upload(
         is_approved=True, torrentfile_=tfile, account_=uploader, dataset_=dataset_, session_=session
