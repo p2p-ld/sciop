@@ -24,33 +24,33 @@ def _eventlines(capsys) -> list[str]:
     return [line for line in lines if "EVENT" in line]
 
 
-def test_add_job(client_lifespan, capsys):
+async def test_add_job(client_lifespan, capsys):
     """
     do a single job
     """
     add_job(do_a_print)
-    sleep(0.1)
+    await asyncio.sleep(0.1)
     events = _eventlines(capsys)
     assert len(events) == 1
 
 
-def test_add_interval(client_lifespan, capsys):
+async def test_add_interval(client_lifespan, capsys):
     """
     Do a job at an interval
     """
     add_interval(do_a_print, seconds=0.1)
-    sleep(0.35)
+    await asyncio.sleep(0.5)
     events = _eventlines(capsys)
     assert len(events) == 3
 
 
-def test_add_date(client_lifespan, capsys):
+async def test_add_date(client_lifespan, capsys):
     """
     Do a job at a time
     """
     todo = datetime.now() + timedelta(seconds=0.1)
     add_date(do_a_print, run_date=todo)
-    sleep(0.3)
+    await asyncio.sleep(0.3)
     events = _eventlines(capsys)
     assert len(events) == 1
     pass
