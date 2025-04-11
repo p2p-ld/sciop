@@ -30,11 +30,20 @@ def build_docs() -> None:
     output_dir = Path(__file__).parents[1] / "docs"
     output_dir.mkdir(exist_ok=True)
     index = output_dir / "index.html"
-    if index.exists() and (time() - index.stat().st_mtime) < 10:
-        logger.debug("Not rebuilding docs, built less than 10 seconds ago")
+
+    # if testing or in prod, only build once per run
+    timeout = 10 if config.env == "dev" else 300
+
+    if index.exists() and (time() - index.stat().st_mtime) < timeout:
+        logger.debug("Not rebuilding docs, built less than %s seconds ago", timeout)
         return
 
     cfg = mkdocs_config.load_config(config_file=str(config_file))
+
+    # if testing, don't bother with the git blame plugin, which is surprisingly expensive
+    if config.env == "test":
+        cfg.plugins["git-authors"].config.enabled = False
+
     cfg.plugins.on_startup(command="build", dirty=False)
     cfg.site_dir = output_dir
     cfg.site_url = urljoin(config.external_url, "/docs")

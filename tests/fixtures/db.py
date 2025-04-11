@@ -90,7 +90,7 @@ def _in_memory_engine(request: pytest.FixtureRequest) -> Engine:
         engine_kwargs["echo"] = True
 
     engine = create_engine("sqlite://", **engine_kwargs)
-    create_tables(engine, check_migrations=False)
+    create_tables(engine, check_migrations=False, check_existing=False)
 
     return engine
 
