@@ -1,0 +1,38 @@
+{% macro page_header(request, id, columns, swap_target, marker=True) %}
+<div id="{{ id }}" class="table-head">
+  {% if marker %}
+    <span class="marker"></span>
+  {% endif %}
+  {% for column in columns %}
+    {% if not column %}
+  <span class="spacer"></span>
+    {% else %}
+    {{ sort_link(request, column, swap_target=swap_target) }}
+    {% endif %}
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro sort_link(request, column, swap_target) %}
+{% if "-" + column in request.query_params.sort %}
+  {% set icon="/static/img/icon/sort-down.svg" %}
+  {% set sort_str="*" + column %}
+  {% set href=request.url.include_query_params(sort=sort_str) %}
+  {% set alt="Descending sort" %}
+{% elif column in request.query_params.sort and "*" + column not in request.query_params.sort %}
+  {% set icon="/static/img/icon/sort-up.svg" %}
+  {% set sort_str="-" + column %}
+  {% set href=request.url.include_query_params(sort=sort_str) %}
+  {% set alt="Ascending sort" %}
+{% else %}
+  {% set icon="/static/img/icon/sort.svg" %}
+  {% set href=request.url.include_query_params(sort=column) %}
+  {% set alt="No sort" %}
+{% endif %}
+<button hx-get="{{href}}" hx-target={{swap_target}} hx-swap="outerHTML" class="sort-link" data-col="{{ column }}">
+  <img class="sort-icon" src="{{ icon }}" alt="{{ alt }}" title="{{ alt }}"/>
+  <span class="col-{{ column }} column-header sortable">
+    {{ column }}
+  </span>
+</button>
+{% endmacro %}

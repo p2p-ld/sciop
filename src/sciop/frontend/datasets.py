@@ -1,7 +1,8 @@
 from typing import Annotated, Optional
 from typing import Literal as L
+from urllib.parse import parse_qsl, urlparse
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
@@ -22,29 +23,52 @@ from sciop.api.deps import (
 )
 from sciop.api.routes.upload import upload_torrent
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, DatasetRead, DatasetUpdate, UploadCreate
+from sciop.models import Dataset, DatasetRead, DatasetUpdate, SearchParams, UploadCreate
 
 datasets_router = APIRouter(prefix="/datasets")
 
 
+def parse_query(search: Annotated[SearchParams, Query()], request: Request) -> SearchParams:
+    if "hx-current-url" in request.headers:
+        current_params = parse_qsl(urlparse(request.headers["hx-current-url"]).query)
+        query_params = QueryParams(current_params + request.query_params._list)
+    else:
+        query_params = request.query_params
+    return SearchParams.from_query_params(query_params)
+
+
+SearchQuery = Annotated[SearchParams, Depends(parse_query)]
+
+
 @datasets_router.get("/", response_class=HTMLResponse)
-async def datasets(request: Request):
-    return templates.TemplateResponse(request, "pages/datasets.html")
+async def datasets(request: Request, search: Annotated[SearchQuery, Query()]):
+    query_str = search.to_query_str()
+    return templates.TemplateResponse(request, "pages/datasets.html", {"query_str": query_str})
 
 
 @datasets_router.get("/search")
 @jinja.hx("partials/datasets.html")
 async def datasets_search(
-    query: str = None, session: SessionDep = None, current_account: CurrentAccount = None
+    search: SearchQuery,
+    session: SessionDep,
+    current_account: CurrentAccount,
+    request: Request,
+    response: Response,
 ) -> Page[DatasetRead]:
-    if not query or len(query) < 3:
-        stmt = (
-            select(Dataset)
-            .where(Dataset.visible_to(current_account) == True)
-            .order_by(Dataset.created_at.desc())
-        )
+    if not search.query or len(search.query) < 3:
+        stmt = select(Dataset).where(Dataset.visible_to(current_account) == True)
+        if not search.sort:
+            stmt = stmt.order_by(Dataset.created_at.desc())
     else:
-        stmt = Dataset.search(query).where(Dataset.visible_to(current_account) == True)
+        stmt = Dataset.search(search.query).where(Dataset.visible_to(current_account) == True)
+
+    stmt = search.apply_sort(stmt, model=Dataset)
+    if search.should_redirect():
+        print(search.to_query_str())
+        response.headers["HX-Replace-Url"] = f"{search.to_query_str()}"
+    else:
+        response.headers["HX-Replace-Url"] = "/datasets/"
+
     return paginate(conn=session, query=stmt)
 
 
