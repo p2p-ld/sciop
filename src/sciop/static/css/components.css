@@ -404,6 +404,10 @@ body.light-theme {
       }
     }
   }
+
+  .sort-icon {
+    filter: invert(1);
+  }
 }
 
 .icon-link {
