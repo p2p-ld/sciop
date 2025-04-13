@@ -23,16 +23,18 @@ Now we assume you are working in a particular directory, say, `/home/name/scrapi
 
 First run the scrape. We will use the https://constitution.congress.gov/ web site as an example.
 
-    docker run \
-        -v ${SCRAPE}:/output \
-        ghcr.io/openzim/zimit zimit \
-        -w 12 \
-        --seeds https://constitution.congress.gov/
-        --name constitution-annotated-20250310 \
-        --title "Constitution Annotated" \
-        --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution.' \
-        --scopeExcludeRx '.*add-to-cart=[0-9]*' \
-        --keep
+```shell
+docker run \
+    -v ${SCRAPE}:/output \
+    ghcr.io/openzim/zimit zimit \
+    -w 12 \
+    --seeds https://constitution.congress.gov/
+    --name constitution-annotated-20250310 \
+    --title "Constitution Annotated" \
+    --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution." \
+    --scopeExcludeRx '.*add-to-cart=[0-9]*' \
+    --keep
+```
 
 This needs some explanation.
 
@@ -48,27 +50,31 @@ Doing this archived the web site but failed at the very end. The reason is yet u
 
 We can work around this by looking in the temporary directory for the [WARC] files, and running `warc2zim`:
 
-    ls .tmptp8i9y5f/collections/crawl-20250310121334268/archive/*.warc.gz | sed s@^@/output/@ > /tmp/scrape.$$
+```shell
+ls .tmptp8i9y5f/collections/crawl-20250310121334268/archive/*.warc.gz | sed s@^@/output/@ > /tmp/scrape.$$
 
-    docker run \
-        -v ${SCRAPE}:/output \
-        ghcr.io/openzim/zimit warc2zim \
-        --name constitution-annotated-20250310 \
-        --title "Constitution Annotated" \
-        --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution.' \
-        --zim-file /output/constitution-annotated-20250310.zim \
-        `cat /tmp/scrape.$$`
+docker run \
+    -v ${SCRAPE}:/output \
+    ghcr.io/openzim/zimit warc2zim \
+    --name constitution-annotated-20250310 \
+    --title "Constitution Annotated" \
+    --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution." \
+    --zim-file /output/constitution-annotated-20250310.zim \
+    `cat /tmp/scrape.$$`
 
-    rm /tmp/scrape.$$
+rm /tmp/scrape.$$
+```
 
 Now we can assemble the archive, ready for [uploading](../uploading),
 
-    mkdir archive
-    mv constitution-annotated-20250310.zim archive
-    mv .tmptp8i9y5f/collections/crawl-20250310121334268/archive/* archive
-    mv .tmptp8i9y5f/collections/crawl-20250310121334268/crawls/* archive
-    mv .tmptp8i9y5f/collections/crawl-20250310121334268/pages/* archive
-    mv .tmptp8i9y5f/collections/crawl-20250310121334268/warc-cdx/* archive
+```shell
+mkdir archive
+mv constitution-annotated-20250310.zim archive
+mv .tmptp8i9y5f/collections/crawl-20250310121334268/archive/* archive
+mv .tmptp8i9y5f/collections/crawl-20250310121334268/crawls/* archive
+mv .tmptp8i9y5f/collections/crawl-20250310121334268/pages/* archive
+mv .tmptp8i9y5f/collections/crawl-20250310121334268/warc-cdx/* archive
+```
 
 ## Using browsertrix-crawler
 
@@ -84,21 +90,23 @@ The [WACZ] files that browsertrix-crawler creates are perfect for making availab
 
 Getting started with [browsertrix-crawler] is similar to [zimit] in that you will need to first install [Docker]. Once installed you can crawl a site, with some standard options: 
 
-    docker run \
-        --volume ./crawls:/crawls \
-        --publish 9037:9037 \
-        webrecorder/browsertrix-crawler:latest crawl \
-        --workers 4 \
-        --collection constitution-annotated \
-        --seeds "https://constitution.congress.gov/" \
-        --scopeType domain \
-        --title "Contitution Annotated" \
-        --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution." \
-        --exclude '.*add-to-cart=[0-9]*' \
-        --screenshot thumbnail \
-        --text final-to-warc \
-        --generateWACZ \
-        --screencastPort 9037
+```shell
+docker run \
+    --volume ./crawls:/crawls \
+    --publish 9037:9037 \
+    webrecorder/browsertrix-crawler:latest crawl \
+    --workers 4 \
+    --collection constitution-annotated \
+    --seeds "https://constitution.congress.gov/" \
+    --scopeType domain \
+    --title "Contitution Annotated" \
+    --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution." \
+    --exclude '.*add-to-cart=[0-9]*' \
+    --screenshot thumbnail \
+    --text final-to-warc \
+    --generateWACZ \
+    --screencastPort 9037
+```
 
 These options are similar to zimit, but there are a lot more possibilities:
 
