@@ -90,10 +90,10 @@ Getting started with [browsertrix-crawler] is similar to [zimit] in that you wil
         webrecorder/browsertrix-crawler:latest crawl \
         --workers 4 \
         --collection constitution-annotated \
-        --seeds https://constitution.congress.gov/
-        --scopeType domain
+        --seeds "https://constitution.congress.gov/" \
+        --scopeType domain \
         --title "Contitution Annotated" \
-        --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution.' \
+        --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution." \
         --exclude '.*add-to-cart=[0-9]*' \
         --screenshot thumbnail \
         --text final-to-warc \
