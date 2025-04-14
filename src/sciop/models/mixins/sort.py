@@ -52,7 +52,7 @@ class SortMixin(SQLModel):
         """
 
         cols = [
-            col.merge_field(cls.model_fields[col.name]) if col.name else col
+            col.merge_field(cls.model_fields[col.name]) if col.name in cls.model_fields else col
             for col in cls.__sortable__
         ]
         if review:

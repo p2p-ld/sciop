@@ -9,6 +9,7 @@ from sciop.api.deps import (
     RequireAdmin,
     RequireCurrentAccount,
     RequireReviewer,
+    SearchQuery,
     SessionDep,
 )
 from sciop.frontend.templates import jinja, templates
@@ -20,6 +21,7 @@ from sciop.models import (
     Dataset,
     DatasetPart,
     DatasetRead,
+    SearchPage,
     Upload,
     UploadRead,
 )
@@ -54,33 +56,39 @@ async def log(request: Request, account: RequireReviewer):
 @self_router.get("/datasets")
 @jinja.hx("partials/datasets.html")
 async def datasets(
-    request: Request, account: RequireCurrentAccount, session: SessionDep
-) -> Page[DatasetRead]:
+    search: SearchQuery, request: Request, account: RequireCurrentAccount, session: SessionDep
+) -> SearchPage[DatasetRead]:
     stmt = (
         select(Dataset)
         .where(Dataset.visible_to(account) == True, Dataset.account == account)
         .order_by(Dataset.created_at.desc())
     )
+    stmt = search.apply_sort(stmt, Dataset)
     return paginate(conn=session, query=stmt)
 
 
 @self_router.get("/uploads")
 @jinja.hx("partials/uploads.html")
 async def uploads(
-    request: Request, account: RequireCurrentAccount, session: SessionDep
-) -> Page[UploadRead]:
+    search: SearchQuery, request: Request, account: RequireCurrentAccount, session: SessionDep
+) -> SearchPage[UploadRead]:
     stmt = (
         select(Upload)
+        .join(Upload.torrent)
         .where(Upload.visible_to(account) == True, Upload.account == account)
         .order_by(Upload.created_at.desc())
     )
+    stmt = search.apply_sort(stmt, Upload)
     return paginate(conn=session, query=stmt)
 
 
 @self_router.get("/review/datasets")
 @jinja.hx("partials/review-datasets.html")
-async def review_datasets(account: RequireReviewer, session: SessionDep) -> Page[Dataset]:
+async def review_datasets(
+    search: SearchQuery, account: RequireReviewer, session: SessionDep
+) -> Page[Dataset]:
     stmt = select(Dataset).where(Dataset.needs_review == True)
+    stmt = search.apply_sort(stmt, Dataset)
     return paginate(conn=session, query=stmt)
 
 
@@ -94,9 +102,10 @@ async def review_parts(account: RequireReviewer, session: SessionDep) -> Page[Da
 @self_router.get("/review/uploads")
 @jinja.hx("partials/review-uploads.html")
 async def review_uploads(
-    request: Request, account: RequireReviewer, session: SessionDep
+    search: SearchQuery, request: Request, account: RequireReviewer, session: SessionDep
 ) -> Page[Upload]:
-    stmt = select(Upload).where(Upload.needs_review == True)
+    stmt = select(Upload).join(Upload.torrent).where(Upload.needs_review == True)
+    stmt = search.apply_sort(stmt, Upload)
     return paginate(conn=session, query=stmt)
 
 

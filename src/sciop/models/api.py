@@ -91,12 +91,17 @@ class SearchParams(Params):
                 sort = sort[1:]
 
             # get item
+
             col = getattr(model, sort)
-            annotation = unwrap(model.model_fields[sort].annotation)
+
             try:
+                # try to get special types, but don't panic if we can't.
+                # that just means it's not a special type we know about!
+                annotation = unwrap(model.model_fields[sort].annotation)
+
                 if issubclass(annotation, SortableStrEnum):
                     col = annotation.case_statement(col)
-            except TypeError:
+            except (TypeError, KeyError):
                 pass
 
             col = col.desc() if desc else col.asc()
