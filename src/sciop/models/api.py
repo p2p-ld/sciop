@@ -1,11 +1,19 @@
-from typing import Optional
+from typing import Optional, TypeVar
 from urllib.parse import quote_plus
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from fastapi import Query
+from fastapi_pagination import Page
+from fastapi_pagination.customization import CustomizedPage, UseParams
+from fastapi_pagination.default import Params
+from pydantic import BaseModel, field_validator
 from sqlalchemy import Select
 from starlette.datastructures import QueryParams
 
+from sciop.helpers.type import unwrap
 from sciop.models.base import SQLModel
+from sciop.types import SortableStrEnum
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class SuccessResponse(BaseModel):
@@ -13,24 +21,26 @@ class SuccessResponse(BaseModel):
     extra: Optional[dict] = None
 
 
-class SearchParams(BaseModel):
+class SearchParams(Params):
     """Model for query parameters in a searchable"""
 
-    model_config = ConfigDict(extra="allow")
+    # model_config = ConfigDict(extra="allow")
 
-    query: Optional[str] = Field(None)
+    query: Optional[str] = Query(None)
     """The search query!"""
-    sort: list[str] = Field(default_factory=list)
-    """
-    Columns to sort by
-    
-    `colname`, `+colname`: sort ascending
-    `-colname`: sort descending
-    `*colname`: remove from sort (used by templates,
-        using it in an API request usually does nothing)
-    """
-    page: Optional[int] = None
-    size: Optional[int] = None
+    sort: list[str] = Query(
+        default_factory=list,
+        description="""
+        Columns to sort by
+        
+        Syntax: 
+        
+        `colname`, `+colname`: sort ascending
+        `-colname`: sort descending
+        `*colname`: remove from sort (used by templates,
+            using it in an API request usually does nothing)
+        """,
+    )
 
     @field_validator("sort", mode="before")
     @classmethod
@@ -73,11 +83,27 @@ class SearchParams(BaseModel):
 
         sort_items = []
         for sort in self.sort:
+            desc = False
             if sort.startswith("*"):
                 continue
             elif sort.startswith("-"):
-                sort_items.append(getattr(model, sort[1:]).desc())
-            else:
-                sort_items.append(getattr(model, sort).asc())
+                desc = True
+                sort = sort[1:]
+
+            # get item
+            col = getattr(model, sort)
+            annotation = unwrap(model.model_fields[sort].annotation)
+            try:
+                if issubclass(annotation, SortableStrEnum):
+                    col = annotation.case_statement(col)
+            except TypeError:
+                pass
+
+            col = col.desc() if desc else col.asc()
+            sort_items.append(col)
+
         # clear prior sort and add new one
         return stmt.order_by(None).order_by(*sort_items)
+
+
+SearchPage = CustomizedPage[Page[T], UseParams(SearchParams)]

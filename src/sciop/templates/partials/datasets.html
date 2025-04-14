@@ -9,15 +9,10 @@
   {% endwith %}
   <div id="datasets-table-inner"
        class="collapsible-table datasets-table {% if review %}review{% endif %}">
-    {% set columns = ["slug", "title", None, "created"] %}
-    {% if review %}
-    {% set columns = columns + [None, None ] %}
-    {% endif %}
     {{ page_header(
           request=request,
           id="datasets-table-head",
-          columns=columns,
-          marker=True,
+          columns=models.Dataset.get_sortable_cols(review),
           swap_target="#dataset-page") }}
     <div class="dataset-items">
       {% for dataset in items %}

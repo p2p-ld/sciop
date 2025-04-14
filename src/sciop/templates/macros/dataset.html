@@ -205,8 +205,8 @@
              hx-trigger="click once"
              hx-target="#dataset-{{ dataset.slug }}">
         <span class="collapsible-marker" aria-label="Expand/Collapse"></span>
-        <span class="dataset-slug item-link"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
-        <span class="dataset-title">{{ dataset.title }}</span>
+        <span class="dataset-slug item-link" title="{{ dataset.slug }}"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>
+        <span class="dataset-title" title="{{ dataset.title }}">{{ dataset.title }}</span>
         {% if dataset.threat != "unknown" %}
         <span class="dataset-threat threat-dot threat-{{ dataset.threat }}"
               title="{{ dataset.threat }}: {{ types.Threat.__annotations__[dataset.threat].__metadata__[-1] }}"

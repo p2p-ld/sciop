@@ -79,11 +79,14 @@ table {
 /* --- Datasets layout --- */
 
 .datasets-table {
-  --item-cols: 1em minmax(12em, 2fr) 7fr 1em 6.5em;
+  --item-cols: 1em minmax(12em, 2fr) 7fr 1.5em 6.5em;
   display: grid;
 
   &.review {
-    --item-cols: 1em minmax(12em, 2fr) 7fr 1em 6.5em 5em 4em;
+    --item-cols: 1em minmax(12em, 2fr) 7fr 1.5em 6.5em 5em 4em;
+  }
+  .table-head {
+      --item-cols: 1em minmax(12em, 2fr) 7fr 4em 7.5em;
   }
 }
 
@@ -136,11 +139,12 @@ table {
   {
     display: grid;
     grid-template-columns: var(--item-cols);
-      grid-column-gap: 1em;
+      grid-column-gap: 0.5em;
   }
 
   .table-head {
     padding: 0.25em 0.5em;
+    /*margin-bottom: 0.5em;*/
   }
 
   .dataset-slug,

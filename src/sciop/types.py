@@ -10,6 +10,7 @@ import sqlalchemy as sqla
 from annotated_types import Gt, MaxLen, MinLen
 from pydantic import AfterValidator, AnyUrl, BeforeValidator, TypeAdapter
 from slugify import slugify
+from sqlalchemy import Case, ColumnElement, case
 from sqlmodel import Field
 
 USERNAME_PATTERN = re.compile(r"^[\w-]+$")
@@ -77,6 +78,39 @@ UsernameStr: TypeAlias = Annotated[
 """Allowable usernames"""
 
 
+class SortableStrEnum(StrEnum):
+    """StrEnum that can declare its sort order for an order_by statement"""
+
+    __sort_order__: dict[str, int] | None = None
+    """
+    Specify an explicit sort order, 
+    rather than using the implicit ordering of member declaration 
+
+    Examples:
+
+        {
+            "value_1": 0,
+            "value_3": 2,
+            "value_2": 1
+        }
+    """
+
+    @classmethod
+    def case_statement(cls, col: ColumnElement) -> Case:
+        """
+        Case statement to be used with an order_by statement
+
+        Examples:
+
+            order_by(MyEnum.case_statement(MyModel.my_enum))
+
+        """
+        order = cls.__sort_order__
+        if order is None:
+            order = {v: idx for idx, v in enumerate(cls.__members__.values())}
+        return case(order, value=col)
+
+
 class AccessType(StrEnum):
     """How an item is allowed to be accessed"""
 
@@ -128,7 +162,7 @@ class SourceType(StrEnum):
     bittorrent = "bittorrent"
 
 
-class Threat(StrEnum):
+class Threat(SortableStrEnum):
     """
     How likely something is to become unavailable at its original source,
     or whether there are likely to be barriers to freely accessing it.

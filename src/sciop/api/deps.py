@@ -1,17 +1,28 @@
 from typing import Annotated, Any, Optional, TypeVar
+from urllib.parse import parse_qsl, urlparse
 
 import jwt
-from fastapi import Depends, HTTPException, Request, Response, status
+from fastapi import Depends, HTTPException, Query, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, ValidationError
 from sqlmodel import Session
+from starlette.datastructures import QueryParams
 
 from sciop import crud
 from sciop.api.auth import ALGORITHM
 from sciop.config import config
 from sciop.db import get_session
-from sciop.models import Account, Dataset, DatasetPart, Scopes, Tag, TokenPayload, Upload
+from sciop.models import (
+    Account,
+    Dataset,
+    DatasetPart,
+    Scopes,
+    SearchParams,
+    Tag,
+    TokenPayload,
+    Upload,
+)
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 
@@ -365,3 +376,17 @@ def add_htmx_response_trigger(request: Request, response: Response) -> Response:
 
 
 HTMXResponse = Annotated[Response, Depends(add_htmx_response_trigger)]
+
+
+def parse_search_query_params(
+    search: Annotated[SearchParams, Query()], request: Request
+) -> SearchParams:
+    if "hx-current-url" in request.headers:
+        current_params = parse_qsl(urlparse(request.headers["hx-current-url"]).query)
+        query_params = QueryParams(current_params + request.query_params._list)
+    else:
+        query_params = request.query_params
+    return SearchParams.from_query_params(query_params)
+
+
+SearchQuery = Annotated[SearchParams, Depends(parse_search_query_params)]

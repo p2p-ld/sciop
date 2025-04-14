@@ -116,11 +116,30 @@ button,
     border-color: var(--color-border-deemphasized);
     color: var(--color-deemphasized);
   }
+
+  &.sort-link {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    column-gap: 0.2em;
+    justify-content: space-between;
+    align-items: center;
+    font-style: italic;
+    font-family: var(--font-mono);
+    font-size: 1.1em;
+    box-shadow: unset;
+    padding: 0.1em 0.25em 0.1em 0.4em;
+
+    img {
+      max-height: 1.2em;
+    }
+  }
 }
 
 a.button:hover {
   text-decoration: none;
 }
+
 
 .search-container {
   max-height: 2.5em;
