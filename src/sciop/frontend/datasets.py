@@ -22,7 +22,7 @@ from sciop.api.deps import (
 )
 from sciop.api.routes.upload import upload_torrent
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, DatasetRead, DatasetUpdate, SearchPage, UploadCreate
+from sciop.models import Dataset, DatasetRead, DatasetUpdate, SearchPage, Upload, UploadCreate
 
 datasets_router = APIRouter(prefix="/datasets")
 
@@ -117,18 +117,23 @@ async def dataset_part_add_partial(
 
 
 @datasets_router.get("/{dataset_slug}/uploads", response_class=HTMLResponse)
+@jinja.hx("partials/uploads.html")
 async def dataset_uploads(
+    search: SearchQuery,
     dataset_slug: str,
     dataset: RequireVisibleDataset,
     session: SessionDep,
+    current_account: CurrentAccount,
     request: Request,
-):
-    uploads = crud.get_visible_uploads(dataset=dataset, session=session)
-    return templates.TemplateResponse(
-        request,
-        "partials/dataset-uploads.html",
-        {"uploads": uploads, "dataset": dataset},
+) -> SearchPage[Upload]:
+    stmt = (
+        select(Upload)
+        .join(Upload.torrent)
+        .where(Upload.dataset == dataset, Upload.visible_to(current_account) == True)
+        .order_by(Upload.created_at.desc())
     )
+    stmt = search.apply_sort(stmt, Upload)
+    return paginate(query=stmt, conn=session)
 
 
 def _parts_from_query(
@@ -224,17 +229,24 @@ async def dataset_part_partial(
     )
 
 
-@datasets_router.get("/{dataset_slug}/{dataset_part_slug}/uploads", response_class=HTMLResponse)
+@datasets_router.get("/{dataset_slug}/{dataset_part_slug}/uploads")
+@jinja.hx("partials/uploads.html")
 async def dataset_part_uploads(
+    search: SearchQuery,
     dataset_slug: str,
     dataset_part_slug: str,
     request: Request,
+    current_account: CurrentAccount,
     part: RequireVisibleDatasetPart,
     session: SessionDep,
-):
-    uploads = crud.get_visible_uploads(dataset=part, session=session)
-    return templates.TemplateResponse(
-        request,
-        "partials/dataset-uploads.html",
-        {"uploads": uploads},
+) -> SearchPage[Upload]:
+    stmt = (
+        select(Upload)
+        .where(
+            Upload.dataset_parts.any(dataset_part_id=part.dataset_part_id),
+            Upload.visible_to(account=current_account) == True,
+        )
+        .order_by(Upload.created_at.desc())
     )
+    stmt = search.apply_sort(stmt, Upload)
+    return paginate(query=stmt, conn=session)

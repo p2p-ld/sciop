@@ -170,8 +170,8 @@ def get_approved_datasets(*, session: Session) -> list[Dataset]:
     return session.exec(statement).all()
 
 
-def get_visible_datasets(*, session: Session) -> list[Dataset]:
-    statement = select(Dataset).where(Dataset.is_visible == True)
+def get_visible_datasets(*, session: Session, account: Account | None = None) -> list[Dataset]:
+    statement = select(Dataset).where(Dataset.visible_to(account) == True)
     return session.exec(statement).all()
 
 
@@ -313,14 +313,18 @@ def get_uploads(*, session: Session, dataset: Dataset | DatasetPart) -> list[Upl
     return uploads
 
 
-def get_visible_uploads(*, session: Session, dataset: Dataset | DatasetPart) -> list[Upload]:
+def get_visible_uploads(
+    *, session: Session, dataset: Dataset | DatasetPart, account: Account | None = None
+) -> list[Upload]:
     if isinstance(dataset, DatasetPart):
         statement = select(Upload).where(
             Upload.dataset_parts.any(dataset_part_id=dataset.dataset_part_id),
-            Upload.is_visible == True,
+            Upload.visible_to(account=account) == True,
         )
     else:
-        statement = select(Upload).where(Upload.dataset == dataset, Upload.is_visible == True)
+        statement = select(Upload).where(
+            Upload.dataset == dataset, Upload.visible_to(account=account) == True
+        )
     uploads = session.exec(statement).all()
     return uploads
 
