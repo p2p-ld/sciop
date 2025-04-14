@@ -102,6 +102,7 @@
     width: 1em;
     height: 1em;
     border-radius: 1em;
+    display: inline-block;
     &::before {
         content: "";
         height: 1em;

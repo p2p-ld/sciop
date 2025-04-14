@@ -19,6 +19,8 @@ from sciop.models.mixins import (
     ListlikeMixin,
     ModerableMixin,
     SearchableMixin,
+    SortableCol,
+    SortMixin,
     TableMixin,
     TableReadMixin,
     all_optional,
@@ -211,7 +213,7 @@ class DatasetBase(ModerableMixin):
     )
 
 
-class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, table=True):
+class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, table=True):
     __tablename__ = "datasets"
     __searchable__ = {
         "title": 5.0,
@@ -220,6 +222,19 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, table=Tru
         "homepage": 1.0,
         "description": 3.0,
     }
+    __sortable__ = (
+        SortableCol(),
+        SortableCol(name="slug", title="slug"),
+        SortableCol(name="title", title="title"),
+        SortableCol(
+            name="threat",
+            title="""
+        <span class="dataset-threat threat-dot threat-extinct"></span>
+        """,
+            tooltip="Sort by threat category of the dataset",
+        ),
+        SortableCol(name="created_at", title="created"),
+    )
 
     slug: SlugStr = Field(
         unique=True,

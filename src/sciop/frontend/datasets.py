@@ -1,10 +1,8 @@
 from typing import Annotated, Optional
 from typing import Literal as L
-from urllib.parse import parse_qsl, urlparse
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
-from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from fasthx.dependencies import DependsHXRequest
 from sqlmodel import Session, select
@@ -19,29 +17,18 @@ from sciop.api.deps import (
     RequireEditableBy,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
+    SearchQuery,
     SessionDep,
 )
 from sciop.api.routes.upload import upload_torrent
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, DatasetRead, DatasetUpdate, SearchParams, UploadCreate
+from sciop.models import Dataset, DatasetRead, DatasetUpdate, SearchPage, UploadCreate
 
 datasets_router = APIRouter(prefix="/datasets")
 
 
-def parse_query(search: Annotated[SearchParams, Query()], request: Request) -> SearchParams:
-    if "hx-current-url" in request.headers:
-        current_params = parse_qsl(urlparse(request.headers["hx-current-url"]).query)
-        query_params = QueryParams(current_params + request.query_params._list)
-    else:
-        query_params = request.query_params
-    return SearchParams.from_query_params(query_params)
-
-
-SearchQuery = Annotated[SearchParams, Depends(parse_query)]
-
-
 @datasets_router.get("/", response_class=HTMLResponse)
-async def datasets(request: Request, search: Annotated[SearchQuery, Query()]):
+async def datasets(request: Request, search: SearchQuery):
     query_str = search.to_query_str()
     return templates.TemplateResponse(request, "pages/datasets.html", {"query_str": query_str})
 
@@ -54,7 +41,7 @@ async def datasets_search(
     current_account: CurrentAccount,
     request: Request,
     response: Response,
-) -> Page[DatasetRead]:
+) -> SearchPage[DatasetRead]:
     if not search.query or len(search.query) < 3:
         stmt = select(Dataset).where(Dataset.visible_to(current_account) == True)
         if not search.sort:

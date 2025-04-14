@@ -1,10 +1,7 @@
-{% macro page_header(request, id, columns, swap_target, marker=True) %}
+{% macro page_header(request, id, columns, swap_target) %}
 <div id="{{ id }}" class="table-head">
-  {% if marker %}
-    <span class="marker"></span>
-  {% endif %}
   {% for column in columns %}
-    {% if not column %}
+    {% if not column.name %}
   <span class="spacer"></span>
     {% else %}
     {{ sort_link(request, column, swap_target=swap_target) }}
@@ -14,25 +11,37 @@
 {% endmacro %}
 
 {% macro sort_link(request, column, swap_target) %}
-{% if "-" + column in request.query_params.sort %}
+{% if "-" + column.name in request.query_params.sort %}
   {% set icon="/static/img/icon/sort-down.svg" %}
-  {% set sort_str="*" + column %}
+  {% set sort_str="*" + column.name %}
   {% set href=request.url.include_query_params(sort=sort_str) %}
   {% set alt="Descending sort" %}
-{% elif column in request.query_params.sort and "*" + column not in request.query_params.sort %}
+{% elif column.name in request.query_params.sort and "*" + column.name not in request.query_params.sort %}
   {% set icon="/static/img/icon/sort-up.svg" %}
-  {% set sort_str="-" + column %}
+  {% set sort_str="-" + column.name %}
   {% set href=request.url.include_query_params(sort=sort_str) %}
   {% set alt="Ascending sort" %}
 {% else %}
   {% set icon="/static/img/icon/sort.svg" %}
-  {% set href=request.url.include_query_params(sort=column) %}
+  {% set href=request.url.include_query_params(sort=column.name) %}
   {% set alt="No sort" %}
 {% endif %}
-<button hx-get="{{href}}" hx-target={{swap_target}} hx-swap="outerHTML" class="sort-link" data-col="{{ column }}">
-  <img class="sort-icon" src="{{ icon }}" alt="{{ alt }}" title="{{ alt }}"/>
-  <span class="col-{{ column }} column-header sortable">
-    {{ column }}
+<button
+  hx-get="{{href}}"
+  hx-target={{swap_target}}
+  hx-swap="outerHTML"
+  class="sort-link"
+  data-col="{{ column }}"
+  {% if column.tooltip %}
+  title="{{ column.tooltip }}"
+  {% else %}
+  title="Sort by {{ column.name }}"
+  {% endif %}
+>
+
+  <span class="col-{{ column.name }} column-header sortable">
+    {{ column.title | safe }}
   </span>
+  <img class="sort-icon" src="{{ icon }}" alt="{{ alt }}" title="{{ alt }}"/>
 </button>
 {% endmacro %}
