@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 
 import sqlalchemy as sqla
 from pydantic import field_validator
-from sqlalchemy import ColumnElement, event
+from sqlalchemy import ColumnElement, SQLColumnExpression, event
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship
@@ -16,6 +16,8 @@ from sciop.models.mixins import (
     EditableMixin,
     ModerableMixin,
     SearchableMixin,
+    SortableCol,
+    SortMixin,
     TableMixin,
     TableReadMixin,
     all_optional,
@@ -125,12 +127,32 @@ class UploadBase(ModerableMixin):
         return self.torrent.leechers
 
 
-class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, table=True):
+class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, table=True):
     __tablename__ = "uploads"
     __searchable__ = {
         "description": 2.0,
         "method": 1.0,
     }
+    __sortable__ = (
+        SortableCol(),
+        SortableCol(name="infohash", title="hash"),
+        SortableCol(name="file_name", title="name"),
+        SortableCol(name="size", title="size"),
+        SortableCol(
+            name="seeders",
+            title="""<span class="seeders-icon" aria-label="up arrow">⇧</span>""",
+            tooltip="Number of seeders for upload",
+        ),
+        SortableCol(
+            name="leechers",
+            title="""<span class="downloaders-icon" aria-label="down-arrow">⇧</span>""",
+            tooltip="Number of seeders for upload",
+        ),
+        SortableCol(
+            name="created_at",
+            title="made",
+        ),
+    )
 
     upload_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id", index=True)
@@ -146,15 +168,26 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, table=True)
 
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
 
-    @property
+    @hybrid_property
     def infohash(self) -> Optional[str]:
         if self.torrent:
             return self.torrent.infohash
         return None
 
-    @property
+    @infohash.inplace.expression
+    def infohash(self) -> SQLColumnExpression[str]:
+        return cast("SQLColumnExpression[str]", TorrentFile.infohash)
+
+    @hybrid_property
     def file_name(self) -> str:
         return self.torrent.file_name
+
+    @file_name.inplace.expression
+    def _file_name(cls) -> SQLColumnExpression[str]:
+        return cast(
+            "SQLColumnExpression[str]",
+            TorrentFile.file_name,
+        )
 
     @property
     def name(self) -> str:
@@ -170,16 +203,22 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, table=True)
         return self.torrent.seeders
 
     @seeders.inplace.expression
-    def _seeders(self) -> ColumnElement[Optional[int]]:
-        return self.torrent._seeders()
+    def _seeders(self) -> SQLColumnExpression[Optional[int]]:
+        return cast(
+            "SQLColumnExpression[int]",
+            TorrentFile.seeders,
+        )
 
     @hybrid_property
     def leechers(self) -> int:
         return self.torrent.leechers
 
-    @seeders.inplace.expression
-    def _leechers(self) -> ColumnElement[Optional[int]]:
-        return self.torrent._leechers()
+    @leechers.inplace.expression
+    def _leechers(self) -> SQLColumnExpression[Optional[int]]:
+        return cast(
+            "SQLColumnExpression[int]",
+            TorrentFile.leechers,
+        )
 
     @hybrid_property
     def size(self) -> int:

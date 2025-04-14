@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
-from fastapi_pagination import Page
+from fastapi.responses import HTMLResponse, Response
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import select
 
@@ -9,35 +8,46 @@ from sciop.api.deps import (
     RequireEditableBy,
     RequireUpload,
     RequireVisibleUpload,
+    SearchQuery,
     SessionDep,
 )
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Upload, UploadRead, UploadUpdate
+from sciop.models import SearchPage, Upload, UploadRead, UploadUpdate
 
 uploads_router = APIRouter(prefix="/uploads")
 
 
 @uploads_router.get("/", response_class=HTMLResponse)
-async def uploads(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "pages/uploads.html",
-    )
+async def uploads(request: Request, search: SearchQuery):
+    query_str = search.to_query_str()
+    return templates.TemplateResponse(request, "pages/uploads.html", {"query_str": query_str})
 
 
 @uploads_router.get("/search")
 @jinja.hx("partials/uploads.html")
 async def uploads_search(
-    query: str = None, session: SessionDep = None, current_account: CurrentAccount = None
-) -> Page[UploadRead]:
-    if not query or len(query) < 3:
+    search: SearchQuery, session: SessionDep, current_account: CurrentAccount, response: Response
+) -> SearchPage[UploadRead]:
+    if not search.query or len(search.query) < 3:
         stmt = (
             select(Upload)
+            .join(Upload.torrent)
             .where(Upload.visible_to(current_account) == True)
             .order_by(Upload.created_at.desc())
         )
     else:
-        stmt = Upload.search(query).where(Upload.visible_to(current_account) == True)
+        stmt = (
+            Upload.search(search.query)
+            .join(Upload.torrent)
+            .where(Upload.visible_to(current_account) == True)
+        )
+
+    stmt = search.apply_sort(stmt, model=Upload)
+    if search.should_redirect():
+        response.headers["HX-Replace-Url"] = f"{search.to_query_str()}"
+    else:
+        response.headers["HX-Replace-Url"] = "/datasets/"
+
     return paginate(conn=session, query=stmt)
 
 

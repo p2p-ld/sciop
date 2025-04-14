@@ -51,7 +51,6 @@ async def datasets_search(
 
     stmt = search.apply_sort(stmt, model=Dataset)
     if search.should_redirect():
-        print(search.to_query_str())
         response.headers["HX-Replace-Url"] = f"{search.to_query_str()}"
     else:
         response.headers["HX-Replace-Url"] = "/datasets/"

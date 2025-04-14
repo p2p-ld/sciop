@@ -15,7 +15,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql import func
-from sqlmodel import Field, Relationship
+from sqlmodel import Field, Relationship, select
 from torf import Torrent as Torrent_
 from torf import _errors, _torrent, _utils
 
@@ -397,7 +397,11 @@ class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
 
     @seeders.inplace.expression
     def _seeders(self) -> SQLColumnExpression[int]:
-        return func.max(TorrentTrackerLink.seeders)
+        return (
+            select(func.max(TorrentTrackerLink.seeders))
+            .where(TorrentTrackerLink.torrent_file_id == self.torrent_file_id)
+            .label("seeders")
+        )
 
     @hybrid_property
     def leechers(self) -> Optional[int]:
@@ -407,8 +411,12 @@ class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
         return max(leechers)
 
     @leechers.inplace.expression
-    def _leechers(self) -> ColumnElement[Optional[int]]:
-        return func.max(TorrentTrackerLink.leechers)
+    def _leechers(self) -> SQLColumnExpression[int]:
+        return (
+            select(func.max(TorrentTrackerLink.leechers))
+            .where(TorrentTrackerLink.torrent_file_id == self.torrent_file_id)
+            .label("leechers")
+        )
 
     @hybrid_property
     def n_files(self) -> int:

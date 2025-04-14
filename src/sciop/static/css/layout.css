@@ -110,7 +110,9 @@ table {
     .seeders-icon, .downloaders-icon {
       text-align: center;
     }
+    --item-cols: 1em 5em 7fr 5em 3.5em 3.5em 5.5em;
   }
+
 }
 
 .accounts-table {
