@@ -1,0 +1,3 @@
+# `exceptions`
+
+::: sciop.exceptions

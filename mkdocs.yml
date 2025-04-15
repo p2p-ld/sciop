@@ -35,6 +35,33 @@ nav:
       - scraping/ftp.md
   - privacy.md
   - API: /docs/api
+  - Python API:
+      - python/index.md
+      - python/config.md
+      - Models:
+          - python/models/index.md
+          - python/models/base.md
+          - python/models/account.md
+          - python/models/api.md
+          - python/models/dataset.md
+          - python/models/moderation.md
+          - python/models/rss.md
+          - python/models/stats.md
+          - python/models/system.md
+          - python/models/tag.md
+          - python/models/torrent.md
+          - python/models/tracker.md
+          - python/models/upload.md
+      - python/mixins.md
+      - python/types.md
+      - python/deps.md
+      - python/middleware.md
+      - python/services.md
+      - python/db.md
+      - python/crud.md
+      - python/logging.md
+      - python/scheduler.md
+      - python/exceptions.md
   - API Examples:
       - examples/index.md
       - examples/uploading.md
@@ -67,11 +94,11 @@ theme:
         name: Switch to light mode
 
   features:
+    - content.code.copy
     - navigation.indexes
     - navigation.tabs
     - navigation.path
     - toc.integrate
-    - content.code.copy
 
 extra_css:
   - css/fonts.css
@@ -98,7 +125,50 @@ markdown_extensions:
 
 plugins:
   - git-authors
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          inventories:
+            - https://docs.python.org/3/objects.inv
+            - https://docs.pydantic.dev/latest/objects.inv
+          options:
+            backlinks: tree
+            docstring_options:
+              ignore_init_summary: true
+            docstring_section_style: list
+            docstring_style: google
+            heading_level: 2
+            inherited_members: true
+            merge_init_into_class: true
+            separate_signature: true
+            show_if_no_docstring: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_signature_annotations: true
+            show_source: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            signature_crossrefs: true
+            summary: true
+            filters:
+              - "!^_[^_]"
+              - "!fts_.*"
+              - "!count_statement"
+              - "!primary_key_column"
+              - "!after_create"
+              - "!register_events"
+              - "!get_versions"
+              - "!history_table"
+              - "!editable_objects"
+              - "!__history_meta_cols__"
+              - "!rebuild_history_models"
+            extensions:
+              - griffe_fieldz:
+                  include_inherited: true
+              - griffe_inherited_docstrings
   - redirects:
       redirect_maps:
         "using/seeding.md": "using/torrenting.md"
+  - search
 

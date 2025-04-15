@@ -26,11 +26,18 @@ if TYPE_CHECKING:
 
 
 class Scopes(StrEnum):
+    """Account Permissions"""
+
     submit = "submit"
+    """Create new items without review"""
     upload = "upload"
+    """Upload new torrents without review"""
     review = "review"
+    """Review submissions"""
     admin = "admin"
+    """Modify other account scopes, except for demoting/suspending other admins"""
     root = "root"
+    """All permissions"""
 
 
 class AccountScopeLink(TableMixin, table=True):
@@ -110,16 +117,19 @@ class AccountBase(SQLModel):
 
 
 class Account(AccountBase, TableMixin, SearchableMixin, table=True):
+    """A single actor"""
+
     __tablename__ = "accounts"
     __searchable__ = ["username"]
 
     account_id: IDField = Field(default=None, primary_key=True)
-    hashed_password: str
+    hashed_password: str = Field(description="Hashed and salted password")
     scopes: list["Scope"] = Relationship(
         back_populates="accounts",
         sa_relationship_kwargs={"lazy": "selectin"},
         link_model=AccountScopeLink,
     )
+    """Permission scopes for this account"""
     datasets: list["Dataset"] = Relationship(back_populates="account")
     dataset_parts: list["DatasetPart"] = Relationship(back_populates="account")
     submissions: list["Upload"] = Relationship(back_populates="account")
@@ -180,6 +190,8 @@ class AccountCreate(AccountBase):
 
 
 class AccountRead(AccountBase):
+    """Filtered account model returned from API methods"""
+
     scopes: list["Scope"]
     created_at: UTCDateTime
 
