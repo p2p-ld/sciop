@@ -95,6 +95,10 @@
                     <td class="infobox-value wrap">{{ upload.torrent.v2_infohash }}</td>
                 </tr>
                 <tr>
+                    <td class="infobox-key">Magnet Link</td>
+                    <td class="infobox-value wrap">{{ upload.magnet_link }}</td>
+                </tr>
+                <tr>
                     <td class="infobox-key">Created</td>
                     <td class="infobox-value">
                         <time datetime="{{ upload.created_at.strftime('%y-%m-%d %H:%M') }}Z">
