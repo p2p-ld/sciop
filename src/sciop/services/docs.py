@@ -47,4 +47,7 @@ def build_docs() -> None:
     cfg.plugins.on_startup(command="build", dirty=False)
     cfg.site_dir = output_dir
     cfg.site_url = urljoin(config.external_url, "/docs")
+
+    logger.debug("Building docs...")
     build.build(cfg, dirty=False)
+    logger.debug("Completed building docs")

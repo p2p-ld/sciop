@@ -50,8 +50,7 @@ class EditableMixin(SQLModel):
     via user interaction. By default, the ``update`` method ignores any relations especially
     *-to-many relations, and this will almost certainly not work!
 
-    .. todo::
-
+    TODO:
         There is an odd interaction between Editable and Moderable mixins w.r.t.
         collections of child objects -
 

@@ -1,0 +1,3 @@
+# `crud`
+
+::: sciop.crud

@@ -110,16 +110,15 @@ class SearchableMixin(SQLModel):
         only the row IDs and bm25-based rank, so that the full object can be
         retrieved in a subsequent query probably as a subquery or CTE.
 
-        Examples:
-
-            .. code-block:: python
-
-                query = select(Example
-                    ).where(
-                        Example.some_column == True
-                    ).filter(
-                        Example.id.in_(Example.search_statement(query))
-                    )
+        Example:
+            ```python
+            query = select(Example
+                ).where(
+                    Example.some_column == True
+                ).filter(
+                    Example.id.in_(Example.search_statement(query))
+                )
+            ```
 
         """
         table = cls.fts_table()
@@ -148,7 +147,7 @@ class SearchableMixin(SQLModel):
     @classmethod
     def register_events(cls) -> None:
         """
-        # FIXME: make this happen on class declaration with a decorator
+        FIXME: make this happen on class declaration with a decorator
         """
         event.listen(cls.__table__, "after_create", cls.after_create)
 

@@ -30,7 +30,7 @@ class InstanceConfig(BaseModel):
     """
 
     contact_email: Optional[EmailStr] = Field(
-        None, description="Email to list as contact in page footer"
+        default=None, description="Email to list as contact in page footer"
     )
 
 
@@ -39,30 +39,42 @@ class LogConfig(BaseModel):
     Configuration for logging
     """
 
-    level: LOG_LEVELS = "INFO"
-    """
+    level: LOG_LEVELS = Field(
+        default="INFO",
+        description="""
     Severity of log messages to process.
-    """
-    level_file: Optional[LOG_LEVELS] = None
-    """
+    """,
+    )
+    level_file: Optional[LOG_LEVELS] = Field(
+        default=None,
+        description="""
     Severity for file-based logging. If unset, use ``level``
-    """
-    level_stdout: Optional[LOG_LEVELS] = None
-    """
+    """,
+    )
+    level_stdout: Optional[LOG_LEVELS] = Field(
+        default=None,
+        description="""
     Severity for stream-based logging. If unset, use ``level``
-    """
-    dir: Path = _dirs.user_log_dir
-    """
+    """,
+    )
+    dir: Path = Field(
+        default=_dirs.user_log_dir,
+        description="""
     Directory where logs are stored.
-    """
-    file_n: int = 5
-    """
+    """,
+    )
+    file_n: int = Field(
+        default=5,
+        description="""
     Number of log files to rotate through
-    """
-    file_size: int = 2**22  # roughly 4MB
-    """
+    """,
+    )
+    file_size: int = Field(
+        default=2**22,
+        description="""
     Maximum size of log files (bytes)
-    """
+    """,
+    )
 
     @field_validator("level", "level_file", "level_stdout", mode="before")
     @classmethod
@@ -130,6 +142,8 @@ class JobConfig(BaseModel):
 
 
 class ScrapeErrorBackoffs(BaseModel):
+    """Backoff multiplier for each type of scraping error"""
+
     default: float = 1
     unpack: float = 1
     timeout: float = 2
@@ -138,22 +152,27 @@ class ScrapeErrorBackoffs(BaseModel):
 
 
 class ScrapeConfig(JobConfig):
+    """Configure scraping stats from other trackers"""
+
     interval: int = 30
     """Frequency of tracker scraping, in minutes - 
     how frequently a given tracker/torrent pair should be scraped"""
     job_interval: int = 10
     """Frequency of executing the scrape job, in minutes - 
     only scrapes torrents that haven't been scraped in more than `interval` minutes."""
-    n_workers: int = 24
-    """Number of trackers to scrape in parallel"""
-    connection_timeout: int = 10
-    """
+    n_workers: int = Field(default=24, description="""Number of trackers to scrape in parallel""")
+    connection_timeout: int = Field(
+        default=10,
+        description="""
     Timeout for initializing UDP requests, in seconds
-    """
-    scrape_timeout: int = 30
-    """
+    """,
+    )
+    scrape_timeout: int = Field(
+        default=30,
+        description="""
     Timeout for scrape responses, in seconds
-    """
+    """,
+    )
     backoff: ScrapeErrorBackoffs = ScrapeErrorBackoffs()
     """
     Exponential penalties for different kinds of tracker errors,
@@ -179,8 +198,9 @@ class ScrapeConfig(JobConfig):
 class StatsConfig(JobConfig):
     """Computation of site statistics"""
 
-    job_interval: int = 60
-    """frequency of recalculating stats, in minutes"""
+    job_interval: int = Field(
+        default=60, description="""frequency of recalculating stats, in minutes"""
+    )
 
 
 class Config(BaseSettings):
@@ -196,9 +216,11 @@ class Config(BaseSettings):
     base_url: str = "http://localhost:8000"
     """Root URL where the site is hosted"""
     secret_key: SecretStr
+    """Secret key to use when generating auth tokens"""
     db: Optional[Path]
     """
     Defaults:
+    
     - `prod`: db.sqlite
     - `dev`: db.dev.sqlite
     - `test`: db.test.sqlite
@@ -208,25 +230,39 @@ class Config(BaseSettings):
     db_echo: bool = False
     """Echo all queries made to the database"""
     db_pool_size: int = 10
+    """Number of active database connections to maintain"""
     db_overflow_size: int = 20
+    """Additional database connections that are not allowed to sleep"""
     logs: LogConfig = LogConfig()
+    """Log configuration"""
     host: str = "localhost"
+    """Host portion of url"""
     port: int = 8000
+    """Port where local service should serve from"""
     env: Literal["dev", "prod", "test"]
+    """
+    dev: interactive, live reloading development mode with dummy data
+    test: when running pytest
+    prod: when service a live sciop instance
+    """
     public_url: str = "http://localhost"
     token_expire_minutes: int = 60 * 24  # AKA 1 day
+    """Login authorization token expiration time in minutes"""
     api_prefix: str = "/api/v1"
-    upload_limit: int = 100 * (2**20)  # 100MB
-    """in bytes"""
+    """
+    Prefix for all JSON API endpoints.
+    Placeholder to allow for versioned API in the future
+    """
+    upload_limit: int = 100 * (2**20)
+    """Maximum size of an uploaded file before it is discarded, in bytes"""
     torrent_dir: Path = Path(_dirs.user_data_dir) / "torrents"
     """Directory to store uploaded torrents"""
     enable_versions: bool = True
     """Keep version histories of editable objects"""
     csp: CSPConfig = CSPConfig()
+    """Submodel containing CSP config"""
     root_user: str = "root"
-    """
-    Default root user created on first run.
-    """
+    """Default root user created on first run."""
     root_password: Optional[SecretStr] = "rootroot1234"
     """
     Default root password for root user created on first run.
@@ -252,8 +288,11 @@ class Config(BaseSettings):
     that template will be used rather than ``sciop/templates/pages/datasets.html``
     """
     tracker_scraping: ScrapeConfig = ScrapeConfig()
+    """Service config: Tracker scraping"""
     site_stats: StatsConfig = StatsConfig()
+    """Service config: Site stats computation"""
     instance: InstanceConfig = InstanceConfig()
+    """Configuration for customizing the instance"""
 
     @computed_field  # type: ignore[prop-decorator]
     @property

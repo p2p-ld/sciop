@@ -12,6 +12,8 @@ T = TypeVar("T", bound=type[SQLModel])
 
 
 def all_optional(model: T, keep_defaults: bool = False) -> T:
+    """Make all fields of a model optional"""
+
     for _field_name, field in model.__pydantic_fields__.items():
         if not keep_defaults or field.default is PydanticUndefined:
             field.annotation = Optional[field.annotation]
@@ -23,6 +25,8 @@ def all_optional(model: T, keep_defaults: bool = False) -> T:
 
 
 def exclude_fields(*args: str) -> Callable[[T], T]:
+    """Exclude fields from a parent model"""
+
     def _exclude(model: T) -> T:
         for _field in args:
             del model.__pydantic_fields__[_field]

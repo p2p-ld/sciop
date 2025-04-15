@@ -72,6 +72,16 @@ Choose your path:
 </pre>
 <span class="index-link-label" aria-hidden="true">"api"</span>
 </a>
+<a href="python" aria-label="Python API">
+<pre class="index-link" role="img">
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█▀▄▄▀█░██░█▄░▄█░████▀▄▄▀█░▄▄▀
+█░▀▀░█░▀▀░██░██░▄▄░█░██░█░██░
+█░████▀▀▀▄██▄██▄██▄██▄▄██▄██▄
+▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+</pre>
+<span class="index-link-label" aria-hidden="true">"python api"</span>
+</a>
 <a href="examples/" aria-label="Examples">
 <pre class="index-link" role="img">
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄

@@ -13,6 +13,7 @@ from slugify import slugify
 from sqlmodel import Field
 
 USERNAME_PATTERN = re.compile(r"^[\w-]+$")
+"""Only word characters and hyphens"""
 
 
 def _validate_username(username: str) -> str:
@@ -29,17 +30,27 @@ def _validate_no_traversal(path: PathLike_) -> PathLike_:
 
 
 IDField: TypeAlias = Optional[Annotated[int, Gt(0)]]
+"""An >0 integer to be used as a db ID"""
 EscapedStr: TypeAlias = Annotated[str, AfterValidator(escape)]
+"""String that has been html-escaped"""
 SlugStr: TypeAlias = Annotated[str, AfterValidator(slugify)]
+"""A slufified string, with only lowercase letters and hyphens"""
 AnyUrlTypeAdapter = TypeAdapter(AnyUrl)
 MaxLenURL = Annotated[
     str, MaxLen(512), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
 ]
+"""URL that is at most 512 characters long"""
 PathLike = Annotated[PathLike_[str], AfterValidator(lambda x: Path(x).as_posix())]
+"""Path-like string, as a POSIX path"""
 FileName = Annotated[str, AfterValidator(_validate_no_traversal)]
+"""A filename that can't ascend above its current directory"""
 UTCDateTime = Annotated[datetime, AfterValidator(lambda x: x.replace(tzinfo=UTC))]
+"""
+Datetime object that is cast to UTC
+
 # although this does not get applied when models are reloaded,
 # as it seems like values are populated by assignment, and we have validate_assignment=False
+"""
 
 
 def _username_col() -> sqla.Column:
@@ -63,17 +74,27 @@ UsernameStr: TypeAlias = Annotated[
         sa_column=_username_col(),
     ),
 ]
+"""Allowable usernames"""
 
 
 class AccessType(StrEnum):
+    """How an item is allowed to be accessed"""
+
     unknown = "unknown"
+    """idk"""
     public = "public"
+    """Can be accessed by anyone"""
     registration = "registration"
+    """Requires at least some account to be created"""
     paywalled = "paywalled"
+    """Requires payment"""
     proprietary = "proprietary"
+    """Specific access must be granted, if it is at all"""
 
 
 class Scarcity(StrEnum):
+    """How abundant an item is copied, or how likely an item is to be recoverable"""
+
     unknown = "unknown"
     source_only: Annotated[str, "The dataset is likely to only exist at the canonical source"] = (
         "source_only"
@@ -88,6 +109,8 @@ class Scarcity(StrEnum):
 
 
 class ScrapeStatus(StrEnum):
+    """The progress in preserving an item"""
+
     unknown = "unknown"
     not_started = "not_started"
     in_progress = "in_progress"
@@ -95,6 +118,8 @@ class ScrapeStatus(StrEnum):
 
 
 class SourceType(StrEnum):
+    """What form the current item is accessible in"""
+
     unknown = "unknown"
     web = "web"
     http = "http"
@@ -104,6 +129,11 @@ class SourceType(StrEnum):
 
 
 class Threat(StrEnum):
+    """
+    How likely something is to become unavailable at its original source,
+    or whether there are likely to be barriers to freely accessing it.
+    """
+
     unknown: Annotated[str, "Threat is unknown"] = "unknown"
     indefinite: Annotated[str, "Baseline threat level, no clear time or threat of removal"] = (
         "indefinite"
@@ -133,6 +163,8 @@ class Threat(StrEnum):
 
 
 class InputType(StrEnum):
+    """The input type to render for a model field when used in a form"""
+
     input = "input"
     select = "select"
     textarea = "textarea"
@@ -172,6 +204,8 @@ QID_TYPE: TypeAlias = Annotated[str, Field(regex=QID_PATTERN)]
 
 
 class ExternalIdentifierType(StrEnum):
+    """Recognized external and persistent identifiers"""
+
     ark: Annotated[ARK_TYPE, "Archival Resource Key"] = "ark"
     cid: Annotated[str, "IPFS/IPLD Content Identifier"] = "cid"
     doi: Annotated[DOI_TYPE, "Digital Object Identifier"] = "doi"

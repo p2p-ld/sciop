@@ -41,6 +41,9 @@ dependencies = [
     "httpx>=0.28.1",
     "mkdocs-git-authors-plugin>=0.9.4",
     "pytest-playwright-asyncio>=0.7.0",
+    "mkdocstrings[python]>=0.29.1",
+    "griffe-inherited-docstrings>=1.1.1",
+    "griffe-fieldz>=0.2.1",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
