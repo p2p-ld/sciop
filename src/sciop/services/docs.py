@@ -14,7 +14,7 @@ def _find_mkdocs_config() -> Path:
     return Path(__file__).parents[3].resolve() / "mkdocs.yml"
 
 
-def build_docs() -> None:
+def build_docs(config_file: Path | None = None, output_dir: Path | None = None) -> Path | None:
     """
     Find and build documentation using mkdocs into `sciop/docs`.
 
@@ -22,12 +22,14 @@ def build_docs() -> None:
     https://github.com/mkdocs/mkdocs/blob/7e4892ab2dd4a52efd95a9de407eee63310e0780/mkdocs/__main__.py#L280
     """
     logger = init_logger("services.docs")
-    config_file = _find_mkdocs_config()
+    if config_file is None:
+        config_file = _find_mkdocs_config()
     if not config_file.exists():
         logger.warning("Docs could not be built, no mkdocs config was found at %s", config_file)
         return
 
-    output_dir = Path(__file__).parents[1] / "docs"
+    if output_dir is None:
+        output_dir = Path(__file__).parents[1] / "docs"
     output_dir.mkdir(exist_ok=True)
     index = output_dir / "index.html"
 
@@ -51,3 +53,4 @@ def build_docs() -> None:
     logger.debug("Building docs...")
     build.build(cfg, dirty=False)
     logger.debug("Completed building docs")
+    return output_dir
