@@ -10,75 +10,17 @@ As you get started archiving web content it can be helpful to ask yourself a few
 
 Read on for some examples on how to use some of these tools.
 
-## Using zimit
-
-A convenient way to archive web pages, produce [WARC] files and `.zim` files is using the [Zimit] tool which bundles both `Browsertrix` and `warc2zim` in a Docker image. Whilst we have opinions about the Docker strategy and the software development patterns that produced it, in this case it is an easy way to get going.
-
-The steps are:
-
-  1. Install docker in whatever way your operating system wants you to. Debian or Ubuntu systems might do `apt install docker.io`
-  2. Obtain the `zimit` image: `docker pull ghcr.io/openzim/zimit`
-
-Now we assume you are working in a particular directory, say, `/home/name/scraping` that we will call `$SCRAPE`
-
-First run the scrape. We will use the https://constitution.congress.gov/ web site as an example.
-
-```shell
-docker run \
-    -v ${SCRAPE}:/output \
-    ghcr.io/openzim/zimit zimit \
-    -w 12 \
-    --seeds https://constitution.congress.gov/
-    --name constitution-annotated-20250310 \
-    --title "Constitution Annotated" \
-    --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution." \
-    --scopeExcludeRx '.*add-to-cart=[0-9]*' \
-    --keep
-```
-
-This needs some explanation.
-
-  - `-v ${SCRAPE}:/output` says to bind what Docker thinks of as the output directory to the working directory.
-  - `-w 12` means to run 12 scraping threads concurrently. On our machine, this is the number of CPU cores.
-  - `--seeds https://constitution.congress.gov` is the web site to scrape. It is possible to have multiple web sites, comma separated
-  - `--name constitution-annotated-20250310` is the filename for the output `.zim` file
-  - `--title` and `--description` go in the `.zim` file metadata
-  - `--scopeExcludeRx` is a regular expression to exclude certain URLs. Necessary in this case so that the shopping cart section of the web site does not create an infinitely recursive scrape
-  - `--keep` causes `zimit` to keep intermediate files. In particular, it keeps the [WARC] files which we also want.
-
-Doing this archived the web site but failed at the very end. The reason is yet undiagnosed but we suspect it to have to do with `zimit`'s management of concurrency. No matter, the [WARC] files are saved in a temporary directory that starts with `.tmp` followed by some random characters, in this case `.tmptp8i9y5f`
-
-We can work around this by looking in the temporary directory for the [WARC] files, and running `warc2zim`:
-
-```shell
-ls .tmptp8i9y5f/collections/crawl-20250310121334268/archive/*.warc.gz | sed s@^@/output/@ > /tmp/scrape.$$
-
-docker run \
-    -v ${SCRAPE}:/output \
-    ghcr.io/openzim/zimit warc2zim \
-    --name constitution-annotated-20250310 \
-    --title "Constitution Annotated" \
-    --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution." \
-    --zim-file /output/constitution-annotated-20250310.zim \
-    `cat /tmp/scrape.$$`
-
-rm /tmp/scrape.$$
-```
-
-Now we can assemble the archive, ready for [uploading](../uploading),
-
-```shell
-mkdir archive
-mv constitution-annotated-20250310.zim archive
-mv .tmptp8i9y5f/collections/crawl-20250310121334268/archive/* archive
-mv .tmptp8i9y5f/collections/crawl-20250310121334268/crawls/* archive
-mv .tmptp8i9y5f/collections/crawl-20250310121334268/pages/* archive
-mv .tmptp8i9y5f/collections/crawl-20250310121334268/warc-cdx/* archive
-```
-
 ## Using browsertrix-crawler
 
-The zimit tool described above is really a wrapper around [browsertrix-crawler] which does the hard work of crawling the web, and then zimit converts the data to ZIM. However, you can use [browsertrix-crawler] directly to generate [WACZ] files that are easy to view locally on your computer with [ArchiveWebPage] and publish anywhere on the web with the [ReplayWebPage] web component. Using [browsertrix-crawler] gives you full access to all the [options] for controlling how the crawl is performed, where the data is written (e.g. local disk, or object storage) and knobs for pausing, interrupting and resuming crawls, watching a screencast of the crawling, using a custom browser profile for sites that require a login (be careful!), and more.
+[browsertrix-crawler] can generate near-full fidelity copies of a webpage, including server-dependent parts.
+It does this by running a full browser and simulating browsing activity, 
+and generating [WACZ] files that are easy to view locally on your computer with [ArchiveWebPage] 
+and publishable anywhere on the web with the [ReplayWebPage] web component. 
+Using [browsertrix-crawler] gives you full access to all the [options] for controlling how the crawl is performed, 
+where the data is written (e.g. local disk, or object storage) and knobs for pausing, 
+interrupting and resuming crawls, 
+watching a screencast of the crawling, 
+using a custom browser profile for sites that require a login (be careful!), and more.
 
 The [WACZ] files that browsertrix-crawler creates are perfect for making available as a torrent, since they are just ZIP files (try to unzip one by changing the file extension to .zip and double clicking on it). Each WACZ contains:
 
@@ -88,7 +30,8 @@ The [WACZ] files that browsertrix-crawler creates are perfect for making availab
 * screenshots of each page can optionally be created as part of the crawl
 * extracted text from the rendered page can also be created as part of the crawl
 
-Getting started with [browsertrix-crawler] is similar to [zimit] in that you will need to first install [Docker]. Once installed you can crawl a site, with some standard options: 
+Getting started with [browsertrix-crawler] requires that you first install [Docker]. 
+Once installed you can crawl a site, with some standard options: 
 
 ```shell
 docker run \
@@ -132,6 +75,87 @@ Once your crawl is complete you should be able to find the WACZ file at `crawls/
 
 The [browsertrix-crawler documentation] includes information for setting the length and size of the crawl, where to write the crawl, and the types of behaviors that it uses when viewing a page. You can even create (and publish) your own custom behaviors for archiving particular sites.
 
+!!! tip "Rescuing failed crawls"
+
+    If your crawl fails midway through and it would be prohibitive to run again, or the errors happen on every crawl,
+    see the section below on [rescuing output from a crashed crawl](#rescuing-output-from-a-crashed-crawl)
+
+## Using zimit
+
+Another way to archive web pages, produce [WARC] files and `.zim` files is using the [Zimit] tool which bundles both `Browsertrix` and `warc2zim` in a Docker image.[^docker]
+
+!!! tip
+
+    `zimit` at the moment is slightly buggier than the direct `browsertrix` method above, so we recommend that route,
+    but the two are compatible: zimit just produces an extra `zim` version of the [WARC] files.
+
+The steps are:
+
+  1. Install docker in whatever way your operating system wants you to. Debian or Ubuntu systems might do `apt install docker.io`
+  2. Obtain the `zimit` image: `docker pull ghcr.io/openzim/zimit`
+
+Now we assume you are working in a particular directory, say, `/home/name/scraping` that we will call `$SCRAPE`
+
+First run the scrape. We will use the https://constitution.congress.gov/ web site as an example.
+
+```shell
+docker run \
+    -v ${SCRAPE}:/output \
+    ghcr.io/openzim/zimit zimit \
+    -w 12 \
+    --seeds https://constitution.congress.gov/
+    --name constitution-annotated-20250310 \
+    --title "Constitution Annotated" \
+    --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution." \
+    --scopeExcludeRx '.*add-to-cart=[0-9]*' \
+    --keep
+```
+
+This needs some explanation.
+
+  - `-v ${SCRAPE}:/output` says to bind what Docker thinks of as the output directory to the working directory.
+  - `-w 12` means to run 12 scraping threads concurrently. On our machine, this is the number of CPU cores.
+  - `--seeds https://constitution.congress.gov` is the web site to scrape. It is possible to have multiple web sites, comma separated
+  - `--name constitution-annotated-20250310` is the filename for the output `.zim` file
+  - `--title` and `--description` go in the `.zim` file metadata
+  - `--scopeExcludeRx` is a regular expression to exclude certain URLs. Necessary in this case so that the shopping cart section of the web site does not create an infinitely recursive scrape
+  - `--keep` causes `zimit` to keep intermediate files. In particular, it keeps the [WARC] files which we also want.
+
+### Rescuing output from a crashed crawl
+
+Doing this archived the web site but failed at the very end. 
+The reason is yet undiagnosed but we suspect it to have to do with `zimit`'s management of concurrency. 
+No matter, the [WARC] files are saved in a temporary directory that starts with `.tmp` followed by some random characters, 
+in this case `.tmptp8i9y5f`
+
+We can work around this by looking in the temporary directory for the [WARC] files, and running `warc2zim`:
+
+```shell
+ls .tmptp8i9y5f/collections/crawl-20250310121334268/archive/*.warc.gz | sed s@^@/output/@ > /tmp/scrape.$$
+
+docker run \
+    -v ${SCRAPE}:/output \
+    ghcr.io/openzim/zimit warc2zim \
+    --name constitution-annotated-20250310 \
+    --title "Constitution Annotated" \
+    --description "Constitution Annotated provides a legal analysis and interpretation of the United States Constitution based on a comprehensive review of Supreme Court case law and, where relevant, historical practices that have defined the text of the Constitution." \
+    --zim-file /output/constitution-annotated-20250310.zim \
+    `cat /tmp/scrape.$$`
+
+rm /tmp/scrape.$$
+```
+
+Now we can assemble the archive, ready for [uploading](../uploading),
+
+```shell
+mkdir archive
+mv constitution-annotated-20250310.zim archive
+mv .tmptp8i9y5f/collections/crawl-20250310121334268/archive/* archive
+mv .tmptp8i9y5f/collections/crawl-20250310121334268/crawls/* archive
+mv .tmptp8i9y5f/collections/crawl-20250310121334268/pages/* archive
+mv .tmptp8i9y5f/collections/crawl-20250310121334268/warc-cdx/* archive
+```
+
 [zimit]: https://github.com/openzim/zimit
 [WARC]: https://en.wikipedia.org/wiki/WARC_(file_format)
 [browsertrix-crawler]: https://crawler.docs.browsertrix.com/
@@ -145,3 +169,5 @@ The [browsertrix-crawler documentation] includes information for setting the len
 [wget]: https://www.gnu.org/software/wget/
 [httrack]: https://www.httrack.com/
 [heretrix]: https://heritrix.readthedocs.io/
+
+[^docker]: Whilst we have opinions about the Docker strategy and the software development patterns that produced it, in this case it is an easy way to get going.
