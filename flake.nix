@@ -52,6 +52,7 @@
           bcrypt
           bencode-py
           content-negotiation
+          email-validator
           faker
           fastapi
           fastapi-pagination
