@@ -59,6 +59,7 @@
           humanize
           httpx
           lxml
+          mkdocs-git-authors-plugin
           mkdocs-material
           mkdocs-redirects
           mistune
@@ -68,6 +69,7 @@
           pygments
           pyjwt
           pymdown-extensions
+          #pytest-playwright-asyncio
           python-multipart
           python-slugify
           rdflib
