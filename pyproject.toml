@@ -14,6 +14,7 @@ dependencies = [
     "alembic>=1.14.1",
     "lxml>=5.3.0",
 #    "pydantic[email]>=2.10.6",
+    "pydantic>=2.10.6",
     "rich>=13.9.4",
     "platformdirs>=4.3.6",
     "pyjwt>=2.10.1",
