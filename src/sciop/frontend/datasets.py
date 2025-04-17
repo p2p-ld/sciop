@@ -84,7 +84,7 @@ async def dataset_parts(
     dataset: RequireVisibleDataset,
     current_account: CurrentAccount,
 ):
-    parts = [p for p in dataset.parts if p.visible_to(current_account)]
+    parts = [p for p in sorted(dataset.parts, key=lambda pt: pt.part_slug) if p.visible_to(current_account)]
     return templates.TemplateResponse(
         request, "partials/dataset-parts.html", {"dataset": dataset, "parts": parts}
     )
