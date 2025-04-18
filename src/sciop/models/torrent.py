@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Self
-from urllib.parse import ParseResult, urlparse, urlunparse
+from urllib.parse import ParseResult, quote, urlparse, urlunparse
 
 import bencodepy
 import humanize
@@ -287,7 +287,7 @@ class TorrentFileBase(SQLModel):
     @property
     def download_path(self) -> str:
         """Path beneath the root"""
-        return f"/torrents/{self.infohash}/{self.file_name}"
+        return quote(f"/torrents/{self.infohash}/{self.file_name}")
 
     @property
     def infohash(self) -> str:

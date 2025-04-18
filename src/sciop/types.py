@@ -226,7 +226,7 @@ suffix_to_ctype = {
     "rss": "application/rss+xml",
     "ttl": "text/turtle",
     "rdf": "application/rdf+xml",
-    "nt": "text/n-triples",
-    "js": "application/json",
+    "nt": "application/n-triples",
+    "json": "application/ld+json",
 }
 ctype_to_suffix = {v: k for k, v in suffix_to_ctype.items()}
