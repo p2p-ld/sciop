@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING, Optional, Self, cast
-from urllib.parse import urljoin, quote
+from urllib.parse import quote, urljoin
 
 import sqlalchemy as sqla
 from pydantic import field_validator
