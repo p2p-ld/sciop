@@ -1,4 +1,3 @@
-
 import pytest
 from lxml import etree
 
@@ -25,10 +24,14 @@ def test_tag_feed(upload, dataset, client):
 
 
 def test_escaped_urls(upload, torrentfile, dataset, client):
+    """
+    Torrents with spaces don't break RSS feeds
+    """
     t = torrentfile(file_name="torrent with spaces.torrent")
     ds = dataset(tags=["test"])
     ul = upload(torrentfile_=t, dataset_=ds)
     feed = client.get("/rss/tag/test.rss")
+    assert feed.status_code == 200
     tree = etree.fromstring(feed.text.encode("utf-8"))
     guid = tree.find(".//guid").text
     assert "torrent%20with%20spaces.torrent" in guid

@@ -43,13 +43,13 @@ def serialise_graph(g: Graph, format: str) -> Response:
     the content-type header correctly.
     """
     if format == "ttl":
-        return Response(g.serialize(format="ttl"), media_type="text/turtle")
+        return Response(g.serialize(format="ttl"), media_type=suffix_to_ctype[format])
     elif format == "rdf":
-        return Response(g.serialize(format="xml"), media_type="application/rdf+xml")
+        return Response(g.serialize(format="xml"), media_type=suffix_to_ctype[format])
     elif format == "nt":
-        return Response(g.serialize(format="nt"), media_type="text/n-triples")
-    elif format == "js":
-        return Response(g.serialize(format="json-ld"), media_type="application/json")
+        return Response(g.serialize(format="nt"), media_type=suffix_to_ctype[format])
+    elif format == "json":
+        return Response(g.serialize(format="json-ld"), media_type=suffix_to_ctype[format])
     else:
         raise HTTPException(500, detail="Something went very wrong serializing an RDF graph")
 
@@ -106,7 +106,7 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
     docs = [
         URIRef(f"{config.base_url}/rdf/datasets/{d.slug}.ttl"),
         URIRef(f"{config.base_url}/rdf/datasets/{d.slug}.rdf"),
-        URIRef(f"{config.base_url}/rdf/datasets/{d.slug}.js"),
+        URIRef(f"{config.base_url}/rdf/datasets/{d.slug}.json"),
         URIRef(f"{config.base_url}/rdf/datasets/{d.slug}.nt"),
     ]
     for doc in docs:
@@ -148,7 +148,7 @@ async def tag_graph(tag: str, suffix: str, session: SessionDep) -> Response:
         URIRef(f"{config.base_url}/rdf/tag/{tag}.ttl"),
         URIRef(f"{config.base_url}/rdf/tag/{tag}.rdf"),
         URIRef(f"{config.base_url}/rdf/tag/{tag}.nt"),
-        URIRef(f"{config.base_url}/rdf/tag/{tag}.js"),
+        URIRef(f"{config.base_url}/rdf/tag/{tag}.json"),
         URIRef(f"{config.base_url}/rdf/tag/{tag}.rss"),
     ]
     for doc in docs:
