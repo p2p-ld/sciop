@@ -112,7 +112,12 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
         db_path = None
 
     new_config = config.Config(
-        env="test", db=db_path, torrent_dir=TORRENT_DIR, secret_key="12345", clear_jobs=True
+        env="test",
+        db=db_path,
+        torrent_dir=TORRENT_DIR,
+        secret_key="12345",
+        clear_jobs=True,
+        base_url="http://localhost:8080",
     )
     new_config.logs.dir = LOGS_DIR
     new_config.logs.level_file = "DEBUG"
