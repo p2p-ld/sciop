@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING, Optional, Self, cast
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote
 
 import sqlalchemy as sqla
 from pydantic import field_validator
@@ -75,7 +75,7 @@ class UploadBase(ModerableMixin):
     @property
     def absolute_download_path(self) -> str:
         """Download path including the site root"""
-        return urljoin(config.base_url, self.download_path)
+        return urljoin(config.base_url, quote(self.download_path))
 
     @property
     def short_hash(self) -> Optional[str]:
