@@ -1,3 +1,4 @@
+import re
 from typing import TYPE_CHECKING, Optional, Self, cast
 from urllib.parse import urljoin
 
@@ -154,6 +155,11 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, table=True)
     @property
     def file_name(self) -> str:
         return self.torrent.file_name
+
+    @property
+    def name(self) -> str:
+        """File name without the .torrent suffix!"""
+        return re.sub(r".torrent$", "", self.file_name)
 
     @property
     def magnet_link(self) -> str:

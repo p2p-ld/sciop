@@ -1,3 +1,4 @@
+from logging import LogRecord, getLogger
 from pathlib import Path
 from time import time
 from urllib.parse import urljoin
@@ -9,12 +10,23 @@ from sciop.config import config
 from sciop.logging import init_logger
 
 
+# stop mkdocs from complaining about dirty builds
+def _filter_dirty_build(record: LogRecord) -> bool:
+    return "A 'dirty' build" not in record.msg
+
+
+mkdocs_logger = getLogger("mkdocs.commands.build")
+mkdocs_logger.addFilter(_filter_dirty_build)
+
+
 def _find_mkdocs_config() -> Path:
     """Abstraction around path location in case we want to start packaging it"""
     return Path(__file__).parents[3].resolve() / "mkdocs.yml"
 
 
-def build_docs(config_file: Path | None = None, output_dir: Path | None = None) -> Path | None:
+def build_docs(
+    config_file: Path | None = None, output_dir: Path | None = None, clean: bool = True
+) -> Path | None:
     """
     Find and build documentation using mkdocs into `sciop/docs`.
 
@@ -46,11 +58,11 @@ def build_docs(config_file: Path | None = None, output_dir: Path | None = None) 
     if config.env == "test":
         cfg.plugins["git-authors"].config.enabled = False
 
-    cfg.plugins.on_startup(command="build", dirty=False)
+    cfg.plugins.on_startup(command="build", dirty=not clean)
     cfg.site_dir = output_dir
     cfg.site_url = urljoin(config.external_url, "/docs")
 
     logger.debug("Building docs...")
-    build.build(cfg, dirty=False)
+    build.build(cfg, dirty=not clean)
     logger.debug("Completed building docs")
     return output_dir

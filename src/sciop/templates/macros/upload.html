@@ -3,19 +3,11 @@
 <div class="upload" id="upload-{{ upload.infohash }}">
     <div class="upload-topmatter topmatter">
         <div class="upload-header header">
-            <h{{ header_start }} class="title upload-title font-mono">{{ upload.short_hash }} </h{{ header_start }}>
-            {% if not upload.is_approved %}
-            <p class="unapproved">
-              Upload has not yet been reviewed, and is not visible in public lists
-            </p>
-            {% endif %}
-            <span class="dataset-slug">
-                <a href="/datasets/{{upload.dataset.slug}}">
-                    {{ upload.dataset.slug }}
-                </a>
-            </span>
+            <span class="page-type">upload</span>
+            <h{{ header_start }} class="title upload-title font-mono">{{ upload.name }} </h{{ header_start }}>
+            <div class="dataset-link-container">
             {% if upload.dataset_parts %}
-            <h{{ header_start + 1}} class="dataset-parts">For Dataset Parts</h{{ header_start + 1}}>
+            <span>dataset parts:</span>
             <ul>
                 {% for part in upload.dataset_parts %}
                 <li>
@@ -25,7 +17,21 @@
                 </li>
                 {% endfor %}
             </ul>
+            {% else %}
+                <span>dataset:</span>
+                <span class="dataset-slug">
+                <a href="/datasets/{{upload.dataset.slug}}">
+                    {{ upload.dataset.slug }}
+                </a>
+            </span>
             {% endif %}
+            </div>
+            {% if not upload.is_approved %}
+            <p class="unapproved">
+              Upload has not yet been reviewed, and is not visible in public lists
+            </p>
+            {% endif %}
+
             <h{{ header_start + 1}} class="description">Description</h{{ header_start + 1}}>
             <p>{{ upload.description_html | safe }}</p>
             <h{{ header_start + 1}} class="method">Method</h{{ header_start + 1}}>
@@ -33,9 +39,15 @@
 
         </div>
         <div class="upload-infobox infobox">
-            <p class="infobox-header">
-                <a class="download-link font-mono" href="{{ upload.download_path }}">⬇️ download ⬇️</a>
-            </p>
+            <div class="infobox-header download-container">
+              <a class="download-link button" href="{{ upload.download_path }}">
+                <img class="icon download-icon" src="/static/img/download.svg" alt="Download icon"/>
+                <span class="font-mono">download</span>
+              </a>
+              <a class="magnet-link font-mono button neutral" href="{{ upload.magnet_link }}">
+                <img class="icon magnet-icon" src="/static/img/magnet.svg" alt="Magnet icon"/>
+              </a>
+            </div>
             <table class="infobox-table">
                 <tr>
                     <td colspan="2" class="infobox-subhead wrap">{{ upload.torrent.file_name }}</td>
@@ -93,10 +105,6 @@
                 <tr>
                     <td class="infobox-key">v2 Infohash</td>
                     <td class="infobox-value wrap">{{ upload.torrent.v2_infohash }}</td>
-                </tr>
-                <tr>
-                    <td class="infobox-key">Magnet Link</td>
-                    <td class="infobox-value wrap">{{ upload.magnet_link }}</td>
                 </tr>
                 <tr>
                     <td class="infobox-key">Created</td>
