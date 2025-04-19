@@ -66,3 +66,23 @@ def set_config(monkeypatch: MonkeyPatch) -> C:
                     monkeypatch.setattr(mod.config, k, v)
 
     return _set_config
+
+
+@pytest.fixture(scope="session")
+def monkeypatch_session() -> MonkeyPatch:
+    """
+    Monkeypatch you can use at the session scope!
+    """
+    mpatch = MonkeyPatch()
+    yield mpatch
+    mpatch.undo()
+
+
+@pytest.fixture(scope="module")
+def monkeypatch_module() -> MonkeyPatch:
+    """
+    Monkeypatch you can use at the session scope!
+    """
+    mpatch = MonkeyPatch()
+    yield mpatch
+    mpatch.undo()

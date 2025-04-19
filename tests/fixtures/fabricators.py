@@ -37,7 +37,6 @@ fake = Faker()
 P = ParamSpec("P")
 
 
-@pytest.fixture
 def default_account() -> dict:
     return {
         "username": "default",
@@ -45,7 +44,6 @@ def default_account() -> dict:
     }
 
 
-@pytest.fixture
 def default_dataset() -> dict:
     return {
         "title": "A Default Dataset",
@@ -60,7 +58,6 @@ def default_dataset() -> dict:
     }
 
 
-@pytest.fixture
 def default_upload() -> dict:
     return {
         "method": "going and downloading it",
@@ -69,7 +66,6 @@ def default_upload() -> dict:
     }
 
 
-@pytest.fixture
 def default_torrentfile() -> dict:
     files = [
         {
@@ -113,7 +109,6 @@ def infohashes() -> C[[], dict[L["v1_infohash", "v2_infohash"], str]]:
     return _infohashes
 
 
-@pytest.fixture(scope="session")
 def default_torrent() -> dict:
     return {
         "path": "default.bin",
@@ -133,11 +128,9 @@ o ya we're attackin ourselves now
 
 @pytest.fixture
 def account(
-    default_account: dict, session: Session
-) -> C[Concatenate[list[Scopes] | None, Session | None, P], "Account"]:
-    global _HASH_CACHE
-
-    def _account(
+    session: Session,
+) -> C[Concatenate[list[Scopes] | None, bool, Session | None, bool, P], "Account"]:
+    def _account_inner(
         scopes: list[Scopes] = None,
         is_suspended: bool = False,
         session_: Session | None = None,
@@ -146,32 +139,72 @@ def account(
     ) -> Account:
         if not session_:
             session_ = session
+        return _account(
+            scopes=scopes,
+            is_suspended=is_suspended,
+            session_=session_,
+            create_only=create_only,
+            **kwargs,
+        )
 
-        scopes = [] if scopes is None else [Scope.get_item(s, session=session_) for s in scopes]
-        kwargs = {**default_account.copy(), **kwargs}
+    return _account_inner
 
-        account_ = None
-        if not create_only:
-            account_ = crud.get_account(session=session_, username=kwargs["username"])
-        if not account_:
-            account_create = AccountCreate(**kwargs)
-            if kwargs.get("password") not in _HASH_CACHE:
-                account_ = crud.create_account(session=session_, account_create=account_create)
-                _HASH_CACHE[kwargs.get("password")] = account_.hashed_password
-            else:
-                account_ = Account.model_validate(
-                    account_create, update={"hashed_password": _HASH_CACHE[kwargs.get("password")]}
-                )
 
-        account_.scopes = scopes
-        account_.is_suspended = is_suspended
-        session_.add(account_)
-        session_.commit()
-        session_.flush()
-        session_.refresh(account_)
-        return account_
+@pytest.fixture(scope="module")
+def account_module(
+    session_module: Session,
+) -> C[Concatenate[list[Scopes] | None, bool, Session | None, bool, P], "Account"]:
+    def _account_inner(
+        scopes: list[Scopes] = None,
+        is_suspended: bool = False,
+        session_: Session | None = None,
+        create_only: bool = False,
+        **kwargs: P.kwargs,
+    ) -> Account:
+        if not session_:
+            session_ = session_module
+        return _account(
+            scopes=scopes,
+            is_suspended=is_suspended,
+            session_=session_,
+            create_only=create_only,
+            **kwargs,
+        )
 
-    yield _account
+    return _account_inner
+
+
+def _account(
+    scopes: list[Scopes] = None,
+    is_suspended: bool = False,
+    session_: Session | None = None,
+    create_only: bool = False,
+    **kwargs: P.kwargs,
+) -> Account:
+    global _HASH_CACHE
+    scopes = [] if scopes is None else [Scope.get_item(s, session=session_) for s in scopes]
+    kwargs = {**default_account(), **kwargs}
+
+    account_ = None
+    if not create_only:
+        account_ = crud.get_account(session=session_, username=kwargs["username"])
+    if not account_:
+        account_create = AccountCreate(**kwargs)
+        if kwargs.get("password") not in _HASH_CACHE:
+            account_ = crud.create_account(session=session_, account_create=account_create)
+            _HASH_CACHE[kwargs.get("password")] = account_.hashed_password
+        else:
+            account_ = Account.model_validate(
+                account_create, update={"hashed_password": _HASH_CACHE[kwargs.get("password")]}
+            )
+
+    account_.scopes = scopes
+    account_.is_suspended = is_suspended
+    session_.add(account_)
+    session_.commit()
+    session_.flush()
+    session_.refresh(account_)
+    return account_
 
 
 @pytest.fixture
@@ -211,10 +244,8 @@ def reviewer(account: C[..., "Account"], session: Session) -> Account:
 
 
 @pytest.fixture
-def dataset(
-    default_dataset: dict, session: Session
-) -> C[Concatenate[bool, bool, Session | None, P], Dataset]:
-    def _dataset(
+def dataset(session: Session) -> C[Concatenate[bool, bool, Session | None, P], Dataset]:
+    def _dataset_inner(
         is_approved: bool = True,
         is_removed: bool = False,
         session_: Session | None = None,
@@ -222,15 +253,41 @@ def dataset(
     ) -> Dataset:
         if session_ is None:
             session_ = session
-        kwargs = {**default_dataset, **kwargs}
+        return _dataset(is_approved=is_approved, is_removed=is_removed, session_=session_, **kwargs)
 
-        created = DatasetCreate(**kwargs)
-        dataset = crud.create_dataset(
-            session=session_, dataset_create=created, is_approved=is_approved, is_removed=is_removed
-        )
-        return dataset
+    return _dataset_inner
 
-    return _dataset
+
+@pytest.fixture(scope="module")
+def dataset_module(
+    session_module: Session,
+) -> C[Concatenate[bool, bool, Session | None, P], Dataset]:
+    def _dataset_inner(
+        is_approved: bool = True,
+        is_removed: bool = False,
+        session_: Session | None = None,
+        **kwargs: P.kwargs,
+    ) -> Dataset:
+        if session_ is None:
+            session_ = session_module
+        return _dataset(is_approved=is_approved, is_removed=is_removed, session_=session_, **kwargs)
+
+    return _dataset_inner
+
+
+def _dataset(
+    is_approved: bool = True,
+    is_removed: bool = False,
+    session_: Session | None = None,
+    **kwargs: P.kwargs,
+) -> Dataset:
+    kwargs = {**default_dataset(), **kwargs}
+
+    created = DatasetCreate(**kwargs)
+    dataset = crud.create_dataset(
+        session=session_, dataset_create=created, is_approved=is_approved, is_removed=is_removed
+    )
+    return dataset
 
 
 def _make_torrent(tmp_path: Path, **kwargs: Any) -> Torrent:
@@ -250,10 +307,23 @@ def _make_torrent(tmp_path: Path, **kwargs: Any) -> Torrent:
 
 
 @pytest.fixture
-def torrent(default_torrent: dict, tmp_path: Path) -> C[P, Torrent]:
+def torrent(tmp_path: Path) -> C[P, Torrent]:
 
     def _torrent(**kwargs: P.kwargs) -> Torrent:
-        kwargs = {**default_torrent.copy(), **kwargs}
+        kwargs = {**default_torrent(), **kwargs}
+        return _make_torrent(tmp_path=kwargs.get("torrent_dir", tmp_path), **kwargs)
+
+    return _torrent
+
+
+@pytest.fixture(scope="module")
+def torrent_module(
+    tmp_path_factory: pytest.TempPathFactory, request: pytest.FixtureRequest
+) -> C[P, Torrent]:
+    tmp_path = tmp_path_factory.mktemp(str(request.node))
+
+    def _torrent(**kwargs: P.kwargs) -> Torrent:
+        kwargs = {**default_torrent(), **kwargs}
         return _make_torrent(tmp_path=kwargs.get("torrent_dir", tmp_path), **kwargs)
 
     return _torrent
@@ -261,14 +331,13 @@ def torrent(default_torrent: dict, tmp_path: Path) -> C[P, Torrent]:
 
 @pytest.fixture
 def torrentfile(
-    default_torrentfile: dict,
     torrent: C[..., Torrent],
     session: Session,
     account: C[..., Account],
     tmp_path: Path,
     default_created_torrent: Torrent,
 ) -> C[Concatenate[Account | None, Session | None, P], TorrentFile]:
-    def _torrentfile(
+    def _torrentfile_inner(
         extra_trackers: Optional[list[str]] = None,
         account_: Account | None = None,
         session_: Session | None = None,
@@ -278,49 +347,106 @@ def torrentfile(
             session_ = session
         if account_ is None:
             account_ = account(scopes=[Scopes.upload], session_=session_, username="uploader")
-        passed_announce_urls = "announce_urls" in kwargs
-        kwargs = deepcopy({**default_torrentfile, **kwargs})
+        return _torrentfile(
+            tmp_path=tmp_path,
+            torrent_=torrent,
+            extra_trackers=extra_trackers,
+            account_=account_,
+            session_=session_,
+            **kwargs,
+        )
 
-        if "torrent" in kwargs:
-            t = kwargs.pop("torrent")
+    return _torrentfile_inner
+
+
+@pytest.fixture(scope="module")
+def torrentfile_module(
+    torrent_module: C[..., Torrent],
+    session_module: Session,
+    account_module: C[..., Account],
+    tmp_path_factory: pytest.TempPathFactory,
+    default_created_torrent: Torrent,
+    request: pytest.FixtureRequest,
+) -> C[Concatenate[Account | None, Session | None, P], TorrentFile]:
+    def _torrentfile_inner(
+        extra_trackers: Optional[list[str]] = None,
+        account_: Account | None = None,
+        session_: Session | None = None,
+        **kwargs: P.kwargs,
+    ) -> TorrentFile:
+        tmp_path = tmp_path_factory.mktemp(str(request.node))
+        if session_ is None:
+            session_ = session_module
+        if account_ is None:
+            account_ = account_module(
+                scopes=[Scopes.upload], session_=session_, username="uploader"
+            )
+        return _torrentfile(
+            tmp_path=tmp_path,
+            torrent_=torrent_module,
+            extra_trackers=extra_trackers,
+            account_=account_,
+            session_=session_,
+            **kwargs,
+        )
+
+    return _torrentfile_inner
+
+
+def _torrentfile(
+    tmp_path: Path,
+    torrent_: C[[Any, ...], Torrent],
+    extra_trackers: Optional[list[str]] = None,
+    account_: Account | None = None,
+    session_: Session | None = None,
+    **kwargs: P.kwargs,
+) -> TorrentFile:
+    passed_announce_urls = "announce_urls" in kwargs
+    kwargs = deepcopy({**default_torrentfile(), **kwargs})
+    generator = np.random.default_rng()
+
+    if "torrent" in kwargs:
+        t = kwargs.pop("torrent")
+    else:
+        file_in_torrent = tmp_path / "default.bin"
+        hash_data = generator.bytes(kwargs["total_size"])
+        with open(file_in_torrent, "wb") as f:
+            f.write(hash_data)
+
+        t = torrent_(path=file_in_torrent)
+
+    if kwargs.get("v1_infohash", None) is None:
+        kwargs["v1_infohash"] = t.infohash
+    if kwargs.get("v2_infohash", None) is None:
+        if t.v2_infohash is None:
+            v2_infohash = hashlib.sha256(bencodepy.encode(t.metainfo["info"])).hexdigest()
         else:
-            file_in_torrent = tmp_path / "default.bin"
-            hash_data = np.random.default_rng().bytes(kwargs["total_size"])
-            with open(file_in_torrent, "wb") as f:
-                f.write(hash_data)
+            v2_infohash = t.v2_infohash
+        kwargs["v2_infohash"] = v2_infohash
+    elif "v2_infohash" in kwargs and not kwargs["v2_infohash"]:
+        # set to `False`, exclude v2_infohash
+        del kwargs["v2_infohash"]
 
-            t = torrent(path=file_in_torrent)
+    if extra_trackers is not None:
+        kwargs["announce_urls"].extend(extra_trackers)
+    elif not passed_announce_urls:
+        kwargs["announce_urls"].append(fake.url(schemes=["udp"]))
 
-        if kwargs.get("v1_infohash", None) is None:
-            kwargs["v1_infohash"] = t.infohash
-        if kwargs.get("v2_infohash", None) is None:
-            if t.v2_infohash is None:
-                v2_infohash = hashlib.sha256(bencodepy.encode(t.metainfo["info"])).hexdigest()
-            else:
-                v2_infohash = t.v2_infohash
-            kwargs["v2_infohash"] = v2_infohash
-        elif "v2_infohash" in kwargs and not kwargs["v2_infohash"]:
-            # set to `False`, exclude v2_infohash
-            del kwargs["v2_infohash"]
-
-        if extra_trackers is not None:
-            kwargs["announce_urls"].extend(extra_trackers)
-        elif not passed_announce_urls:
-            kwargs["announce_urls"].append(fake.url(schemes=["udp"]))
-
-        tf = TorrentFileCreate(**kwargs)
-        if not tf.filesystem_path.exists():
-            tf.filesystem_path.parent.mkdir(exist_ok=True, parents=True)
-            t.write(tf.filesystem_path, overwrite=True)
-        created = crud.create_torrent(session=session_, created_torrent=tf, account=account_)
-        return created
-
-    return _torrentfile
+    tf = TorrentFileCreate(**kwargs)
+    if not tf.filesystem_path.exists():
+        tf.filesystem_path.parent.mkdir(exist_ok=True, parents=True)
+        t.write(tf.filesystem_path, overwrite=True)
+    created = crud.create_torrent(session=session_, created_torrent=tf, account=account_)
+    # for link in created.tracker_links:
+    #     link.seeders = generator.integers(0, 100)
+    #     link.leechers = generator.integers(0, 100)
+    # session_.add(created)
+    # session_.commit()
+    return created
 
 
 @pytest.fixture
 def upload(
-    default_upload: dict,
     torrentfile: C[..., TorrentFile],
     account: C[..., Account],
     dataset: C[..., Dataset],
@@ -328,7 +454,7 @@ def upload(
 ) -> C[
     Concatenate[bool, TorrentFile | None, Account | None, Dataset | None, Session | None, P], Upload
 ]:
-    def _upload(
+    def _upload_inner(
         is_approved: bool = True,
         torrentfile_: TorrentFile | None = None,
         account_: Account | None = None,
@@ -344,21 +470,61 @@ def upload(
             torrentfile_ = torrentfile(account_=account_, session_=session_)
         if dataset_ is None:
             dataset_ = dataset(is_approved=True, session=session_)
+        return _upload(is_approved, torrentfile_, account_, dataset_, session_, **kwargs)
 
-        kwargs = {**default_upload, **kwargs}
-        if "infohash" not in kwargs:
-            kwargs["infohash"] = torrentfile_.infohash
-        created = UploadCreate(**kwargs)
-        created = crud.create_upload(
-            session=session_, created_upload=created, dataset=dataset_, account=account_
-        )
-        created.is_approved = is_approved
-        session_.add(created)
-        session_.commit()
-        session_.refresh(created)
-        return created
+    return _upload_inner
 
-    return _upload
+
+@pytest.fixture(scope="module")
+def upload_module(
+    torrentfile_module: C[..., TorrentFile],
+    account_module: C[..., Account],
+    dataset_module: C[..., Dataset],
+    session_module: Session,
+) -> C[
+    Concatenate[bool, TorrentFile | None, Account | None, Dataset | None, Session | None, P], Upload
+]:
+    def _upload_inner(
+        is_approved: bool = True,
+        torrentfile_: TorrentFile | None = None,
+        account_: Account | None = None,
+        dataset_: Dataset | None = None,
+        session_: Session | None = None,
+        **kwargs: P.kwargs,
+    ) -> Upload:
+        if session_ is None:
+            session_ = session_module
+        if account_ is None:
+            account_ = account_module(scopes=[Scopes.upload], session_=session_)
+        if torrentfile_ is None:
+            torrentfile_ = torrentfile_module(account_=account_, session_=session_)
+        if dataset_ is None:
+            dataset_ = dataset_module(is_approved=True, session=session_)
+        return _upload(is_approved, torrentfile_, account_, dataset_, session_, **kwargs)
+
+    return _upload_inner
+
+
+def _upload(
+    is_approved: bool = True,
+    torrentfile_: TorrentFile | None = None,
+    account_: Account | None = None,
+    dataset_: Dataset | None = None,
+    session_: Session | None = None,
+    **kwargs: P.kwargs,
+) -> Upload:
+    kwargs = {**default_upload(), **kwargs}
+    if "infohash" not in kwargs:
+        kwargs["infohash"] = torrentfile_.infohash
+    created = UploadCreate(**kwargs)
+    created = crud.create_upload(
+        session=session_, created_upload=created, dataset=dataset_, account=account_
+    )
+    created.is_approved = is_approved
+    session_.add(created)
+    session_.commit()
+    session_.refresh(created)
+    return created
 
 
 @pytest.fixture
@@ -406,10 +572,10 @@ def get_auth_header(session: Session) -> C[[str, str], dict[L["Authorization"], 
 
 
 @pytest.fixture(scope="session")
-def default_created_torrent(default_torrent: dict) -> Torrent:
+def default_created_torrent() -> Torrent:
     # only make this once for yno perf
 
-    torrent = _make_torrent(TMP_DIR, **deepcopy(default_torrent))
+    torrent = _make_torrent(TMP_DIR, **default_torrent())
     tf = TorrentFileCreate(
         file_name="default.torrent",
         v1_infohash=torrent.infohash,

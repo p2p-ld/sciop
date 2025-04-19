@@ -5,14 +5,17 @@ import pytest
 from sciop.models import Dataset, DatasetCreate, DatasetPart
 from sciop.models.dataset import PREFIX_PATTERN
 
+from ..fixtures.fabricators import default_dataset
 
-def test_dataset_slugification(default_dataset):
+
+def test_dataset_slugification():
     """
     Dataset slugs get slugified
     """
-    default_dataset["slug"] = "This!!! Is not a SLUG!!!! AT ALL!!!2!"
+    ds = default_dataset()
+    ds["slug"] = "This!!! Is not a SLUG!!!! AT ALL!!!2!"
 
-    dataset = DatasetCreate(**default_dataset)
+    dataset = DatasetCreate(**ds)
     assert dataset.slug == "this-is-not-a-slug-at-all-2"
 
 
@@ -26,9 +29,10 @@ def test_dataset_slugification(default_dataset):
         (["double,level", "comma,split"], ["double", "level", "comma", "split"]),
     ],
 )
-def test_tag_splitting(default_dataset, value, expected):
-    default_dataset["tags"] = value
-    dataset = DatasetCreate(**default_dataset)
+def test_tag_splitting(value, expected):
+    kwargs = default_dataset()
+    kwargs["tags"] = value
+    dataset = DatasetCreate(**kwargs)
     assert dataset.tags == expected
 
 

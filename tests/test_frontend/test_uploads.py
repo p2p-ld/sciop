@@ -37,8 +37,10 @@ def test_no_include_unapproved(dataset, upload, client):
     approved = upload(dataset_=ds, is_approved=True)
     res = client.get("/datasets/default/uploads")
     assert res.status_code == 200
-    assert unapproved.infohash not in res.text
-    assert approved.infohash in res.text
+    infohashes = [item["torrent"]["v2_infohash"] for item in res.json()["items"]]
+    assert res.status_code == 200
+    assert unapproved.infohash not in infohashes
+    assert approved.infohash in infohashes
 
 
 def test_no_include_removed(dataset, upload, client, session):

@@ -22,7 +22,15 @@ from sciop.api.deps import (
 )
 from sciop.api.routes.upload import upload_torrent
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, DatasetRead, DatasetUpdate, SearchPage, Upload, UploadCreate
+from sciop.models import (
+    Dataset,
+    DatasetRead,
+    DatasetUpdate,
+    SearchPage,
+    Upload,
+    UploadCreate,
+    UploadRead,
+)
 
 datasets_router = APIRouter(prefix="/datasets")
 
@@ -116,7 +124,7 @@ async def dataset_part_add_partial(
     )
 
 
-@datasets_router.get("/{dataset_slug}/uploads", response_class=HTMLResponse)
+@datasets_router.get("/{dataset_slug}/uploads")
 @jinja.hx("partials/uploads.html")
 async def dataset_uploads(
     search: SearchQuery,
@@ -125,7 +133,7 @@ async def dataset_uploads(
     session: SessionDep,
     current_account: CurrentAccount,
     request: Request,
-) -> SearchPage[Upload]:
+) -> SearchPage[UploadRead]:
     stmt = (
         select(Upload)
         .join(Upload.torrent)
@@ -239,7 +247,7 @@ async def dataset_part_uploads(
     current_account: CurrentAccount,
     part: RequireVisibleDatasetPart,
     session: SessionDep,
-) -> SearchPage[Upload]:
+) -> SearchPage[UploadRead]:
     stmt = (
         select(Upload)
         .where(
