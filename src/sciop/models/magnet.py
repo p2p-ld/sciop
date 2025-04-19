@@ -97,6 +97,7 @@ class MagnetLink(BaseModel):
         else:
             torrent = cast("TorrentFile", torrent)
             trackers = list(torrent.trackers.keys())
+        trackers = sorted(trackers)
 
         return MagnetLink(
             v1_infohash=torrent.v1_infohash,
@@ -127,7 +128,7 @@ class MagnetLink(BaseModel):
             if k == "xt":
                 quoted[k] = v
             elif isinstance(v, list):
-                quoted[k] = [quote_plus(str(item)) for item in v]
+                quoted[k] = sorted([quote_plus(str(item)) for item in v])
             else:
                 quoted[k] = quote_plus(str(v))
 
