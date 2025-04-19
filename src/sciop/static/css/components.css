@@ -495,3 +495,26 @@ progress::-moz-progress-bar {
     background-color: var(--color-background);
   }
 }
+
+.page-type {
+  font-style: italic;
+  font-family: var(--font-mono);
+  position:relative;
+  padding: 0.25em 0.5em 0.25em 0;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: -100vw;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: var(--color-primary);
+    z-index: -1;
+    transform: skewX(-15deg);
+  }
+}
+
+.collapsible-table .page-type {
+  display: none;
+}

@@ -75,6 +75,12 @@
     text-align: right;
 }
 
+.header .title {
+  text-wrap: wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
 .threat-indefinite {
   background-color: var(--color-threat-indefinite);
 }

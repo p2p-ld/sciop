@@ -1,5 +1,6 @@
 {% macro dataset_part_row(part, dataset, current_account, config) %}
 <div class="dataset-part" id="dataset-part-{{ dataset.slug }}-{{ part.part_slug }}">
+  <span class="page-type">dataset part</span>
   <h2 class="dataset-title">{{ part.part_slug }} </h2>
   <p class="account-link"><a href="/accounts/{{ part.account.username }}">@{{ part.account.username }}</a></p>
   <span class="dataset-slug token"><a href="/datasets/{{dataset.slug}}">{{ dataset.slug }}</a></span>/

@@ -40,6 +40,7 @@ from sciop.models.dataset import (
     ExternalIdentifierCreate,
     ExternalSource,
 )
+from sciop.models.magnet import MagnetLink
 from sciop.models.mixins import EditableMixin
 from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
 from sciop.models.mystery import _Friedolin
@@ -88,6 +89,7 @@ __all__ = [
     "ExternalSource",
     "FileInTorrent",
     "FileInTorrentCreate",
+    "MagnetLink",
     "ModerationAction",
     "Scope",
     "Scopes",

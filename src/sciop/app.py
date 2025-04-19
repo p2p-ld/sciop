@@ -32,7 +32,7 @@ from sciop.services import build_docs
 async def lifespan(app: FastAPI) -> Generator[None, None, None]:
     create_tables()
     if config.env != "prod":
-        build_docs()
+        build_docs(clean=False)
     start_scheduler()
     yield
     remove_all_jobs()

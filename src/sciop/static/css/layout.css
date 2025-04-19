@@ -42,7 +42,6 @@ table {
   display: flex;
   flex-direction: row;
   width: 100%;
-  margin-top: 1em;
   align-items: center;
 }
 
@@ -210,7 +209,7 @@ table {
     font-family: var(--font-mono);
   }
 
-  .button {
+  .infobox-table .button {
     margin: 0.4em 0;
   }
   td {
@@ -372,5 +371,58 @@ table {
   .never {
     font-style: italic;
     font-size: 0.7em;
+  }
+}
+
+.download-container {
+  --height: 1.75em;
+
+  display: flex;
+  flex-direction: row;
+  font-size: var(--height);
+  max-height: var(--height);
+  gap: 0.25em;
+  padding: 0.1em 0.15em 0.1em 0.1em;
+  margin-bottom: 0.25em;
+
+  img {
+    object-fit: contain;
+    max-height: 100%
+  }
+  a {
+    display: flex;
+    flex-direction: row;
+    margin: 0;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0.2em;
+    &:hover {
+      img {
+        filter: saturate(0) brightness(100);
+      }
+      span {
+        color: var(--color-primary-contrast)
+      }
+    }
+  }
+  span {
+    display: inline-block;
+    margin: auto;
+    color: var(--color-link);
+  }
+  .button {
+    margin: 0;
+  }
+
+  .download-link {
+    flex-grow: 1;
+  }
+  .magnet-link {
+    min-width: var(--height);
+  }
+}
+body.light-theme .download-container {
+  a:hover img.download-icon {
+    filter: saturate(0) brightness(0);
   }
 }
