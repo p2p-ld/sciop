@@ -21,6 +21,7 @@ from torf import _errors, _torrent, _utils
 
 from sciop.config import config
 from sciop.models.base import SQLModel
+from sciop.models.magnet import MagnetLink
 from sciop.models.mixins import EditableMixin, TableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
@@ -319,6 +320,13 @@ class TorrentFileBase(SQLModel):
     @property
     def human_piece_size(self) -> str:
         return humanize.naturalsize(self.piece_size, binary=True)
+
+    @property
+    def magnet_link(self) -> str:
+        """
+        Use :class:`.MagnetLink` to render a magnet link!
+        """
+        return MagnetLink.from_torrent(self).render()
 
     @property
     def trackers(self) -> dict[MaxLenURL, Tracker]:

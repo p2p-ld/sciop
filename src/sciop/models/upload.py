@@ -1,4 +1,3 @@
-import urllib.parse
 from typing import TYPE_CHECKING, Optional, Self, cast
 from urllib.parse import urljoin
 
@@ -158,19 +157,7 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, table=True)
 
     @property
     def magnet_link(self) -> str:
-        magnet_string = "magnet:?xt="
-        if self.torrent.v1_infohash:
-            magnet_string += f"urn:btih:{self.torrent.v1_infohash}"
-            if self.torrent.v2_infohash:
-                magnet_string+= "&xt="
-        if self.torrent.v2_infohash:
-            magnet_string+=f"urn:btmh:{self.torrent.v2_infohash}"
-        magnet_string+=f"&dn={urllib.parse.quote_plus(self.torrent.file_name)}"
-        for tracker in self.torrent.tracker_links:
-            magnet_string += "&tr="+urllib.parse.quote_plus(tracker.tracker.announce_url)
-        return magnet_string
-
-
+        return self.torrent.magnet_link
 
     @hybrid_property
     def seeders(self) -> int:
