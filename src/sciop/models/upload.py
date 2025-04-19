@@ -37,12 +37,12 @@ class UploadBase(ModerableMixin):
         title="Method",
         description="""Description of how the dataset was acquired. Markdown input is supported.""",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
-        max_length=8192,
+        max_length=163840,
     )
     method_html: Optional[str] = Field(
         "",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
-        max_length=16384,
+        max_length=655360,
     )
     description: Optional[str] = Field(
         None,
@@ -50,12 +50,12 @@ class UploadBase(ModerableMixin):
         description="Any additional information about this dataset upload. "
         "Markdown input is supported.",
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
-        max_length=8192,
+        max_length=163840,
     )
     description_html: Optional[str] = Field(
         "",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
-        max_length=16384,
+        max_length=655360,
     )
 
     @property

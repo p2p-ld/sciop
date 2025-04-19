@@ -125,12 +125,12 @@ class DatasetBase(ModerableMixin):
     Additional information about the dataset. Markdown input is supported.
     """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
-        max_length=16384,
+        max_length=163840,
     )
     description_html: Optional[str] = Field(
         default="",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
-        max_length=32768,
+        max_length=655360,
     )
     dataset_created_at: Optional[UTCDateTime] = Field(
         None,
