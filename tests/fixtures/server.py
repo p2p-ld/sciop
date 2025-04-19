@@ -18,7 +18,14 @@ if TYPE_CHECKING:
 
 @pytest.fixture()
 def client(session: Session) -> TestClient:
-    """Client that runs the lifespan actions"""
+    """Regular test client that doesn't run lifespan actions"""
+    from sciop.app import app
+
+    return TestClient(app)
+
+
+@pytest.fixture(scope="module")
+def client_module(session_module: Session) -> TestClient:
     from sciop.app import app
 
     return TestClient(app)
@@ -83,6 +90,25 @@ class UvicornTestServer(Server):
 
 @pytest.fixture
 async def run_server(session: Session) -> UvicornTestServer:
+    from sciop.app import app
+
+    config = Config(
+        app=app,
+        port=8080,
+        workers=1,
+        reload=False,
+        access_log=False,
+        log_config=None,
+    )
+
+    server = UvicornTestServer(config=config)
+    await server.up()
+    yield
+    await server.down()
+
+
+@pytest.fixture(scope="module")
+async def run_server_module(session_module: Session) -> UvicornTestServer:
     from sciop.app import app
 
     config = Config(

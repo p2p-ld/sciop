@@ -1,10 +1,24 @@
+import string
+from math import floor
+
 import pytest
+from sqlmodel import Session
 
 
-@pytest.fixture()
-def items():
+@pytest.fixture(scope="module")
+def items(session_module: Session, dataset_module, upload_module, request: pytest.FixtureRequest):
     """The datasets we're gonna be searching and sorting"""
-    pass
+    dataset = dataset_module
+    upload = upload_module
+
+    ds = dataset(session_=session_module)
+    uploads = []
+    for i in range(100):
+        letter = string.ascii_letters[i % 25]
+        letter = letter * (floor(i / 25))
+        ul = upload(session_=session_module, dataset_=ds, file_name=letter + ".torrent")
+        uploads.append(ul)
+    return uploads
 
 
 @pytest.mark.skip(reason="TODO")
@@ -12,12 +26,19 @@ def test_search_base():
     """We can search and subset queries"""
 
 
-@pytest.mark.skip(reason="TODO")
-def test_sort_base():
+def test_sort_base(items, page, run_server_module):
     """
     Basic sort behavior, we can sort by a single column
     :return:
     """
+    pass
+
+
+def test_sort_paging():
+    """
+    Sorting should work through paging
+    """
+    pass
 
 
 @pytest.mark.skip(reason="TODO")
