@@ -1,6 +1,12 @@
+from contextlib import asynccontextmanager
+from typing import Any, AsyncIterator, Callable
 from urllib.parse import urljoin
+from urllib.request import Request
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi_cache.decorator import cache
 from sqlmodel import select
 
 from sciop import crud
@@ -10,19 +16,33 @@ from sciop.models import Dataset, TorrentFeed, Upload
 from sciop.types import Scarcity, Threat
 from sciop.vendor.fastapi_rss.rss_response import RSSResponse
 
-rss_router = APIRouter(prefix="/rss")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    FastAPICache.init(InMemoryBackend())
+    yield
+
+
+rss_router = APIRouter(prefix="/rss", lifespan=lifespan)
 
 MAX_FEED_ITEMS = 500
 """TODO: make configurable"""
 
 
+def request_key_builder(
+    func: Callable, namespace: str = "", request: Request = None, **kwargs: Any
+):
+    return ":".join([namespace, request.method.lower(), request.url.path])
+
+
 @rss_router.get("/all.rss")
+@cache(namespace="rss", expire=30 * 60, key_builder=request_key_builder)
 async def all_feed(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .filter(Upload.is_visible == True)
         .order_by(Upload.created_at.desc())
-        .limit(500)
+        .limit(MAX_FEED_ITEMS)
     )
     uploads = session.exec(stmt).all()
     feed = TorrentFeed.from_uploads(
@@ -35,6 +55,7 @@ async def all_feed(session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/tag/{tag}.rss")
+@cache(namespace="rss-tag", expire=30 * 60, key_builder=request_key_builder)
 async def tag_feed(tag: str, session: SessionDep) -> RSSResponse:
     uploads = crud.get_uploads_from_tag(session=session, tag=tag, visible=True)
     if not uploads:
@@ -49,6 +70,7 @@ async def tag_feed(tag: str, session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/source/{availability}.rss")
+@cache(namespace="rss-source", expire=30 * 60, key_builder=request_key_builder)
 async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
     if availability == "available":
         stmt = (
@@ -79,6 +101,7 @@ async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/scarcity/{scarcity}.rss")
+@cache(namespace="rss-source", expire=30 * 60, key_builder=request_key_builder)
 async def scarcity_feed(scarcity: str, session: SessionDep) -> RSSResponse:
     if scarcity not in Scarcity:
         raise HTTPException(404, detail=f"Scarcity {scarcity} does not exist")
@@ -100,6 +123,7 @@ async def scarcity_feed(scarcity: str, session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/threat/{threat}.rss")
+@cache(namespace="rss-source", expire=30 * 60, key_builder=request_key_builder)
 async def threat_feed(threat: str, session: SessionDep) -> RSSResponse:
     if threat not in Threat:
         raise HTTPException(404, detail=f"Threat {threat} does not exist")
