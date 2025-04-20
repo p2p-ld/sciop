@@ -25,7 +25,7 @@ from sciop.models.account import (
     Token,
     TokenPayload,
 )
-from sciop.models.api import SuccessResponse
+from sciop.models.api import SearchPage, SearchParams, SuccessResponse
 from sciop.models.dataset import (
     Dataset,
     DatasetCreate,
@@ -93,6 +93,8 @@ __all__ = [
     "ModerationAction",
     "Scope",
     "Scopes",
+    "SearchPage",
+    "SearchParams",
     "SiteStats",
     "SiteStatsRead",
     "SuccessResponse",

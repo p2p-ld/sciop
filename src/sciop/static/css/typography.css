@@ -75,7 +75,8 @@
     text-align: right;
 }
 
-.header .title {
+.header .title,
+.dataset-slug {
   text-wrap: wrap;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -102,6 +103,7 @@
     width: 1em;
     height: 1em;
     border-radius: 1em;
+    display: inline-block;
     &::before {
         content: "";
         height: 1em;

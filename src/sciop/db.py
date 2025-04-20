@@ -179,29 +179,30 @@ def create_seed_data() -> None:
         session.add(rando)
         session.refresh(rando)
 
-        # generate a bunch of approved datasets to test pagination
+        # if we've already generated the seed data, return
         n_datasets = session.exec(select(func.count(Dataset.dataset_id))).one()
-        if n_datasets < 100:
-            for _ in range(100):
-                generated_dataset = _generate_dataset(fake)
-                dataset = crud.create_dataset(session=session, dataset_create=generated_dataset)
-                dataset.dataset_created_at = datetime.now(UTC)
-                dataset.dataset_updated_at = datetime.now(UTC)
-                dataset.is_approved = random.random() > 0.1
-                dataset.account = rando
-                dataset.uploads = [
-                    _generate_upload(
-                        fake.word(), uploader=uploader, dataset=dataset, session=session
-                    )
-                    for _ in range(random.randint(1, 3))
-                ]
-                for upload in dataset.uploads:
-                    upload.is_approved = random.random() > 0.5
-                for part in dataset.parts:
-                    part.account = rando
-                    part.is_approved = random.random() > 0.5
-                session.add(dataset)
-            session.commit()
+        if n_datasets > 100:
+            return
+
+        # generate a bunch of approved datasets to test pagination
+        for _ in range(100):
+            generated_dataset = _generate_dataset(fake)
+            dataset = crud.create_dataset(session=session, dataset_create=generated_dataset)
+            dataset.dataset_created_at = datetime.now(UTC)
+            dataset.dataset_updated_at = datetime.now(UTC)
+            dataset.is_approved = random.random() > 0.1
+            dataset.account = rando
+            dataset.uploads = [
+                _generate_upload(fake.word(), uploader=uploader, dataset=dataset, session=session)
+                for _ in range(random.randint(1, 3))
+            ]
+            for upload in dataset.uploads:
+                upload.is_approved = random.random() > 0.5
+            for part in dataset.parts:
+                part.account = rando
+                part.is_approved = random.random() > 0.5
+            session.add(dataset)
+        session.commit()
 
         unapproved_dataset = crud.get_dataset(dataset_slug="unapproved", session=session)
         if not unapproved_dataset:
@@ -295,6 +296,32 @@ def create_seed_data() -> None:
         removed_upload.is_removed = True
         session.add(removed_upload)
         session.commit()
+
+        # very long names!
+        long_name = "averylongnamewithnobreakpoints" * 3
+        long_dataset = crud.get_dataset(session=session, dataset_slug=long_name)
+        if not long_dataset:
+            long_dataset = crud.create_dataset(
+                session=session,
+                dataset_create=DatasetCreate(
+                    slug=long_name,
+                    title=long_name,
+                    publisher="An Agency",
+                    homepage="https://example.com",
+                    description="An unapproved dataset",
+                    dataset_created_at=datetime.now(UTC),
+                    dataset_updated_at=datetime.now(UTC),
+                    priority="low",
+                    source="web",
+                    urls=["https://example.com/1", "https://example.com/2"],
+                    tags=["unapproved", "test", "aaa", "bbb"],
+                ),
+            )
+            long_dataset.is_approved = True
+            session.add(long_dataset)
+            session.commit()
+
+        _generate_upload(long_name, uploader, long_dataset, session)
 
 
 def ensure_root(session: Session) -> Optional["Account"]:

@@ -9,8 +9,7 @@ from sqlmodel import Session, SQLModel
 from sqlmodel.pool import StaticPool
 
 
-@pytest.fixture()
-def engine(request: pytest.FixtureRequest) -> Engine:
+def _engine(request: pytest.FixtureRequest) -> Engine:
     if request.config.getoption("--file-db"):
         from sciop.db import engine
     else:
@@ -18,8 +17,37 @@ def engine(request: pytest.FixtureRequest) -> Engine:
     return engine
 
 
+@pytest.fixture()
+def engine(request: pytest.FixtureRequest) -> Engine:
+    return _engine(request)
+
+
+@pytest.fixture(scope="module")
+def engine_module(request: pytest.FixtureRequest) -> Engine:
+    return _engine(request)
+
+
 @pytest.fixture
 def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest, engine: Engine) -> Session:
+    session, transactions = _session_start(monkeypatch, request, engine)
+    yield session
+    _session_end(session, request, transactions)
+
+
+@pytest.fixture(scope="module")
+def session_module(
+    monkeypatch_module: MonkeyPatch, request: pytest.FixtureRequest, engine_module: Engine
+) -> Session:
+    monkeypatch = monkeypatch_module
+    engine = engine_module
+    session, transactions = _session_start(monkeypatch, request, engine)
+    yield session
+    _session_end(session, request, transactions)
+
+
+def _session_start(
+    monkeypatch: MonkeyPatch, request: pytest.FixtureRequest, engine: Engine
+) -> tuple[Session, list[Transaction]]:
     from sciop import db, scheduler
     from sciop.api import deps
     from sciop.app import app
@@ -61,6 +89,12 @@ def session(monkeypatch: MonkeyPatch, request: pytest.FixtureRequest, engine: En
     app.dependency_overrides[deps.raw_session] = get_session_override
 
     session = EditableMixin.editable_session(session)
+    return session, transactions
+
+
+def _session_end(
+    session: Session, request: pytest.FixtureRequest, transactions: list[Transaction] | None
+) -> Session:
     yield session
 
     try:

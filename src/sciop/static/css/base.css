@@ -9,9 +9,16 @@ body {
     margin: 0;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  word-wrap: break-word;
+  word-break: break-all;
+}
+
 a {
     color: var(--color-link);
     text-decoration: unset;
+    word-wrap: break-word;
+    word-break: break-all;
 }
 
 a:hover {

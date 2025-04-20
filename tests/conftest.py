@@ -85,16 +85,6 @@ def pytest_sessionfinish(session: pytest.Session) -> None:
 # --------------------------------------------------
 
 
-@pytest.fixture(scope="session")
-def monkeypatch_session() -> MonkeyPatch:
-    """
-    Monkeypatch you can use at the session scope!
-    """
-    mpatch = MonkeyPatch()
-    yield mpatch
-    mpatch.undo()
-
-
 @pytest.fixture(autouse=True, scope="session")
 def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.FixtureRequest) -> None:
     """
@@ -118,6 +108,7 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
         secret_key="12345",
         clear_jobs=True,
         base_url="http://localhost:8080",
+        enable_versions=True,
     )
     new_config.logs.dir = LOGS_DIR
     new_config.logs.level_file = "DEBUG"

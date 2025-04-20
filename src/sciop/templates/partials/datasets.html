@@ -1,4 +1,5 @@
 {% from 'macros/dataset.html' import dataset_collapsible %}
+{% from 'macros/pagination.html' import page_header %}
 <div id="dataset-page" class="dataset-page">
   {% if items | length == 0 %}
   <p class="none-found">No Datasets found :)</p>
@@ -8,20 +9,11 @@
   {% endwith %}
   <div id="datasets-table-inner"
        class="collapsible-table datasets-table {% if review %}review{% endif %}">
-    <div id="datasets-table-head" class="table-head">
-      <span class="marker"></span>
-      <span class="col-slug">
-          slug
-      </span>
-      <span class="col-title">
-          title
-      </span>
-      <span></span>
-      <span class="col-created">
-          created
-      </span>
-      {% if review %}<span></span><span></span>{% endif %}
-    </div>
+    {{ page_header(
+          request=request,
+          id="datasets-table-head",
+          columns=models.Dataset.get_sortable_cols(review),
+          swap_target="#dataset-page") }}
     <div class="dataset-items">
       {% for dataset in items %}
       {{ dataset_collapsible(dataset, review=review, config=config, types=types) }}

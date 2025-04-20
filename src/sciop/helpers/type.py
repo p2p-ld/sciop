@@ -19,6 +19,15 @@ def unwrap_annotated(typ: type) -> type:
     return typ
 
 
+def unwrap(typ: type) -> type:
+    """
+    Unwrap all 'extra' type wrappers to get to the actual type
+    """
+    typ = unwrap_annotated(typ)
+    typ = unwrap_optional(typ)
+    return typ
+
+
 def get_model_field(field: FieldInfo) -> FieldInfo:
     """
     Sqlmodel fails to merge Fields when they are set in annotated and the field assignment,

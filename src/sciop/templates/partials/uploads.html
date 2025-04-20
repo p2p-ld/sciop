@@ -1,4 +1,5 @@
 {% from 'macros/upload.html' import upload_collapsible %}
+{% from 'macros/pagination.html' import page_header %}
 <div id="upload-page" class="upload-page">
   {% if items | length == 0 %}
   No uploads found :)
@@ -8,24 +9,11 @@
   {% endwith %}
   <div id="uploads-table-inner"
        class="collapsible-table uploads-table {% if review %}review{% endif %}">
-    <div id="uploads-table-head" class="table-head">
-      <span class="marker"></span>
-      <span class="col-slug">
-          hash
-      </span>
-      <span class="col-title">
-          title
-      </span>
-      <span class="col-title">
-          size
-      </span>
-      <span class="seeders-icon" aria-label="up arrow">⇧</span>
-      <span class="downloaders-icon" aria-label="down-arrow">⇧</span>
-      <span class="col-created">
-          created
-      </span>
-      {% if review %}<span></span><span></span>{% endif %}
-    </div>
+    {{ page_header(
+    request=request,
+    id="uploads-table-head",
+    columns=models.Upload.get_sortable_cols(review),
+    swap_target="#upload-page") }}
     <div class="upload-items">
       {% for upload in items %}
       {{ upload_collapsible(upload, review=review, config=config) }}

@@ -79,11 +79,14 @@ table {
 /* --- Datasets layout --- */
 
 .datasets-table {
-  --item-cols: 1em minmax(12em, 2fr) 7fr 1em 6.5em;
+  --item-cols: 1em minmax(12em, 2fr) 7fr 1.5em 6.5em;
   display: grid;
 
   &.review {
-    --item-cols: 1em minmax(12em, 2fr) 7fr 1em 6.5em 5em 4em;
+    --item-cols: 1em minmax(12em, 2fr) 7fr 1.5em 6.5em 5em 4em;
+  }
+  .table-head {
+      --item-cols: 1em minmax(12em, 2fr) 7fr 4em 7.5em;
   }
 }
 
@@ -107,7 +110,9 @@ table {
     .seeders-icon, .downloaders-icon {
       text-align: center;
     }
+    --item-cols: 1em 5em 7fr 5em 3.5em 3.5em 5.5em;
   }
+
 }
 
 .accounts-table {
@@ -136,30 +141,32 @@ table {
   {
     display: grid;
     grid-template-columns: var(--item-cols);
-      grid-column-gap: 1em;
+      grid-column-gap: 0.5em;
   }
 
   .table-head {
     padding: 0.25em 0.5em;
+    /*margin-bottom: 0.5em;*/
   }
 
-  .dataset-slug,
-  .dataset-slug a,
+  & .collapsible-summary > .dataset-slug,
+  & .collapsible-summary > .dataset-slug a,
   .upload-hash,
   .instance-hash a,
   .account-username,
   .account-username a,
-  .timestamp
+  & .collapsible-summary > .upload-title,
+  & .collapsible-summary > .timestamp
   {
     font-family: var(--font-mono);
     text-wrap: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
   }
-  .upload-title {
-    text-wrap: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
+
+  .collapsible-summary span {
+    word-wrap: break-word;
+    word-break: break-all;
   }
 }
 

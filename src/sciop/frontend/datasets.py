@@ -3,7 +3,6 @@ from typing import Literal as L
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
-from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from fasthx.dependencies import DependsHXRequest
 from sqlmodel import Session, select
@@ -18,33 +17,52 @@ from sciop.api.deps import (
     RequireEditableBy,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
+    SearchQuery,
     SessionDep,
 )
 from sciop.api.routes.upload import upload_torrent
 from sciop.frontend.templates import jinja, templates
-from sciop.models import Dataset, DatasetRead, DatasetUpdate, UploadCreate
+from sciop.models import (
+    Dataset,
+    DatasetRead,
+    DatasetUpdate,
+    SearchPage,
+    Upload,
+    UploadCreate,
+    UploadRead,
+)
 
 datasets_router = APIRouter(prefix="/datasets")
 
 
 @datasets_router.get("/", response_class=HTMLResponse)
-async def datasets(request: Request):
-    return templates.TemplateResponse(request, "pages/datasets.html")
+async def datasets(request: Request, search: SearchQuery):
+    query_str = search.to_query_str()
+    return templates.TemplateResponse(request, "pages/datasets.html", {"query_str": query_str})
 
 
 @datasets_router.get("/search")
 @jinja.hx("partials/datasets.html")
 async def datasets_search(
-    query: str = None, session: SessionDep = None, current_account: CurrentAccount = None
-) -> Page[DatasetRead]:
-    if not query or len(query) < 3:
-        stmt = (
-            select(Dataset)
-            .where(Dataset.visible_to(current_account) == True)
-            .order_by(Dataset.created_at.desc())
-        )
+    search: SearchQuery,
+    session: SessionDep,
+    current_account: CurrentAccount,
+    request: Request,
+    response: Response,
+) -> SearchPage[DatasetRead]:
+    if not search.query or len(search.query) < 3:
+        stmt = select(Dataset).where(Dataset.visible_to(current_account) == True)
+        if not search.sort:
+            stmt = stmt.order_by(Dataset.created_at.desc())
     else:
-        stmt = Dataset.search(query).where(Dataset.visible_to(current_account) == True)
+        stmt = Dataset.search(search.query).where(Dataset.visible_to(current_account) == True)
+
+    stmt = search.apply_sort(stmt, model=Dataset)
+    if search.should_redirect():
+        response.headers["HX-Replace-Url"] = f"{search.to_query_str()}"
+    else:
+        response.headers["HX-Replace-Url"] = "/datasets/"
+
     return paginate(conn=session, query=stmt)
 
 
@@ -106,19 +124,24 @@ async def dataset_part_add_partial(
     )
 
 
-@datasets_router.get("/{dataset_slug}/uploads", response_class=HTMLResponse)
+@datasets_router.get("/{dataset_slug}/uploads")
+@jinja.hx("partials/uploads.html")
 async def dataset_uploads(
+    search: SearchQuery,
     dataset_slug: str,
     dataset: RequireVisibleDataset,
     session: SessionDep,
+    current_account: CurrentAccount,
     request: Request,
-):
-    uploads = crud.get_visible_uploads(dataset=dataset, session=session)
-    return templates.TemplateResponse(
-        request,
-        "partials/dataset-uploads.html",
-        {"uploads": uploads, "dataset": dataset},
+) -> SearchPage[UploadRead]:
+    stmt = (
+        select(Upload)
+        .join(Upload.torrent)
+        .where(Upload.dataset == dataset, Upload.visible_to(current_account) == True)
+        .order_by(Upload.created_at.desc())
     )
+    stmt = search.apply_sort(stmt, Upload)
+    return paginate(query=stmt, conn=session)
 
 
 def _parts_from_query(
@@ -214,17 +237,24 @@ async def dataset_part_partial(
     )
 
 
-@datasets_router.get("/{dataset_slug}/{dataset_part_slug}/uploads", response_class=HTMLResponse)
+@datasets_router.get("/{dataset_slug}/{dataset_part_slug}/uploads")
+@jinja.hx("partials/uploads.html")
 async def dataset_part_uploads(
+    search: SearchQuery,
     dataset_slug: str,
     dataset_part_slug: str,
     request: Request,
+    current_account: CurrentAccount,
     part: RequireVisibleDatasetPart,
     session: SessionDep,
-):
-    uploads = crud.get_visible_uploads(dataset=part, session=session)
-    return templates.TemplateResponse(
-        request,
-        "partials/dataset-uploads.html",
-        {"uploads": uploads},
+) -> SearchPage[UploadRead]:
+    stmt = (
+        select(Upload)
+        .where(
+            Upload.dataset_parts.any(dataset_part_id=part.dataset_part_id),
+            Upload.visible_to(account=current_account) == True,
+        )
+        .order_by(Upload.created_at.desc())
     )
+    stmt = search.apply_sort(stmt, Upload)
+    return paginate(query=stmt, conn=session)

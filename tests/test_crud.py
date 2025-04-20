@@ -5,8 +5,10 @@ from sqlmodel import select
 from sciop import crud
 from sciop.models import DatasetCreate, Tag, TorrentFileCreate, Tracker
 
+from .fixtures.fabricators import default_dataset, default_torrentfile
 
-def test_create_dataset_tags(session, default_dataset):
+
+def test_create_dataset_tags(session):
     """
     Creating a new dataset correctly uses existing tags and makes new ones
     """
@@ -18,13 +20,13 @@ def test_create_dataset_tags(session, default_dataset):
         session.commit()
         session.refresh(existing_tag)
 
-    a = default_dataset.copy()
+    a = default_dataset()
     a["tags"].append("existing")
     a["tags"].append("a-new-one")
     a["title"] = "Dataset A"
     a["slug"] = "dataset-a"
 
-    b = default_dataset.copy()
+    b = default_dataset()
     b["tags"].append("existing")
     b["tags"].append("another-new-one")
     b["title"] = "Dataset B"
@@ -48,9 +50,9 @@ def test_create_dataset_tags(session, default_dataset):
     assert len([tag for tag in dataset_b.tags if tag.tag == "another-new-one"]) == 1
 
 
-def test_create_torrent_with_trackers(session, default_torrentfile, infohashes, uploader):
-    torrent_a = deepcopy(default_torrentfile)
-    torrent_b = deepcopy(default_torrentfile)
+def test_create_torrent_with_trackers(session, infohashes, uploader):
+    torrent_a = deepcopy(default_torrentfile())
+    torrent_b = deepcopy(default_torrentfile())
 
     a_tracker = "udp://uniquetracker.com"
     b_tracker = "udp://didnt-think-ahead-about-uniquetracker2.com"
