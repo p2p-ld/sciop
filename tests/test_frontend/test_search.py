@@ -84,7 +84,8 @@ async def test_sort_paging(items, page: Page, run_server_module):
     await page.locator('.page-link[data-page="2"]').first.click()
 
     await col.click()
-    await expect(col).to_have_class("sort-link active ascending", timeout=10*1000)
+    await col.click()
+    await expect(col).to_have_class("sort-link active ascending", timeout=10 * 1000)
 
     await expect(first).to_have_text(slugs[50])
     await expect(last).to_have_text(slugs[-1])
