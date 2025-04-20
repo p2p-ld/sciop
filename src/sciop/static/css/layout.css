@@ -149,23 +149,24 @@ table {
     /*margin-bottom: 0.5em;*/
   }
 
-  .dataset-slug,
-  .dataset-slug a,
+  & .collapsible-summary > .dataset-slug,
+  & .collapsible-summary > .dataset-slug a,
   .upload-hash,
   .instance-hash a,
   .account-username,
   .account-username a,
-  .timestamp
+  & .collapsible-summary > .upload-title,
+  & .collapsible-summary > .timestamp
   {
     font-family: var(--font-mono);
     text-wrap: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
   }
-  .upload-title {
-    text-wrap: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
+
+  .collapsible-summary span {
+    word-wrap: break-word;
+    word-break: break-all;
   }
 }
 

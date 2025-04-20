@@ -215,7 +215,7 @@
                 {{ upload.short_hash }}
             </a>
         </span>
-        <span class="upload-title title">{{ upload.file_name }}</span>
+        <span class="upload-title title" title="{{ upload.file_name }}">{{ upload.file_name }}</span>
         <span class="upload-size size">{{ upload.human_size }}</span>
         {{ torrent_stats(upload) }}
         <time class="upload-timestamp timestamp" datetime="{{ upload.created_at.strftime('%y-%m-%d %H:%M') }}Z">

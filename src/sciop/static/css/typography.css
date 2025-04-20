@@ -75,7 +75,8 @@
     text-align: right;
 }
 
-.header .title {
+.header .title,
+.dataset-slug {
   text-wrap: wrap;
   overflow-wrap: break-word;
   word-break: break-word;

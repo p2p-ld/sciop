@@ -16,22 +16,25 @@
   {% set sort_str="*" + column.name %}
   {% set href=request.url.include_query_params(sort=sort_str) %}
   {% set alt="Descending sort" %}
+  {% set active=True %}
 {% elif column.name in request.query_params.sort and "*" + column.name not in request.query_params.sort %}
   {% set icon="/static/img/icon/sort-up.svg" %}
   {% set sort_str="-" + column.name %}
   {% set href=request.url.include_query_params(sort=sort_str) %}
   {% set alt="Ascending sort" %}
+  {% set active=True %}
 {% else %}
   {% set icon="/static/img/icon/sort.svg" %}
   {% set href=request.url.include_query_params(sort=column.name) %}
   {% set alt="No sort" %}
+  {% set active=False %}
 {% endif %}
 <button
   hx-get="{{href}}"
   hx-target={{swap_target}}
   hx-swap="outerHTML"
-  class="sort-link"
-  data-col="{{ column }}"
+  class="sort-link{% if active %} active{% endif %}"
+  data-col="{{ column.name }}"
   {% if column.tooltip %}
   title="{{ column.tooltip }}"
   {% else %}

@@ -128,10 +128,19 @@ button,
     font-family: var(--font-mono);
     font-size: 1.1em;
     box-shadow: unset;
-    padding: 0.1em 0.25em 0.1em 0.4em;
+    padding: 0.2em 0.25em 0.2em 0.4em;
 
     img {
       max-height: 1.2em;
+    }
+
+    &.active {
+      background-color: var(--color-primary);
+      color: var(--color-primary-contrast);
+    }
+
+    &[data-col="threat"] span {
+      font-size: 0.9em;
     }
   }
 }
