@@ -102,6 +102,36 @@ async def test_sort_paging(items, page: Page, run_server_module):
 
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.playwright
+async def test_sort_numbers(items, page: Page, run_server_module, session_module):
+    a = items[0][0]
+    b = items[0][1]
+    c = items[0][2]
+
+    a.torrent.tracker_links[0].seeders = 7
+    b.torrent.tracker_links[0].seeders = 70
+    c.torrent.tracker_links[0].seeders = 8
+    session_module.add(a)
+    session_module.add(b)
+    session_module.add(c)
+    session_module.commit()
+
+    await page.goto("http://127.0.0.1:8080/uploads/")
+    col = page.locator('.sort-link[data-col="seeders"]')
+    first = page.locator(".collapsible-table .collapsible:first-child .upload-title")
+    second = page.locator(".collapsible-table .collapsible:nth-child(2) .upload-title")
+    third = page.locator(".collapsible-table .collapsible:nth-child(3) .upload-title")
+
+    await col.click()
+    await expect(col).to_have_class("sort-link active ascending")
+    await col.click()
+    await expect(col).to_have_class("sort-link active descending")
+    await expect(first).to_have_text(b.file_name)
+    await expect(second).to_have_text(c.file_name)
+    await expect(third).to_have_text(a.file_name)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.playwright
 async def test_sort_multiparam(items, page: Page, run_server_module):
     """
     We can sort as well as subset with a query and use pagination at the same time
