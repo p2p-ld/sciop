@@ -7,7 +7,7 @@ from fastapi_pagination import Page
 from fastapi_pagination.customization import CustomizedPage, UseParams
 from fastapi_pagination.default import Params
 from pydantic import BaseModel, field_validator
-from sqlalchemy import Select, func
+from sqlalchemy import Select
 from starlette.datastructures import QueryParams
 
 from sciop.helpers.type import unwrap
@@ -108,7 +108,7 @@ class SearchParams(Params):
             except (TypeError, KeyError):
                 pass
 
-            col = sqla.desc(func.lower(col)) if desc else sqla.asc(func.lower(col))
+            col = sqla.desc(col.collate("NOCASE")) if desc else sqla.asc(col.collate("NOCASE"))
             sort_items.append(col)
 
         # clear prior sort and add new one
