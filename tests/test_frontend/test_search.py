@@ -82,6 +82,10 @@ async def test_sort_paging(items, page: Page, run_server_module):
     slugs = sorted([ds.slug for ds in items[1]])
 
     await page.locator('.page-link[data-page="2"]').first.click()
+    await expect(col).to_have_class("sort-link", timeout=10 * 1000)
+    await expect(col).to_have_attribute(
+        name="hx-get", value="http://127.0.0.1:8080/datasets/search?page=2&sort=slug"
+    )
 
     await col.click()
     await expect(col).to_have_class("sort-link active ascending", timeout=10 * 1000)
