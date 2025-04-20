@@ -1,12 +1,13 @@
 from typing import Optional, TypeVar
 from urllib.parse import quote_plus
 
+import sqlalchemy as sqla
 from fastapi import Query
 from fastapi_pagination import Page
 from fastapi_pagination.customization import CustomizedPage, UseParams
 from fastapi_pagination.default import Params
 from pydantic import BaseModel, field_validator
-from sqlalchemy import Select
+from sqlalchemy import Select, func
 from starlette.datastructures import QueryParams
 
 from sciop.helpers.type import unwrap
@@ -49,7 +50,8 @@ class SearchParams(Params):
 
     def should_redirect(self) -> bool:
         """Whether we have query parameters that should be included in HX-Replace-Url"""
-        return any([bool(getattr(self, k, None)) for k in SearchParams.model_fields])
+        params = self.model_dump(exclude_none=True, exclude_defaults=True, exclude={"size"})
+        return any([bool(v) for v in params.values()])
 
     def to_query_str(self) -> str:
         value = self.model_dump(exclude_none=True, exclude_unset=True, exclude_defaults=True)
@@ -67,6 +69,8 @@ class SearchParams(Params):
         params = dict(query_params)
         if "sort" in params:
             params["sort"] = cls._clean_sort(params["sort"])
+        if params.get("query") == "":
+            del params["query"]
         return SearchParams(**params)
 
     @classmethod
@@ -74,7 +78,7 @@ class SearchParams(Params):
         if isinstance(sort, str):
             sort = [sort]
         # remove *'s
-        sort = [s for s in sort if not s.startswith("*")]
+        sort = [s for s in sort if not s.startswith("*") and s]
         return sort
 
     def apply_sort(self, stmt: Select, model: type[SQLModel]) -> Select:
@@ -104,7 +108,7 @@ class SearchParams(Params):
             except (TypeError, KeyError):
                 pass
 
-            col = col.desc() if desc else col.asc()
+            col = sqla.desc(func.lower(col)) if desc else sqla.asc(func.lower(col))
             sort_items.append(col)
 
         # clear prior sort and add new one

@@ -21,6 +21,7 @@
         hx-target="{{ swap_target }}"
         hx-swap="outerHTML"
         aria-label="First page"
+        data-page="first"
    class="pagination-link first-link {% if page == 1 %}disabled{% endif %}" >
   &lt;&lt;
 </button>
@@ -28,6 +29,7 @@
         hx-target="{{ swap_target }}"
         hx-swap="outerHTML"
         aria-label="Previous page"
+        data-page="previous"
    class="pagination-link back-link {% if page == 1 %}disabled{% endif %}" >
   &lt;
 </button>
@@ -38,6 +40,7 @@
   <button hx-get="{{ request.url.include_query_params(page=page_num) }}"
           hx-target="{{ swap_target }}"
           hx-swap="outerHTML"
+          data-page="{{ page_num }}"
    class="pagination-link page-link {% if page == page_num %}current{% endif %}"
       {% if page == page_num %}aria-current="page"{% endif %}>
     {{ page_num }}
@@ -51,6 +54,7 @@
         hx-target="{{ swap_target }}"
         hx-swap="outerHTML"
         aria-label="Next page"
+        data-page="next"
  class="pagination-link forward-link {% if page == pages %}disabled{% endif %}" >
 &gt;
 </button>
@@ -58,6 +62,7 @@
         hx-target="{{ swap_target }}"
         hx-swap="outerHTML"
         aria-label="Last page"
+        data-page="last"
  class="pagination-link end-link {% if page == pages %}disabled{% endif %}" >
 &gt;&gt;
 </button>
