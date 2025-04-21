@@ -124,7 +124,12 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 plugins:
-  - git-authors
+  - git-authors:
+      exclude:
+        - python/*
+        - python/**/*
+        - python/models/*
+      show_email_address: false
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -139,7 +144,7 @@ plugins:
             docstring_section_style: list
             docstring_style: google
             heading_level: 2
-            inherited_members: true
+            inherited_members: false
             merge_init_into_class: true
             separate_signature: true
             show_if_no_docstring: true
@@ -151,8 +156,13 @@ plugins:
             show_symbol_type_toc: true
             signature_crossrefs: true
             summary: true
+            preload_modules:
+              - pydantic
+              - sqlmodel
+              - pydantic_settings
             filters:
-              - "!^_[^_]"
+              - "!^_"
+              - "!^__.*"
               - "!fts_.*"
               - "!count_statement"
               - "!primary_key_column"
@@ -163,10 +173,13 @@ plugins:
               - "!editable_objects"
               - "!__history_meta_cols__"
               - "!rebuild_history_models"
+#              - "!model_.*"
             extensions:
-              - griffe_fieldz:
-                  include_inherited: true
-              - griffe_inherited_docstrings
+#              - griffe_fieldz:
+#                  include_inherited: true
+              - griffe_pydantic:
+                  schema: true
+#              - griffe_inherited_docstrings
   - redirects:
       redirect_maps:
         "using/seeding.md": "using/torrenting.md"

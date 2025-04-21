@@ -44,6 +44,7 @@ dependencies = [
     "mkdocstrings[python]>=0.29.1",
     "griffe-inherited-docstrings>=1.1.1",
     "griffe-fieldz>=0.2.1",
+    "griffe-pydantic>=1.1.4",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -95,6 +96,7 @@ format.composite = [
     "black .",
     "ruff check --fix",
 ]
+docs = "mkdocs serve -f ./mkdocs.yml -v"
 
 alembic = "alembic -c ./src/sciop/migrations/alembic.ini"
 migrate = "alembic -c ./src/sciop/migrations/alembic.ini upgrade head"

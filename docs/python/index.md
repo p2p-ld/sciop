@@ -8,7 +8,7 @@ Sitewide and per-service configuration.
 
 ## Models
 
-### [`models`](models/index)
+### [`models`](models/)
 
 Primary data and database models used within sciop.
 
