@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         python-version: [ "3.11", "3.12", "3.13" ]
-    runs-on: ubuntu-latest
+    runs-on: codeberg-tiny
     steps:
       - name: Checkout repo
         uses: https://code.forgejo.org/actions/checkout@v4
@@ -43,7 +43,7 @@ jobs:
     strategy:
       matrix:
         python-version: [ "3.11", "3.12", "3.13" ]
-    runs-on: ubuntu-latest
+    runs-on: codeberg-tiny
     steps:
       - name: Checkout repo
         uses: https://code.forgejo.org/actions/checkout@v4
@@ -60,7 +60,10 @@ jobs:
       - name: Install deps
         run: pip install -e .[test]
       - name: Install firefox
-        run: playwright install firefox
+#        run: playwright install firefox
+        run: |
+          playwright install-deps
+          playwright install firefox
       - name: Run tests
         run: |
           mkdir $HOME/tmp

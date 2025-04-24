@@ -381,12 +381,35 @@ HTMXResponse = Annotated[Response, Depends(add_htmx_response_trigger)]
 def parse_search_query_params(
     search: Annotated[SearchParams, Query()], request: Request
 ) -> SearchParams:
+    """
+    Parse searching and sorting params from query strings,
+    """
     if "hx-current-url" in request.headers:
         current_params = parse_qsl(urlparse(request.headers["hx-current-url"]).query)
         query_params = QueryParams(current_params + request.query_params._list)
     else:
         query_params = request.query_params
-    return SearchParams.from_query_params(query_params)
+
+    search_params = SearchParams.from_query_params(query_params)
+    request.state.search_params = search_params
+    return search_params
+
+
+def parse_search_query_params_ignoring_current_url(
+    search: Annotated[SearchParams, Query()], request: Request
+) -> SearchParams:
+    """
+    Get search query params just from the current request, ignoring the current page url
+    (e.g., for partials that don't affect the current url)
+
+    Yeah it's a humongous function name, sue me.
+    """
+    search_params = SearchParams.from_query_params(request.query_params)
+    request.state.search_params = search_params
+    return search_params
 
 
 SearchQuery = Annotated[SearchParams, Depends(parse_search_query_params)]
+SearchQueryNoCurrentUrl = Annotated[
+    SearchParams, Depends(parse_search_query_params_ignoring_current_url)
+]

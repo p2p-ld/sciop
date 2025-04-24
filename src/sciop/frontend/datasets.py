@@ -18,6 +18,7 @@ from sciop.api.deps import (
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
     SearchQuery,
+    SearchQueryNoCurrentUrl,
     SessionDep,
 )
 from sciop.api.routes.upload import upload_torrent
@@ -127,7 +128,7 @@ async def dataset_part_add_partial(
 @datasets_router.get("/{dataset_slug}/uploads")
 @jinja.hx("partials/uploads.html")
 async def dataset_uploads(
-    search: SearchQuery,
+    search: SearchQueryNoCurrentUrl,
     dataset_slug: str,
     dataset: RequireVisibleDataset,
     session: SessionDep,
@@ -240,7 +241,7 @@ async def dataset_part_partial(
 @datasets_router.get("/{dataset_slug}/{dataset_part_slug}/uploads")
 @jinja.hx("partials/uploads.html")
 async def dataset_part_uploads(
-    search: SearchQuery,
+    search: SearchQueryNoCurrentUrl,
     dataset_slug: str,
     dataset_part_slug: str,
     request: Request,

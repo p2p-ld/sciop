@@ -9,7 +9,7 @@ from sciop.api.deps import (
     RequireAdmin,
     RequireCurrentAccount,
     RequireReviewer,
-    SearchQuery,
+    SearchQueryNoCurrentUrl,
     SessionDep,
 )
 from sciop.frontend.templates import jinja, templates
@@ -56,7 +56,10 @@ async def log(request: Request, account: RequireReviewer):
 @self_router.get("/datasets")
 @jinja.hx("partials/datasets.html")
 async def datasets(
-    search: SearchQuery, request: Request, account: RequireCurrentAccount, session: SessionDep
+    search: SearchQueryNoCurrentUrl,
+    request: Request,
+    account: RequireCurrentAccount,
+    session: SessionDep,
 ) -> SearchPage[DatasetRead]:
     stmt = (
         select(Dataset)
@@ -70,7 +73,10 @@ async def datasets(
 @self_router.get("/uploads")
 @jinja.hx("partials/uploads.html")
 async def uploads(
-    search: SearchQuery, request: Request, account: RequireCurrentAccount, session: SessionDep
+    search: SearchQueryNoCurrentUrl,
+    request: Request,
+    account: RequireCurrentAccount,
+    session: SessionDep,
 ) -> SearchPage[UploadRead]:
     stmt = (
         select(Upload)
@@ -85,7 +91,7 @@ async def uploads(
 @self_router.get("/review/datasets")
 @jinja.hx("partials/review-datasets.html")
 async def review_datasets(
-    search: SearchQuery, account: RequireReviewer, session: SessionDep
+    search: SearchQueryNoCurrentUrl, account: RequireReviewer, session: SessionDep
 ) -> Page[Dataset]:
     stmt = select(Dataset).where(Dataset.needs_review == True)
     stmt = search.apply_sort(stmt, Dataset)
@@ -102,7 +108,7 @@ async def review_parts(account: RequireReviewer, session: SessionDep) -> Page[Da
 @self_router.get("/review/uploads")
 @jinja.hx("partials/review-uploads.html")
 async def review_uploads(
-    search: SearchQuery, request: Request, account: RequireReviewer, session: SessionDep
+    search: SearchQueryNoCurrentUrl, request: Request, account: RequireReviewer, session: SessionDep
 ) -> Page[Upload]:
     stmt = select(Upload).join(Upload.torrent).where(Upload.needs_review == True)
     stmt = search.apply_sort(stmt, Upload)

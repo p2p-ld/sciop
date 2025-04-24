@@ -11,13 +11,14 @@
 {% endmacro %}
 
 {% macro sort_link(request, column, swap_target) %}
-{% if "-" + column.name in request.query_params.sort %}
+{% set params = request.state.search_params %}
+{% if params.sorted_by(column.name) == "descending" %}
   {% set icon="/static/img/icon/sort-down.svg" %}
   {% set sort_str="*" + column.name %}
   {% set href=request.url.include_query_params(sort=sort_str) %}
   {% set alt="Descending sort" %}
   {% set classes="active descending" %}
-{% elif column.name in request.query_params.sort and "*" + column.name not in request.query_params.sort %}
+{% elif params.sorted_by(column.name) == "ascending" %}
   {% set icon="/static/img/icon/sort-up.svg" %}
   {% set sort_str="-" + column.name %}
   {% set href=request.url.include_query_params(sort=sort_str) %}
