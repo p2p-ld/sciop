@@ -60,7 +60,10 @@ jobs:
       - name: Install deps
         run: pip install -e .[test]
       - name: Install firefox
-        run: playwright install firefox
+#        run: playwright install firefox
+        run: |
+          playwright install-deps
+          playwright install firefox
       - name: Run tests
         run: |
           mkdir $HOME/tmp
