@@ -4,7 +4,7 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import select
 
-from sciop.api.deps import CurrentAccount, RequireAccount, SessionDep
+from sciop.api.deps import CurrentAccount, RequireAccount, SearchQueryNoCurrentUrl, SessionDep
 from sciop.frontend.templates import jinja, templates
 from sciop.models import Account, AccountRead, Dataset, DatasetRead, Upload, UploadRead
 
@@ -26,6 +26,7 @@ def account_partial(username: str):
 @jinja.hx("partials/datasets.html")
 def account_datasets(
     username: str,
+    search: SearchQueryNoCurrentUrl,
     session: SessionDep,
     request: Request,
     account: RequireAccount,
@@ -36,6 +37,7 @@ def account_datasets(
         .where(Dataset.account == account, Dataset.visible_to(current_account) == True)
         .order_by(Dataset.updated_at.desc())
     )
+    stmt = search.apply_sort(stmt, Dataset)
     return paginate(conn=session, query=stmt)
 
 
@@ -43,6 +45,7 @@ def account_datasets(
 @jinja.hx("partials/uploads.html")
 def account_uploads(
     username: str,
+    search: SearchQueryNoCurrentUrl,
     session: SessionDep,
     request: Request,
     account: RequireAccount,
@@ -53,6 +56,7 @@ def account_uploads(
         .where(Upload.account == account, Upload.visible_to(current_account) == True)
         .order_by(Upload.updated_at.desc())
     )
+    stmt = search.apply_sort(stmt, Upload)
     return paginate(conn=session, query=stmt)
 
 

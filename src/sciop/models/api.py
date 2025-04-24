@@ -1,4 +1,6 @@
-from typing import Optional, TypeVar
+import re
+from typing import Annotated, Any, ClassVar, Optional, Self, TypeVar
+from typing import Literal as L
 from urllib.parse import quote_plus
 
 import sqlalchemy as sqla
@@ -6,7 +8,8 @@ from fastapi import Query
 from fastapi_pagination import Page
 from fastapi_pagination.customization import CustomizedPage, UseParams
 from fastapi_pagination.default import Params
-from pydantic import BaseModel, field_validator
+from pydantic import AfterValidator, BaseModel, Field, GetCoreSchemaHandler, field_validator
+from pydantic_core import CoreSchema, core_schema
 from sqlalchemy import Select
 from starlette.datastructures import QueryParams
 
@@ -22,6 +25,68 @@ class SuccessResponse(BaseModel):
     extra: Optional[dict] = None
 
 
+class SortStr(str):
+    type: ClassVar[str] = None
+    """The type of sort this is!"""
+    pattern: ClassVar[re.Pattern] = None
+
+    @classmethod
+    def match(cls, value: str) -> Self | None:
+        assert cls.pattern.fullmatch(value), "Does not match sort type pattern!"
+        return cls(value)
+
+    @property
+    def field(self) -> str:
+        """The item name without any prefixes"""
+        return self.pattern.match(self).groupdict()["field"]
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            function=cls.match,
+            schema=core_schema.str_schema(
+                pattern=cls.pattern.pattern, metadata={"sort_type": cls.type}
+            ),
+        )
+
+
+class AscendingSort(SortStr):
+    type: ClassVar[L["ascending"]] = "ascending"
+    pattern: ClassVar[re.Pattern] = re.compile(r"(?P<field>[\w-]+)")
+
+
+class DescendingSort(SortStr):
+    type: ClassVar[L["descending"]] = "descending"
+    pattern: ClassVar[re.Pattern] = re.compile(r"^-(?P<field>[\w-]+)")
+
+
+class RemoveSort(SortStr):
+    """Special query param type that removes the item from sorting, used in partials"""
+
+    type: ClassVar[L["remove"]] = "remove"
+    pattern: ClassVar[re.Pattern] = re.compile(r"^\*(?P<field>[\w-]+)")
+
+    @classmethod
+    def match(cls, value: str) -> Self | None:
+        """RemoveSort is just a None"""
+        assert cls.pattern.fullmatch(value), "Does not match sort type pattern!"
+        return None
+
+
+SortStrType = Annotated[
+    RemoveSort | DescendingSort | AscendingSort, Field(union_mode="left_to_right")
+]
+
+
+def _remove_none(value: list[SortStrType]) -> list[SortStrType]:
+    return [v for v in value if v and v is not None and not isinstance(v, RemoveSort)]
+
+
+SortParamsType = Annotated[list[SortStrType], AfterValidator(_remove_none)]
+
+
 class SearchParams(Params):
     """Model for query parameters in a searchable"""
 
@@ -29,7 +94,7 @@ class SearchParams(Params):
 
     query: Optional[str] = Query(None)
     """The search query!"""
-    sort: list[str] = Query(
+    sort: SortParamsType = Query(
         default_factory=list,
         description="""
         Columns to sort by
@@ -67,19 +132,11 @@ class SearchParams(Params):
         Parse query params, replacing or updating any query params from e.g. the current url
         """
         params = dict(query_params)
-        if "sort" in params:
-            params["sort"] = cls._clean_sort(params["sort"])
+        if isinstance(params.get("sort"), str):
+            params["sort"] = [params["sort"]]
         if params.get("query") == "":
             del params["query"]
         return SearchParams(**params)
-
-    @classmethod
-    def _clean_sort(cls, sort: list[str] | str) -> list[str]:
-        if isinstance(sort, str):
-            sort = [sort]
-        # remove *'s
-        sort = [s for s in sort if not s.startswith("*") and s]
-        return sort
 
     def apply_sort(self, stmt: Select, model: type[SQLModel]) -> Select:
         if not self.sort:
@@ -88,15 +145,16 @@ class SearchParams(Params):
         sort_items = []
         for sort in self.sort:
             desc = False
-            if sort.startswith("*"):
+            if sort.type == "remove":
                 continue
-            elif sort.startswith("-"):
+            elif sort.type == "descending":
                 desc = True
-                sort = sort[1:]
+                sort = sort.field
 
-            # get item
-
-            col = getattr(model, sort)
+            # get item if we have it
+            col = getattr(model, sort, None)
+            if col is None:
+                continue
 
             try:
                 # try to get special types, but don't panic if we can't.
@@ -113,6 +171,14 @@ class SearchParams(Params):
 
         # clear prior sort and add new one
         return stmt.order_by(None).order_by(*sort_items)
+
+    def sorted_by(self, field: str) -> L["remove", "descending", "ascending"] | None:
+        """Get the sort type, if any, for the given field"""
+        match = [sorted for sorted in self.sort if sorted.field == field]
+        if match:
+            return match[0].type
+        else:
+            return None
 
 
 SearchPage = CustomizedPage[Page[T], UseParams(SearchParams)]

@@ -33,8 +33,15 @@ def items(
         ds = dataset(session_=session_module, slug=letter, threat=next(threats))
         t = torrentfile_module(session_=session_module, file_name=letter + ".torrent")
         ul = upload(session_=session_module, dataset_=ds, torrentfile_=t)
+
         uploads.append(ul)
         datasets.append(ds)
+
+        # first one gets an extra upload to test sorting in nested partials
+        if letter == "aa":
+            t = torrentfile_module(session_=session_module, file_name="abab" + ".torrent")
+            ul = upload(session_=session_module, dataset_=ds, torrentfile_=t)
+            uploads.append(ul)
     return uploads, datasets
 
 
@@ -236,3 +243,32 @@ async def test_url_swap_search_sort(items, page: Page, run_server_module):
     await page.locator('.page-link[data-page="2"]').first.click()
     await page.wait_for_timeout(100)
     await expect(page).to_have_url("http://127.0.0.1:8080/datasets/?page=2&query=a&sort=slug")
+
+
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.playwright
+async def test_sort_nested(items, page: Page, run_server_module):
+    """
+    Sortable items within sortable containers don't break!
+    """
+    await page.goto("http://localhost:8080/datasets/")
+    await page.get_by_role("button", name="title No sort").click()
+    await page.locator("#dataset-collapsible-aa").get_by_label("Expand/Collapse").click()
+    # we don't break and fail to show the child
+    await expect(page.get_by_text("aa.torrent")).to_be_visible()
+    await expect(page.get_by_text("Internal Server Error")).not_to_be_visible()
+
+    # we can still sort the items in the child
+    await expect(
+        page.locator(".upload-items .upload-collapsible:nth-child(1) .upload-title")
+    ).to_have_text("abab.torrent")
+    await expect(
+        page.locator(".upload-items .upload-collapsible:nth-child(2) .upload-title")
+    ).to_have_text("aa.torrent")
+    await page.get_by_role("button", name="name No sort").click()
+    await expect(
+        page.locator(".upload-items .upload-collapsible:nth-child(1) .upload-title")
+    ).to_have_text("aa.torrent")
+    await expect(
+        page.locator(".upload-items .upload-collapsible:nth-child(2) .upload-title")
+    ).to_have_text("abab.torrent")
