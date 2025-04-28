@@ -33,6 +33,60 @@ async def all_feed(session: SessionDep) -> RSSResponse:
     )
     return RSSResponse(feed)
 
+@rss_router.get("/other/large.rss")
+async def large_feed(session: SessionDep) -> RSSResponse:
+    stmt = (
+        select(Upload)
+        .filter(Upload.is_visible == True)
+        .order_by(Upload.created_at.desc())
+        .filter(Upload.size > 2**40) # over 1TiB
+        .limit(500)
+    )
+    uploads = session.exec(stmt).all()
+    feed = TorrentFeed.from_uploads(
+        title="Sciop: >1TiB",
+        description="All uploads over 1TiB uploads",
+        link=urljoin(f"{config.base_url}", "/other/large.rss"),
+        uploads=uploads,
+    )
+    return RSSResponse(feed)
+
+@rss_router.get("/other/seeds_needed.rss")
+async def infrequently_seeded(session: SessionDep) -> RSSResponse:
+    stmt = (
+        select(Upload)
+        .filter(Upload.is_visible == True)
+        .order_by(Upload.created_at.desc())
+        .filter(Upload.seeders > 0)
+        .filter(Upload.seeders < 10)
+        .limit(500)
+    )
+    uploads = session.exec(stmt).all()
+    feed = TorrentFeed.from_uploads(
+        title="Sciop: Seeds Needed",
+        description="Uploads with at least one, but less than 10 seeders",
+        link=urljoin(f"{config.base_url}", "/other/seeds_needed.rss"),
+        uploads=uploads,
+    )
+    return RSSResponse(feed)
+
+@rss_router.get("/other/reseeds_needed.rss")
+async def infrequently_seeded(session: SessionDep) -> RSSResponse:
+    stmt = (
+        select(Upload)
+        .filter(Upload.is_visible == True)
+        .order_by(Upload.created_at.desc())
+        .filter(Upload.seeders == 0)
+        .limit(500)
+    )
+    uploads = session.exec(stmt).all()
+    feed = TorrentFeed.from_uploads(
+        title="Sciop: Reseeds Needed",
+        description="Torrents with no current seeds",
+        link=urljoin(f"{config.base_url}", "/other/reseeds_needed.rss"),
+        uploads=uploads,
+    )
+    return RSSResponse(feed)
 
 @rss_router.get("/tag/{tag}.rss")
 async def tag_feed(tag: str, session: SessionDep) -> RSSResponse:
