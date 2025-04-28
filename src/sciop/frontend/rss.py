@@ -33,13 +33,14 @@ async def all_feed(session: SessionDep) -> RSSResponse:
     )
     return RSSResponse(feed)
 
+
 @rss_router.get("/other/large.rss")
 async def large_feed(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .filter(Upload.is_visible == True)
         .order_by(Upload.created_at.desc())
-        .filter(Upload.size > 2**40) # over 1TiB
+        .filter(Upload.size > 2**40)  # over 1TiB
         .limit(500)
     )
     uploads = session.exec(stmt).all()
@@ -50,6 +51,7 @@ async def large_feed(session: SessionDep) -> RSSResponse:
         uploads=uploads,
     )
     return RSSResponse(feed)
+
 
 @rss_router.get("/other/seeds_needed.rss")
 async def infrequently_seeded(session: SessionDep) -> RSSResponse:
@@ -70,8 +72,9 @@ async def infrequently_seeded(session: SessionDep) -> RSSResponse:
     )
     return RSSResponse(feed)
 
+
 @rss_router.get("/other/reseeds_needed.rss")
-async def infrequently_seeded(session: SessionDep) -> RSSResponse:
+async def not_seeded(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .filter(Upload.is_visible == True)
@@ -87,6 +90,7 @@ async def infrequently_seeded(session: SessionDep) -> RSSResponse:
         uploads=uploads,
     )
     return RSSResponse(feed)
+
 
 @rss_router.get("/tag/{tag}.rss")
 async def tag_feed(tag: str, session: SessionDep) -> RSSResponse:
