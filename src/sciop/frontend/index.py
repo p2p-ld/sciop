@@ -32,6 +32,11 @@ async def feeds(request: Request):
     return templates.TemplateResponse(request, "pages/feeds.html")
 
 
+@index_router.get("/about", response_class=HTMLResponse)
+async def about(request: Request):
+    return templates.TemplateResponse(request, "pages/about.html")
+
+
 @index_router.get("/login", response_class=HTMLResponse)
 async def login(request: Request, current_account: CurrentAccount):
     if current_account:

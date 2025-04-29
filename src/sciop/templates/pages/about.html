@@ -1,0 +1,34 @@
+{% extends "layouts/default.html" %}
+{% block head %}
+{% with title = "Feeds" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+<div class="center-column">
+    <h1>About SciOp</h1>
+    <p>
+        SciOp is made by a group of researchers, archivists, and hackers — all united in being information activists.<br>
+        Our goal is to ensure that our cultural, intellectual and scientific heritage exists in multiple copies, in multiple places. 
+        No single entity or group of entities should be allowed to make it disappear.
+    </p>
+    <p>
+        SciOp is the curated catalog/index of <a href="https://safeguar.de">Safeguarding Research & Culture (SRC)</a>, 
+        an alternative infrastructure for archival and dissemination of cultural heritage and scientific knowledge.<br>
+        We seek to preserve cultural memory in a way that traditional archives cannot:
+        <blockquote class="title-quote">
+            Together, we can ensure that our cultural, intellectual, and scientific heritage is safeguarded.<br>
+            Because people (and our diversity) matter.
+            <p class="attribution">
+                — Learn more about <a href="https://safeguar.de/our-mission/">Our Mission</a>
+            </p>
+        </blockquote>
+    </p>
+    <p class="big-emphasis">
+        To safeguard people's ability to make use of information in hostile conditions, 
+        we are mutating BitTorrent into a federated peer-to-peer (P2P) system.<br>
+        Learn more about that in <a href="https://sciop.net/docs/intro/overview">our documentation</a>
+    </p>
+</div>
+
+{% endblock %}
