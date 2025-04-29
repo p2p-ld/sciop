@@ -114,7 +114,7 @@ def test_1tb_feed(client, size_feed_uploads, session):
     """
     1TB feed should include torrents larger than 1TB
     """
-    feed = client.get("/rss/size/1tb.rss")
+    feed = client.get("/rss/size/gt/1tb.rss")
 
     tree = etree.fromstring(feed.text.encode("utf-8"))
     items = tree.findall(".//item")
@@ -128,7 +128,7 @@ def test_5tb_feed(client, size_feed_uploads):
     """
     1TB feed should include torrents larger than 5TB
     """
-    feed = client.get("/rss/size/5tb.rss")
+    feed = client.get("/rss/size/gt/5tb.rss")
 
     tree = etree.fromstring(feed.text.encode("utf-8"))
     items = tree.findall(".//item")

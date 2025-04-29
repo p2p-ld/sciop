@@ -34,7 +34,7 @@ async def all_feed(session: SessionDep) -> RSSResponse:
     return RSSResponse(feed)
 
 
-@rss_router.get("/size/1tb.rss")
+@rss_router.get("/size/gt/1tb.rss")
 async def size_1tb(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
@@ -55,7 +55,7 @@ async def size_1tb(session: SessionDep) -> RSSResponse:
     return RSSResponse(feed)
 
 
-@rss_router.get("/size/5tb.rss")
+@rss_router.get("/size/gt/5tb.rss")
 async def size_5tb(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
