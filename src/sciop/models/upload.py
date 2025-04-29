@@ -7,10 +7,10 @@ from pydantic import field_validator
 from sqlalchemy import ColumnElement, SQLColumnExpression, event
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
-from sqlmodel import Field, Relationship
+from sqlmodel import Field, Relationship, func, select
 
 from sciop.config import config
-from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile
+from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile, TorrentTrackerLink
 from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixins import (
     EditableMixin,
@@ -203,10 +203,13 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
         return self.torrent.seeders
 
     @seeders.inplace.expression
-    def _seeders(self) -> SQLColumnExpression[Optional[int]]:
-        return cast(
-            "SQLColumnExpression[int]",
-            TorrentFile.seeders,
+    @classmethod
+    def _seeders(cls) -> SQLColumnExpression[Optional[int]]:
+        return (
+            select(func.max(TorrentTrackerLink.seeders))
+            .join(TorrentTrackerLink.torrent)
+            .where(TorrentFile.upload_id == cls.upload_id)
+            .label("seeders")
         )
 
     @hybrid_property
@@ -214,10 +217,13 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
         return self.torrent.leechers
 
     @leechers.inplace.expression
-    def _leechers(self) -> SQLColumnExpression[Optional[int]]:
-        return cast(
-            "SQLColumnExpression[int]",
-            TorrentFile.leechers,
+    @classmethod
+    def _leechers(cls) -> SQLColumnExpression[Optional[int]]:
+        return (
+            select(func.max(TorrentTrackerLink.leechers))
+            .join(TorrentTrackerLink.torrent)
+            .where(TorrentFile.upload_id == cls.upload_id)
+            .label("leechers")
         )
 
     @hybrid_property
@@ -225,10 +231,12 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
         return self.torrent.total_size
 
     @size.inplace.expression
-    def _size(self) -> ColumnElement[int]:
-        return cast(
-            "ColumnElement[int]",
-            TorrentFile.total_size,
+    @classmethod
+    def _size(cls) -> SQLColumnExpression[int]:
+        return (
+            select(TorrentFile.total_size)
+            .where(TorrentFile.upload_id == cls.upload_id)
+            .label("size")
         )
 
     @hybrid_property

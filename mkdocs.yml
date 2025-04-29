@@ -72,6 +72,7 @@ nav:
       - develop/index.md
       - develop/design.md
       - develop/contributing.md
+      - develop/debugging.md
       - develop/frontend.md
       - develop/backend.md
       - develop/error_handling.md

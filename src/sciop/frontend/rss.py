@@ -34,6 +34,91 @@ async def all_feed(session: SessionDep) -> RSSResponse:
     return RSSResponse(feed)
 
 
+@rss_router.get("/size/gt/1tb.rss")
+async def size_1tb(session: SessionDep) -> RSSResponse:
+    stmt = (
+        select(Upload)
+        .filter(
+            Upload.is_visible == True,
+            Upload.size >= 2**40,  # over 1TB
+        )
+        .order_by(Upload.created_at.desc())
+        .limit(500)
+    )
+    uploads = session.exec(stmt).all()
+    feed = TorrentFeed.from_uploads(
+        title="Sciop: >1TiB",
+        description="All uploads over 1TiB uploads",
+        link=urljoin(f"{config.base_url}", "/size/1tb.rss"),
+        uploads=uploads,
+    )
+    return RSSResponse(feed)
+
+
+@rss_router.get("/size/gt/5tb.rss")
+async def size_5tb(session: SessionDep) -> RSSResponse:
+    stmt = (
+        select(Upload)
+        .filter(
+            Upload.is_visible == True,
+            Upload.size >= 5 * (2**40),  # over 5TiB
+        )
+        .order_by(Upload.created_at.desc())
+        .limit(500)
+    )
+    uploads = session.exec(stmt).all()
+    feed = TorrentFeed.from_uploads(
+        title="Sciop: >5TiB",
+        description="All uploads over 5TiB uploads",
+        link=urljoin(f"{config.base_url}", "/size/5tb.rss"),
+        uploads=uploads,
+    )
+    return RSSResponse(feed)
+
+
+@rss_router.get("/seeds/1-10.rss")
+async def low_seeders(session: SessionDep) -> RSSResponse:
+    stmt = (
+        select(Upload)
+        .filter(
+            Upload.is_visible == True,
+            Upload.seeders > 0,
+            Upload.seeders <= 10,
+        )
+        .order_by(Upload.created_at.desc())
+        .limit(500)
+    )
+    uploads = session.exec(stmt).all()
+    feed = TorrentFeed.from_uploads(
+        title="Sciop: Seeds Needed",
+        description="Uploads with at least one, but less than 10 seeders",
+        link=urljoin(f"{config.base_url}", "/seeds/1-10.rss"),
+        uploads=uploads,
+    )
+    return RSSResponse(feed)
+
+
+@rss_router.get("/seeds/unseeded.rss")
+async def unseeded(session: SessionDep) -> RSSResponse:
+    stmt = (
+        select(Upload)
+        .filter(
+            Upload.is_visible == True,
+            Upload.seeders == 0,
+        )
+        .order_by(Upload.created_at.desc())
+        .limit(500)
+    )
+    uploads = session.exec(stmt).all()
+    feed = TorrentFeed.from_uploads(
+        title="Sciop: Reseeds Needed",
+        description="Torrents with no current seeds",
+        link=urljoin(f"{config.base_url}", "/seeds/unseeded.rss"),
+        uploads=uploads,
+    )
+    return RSSResponse(feed)
+
+
 @rss_router.get("/tag/{tag}.rss")
 async def tag_feed(tag: str, session: SessionDep) -> RSSResponse:
     uploads = crud.get_uploads_from_tag(session=session, tag=tag, visible=True)

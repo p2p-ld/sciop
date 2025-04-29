@@ -17,6 +17,8 @@ RSS-capable clients.
     <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
   </a><strong>All</strong>: All approved uploads
 
+
+
   <details>
   <summary><strong>Source Status</strong>: Whether the source is available</summary>
   <ul>
@@ -61,6 +63,37 @@ RSS-capable clients.
     </li>
     {% endfor %}
   </ul>
+  </details>
+  <details>
+    <summary><strong>Size</strong>: Feeds of torrents by size </summary>
+    <p><strong>Greater than size</strong></p>
+    <ul>
+      <li>
+        <a class="rss-link icon-link" href="/rss/size/gt/1tb.rss">
+        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+        </a><strong>1TiB</strong>: Uploads greater than 1TiB in size
+      </li>
+      <li>
+        <a class="rss-link icon-link" href="/rss/size/gt/5tb.rss">
+        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+        </a><strong>5TiB</strong>: Uploads greater than 5TiB in size
+      </li>
+    </ul>
+  </details>
+  <details>
+    <summary><strong>Seeds</strong>: Feeds of torrents with low or no seeds </summary>
+    <ul>
+      <li>
+        <a class="rss-link icon-link" href="/rss/seeds/1-10.rss">
+        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+        </a><strong>Seeds Needed</strong>: Uploads with less than 10 seeds
+      </li>
+      <li>
+        <a class="rss-link icon-link" href="/rss/seeds/unseeded.rss">
+        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+        </a><strong>Reseeds Needed</strong>: Uploads with no current seeds
+      </li>
+    </ul>
   </details>
 </div>
 
