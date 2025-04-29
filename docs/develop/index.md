@@ -14,6 +14,10 @@ Architectural overview of how sciop works and why
 
 How to set up sciop for development, and our process for collaborating.
 
+## [Debugging](debugging.md)
+
+How to tell what's going wrong when things go wrong.
+
 ## [Frontend](frontend.md)
 
 The web interface, htmx, and templates.

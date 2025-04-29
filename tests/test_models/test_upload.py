@@ -1,8 +1,32 @@
 from textwrap import dedent
 
+import pytest
 from sqlmodel import select
 
 from sciop.models import TorrentFile, Upload
+
+
+@pytest.fixture()
+def props_uploads(upload, dataset, torrentfile, session) -> tuple[Upload, ...]:
+    """Uploads with values set to test hybrid properties"""
+    seeds = [None, 1, 5]
+    sizes = [2**10, 2**20, 2**30]
+    size_names = ["1kb", "1mb", "1gb"]
+
+    ds = dataset()
+    uploads = []
+    for seed, size, size_name in zip(seeds, sizes, size_names):
+        tf = torrentfile(file_name=f"{seed}_{size_name}.torrent")
+        if seed is not None:
+            tf.tracker_links[0].seeders = seed
+            tf.tracker_links[0].leechers = seed
+        tf.total_size = size
+        session.add(tf)
+        session.commit()
+
+        ul = upload(dataset_=ds, torrentfile_=tf)
+        uploads.append(ul)
+    return tuple(uploads)
 
 
 def test_remove_torrent_on_removal(upload, session):
@@ -84,3 +108,42 @@ def test_upload_without_torrent_visibility(upload, session):
     # and the hybrid property
     visible_uls = session.exec(select(Upload).where(Upload.is_visible == True)).all()
     assert len(visible_uls) == 0
+
+
+def test_upload_hybrid_props_seeders(session, props_uploads):
+    """Seeders should behave correctly in queries and in ORM"""
+    uls = session.exec(select(Upload).where(Upload.seeders > 1)).all()
+    assert len(uls) == 1
+    assert uls[0].seeders == 5
+
+    uls = session.exec(select(Upload).where(Upload.seeders <= 5)).all()
+    assert len(uls) == 2
+    assert sorted([ul.seeders for ul in uls]) == [1, 5]
+
+    uls = session.exec(select(Upload).where(Upload.seeders == None)).all()  # noqa: E711
+    assert len(uls) == 1
+    assert uls[0].seeders is None
+
+
+def test_upload_hybrid_props_leechers(session, props_uploads):
+    uls = session.exec(select(Upload).where(Upload.leechers > 1)).all()
+    assert len(uls) == 1
+    assert uls[0].leechers == 5
+
+    uls = session.exec(select(Upload).where(Upload.leechers <= 5)).all()
+    assert len(uls) == 2
+    assert sorted([ul.leechers for ul in uls]) == [1, 5]
+
+    uls = session.exec(select(Upload).where(Upload.leechers == None)).all()  # noqa: E711
+    assert len(uls) == 1
+    assert uls[0].leechers is None
+
+
+def test_upload_hybrid_props_size(session, props_uploads):
+    uls = session.exec(select(Upload).where(Upload.size > 2**20)).all()
+    assert len(uls) == 1
+    assert uls[0].size == 2**30
+
+    uls = session.exec(select(Upload).where(Upload.size <= 2**20)).all()
+    assert len(uls) == 2
+    assert sorted([ul.size for ul in uls]) == [2**10, 2**20]

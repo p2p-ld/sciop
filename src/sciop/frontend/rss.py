@@ -34,13 +34,15 @@ async def all_feed(session: SessionDep) -> RSSResponse:
     return RSSResponse(feed)
 
 
-@rss_router.get("/size/1tb.rss")
+@rss_router.get("/size/gt/1tb.rss")
 async def size_1tb(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
-        .filter(Upload.is_visible == True)
+        .filter(
+            Upload.is_visible == True,
+            Upload.size >= 2**40,  # over 1TB
+        )
         .order_by(Upload.created_at.desc())
-        .filter(Upload.size > 2**40)  # over 1TiB
         .limit(500)
     )
     uploads = session.exec(stmt).all()
@@ -53,13 +55,15 @@ async def size_1tb(session: SessionDep) -> RSSResponse:
     return RSSResponse(feed)
 
 
-@rss_router.get("/size/5tb.rss")
+@rss_router.get("/size/gt/5tb.rss")
 async def size_5tb(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
-        .filter(Upload.is_visible == True)
+        .filter(
+            Upload.is_visible == True,
+            Upload.size >= 5 * (2**40),  # over 5TiB
+        )
         .order_by(Upload.created_at.desc())
-        .filter(Upload.size > 5 * (2**40))  # over 5TiB
         .limit(500)
     )
     uploads = session.exec(stmt).all()
@@ -73,13 +77,15 @@ async def size_5tb(session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/seeds/1-10.rss")
-async def infrequently_seeded(session: SessionDep) -> RSSResponse:
+async def low_seeders(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
-        .filter(Upload.is_visible == True)
+        .filter(
+            Upload.is_visible == True,
+            Upload.seeders > 0,
+            Upload.seeders <= 10,
+        )
         .order_by(Upload.created_at.desc())
-        .filter(Upload.seeders > 0)
-        .filter(Upload.seeders < 10)
         .limit(500)
     )
     uploads = session.exec(stmt).all()
@@ -93,12 +99,14 @@ async def infrequently_seeded(session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/seeds/unseeded.rss")
-async def not_seeded(session: SessionDep) -> RSSResponse:
+async def unseeded(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
-        .filter(Upload.is_visible == True)
+        .filter(
+            Upload.is_visible == True,
+            Upload.seeders == 0,
+        )
         .order_by(Upload.created_at.desc())
-        .filter(Upload.seeders == 0)
         .limit(500)
     )
     uploads = session.exec(stmt).all()
