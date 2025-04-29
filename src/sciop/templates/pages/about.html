@@ -1,4 +1,10 @@
 {% extends "layouts/default.html" %}
+{% block head %}
+{% with title = "Feeds" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
+{% block content %}
 <div class="center-column">
     <h1>About SciOp</h1>
     <p>
@@ -24,3 +30,5 @@
         Learn more about that in <a href="https://sciop.net/docs/intro/overview">our documentation</a>
     </p>
 </div>
+
+{% endblock %}
