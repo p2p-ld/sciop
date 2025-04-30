@@ -11,7 +11,12 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    YamlConfigSettingsSource,
+)
 
 _default_userdir = Path().home() / ".config" / "mio"
 _dirs = PlatformDirs("sciop", "sciop")
@@ -220,6 +225,7 @@ class Config(BaseSettings):
         env_nested_delimiter="__",
         extra="ignore",
         nested_model_default_partial_update=True,
+        yaml_file=Path.cwd() / "sciop.yaml",
     )
 
     base_url: str = "http://localhost:8000"
@@ -368,6 +374,45 @@ class Config(BaseSettings):
                 self.root_password != self.__class__.model_fields["root_password"].default
             ), "root_password cannot be equal to the default in prod, and must be set explicitly"
         return self
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """
+        Read from the following sources,
+        in order such that later sources in the list override earlier sources
+
+        - `sciop.yaml` (in cwd)
+        - `.env` (in cwd)
+        - environment variables prefixed with `SCIOP_`
+        - arguments passed on config object initialization
+
+        See [pydantic settings docs](https://docs.pydantic.dev/latest/concepts/pydantic_settings/#customise-settings-sources)
+        """
+        return init_settings, env_settings, dotenv_settings, YamlConfigSettingsSource(settings_cls)
+
+    @classmethod
+    def load(cls, path: Path) -> Self:
+        """Load a config file from an explicit path"""
+        if not path.exists():
+            raise FileNotFoundError(f"config file {path} does not exist")
+
+        if path.suffix in (".yaml", ".yml"):
+            import yaml
+
+            with open(path) as f:
+                cfg = yaml.safe_load(f)
+            return Config(**cfg)
+        elif path.name == ".env" or path.suffix == ".env":
+            return Config(_env_file=path)
+        else:
+            ValueError("Path must be a .yaml/.yml or .env file")
 
 
 config = Config()
