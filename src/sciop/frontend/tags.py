@@ -4,7 +4,7 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlmodel import select
 
-from sciop.api.deps import CurrentAccount, RequireTag, SessionDep
+from sciop.api.deps import CurrentAccount, RequireTag, SearchQueryNoCurrentUrl, SessionDep
 from sciop.frontend.templates import jinja, templates
 from sciop.models import Dataset, Upload
 
@@ -27,6 +27,7 @@ def tag_show(tag: str, tag_obj: RequireTag, request: Request):
 def tag_datasets(
     tag: str,
     tag_obj: RequireTag,
+    search: SearchQueryNoCurrentUrl,
     session: SessionDep,
     request: Request,
     current_account: CurrentAccount,
@@ -36,6 +37,7 @@ def tag_datasets(
         .where(Dataset.visible_to(current_account) == True, Dataset.tags.any(tag=tag))
         .order_by(Dataset.created_at.desc())
     )
+    stmt = search.apply_sort(stmt, Dataset)
     return paginate(conn=session, query=stmt)
 
 
@@ -44,6 +46,7 @@ def tag_datasets(
 def tag_uploads(
     tag: str,
     tag_obj: RequireTag,
+    search: SearchQueryNoCurrentUrl,
     session: SessionDep,
     request: Request,
     current_account: CurrentAccount,
@@ -54,4 +57,5 @@ def tag_uploads(
         .where(Dataset.tags.any(tag=tag), Upload.visible_to(current_account) == True)
         .order_by(Upload.created_at.desc())
     )
+    stmt = search.apply_sort(stmt, Dataset)
     return paginate(conn=session, query=stmt)
