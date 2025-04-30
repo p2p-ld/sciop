@@ -98,13 +98,15 @@ def config_set(args: list[str], config: Path | None = None) -> None:
 
     Set values as key/value pairs like
 
+    ```
     sciop config set env=dev base_url=https://example.com
+    ```
 
     Nested keys can be passed with '.' as a delimiter:
 
+    ```
     sciop config set logs.level=INFO
-
-    :return:
+    ```
     """
     if not args:
         click.echo("No args set!")
@@ -130,6 +132,7 @@ def config_set(args: list[str], config: Path | None = None) -> None:
     kwargs = unflatten_dict(kwargs_flat)
 
     cfg = yaml.load(config) if config.exists() else {}
+    # don't flatten dict to merge, want to preserve comments
     cfg = merge_dicts(cfg, kwargs)
 
     with open(config, "w") as f:
