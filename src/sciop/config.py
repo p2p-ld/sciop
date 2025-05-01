@@ -33,6 +33,15 @@ class InstanceConfig(BaseModel):
         default=None, description="Email to list as contact in page footer"
     )
 
+    @property
+    def contact_email_obfuscated(self) -> str | None:
+        """Email address like `user [at] domain (dot) tld"""
+        if self.contact_email is None:
+            return None
+        user, domain = self.contact_email.split("@")
+        domain, tld = domain.rsplit(".", 1)
+        return f"{user} [at] {domain} (dot) {tld}"
+
 
 class LogConfig(BaseModel):
     """

@@ -21,7 +21,7 @@
       </p>
       {% if config.instance.contact_email %}
       <p>
-        Contact: <a href="mailto:{{ config.instance.contact_email }}">{{ config.instance.contact_email }}</a>
+        Contact: <code>{{ config.instance.contact_email_obfuscated }}</code>
       </p>
       {% endif %}
     </div>
