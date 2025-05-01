@@ -14,7 +14,7 @@
 
 ::: mkdocs-click
     :module: sciop.cli.config
-    :command: config
+    :command: cli_config
     :prog_name: sciop config
     :depth: 1
 

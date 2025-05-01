@@ -19,7 +19,7 @@ from sciop.helpers import flatten_dict, merge_dicts, unflatten_dict, validate_fi
 @click.group("config", invoke_without_command=True)
 @click.pass_context
 @config_option
-def config(ctx: click.Context, config: Path | None = None) -> None:
+def cli_config(ctx: click.Context, config: Path | None = None) -> None:
     """
     Get and set sciop config variables.
 
@@ -83,7 +83,7 @@ def config(ctx: click.Context, config: Path | None = None) -> None:
     print(Group(*panels))
 
 
-@config.command("set")
+@cli_config.command("set")
 @config_option
 @click.argument("args", nargs=-1)
 def config_set(args: list[str], config: Path | None = None) -> None:
@@ -138,7 +138,7 @@ def config_set(args: list[str], config: Path | None = None) -> None:
     print(kwargs)
 
 
-@config.command("copy")
+@cli_config.command("copy")
 @click.option(
     "-o",
     "--output",

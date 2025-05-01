@@ -5,8 +5,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from sciop.cli.config import config as cli_config
-from sciop.cli.config import config_copy, config_set
+from sciop.cli.config import cli_config, config_copy, config_set
 from sciop.config import Config
 
 
