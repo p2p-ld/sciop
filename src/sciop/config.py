@@ -39,7 +39,7 @@ class InstanceConfig(BaseModel):
         if self.contact_email is None:
             return None
         user, domain = self.contact_email.split("@")
-        domain, tld = domain.rsplit(".")
+        domain, tld = domain.rsplit(".", 1)
         return f"{user} [at] {domain} (dot) {tld}"
 
 
