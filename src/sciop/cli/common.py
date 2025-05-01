@@ -83,3 +83,13 @@ def model_options(model: type[TemplateModel]) -> C[[click.Command], click.Comman
         return f
 
     return decorator
+
+
+def config_option(f: click.Command) -> click.Command:
+    f = click.option(
+        "-c",
+        "--config",
+        type=click.Path(exists=True, dir_okay=False),
+        help="Path to sciop.yaml or .env file. If none, look in current directory",
+    )(f)
+    return f

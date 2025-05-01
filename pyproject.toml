@@ -40,10 +40,12 @@ dependencies = [
     "mkdocs-redirects>=1.2.2",
     "httpx>=0.28.1",
     "mkdocs-git-authors-plugin>=0.9.4",
-    "pytest-playwright-asyncio>=0.7.0",
     "mkdocstrings[python]>=0.29.1",
     "griffe-inherited-docstrings>=1.1.1",
     "griffe-fieldz>=0.2.1",
+    "PyYAML>=6.0.2",
+    "ruamel-yaml>=0.18.10",
+    "mkdocs-click>=0.9.0",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -60,6 +62,7 @@ test = [
     "beautifulsoup4>=4.13.3",
     "lxml>=5.3.1",
     "pytest-alembic>=0.11.1",
+    "pytest-playwright-asyncio>=0.7.0",
     "pytest-timeout>=2.3.1",
     "pytest-httpx>=0.35.0",
     "numpy>=2.2.4",
@@ -81,8 +84,6 @@ distribution = true
 [tool.pdm.version]
 source = "call"
 getter = "scripts.version:get_version"
-write_to = "sciop/_version.py"
-write_template = '__version__ = "{}"'
 
 [tool.pdm.scripts]
 start = "sciop start"

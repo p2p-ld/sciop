@@ -1,0 +1,6 @@
+# See all available options by running `sciop config`
+env: dev
+secret_key: <generate this with openssl rand -hex 32>
+token_expire_minutes: 30
+logs:
+  level: info

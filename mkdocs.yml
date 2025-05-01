@@ -67,6 +67,7 @@ nav:
       - examples/uploading.md
   - Running:
       - running/index.md
+      - running/cli.md
       - running/maintenance.md
   - Developers:
       - develop/index.md
@@ -115,6 +116,7 @@ markdown_extensions:
   - admonition
   - footnotes
   - md_in_html
+  - mkdocs-click
   - pymdownx.details
   - pymdownx.snippets:
       base_path: ["docs/"]
@@ -123,8 +125,11 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  - toc:
+      permalink: true
 
 plugins:
+  - autorefs
   - git-authors:
       enabled: true
       show_email_address: false

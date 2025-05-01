@@ -166,3 +166,4 @@ cython_debug/
 __tmp__
 src/sciop/docs
 prof
+sciop.yaml

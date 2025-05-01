@@ -13,6 +13,10 @@ to improve the docs <3*
 
 </div>
 
+## [CLI](./cli.md)
+
+Command line interface for running and managing sciop
+
 ## [Maintenance](maintenance.md)
 
 Maintenance tasks to keep sciop running
