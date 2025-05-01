@@ -125,7 +125,9 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 plugins:
-  - git-authors
+  - git-authors:
+      enabled: true
+      show_email_address: false
   - mkdocstrings:
       default_handler: python
       handlers:
