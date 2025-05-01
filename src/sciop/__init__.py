@@ -1,6 +1,7 @@
 from warnings import filterwarnings as _filterwarnings
+from importlib.metadata import version
 
-from sciop._version import __version__
+__version__ = version("sciop")
 
 __all__ = [
     "__version__",

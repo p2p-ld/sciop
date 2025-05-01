@@ -83,8 +83,6 @@ distribution = true
 [tool.pdm.version]
 source = "call"
 getter = "scripts.version:get_version"
-write_to = "sciop/_version.py"
-write_template = '__version__ = "{}"'
 
 [tool.pdm.scripts]
 start = "sciop start"
