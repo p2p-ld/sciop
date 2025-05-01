@@ -11,28 +11,33 @@
     :command: start
     :prog_name: sciop start
     :depth: 1
+    :style: table
 
 ::: mkdocs-click
     :module: sciop.cli.config
     :command: cli_config
     :prog_name: sciop config
     :depth: 1
+    :style: table
 
 ::: mkdocs-click
     :module: sciop.cli.docs
     :command: docs
     :prog_name: sciop docs
     :depth: 1
+    :style: table
 
 ::: mkdocs-click
     :module: sciop.cli.generate
     :command: generate
     :prog_name: sciop generate
     :depth: 1
+    :style: table
 
 ::: mkdocs-click
     :module: sciop.cli.maintain
     :command: maintain
     :prog_name: sciop maintain
     :depth: 1
+    :style: table
  

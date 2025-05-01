@@ -3,7 +3,8 @@
 <div class="big-emphasis" markdown="1">
 
 This page is a conceptual description of what bittorrent is.
-For hands-on, practical information about how to torrent, see [Torrenting](../using/torrenting.md)
+For hands-on, practical information about how to torrent, see [Torrenting](../using/torrenting.md).
+For information on making `.torrent` files, see [Making a torrent](../uploading/torrents.md)
 
 </div>
 
