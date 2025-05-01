@@ -3,6 +3,7 @@ from pathlib import Path
 
 import click
 
+from sciop.cli.common import config_option
 from sciop.services import build_docs
 
 
@@ -13,13 +14,7 @@ def docs() -> None:
 
 
 @docs.command("build")
-@click.option(
-    "--config",
-    "-c",
-    type=click.Path(exists=True),
-    help="Path to configuration file. If not passed, find relative to docs service file",
-    default=None,
-)
+@config_option
 @click.option(
     "--output",
     "-o",

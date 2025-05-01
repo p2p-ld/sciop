@@ -6,10 +6,23 @@ Config values can be set (in order of priority where earlier sources override la
 
 - in environment variables
 - in a `.env` file in the cwd
+- in a `sciop.yaml` file in the cwd (preferred)
 
-**Syntax**
+## Syntax
 
-For .env files and environment variables,
+### yaml
+
+yaml syntax is straightforward, a 1:1 mapping between the config file and the Config object
+ 
+```yaml
+env: dev
+db: ./db.sqlite
+logs:
+  dir: ./logs
+  level: INFO
+```
+
+### .env files and env vars
 
 - Keys are prefixed with `SCIOP_`
 - Nested models are delimited with `__`

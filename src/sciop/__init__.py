@@ -1,5 +1,5 @@
-from warnings import filterwarnings as _filterwarnings
 from importlib.metadata import version
+from warnings import filterwarnings as _filterwarnings
 
 __version__ = version("sciop")
 

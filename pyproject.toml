@@ -45,6 +45,7 @@ dependencies = [
     "griffe-fieldz>=0.2.1",
     "PyYAML>=6.0.2",
     "ruamel-yaml>=0.18.10",
+    "mkdocs-click>=0.9.0",
 ]
 requires-python = ">=3.11"
 readme = "README.md"

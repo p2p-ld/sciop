@@ -225,7 +225,7 @@ class Config(BaseSettings):
         env_nested_delimiter="__",
         extra="ignore",
         nested_model_default_partial_update=True,
-        yaml_file=Path.cwd() / "sciop.yaml",
+        yaml_file="sciop.yaml",
     )
 
     base_url: str = "http://localhost:8000"

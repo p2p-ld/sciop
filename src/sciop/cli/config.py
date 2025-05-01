@@ -11,18 +11,14 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from ruamel.yaml import YAML
 
+from sciop.cli.common import config_option
 from sciop.config import Config
 from sciop.helpers import flatten_dict, merge_dicts, unflatten_dict, validate_field
 
 
 @click.group("config", invoke_without_command=True)
 @click.pass_context
-@click.option(
-    "-c",
-    "--config",
-    type=click.Path(exists=True, dir_okay=False),
-    help="Path to .env sciop.yaml or config file." "If none, look in current directory",
-)
+@config_option
 def config(ctx: click.Context, config: Path | None = None) -> None:
     """
     Get and set sciop config variables.
@@ -88,13 +84,13 @@ def config(ctx: click.Context, config: Path | None = None) -> None:
 
 
 @config.command("set")
-@click.option(
-    "-c", "--config", type=click.Path(exists=True, dir_okay=False), help="Path to sciop.yaml"
-)
+@config_option
 @click.argument("args", nargs=-1)
 def config_set(args: list[str], config: Path | None = None) -> None:
     """
     Set a config variable in sciop.yaml
+
+    See the [Config docs][sciop.config.Config] for all available options
 
     Set values as key/value pairs like
 
@@ -147,7 +143,7 @@ def config_set(args: list[str], config: Path | None = None) -> None:
     "-o",
     "--output",
     type=click.Path(dir_okay=False),
-    required=True,
+    required=False,
     help="Path to output sciop.yaml file. If none, use cwd",
 )
 @click.option(

@@ -5,7 +5,7 @@
 groups = ["default", "dev", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:bc0349d87ba539f5386b75e5ed2d8171d42e905f13369837954a7790f4b38693"
+content_hash = "sha256:d086e2bad4e15ff2b643133e4e50e8efc9e2643a70974780aa7850658888b290"
 
 [[metadata.targets]]
 requires_python = ">=3.11"
@@ -288,7 +288,7 @@ name = "charset-normalizer"
 version = "3.4.1"
 requires_python = ">=3.7"
 summary = "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet."
-groups = ["default"]
+groups = ["default", "test"]
 files = [
     {file = "charset_normalizer-3.4.1-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:8bfa33f4f2672964266e940dd22a195989ba31669bd84629f05fab3ef4e2d125"},
     {file = "charset_normalizer-3.4.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:28bf57629c75e810b6ae989f03c0828d64d6b26a5e205535585f96093e405ed1"},
@@ -665,7 +665,7 @@ name = "iniconfig"
 version = "2.1.0"
 requires_python = ">=3.8"
 summary = "brain-dead simple config-ini parsing"
-groups = ["default", "test"]
+groups = ["test"]
 files = [
     {file = "iniconfig-2.1.0-py3-none-any.whl", hash = "sha256:9deba5723312380e77435581c6bf4935c94cbfab9b1ed33ef8d238ea168eb760"},
     {file = "iniconfig-2.1.0.tar.gz", hash = "sha256:3abbd2e30b36733fee78f9c7f7308f2d0050e88f0087fd25c2645f63c773e1c7"},
@@ -931,6 +931,21 @@ dependencies = [
 files = [
     {file = "mkdocs_autorefs-1.4.1-py3-none-any.whl", hash = "sha256:9793c5ac06a6ebbe52ec0f8439256e66187badf4b5334b5fde0b128ec134df4f"},
     {file = "mkdocs_autorefs-1.4.1.tar.gz", hash = "sha256:4b5b6235a4becb2b10425c2fa191737e415b37aa3418919db33e5d774c9db079"},
+]
+
+[[package]]
+name = "mkdocs-click"
+version = "0.9.0"
+requires_python = ">=3.9"
+summary = "An MkDocs extension to generate documentation for Click command line applications"
+groups = ["default"]
+dependencies = [
+    "click>=8.1",
+    "markdown>=3.3",
+]
+files = [
+    {file = "mkdocs_click-0.9.0-py3-none-any.whl", hash = "sha256:5208e828f4f68f63c847c1ef7be48edee9964090390afc8f5b3d4cbe5ea9bbed"},
+    {file = "mkdocs_click-0.9.0.tar.gz", hash = "sha256:6050917628d4740517541422b607404d044117bc31b770c4f9e9e1939a50c908"},
 ]
 
 [[package]]
@@ -1208,7 +1223,7 @@ name = "playwright"
 version = "1.51.0"
 requires_python = ">=3.9"
 summary = "A high-level API to automate web browsers"
-groups = ["default"]
+groups = ["test"]
 dependencies = [
     "greenlet<4.0.0,>=3.1.1",
     "pyee<13,>=12",
@@ -1228,7 +1243,7 @@ name = "pluggy"
 version = "1.5.0"
 requires_python = ">=3.8"
 summary = "plugin and hook calling mechanisms for python"
-groups = ["default", "test"]
+groups = ["test"]
 files = [
     {file = "pluggy-1.5.0-py3-none-any.whl", hash = "sha256:44e1ad92c8ca002de6377e165f3e0f1be63266ab4d554740532335b9d75ea669"},
     {file = "pluggy-1.5.0.tar.gz", hash = "sha256:2cffa88e94fdc978c4c574f15f9e59b7f4201d439195c3715ca9e2486f1d0cf1"},
@@ -1420,7 +1435,7 @@ name = "pyee"
 version = "12.1.1"
 requires_python = ">=3.8"
 summary = "A rough port of Node.js's EventEmitter to Python with a few tricks of its own"
-groups = ["default"]
+groups = ["test"]
 dependencies = [
     "typing-extensions",
 ]
@@ -1482,7 +1497,7 @@ name = "pytest"
 version = "8.3.5"
 requires_python = ">=3.8"
 summary = "pytest: simple powerful testing with Python"
-groups = ["default", "test"]
+groups = ["test"]
 dependencies = [
     "colorama; sys_platform == \"win32\"",
     "exceptiongroup>=1.0.0rc8; python_version < \"3.11\"",
@@ -1517,7 +1532,7 @@ name = "pytest-asyncio"
 version = "0.26.0"
 requires_python = ">=3.9"
 summary = "Pytest support for asyncio"
-groups = ["default", "test"]
+groups = ["test"]
 dependencies = [
     "pytest<9,>=8.2",
     "typing-extensions>=4.12; python_version < \"3.10\"",
@@ -1532,7 +1547,7 @@ name = "pytest-base-url"
 version = "2.1.0"
 requires_python = ">=3.8"
 summary = "pytest plugin for URL based testing"
-groups = ["default"]
+groups = ["test"]
 dependencies = [
     "pytest>=7.0.0",
     "requests>=2.9",
@@ -1562,7 +1577,7 @@ name = "pytest-playwright-asyncio"
 version = "0.7.0"
 requires_python = ">=3.9"
 summary = "A pytest wrapper with async fixtures for Playwright to automate web browsers"
-groups = ["default"]
+groups = ["test"]
 dependencies = [
     "playwright>=1.18",
     "pytest-asyncio>=0.24.0",
@@ -1630,7 +1645,7 @@ name = "python-slugify"
 version = "8.0.4"
 requires_python = ">=3.7"
 summary = "A Python slugify application that also handles Unicode"
-groups = ["default"]
+groups = ["default", "test"]
 dependencies = [
     "text-unidecode>=1.3",
 ]
@@ -1710,7 +1725,7 @@ name = "requests"
 version = "2.32.3"
 requires_python = ">=3.8"
 summary = "Python HTTP for Humans."
-groups = ["default"]
+groups = ["default", "test"]
 dependencies = [
     "certifi>=2017.4.17",
     "charset-normalizer<4,>=2",
@@ -1938,7 +1953,7 @@ files = [
 name = "text-unidecode"
 version = "1.3"
 summary = "The most basic Text::Unidecode port"
-groups = ["default"]
+groups = ["default", "test"]
 files = [
     {file = "text-unidecode-1.3.tar.gz", hash = "sha256:bad6603bb14d279193107714b288be206cac565dfa49aa5b105294dd5c4aab93"},
     {file = "text_unidecode-1.3-py2.py3-none-any.whl", hash = "sha256:1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8"},
@@ -2013,7 +2028,7 @@ name = "urllib3"
 version = "2.4.0"
 requires_python = ">=3.9"
 summary = "HTTP library with thread-safe connection pooling, file post, and more."
-groups = ["default"]
+groups = ["default", "test"]
 files = [
     {file = "urllib3-2.4.0-py3-none-any.whl", hash = "sha256:4e16665048960a0900c702d4a66415956a584919c03361cac9f1df5c5dd7e813"},
     {file = "urllib3-2.4.0.tar.gz", hash = "sha256:414bc6535b787febd7567804cc015fee39daab8ad86268f1310a9250697de466"},
