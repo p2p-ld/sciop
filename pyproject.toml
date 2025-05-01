@@ -56,7 +56,11 @@ license = {text = "EUPL-1.2"}
 sciop = "sciop.cli.main:_main"
 
 [project.optional-dependencies]
+docs = [
+    "sciop-cli>=0.1.4",
+]
 test = [
+    "sciop[docs]",
     "pytest>=8.3.4",
     "httpx>=0.28.1",
     "pytest-asyncio>=0.25.3",
@@ -74,9 +78,7 @@ dev = [
     "black>=25.1.0",
     "watchfiles>=1.0.4",
 ]
-docs = [
-    "sciop-cli>=0.1.4",
-]
+
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
