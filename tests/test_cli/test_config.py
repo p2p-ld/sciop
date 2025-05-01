@@ -1,4 +1,5 @@
 from pathlib import Path
+from textwrap import dedent
 
 import pytest
 import yaml
@@ -63,6 +64,46 @@ def test_config_set(tmp_config, tmp_path):
     config = Config()
     assert config.base_url == "newtest"
     assert config.logs.level == "INFO"
+
+
+def test_config_set_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """
+    Setting a config value from the cli roundtrips any formatting in the file as well
+    """
+    monkeypatch.chdir(tmp_path)
+    cfg = dedent(
+        """
+    # making a very informative comment
+    env: dev
+    db: ./test.sqlite
+    base_url: test
+    
+    # logging config
+    logs:
+      level: DEBUG
+    """
+    )
+    with open(tmp_path / "sciop.yaml", "w") as f:
+        f.write(cfg)
+
+    runner = CliRunner()
+    result = runner.invoke(config_set, ["base_url=newtest", "logs.level=INFO"])
+    assert result.exit_code == 0
+    with open(tmp_path / "sciop.yaml") as f:
+        cfg = f.read()
+
+    expected = dedent(
+        """    # making a very informative comment
+    env: dev
+    db: ./test.sqlite
+    base_url: newtest
+    
+    # logging config
+    logs:
+      level: INFO
+    """
+    )
+    assert cfg == expected
 
 
 def test_config_copy(tmp_path):
