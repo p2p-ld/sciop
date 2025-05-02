@@ -1,0 +1,36 @@
+name: Feature Request
+description: I want sciop to do something new!
+labels: ["Kind/Feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before raising an feature request, please search for other related issues 
+        to ensure this isn't a duplicate <3
+        
+        ![](https://sciop.net/static/img/issue-header.png)
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: |
+        Briefly describe the request in 1-2 sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: |
+        Pitch the reason for the feature! Provide background, context, etc.
+        to understand why this feature is important to you.
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: |
+        Describe what you'd like to happen!
+    validations:
+      required: true
