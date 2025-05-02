@@ -1,0 +1,35 @@
+name: Bug
+description: Something doesn't work!
+title: "[bug]: "
+labels: ["Kind/Bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before raising an bug report, please search for other related issues 
+        to ensure this isn't a duplicate <3
+        
+        ![](https://sciop.net/static/img/issue-header.png)
+  - type: textarea
+    id: cause
+    attributes:
+      label: Cause
+      description: |
+        What did you to do cause the unexpected behavior?
+        Please provide enough detail that we can independently reproduce the issue
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: |
+        What went wrong? What should have happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: fix
+    attributes:
+      label: Suggested Fix
+      description: |
+        If you have a specific suggestion about how this bug should be fixed, include it here.
