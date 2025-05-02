@@ -130,6 +130,7 @@ class SearchableMixin(SQLModel):
         # but can't figure out how to do that safely with bound params instead of
         # literal string interpolation
         query = query.replace("-", "*")
+        query = query.replace(".", "*")
 
         where_clause = text(f"{cls.fts_table_name()} = :query").bindparams(query=query)
         return select(
