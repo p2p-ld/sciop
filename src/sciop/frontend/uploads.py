@@ -46,7 +46,7 @@ async def uploads_search(
     if search.should_redirect():
         response.headers["HX-Replace-Url"] = f"{search.to_query_str()}"
     else:
-        response.headers["HX-Replace-Url"] = "/datasets/"
+        response.headers["HX-Replace-Url"] = "/uploads/"
 
     return paginate(conn=session, query=stmt)
 
