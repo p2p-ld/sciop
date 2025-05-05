@@ -60,7 +60,7 @@ async def size_5tb(session: SessionDep) -> RSSResponse:
         select(Upload)
         .filter(
             Upload.is_visible == True,
-            Upload.size >= 5 * (2**40),  # over 5TiB
+            Upload.size <= 5 * (2**40),  # over 5TiB
         )
         .order_by(Upload.created_at.desc())
         .limit(500)
