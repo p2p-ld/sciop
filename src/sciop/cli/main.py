@@ -1,5 +1,6 @@
 import click
 
+from sciop.cli.config import cli_config
 from sciop.cli.docs import docs
 from sciop.cli.generate import generate
 from sciop.cli.maintain import maintain
@@ -17,6 +18,7 @@ def _main() -> None:
     main(max_content_width=100)
 
 
+main.add_command(cli_config, "config")
 main.add_command(docs, "docs")
 main.add_command(generate, "generate")
 main.add_command(start, "start")

@@ -5,7 +5,7 @@ from sqlmodel import select
 
 from sciop import crud
 from sciop.api.deps import RawSessionDep
-from sciop.config import config
+from sciop.config import InstanceRule, config
 from sciop.models import SiteStats, SiteStatsRead
 
 instance_router = APIRouter(prefix="/instance")
@@ -32,3 +32,11 @@ async def get_stats_latest(session: RawSessionDep = None) -> SiteStatsRead:
     if stats is None:
         raise HTTPException(404, detail="Site stats have not been computed")
     return stats
+
+
+@instance_router.get("/rules")
+async def get_rules() -> list[InstanceRule]:
+    """
+    Get the rules for the instance
+    """
+    return config.instance.rules

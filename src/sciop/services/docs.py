@@ -53,6 +53,8 @@ def build_docs(
         return
 
     cfg = mkdocs_config.load_config(config_file=str(config_file))
+    # expose instance config to mkdocs
+    cfg.extra["instance_config"] = config.instance
 
     # if testing, don't bother with the git blame plugin, which is surprisingly expensive
     if config.env == "test":
@@ -63,6 +65,9 @@ def build_docs(
     cfg.site_url = urljoin(config.external_url, "/docs")
 
     logger.debug("Building docs...")
-    build.build(cfg, dirty=not clean)
+    try:
+        build.build(cfg, dirty=not clean)
+    except Exception as e:
+        logger.error(f"Failed to build docs: {e}")
     logger.debug("Completed building docs")
     return output_dir

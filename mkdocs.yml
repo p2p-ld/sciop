@@ -67,6 +67,7 @@ nav:
       - examples/uploading.md
   - Running:
       - running/index.md
+      - running/cli.md
       - running/maintenance.md
   - Developers:
       - develop/index.md
@@ -113,9 +114,14 @@ site_url: https://sciop.net/docs/
 
 markdown_extensions:
   - admonition
+  - attr_list
   - footnotes
   - md_in_html
+  - mkdocs-click
   - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.snippets:
       base_path: ["docs/"]
   - pymdownx.superfences:
@@ -123,9 +129,16 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  - tables
+  - toc:
+      permalink: true
 
 plugins:
-  - git-authors
+  - autorefs
+  - git-authors:
+      enabled: true
+      show_email_address: false
+  - macros
   - mkdocstrings:
       default_handler: python
       handlers:

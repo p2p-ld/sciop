@@ -1,0 +1,16 @@
+name: General
+about: Anything Else!
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Idle questions and suggestions are welcome :)
+        Please use the specific templates for raising bug reports or feature requests.
+        
+        ![](https://sciop.net/static/img/issue-header.png)
+  - type: textarea
+    id: general-body
+    attributes:
+      label: General Question or Comment
+    validations:
+      required: true

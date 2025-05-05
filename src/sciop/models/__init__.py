@@ -26,6 +26,7 @@ from sciop.models.account import (
     TokenPayload,
 )
 from sciop.models.api import SearchPage, SearchParams, SuccessResponse
+from sciop.models.counter import HitCount
 from sciop.models.dataset import (
     Dataset,
     DatasetCreate,
@@ -89,6 +90,7 @@ __all__ = [
     "ExternalSource",
     "FileInTorrent",
     "FileInTorrentCreate",
+    "HitCount",
     "MagnetLink",
     "ModerationAction",
     "Scope",

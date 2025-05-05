@@ -1,5 +1,24 @@
 # Formatting an Upload
 
+## General Considerations
+
+The major considerations before creating the torrent are:
+
+- **What's the total size of the data?** - 
+  Torrents work best on batches of data that are smaller than ~1-2 TiB.
+  The largest torrents that we've ever seen have been ~18TiB.
+  If your dataset is larger than a few TiB, consider breaking it into several torrents
+  along some logical subdivision of the data using [dataset parts](../using/browsing.md#dataset-parts)
+- **What are the distribution of file sizes?** -
+  Hybrid torrents in particular incur a lot of overhead when there are a few 
+  very large files that are a few orders of magnitude larger than many very small files.
+  Consider zipping/archiving directories of small files together
+- **How many files are in the data?** - 
+  Many torrent clients get sluggish when handling torrents with ~hundreds of thousands
+  to millions of files. 
+  Again consider zipping small files or breaking a dataset into multiple torrents.
+
+
 ### Structure: 
 
 * Datasets should preserve the original file structure of the archive.

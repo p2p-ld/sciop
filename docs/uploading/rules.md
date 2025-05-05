@@ -1,13 +1,7 @@
 # Rules
 
-- No illegal content
-- This includes classified information, as well as anything copyrighted.
-- Uploads should contain the data that they say they do.
+{% for rule in config.extra.instance_config.rules %}
+## {{ rule.title }}
 
-
-<div class="big-emphasis" markdown="1">
-
-*this a placeholder, help us out by [making a pull request](/docs/develop/contributing/)
-to improve the docs <3*
-
-</div>
+{{ rule.description }}
+{% endfor %} 

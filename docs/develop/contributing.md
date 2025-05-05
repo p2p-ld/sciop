@@ -127,15 +127,24 @@ pip install -e .
 
 ## Running `sciop` in dev mode
 
-Create a configuration starting from the sample:
+!!! note
+    
+    For `sciop` cli commands that don't have a pdm alias when using pdm,
+    just prepend `pdm run` like `pdm run sciop start` 
+
+
+Create a configuration:
 
 ```shell
-cp .env.sample .env
-nano .env
-# or your favorite editor, whatevs
+sciop config copy
 ```
 
+!!! tip
+
+    See all available options and syntax in the full [config](../python/config.md) documentation
+
 Two fields *must* be set:
+
 - `SCIOP_ENV`: one of `dev`, `test` or `prod`. 
   One should *only* make a sciop instance publicly available in `prod` mode.
   `dev` mode is for local development purposes, as is `test`.
@@ -156,7 +165,7 @@ pdm run start
 **with `pip`**
 
 ```shell
-sciop
+sciop start
 ```
 
 You can then login with the default root credentials:
@@ -279,6 +288,20 @@ Migrations can be tested with pytest
 python -m pytest tests/test_migrations.py
 # or
 pdm run pytest tests/test_migrations.py
+```
+
+To test trickier migrations, you might want to create a version of the db in the previous state
+to compare what happens after the migration.
+
+```shell
+rm db.dev.sqlite
+git switch main
+pdm run start
+
+# wait for startup... then quit
+
+git switch {feature-branch}
+pdm run migrate
 ```
 
 ## Writing Docs

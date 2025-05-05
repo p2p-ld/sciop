@@ -1,0 +1,9 @@
+{% macro counter(count, padding=12) %}
+{% set count= count | string %}
+{% set count=count.zfill(padding) %}
+<div class="hit-counter">
+{% for number in count -%}
+  <span class="hit-counter-number">{{ number }}</span>
+{%- endfor %}
+</div>
+{% endmacro %}

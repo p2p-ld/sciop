@@ -1,6 +1,8 @@
+import re
 from types import UnionType
-from typing import Annotated, Union, get_args, get_origin
+from typing import Annotated, Any, Union, get_args, get_origin
 
+from pydantic import BaseModel, TypeAdapter
 from pydantic.fields import FieldInfo
 
 
@@ -41,3 +43,26 @@ def get_model_field(field: FieldInfo) -> FieldInfo:
         if len(maybe_field) > 0:
             return maybe_field[0]
     return field
+
+
+def validate_field(key: str, val: Any, model: type[BaseModel]) -> Any:
+    """
+    Validate a field within a pydantic model.
+
+    key can be the name of a top-level, scalar key,
+    or a nested key with "." as a delimiter
+    """
+    parts = re.split(r"(?<!\\)\.", key)
+    mod = model
+    for part in parts[:-1]:
+        part = re.sub(r"\\\.", ".", part)
+        if part not in mod.model_fields:
+            raise KeyError(f"Model {mod} has no such field {part}")
+        field = get_model_field(mod.model_fields[part])
+        mod = unwrap(field.annotation)
+    last_part = re.sub(r"\\\.", ".", parts[-1])
+    if last_part not in mod.model_fields:
+        raise KeyError(f"Model {mod} has no such field {last_part}")
+    field = get_model_field(mod.model_fields[last_part])
+    adapter = TypeAdapter(field.annotation)
+    return adapter.validate_python(val)

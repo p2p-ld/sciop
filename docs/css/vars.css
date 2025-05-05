@@ -5,6 +5,8 @@
    --md-primary-fg-color--dark:         color-mix(in lch, var(--md-primary-fg-color) 80%, black);
   /*when to break and hide the left navbar*/
   --breakpoint-narrow: 50em;
+  --color-caution: #ff1744;
+  --color-good: #00c853;
 }
 
 [data-md-color-scheme="sciop-dark"] {
