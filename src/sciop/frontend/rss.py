@@ -33,8 +33,9 @@ async def all_feed(session: SessionDep) -> RSSResponse:
     )
     return RSSResponse(feed)
 
+
 @rss_router.get("/size/lt/1tb.rss")
-async def size_1tb(session: SessionDep) -> RSSResponse:
+async def size_lt_1tb(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .filter(
@@ -55,7 +56,7 @@ async def size_1tb(session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/size/lt/5tb.rss")
-async def size_5tb(session: SessionDep) -> RSSResponse:
+async def size_lt_5tb(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .filter(
@@ -74,8 +75,9 @@ async def size_5tb(session: SessionDep) -> RSSResponse:
     )
     return RSSResponse(feed)
 
+
 @rss_router.get("/size/gt/1tb.rss")
-async def size_1tb(session: SessionDep) -> RSSResponse:
+async def size_gt_1tb(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .filter(
@@ -96,7 +98,7 @@ async def size_1tb(session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/size/gt/5tb.rss")
-async def size_5tb(session: SessionDep) -> RSSResponse:
+async def size_gt_5tb(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .filter(
