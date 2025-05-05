@@ -1,6 +1,7 @@
 {% extends "layouts/default.html" %}
 {% from 'macros/dataset.html' import dataset_collapsible %}
 {% from 'macros/stats.html' import site_stats %}
+{% from 'macros/counter.html' import counter %}
 {% block container_class %}text-container{% endblock %}
 {% block content %}
 <div class="site-index">
@@ -56,6 +57,9 @@
             </div>
         </div>
     </div>
+    {% if hit_count %}
+    {{ counter(hit_count) }}
+    {% endif %}
 </div>
 
 

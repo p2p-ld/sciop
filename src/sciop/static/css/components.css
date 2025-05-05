@@ -550,3 +550,20 @@ progress::-moz-progress-bar {
 .collapsible-table .page-type {
   display: none;
 }
+
+.hit-counter {
+  margin-top: 1em;
+  margin-left: auto;
+  position: absolute;
+  right: 0;
+  border: 5px ridge var(--color-border);
+  font-family: var(--font-mono);
+
+  .hit-counter-number {
+    padding: 2px 3px;
+    background: linear-gradient(var(--color-background), var(--color-background-shade), var(--color-background));
+    transform: skew(-10deg) scaleY(90%);
+    display: inline-block;
+    color: var(--color-link);
+  }
+}
