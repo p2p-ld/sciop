@@ -33,6 +33,46 @@ async def all_feed(session: SessionDep) -> RSSResponse:
     )
     return RSSResponse(feed)
 
+@rss_router.get("/size/lt/1tb.rss")
+async def size_1tb(session: SessionDep) -> RSSResponse:
+    stmt = (
+        select(Upload)
+        .filter(
+            Upload.is_visible == True,
+            Upload.size <= 2**40,  # over 1TB
+        )
+        .order_by(Upload.created_at.desc())
+        .limit(MAX_FEED_ITEMS)
+    )
+    uploads = session.exec(stmt).all()
+    feed = TorrentFeed.from_uploads(
+        title="Sciop: <1TiB",
+        description="All uploads less than 1TiB",
+        link=urljoin(f"{config.base_url}", "/size/lt/1tb.rss"),
+        uploads=uploads,
+    )
+    return RSSResponse(feed)
+
+
+@rss_router.get("/size/lt/5tb.rss")
+async def size_5tb(session: SessionDep) -> RSSResponse:
+    stmt = (
+        select(Upload)
+        .filter(
+            Upload.is_visible == True,
+            Upload.size >= 5 * (2**40),  # over 5TiB
+        )
+        .order_by(Upload.created_at.desc())
+        .limit(500)
+    )
+    uploads = session.exec(stmt).all()
+    feed = TorrentFeed.from_uploads(
+        title="Sciop: <5TiB",
+        description="All uploads less than 5TiB",
+        link=urljoin(f"{config.base_url}", "/size/lt/5tb.rss"),
+        uploads=uploads,
+    )
+    return RSSResponse(feed)
 
 @rss_router.get("/size/gt/1tb.rss")
 async def size_1tb(session: SessionDep) -> RSSResponse:
@@ -48,8 +88,8 @@ async def size_1tb(session: SessionDep) -> RSSResponse:
     uploads = session.exec(stmt).all()
     feed = TorrentFeed.from_uploads(
         title="Sciop: >1TiB",
-        description="All uploads over 1TiB uploads",
-        link=urljoin(f"{config.base_url}", "/size/1tb.rss"),
+        description="All uploads over 1TiB",
+        link=urljoin(f"{config.base_url}", "/size/gt/1tb.rss"),
         uploads=uploads,
     )
     return RSSResponse(feed)
@@ -69,8 +109,8 @@ async def size_5tb(session: SessionDep) -> RSSResponse:
     uploads = session.exec(stmt).all()
     feed = TorrentFeed.from_uploads(
         title="Sciop: >5TiB",
-        description="All uploads over 5TiB uploads",
-        link=urljoin(f"{config.base_url}", "/size/5tb.rss"),
+        description="All uploads over 5TiB",
+        link=urljoin(f"{config.base_url}", "/size/gt/5tb.rss"),
         uploads=uploads,
     )
     return RSSResponse(feed)
