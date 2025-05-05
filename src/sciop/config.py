@@ -29,6 +29,11 @@ DEFAULT_DB_LOCATIONS = {
 }
 
 
+class InstanceRule(BaseModel):
+    title: str
+    description: str
+
+
 class InstanceConfig(BaseModel):
     """
     Configuration for the public-facing parts of this instance
@@ -36,6 +41,9 @@ class InstanceConfig(BaseModel):
 
     contact_email: Optional[EmailStr] = Field(
         default=None, description="Email to list as contact in page footer"
+    )
+    rules: list[InstanceRule] = Field(
+        default_factory=list, description="Site rules to display in the docs"
     )
 
     @property
