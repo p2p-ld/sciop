@@ -230,12 +230,13 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
     def size(self) -> int:
         return self.torrent.total_size
 
-    @size.inplace.expression
     @classmethod
+    @size.inplace.expression
     def _size(cls) -> SQLColumnExpression[int]:
         return (
             select(TorrentFile.total_size)
             .where(TorrentFile.upload_id == cls.upload_id)
+            .correlate(cls)
             .label("size")
         )
 
@@ -342,6 +343,14 @@ class UploadRead(UploadBase, TableReadMixin):
         if value is not None:
             value = value.slug
         return value
+
+    @property
+    def magnet_link(self) -> str:
+        return self.torrent.magnet_link
+
+    @property
+    def size(self) -> int:
+        return self.torrent.total_size
 
 
 class UploadCreate(UploadBase):

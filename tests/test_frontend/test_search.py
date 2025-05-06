@@ -179,17 +179,18 @@ async def test_sort_enum(items, page: Page, run_server_module):
     await expect(first).to_have_class("dataset-threat threat-dot threat-extinct")
 
 
+@pytest.mark.parametrize("field", ("file_name", "size"))
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.playwright
-async def test_sort_joined(items, page: Page, run_server_module):
+async def test_sort_joined(field, items, page: Page, run_server_module):
     """
     We can sort joined fields like upload file_name
     """
     await page.goto("http://127.0.0.1:8080/uploads/")
-    col = page.locator('.sort-link[data-col="file_name"]')
+    col = page.locator(f'.sort-link[data-col="{field}"]')
     first = page.locator(".collapsible-table .collapsible:first-child .upload-title")
     last = page.locator(".collapsible-table .collapsible:last-child .upload-title")
-    names = sorted([ul.file_name for ul in items[0]])
+    names = [ul.file_name for ul in sorted(items[0], key=lambda x: getattr(x, field))]
 
     await col.click()
 

@@ -224,7 +224,11 @@
         {% if review %}
         {{ review_buttons(upload, config) }}
         {% else %}
-        <a class="icon-link download-link" href="{{ upload.download_path }}" aria-label="Download" title="Download">⬇️
+        <a class="icon-link download-link" href="{{ upload.download_path }}" aria-label="Download" title="Download .torrent">
+            <img class="icon download-icon" src="/static/img/download.svg" alt="Download icon"/>️
+        </a>
+        <a class="icon-link magnet-link neutral" href="{{ upload.magnet_link }}" aria-label="Magnet link" title="Download with magnet link">
+          <img class="icon magnet-icon" src="/static/img/magnet.svg" alt="Magnet icon"/>
         </a>
         {% endif %}
     </summary>

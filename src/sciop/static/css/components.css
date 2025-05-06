@@ -445,7 +445,10 @@ body.light-theme {
   background-color: var(--color-link);
   border: 1px solid var(--color-primary-shade-3);
   border-radius: 3px;
-  &.download-link {
+
+  &.download-link,
+  &.magnet-link
+  {
     background-color: unset;
     border: unset;
   }
