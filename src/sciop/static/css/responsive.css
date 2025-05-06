@@ -109,7 +109,9 @@
 			.upload-size {
 				grid-column: 4/4;
 			}
-			&>.download-link {
+			&>.download-link,
+			&>.magnet-link
+			{
 				display: none;
 			}
 			&>.upload-size, &>.seeders .seeders-number, &>.downloaders .downloaders-number,

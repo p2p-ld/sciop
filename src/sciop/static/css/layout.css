@@ -99,7 +99,7 @@ table {
 }
 
 .uploads-table {
-  --item-cols: 1em 5em 7fr 5em 3em 3em 4em 1em;
+  --item-cols: 1em 5em 7fr 5em 3em 3em 4em 1em 1em;
   display: grid;
 
   &.review {
@@ -110,7 +110,7 @@ table {
     .seeders-icon, .downloaders-icon {
       text-align: center;
     }
-    --item-cols: 1em 5em 7fr 5em 3.5em 3.5em 5.5em;
+    --item-cols: 1em 5em 7fr 5em 3.5em 3.5em 6.5em;
   }
 
 }
@@ -406,9 +406,6 @@ table {
     box-sizing: border-box;
     padding: 0.2em;
     &:hover {
-      img {
-        filter: saturate(0) brightness(100);
-      }
       span {
         color: var(--color-primary-contrast)
       }
@@ -430,8 +427,43 @@ table {
     min-width: var(--height);
   }
 }
-body.light-theme .download-container {
-  a:hover img.download-icon {
-    filter: saturate(0) brightness(0);
+
+img.download-icon,
+img.magnet-icon
+{
+  transition: filter 0.15s ease-out;
+}
+
+a:hover > img.download-icon,
+a:hover > img.magnet-icon{
+  filter: saturate(0%) brightness(200%);
+}
+
+
+
+a:hover {
+  &:has(img.download-icon),
+  &:has(img.magnet-icon)
+  {
+    cursor: pointer;
+    transition: background-color 0.15s ease-out;
+  }
+  &:has(img.download-icon) {
+    cursor: pointer;
+    background-color: var(--color-primary);
+  }
+
+  &:has(img.magnet-icon) {
+    cursor: pointer;
+    background-color: var(--color-neutral);
   }
 }
+
+body.light-theme {
+  a:hover > img.download-icon,
+  a:hover > img.magnet-icon
+  {
+    filter: saturate(0%) brightness(0%);
+  }
+}
+
