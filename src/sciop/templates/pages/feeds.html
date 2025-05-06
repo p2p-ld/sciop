@@ -66,18 +66,25 @@ RSS-capable clients.
   </details>
   <details>
     <summary><strong>Size</strong>: Feeds of torrents by size </summary>
+    <p><strong>Smaller than size</strong></p>
+    <ul>
+      {% for size, (size_title, size_int) in size_breakpoints.items() %}
+      <li>
+        <a class="rss-link icon-link" href="/rss/size/lt/{{ size }}.rss">
+        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
+        </a><strong><={{ size_title }}</strong>: Uploads smaller than {{ size_title }} in size
+      </li>
+      {% endfor %}
+    </ul>
     <p><strong>Greater than size</strong></p>
     <ul>
+      {% for size, (size_title, size_int) in size_breakpoints.items() %}
       <li>
-        <a class="rss-link icon-link" href="/rss/size/gt/1tb.rss">
+        <a class="rss-link icon-link" href="/rss/size/gt/{{ size }}.rss">
         <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
-        </a><strong>1TiB</strong>: Uploads greater than 1TiB in size
+        </a><strong>>={{ size_title }}</strong>: Uploads greater than {{ size_title }} in size
       </li>
-      <li>
-        <a class="rss-link icon-link" href="/rss/size/gt/5tb.rss">
-        <img class="icon rss-icon" src="/static/img/rss.svg" alt="RSS feed icon"/>
-        </a><strong>5TiB</strong>: Uploads greater than 5TiB in size
-      </li>
+      {% endfor %}
     </ul>
   </details>
   <details>
