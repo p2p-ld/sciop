@@ -22,7 +22,7 @@ from torf import _errors, _torrent, _utils
 from sciop.config import config
 from sciop.models.base import SQLModel
 from sciop.models.magnet import MagnetLink
-from sciop.models.mixins import EditableMixin, TableMixin
+from sciop.models.mixins import EditableMixin, SortableCol, SortMixin, TableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
 
@@ -228,8 +228,10 @@ _torrent.utils.key_exists_in_list_or_dict = _key_exists_in_list_or_dict
 _torrent.utils.assert_type = _assert_type
 
 
-class FileInTorrent(TableMixin, table=True):
+class FileInTorrent(TableMixin, SortMixin, table=True):
     """A file within a torrent file"""
+
+    __sortable__ = (SortableCol(name="path"), SortableCol(name="size"))
 
     __tablename__ = "files_in_torrent"
 
@@ -250,6 +252,10 @@ class FileInTorrent(TableMixin, table=True):
 class FileInTorrentCreate(SQLModel):
     path: str = Field(max_length=4096)
     size: int
+
+    @property
+    def human_size(self) -> str:
+        return humanize.naturalsize(self.size, binary=True)
 
 
 class FileInTorrentRead(FileInTorrentCreate):
@@ -503,10 +509,6 @@ class TorrentFileRead(TorrentFileBase):
     announce_urls: list[MaxLenURL] = Field(default_factory=list)
     seeders: Optional[int] = None
     leechers: Optional[int] = None
-
-    @field_validator("files", mode="before")
-    def flatten_files(cls, val: list[FileInTorrentRead]) -> list[str]:
-        return [v.path for v in val]
 
     @model_validator(mode="wrap")
     @classmethod

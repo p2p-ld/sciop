@@ -1,13 +1,26 @@
-{% macro page_header(request, id, columns, swap_target) %}
-<div id="{{ id }}" class="table-head">
+{% macro page_header(request, id, columns, swap_target, header_style="span") %}
+{% if header_style == "table" %}
+{% set row_elt = "tr" %}
+{% set cell_elt = "th" %}
+{% else %}
+{% set row_elt = "div" %}
+{% set cell_elt = "span" %}
+{% endif %}
+<{{ row_elt }} id="{{ id }}" class="table-head">
   {% for column in columns %}
     {% if not column.name %}
-  <span class="spacer"></span>
+  <{{ cell_elt }} class="spacer"></{{ cell_elt }}>
     {% else %}
+      {% if header_style == "table" %}
+  <{{ cell_elt }} colspan="1" scope="col">
+      {% endif %}
     {{ sort_link(request, column, swap_target=swap_target) }}
+      {% if header_style == "table" %}
+  </{{ cell_elt }}>
+      {% endif %}
     {% endif %}
   {% endfor %}
-</div>
+</{{ row_elt }}>
 {% endmacro %}
 
 {% macro sort_link(request, column, swap_target) %}

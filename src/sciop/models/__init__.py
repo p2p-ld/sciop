@@ -25,7 +25,7 @@ from sciop.models.account import (
     Token,
     TokenPayload,
 )
-from sciop.models.api import SearchPage, SearchParams, SuccessResponse
+from sciop.models.api import RaggedSearchPage, SearchPage, SearchParams, SuccessResponse
 from sciop.models.counter import HitCount
 from sciop.models.dataset import (
     Dataset,
@@ -51,6 +51,7 @@ from sciop.models.tag import DatasetTagLink, Tag, TagSummary
 from sciop.models.torrent import (
     FileInTorrent,
     FileInTorrentCreate,
+    FileInTorrentRead,
     Torrent,
     TorrentFile,
     TorrentFileCreate,
@@ -90,9 +91,11 @@ __all__ = [
     "ExternalSource",
     "FileInTorrent",
     "FileInTorrentCreate",
+    "FileInTorrentRead",
     "HitCount",
     "MagnetLink",
     "ModerationAction",
+    "RaggedSearchPage",
     "Scope",
     "Scopes",
     "SearchPage",

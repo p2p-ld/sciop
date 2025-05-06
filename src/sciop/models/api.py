@@ -6,6 +6,7 @@ from urllib.parse import quote_plus
 import sqlalchemy as sqla
 from fastapi import Query
 from fastapi_pagination import Page
+from fastapi_pagination.bases import RawParams
 from fastapi_pagination.customization import CustomizedPage, UseParams
 from fastapi_pagination.default import Params
 from pydantic import AfterValidator, BaseModel, Field, GetCoreSchemaHandler, field_validator
@@ -181,4 +182,42 @@ class SearchParams(Params):
             return None
 
 
+class RaggedPageParams(Params):
+    """
+    Page that has a smaller number of items in the first page
+    Allow "size" to be None - if size is None, use the ragged params.
+    If size is explicitly passed, use that to calculate offset, ignoring ragged params
+    """
+
+    page: int = Query(1, ge=1)
+    size: int | None = Query(None, ge=1, le=5000)
+    first_size: int = Query(100, ge=1, le=500)
+    other_size: int = Query(1000, ge=1, le=5000)
+
+    def to_raw_params(self) -> RawParams:
+        offset = None
+        if self.size:
+            if self.page is not None:
+                offset = self.size * (self.page - 1)
+            limit = self.size
+        else:
+            if self.page == 1:
+                limit = self.first_size
+            else:
+                limit = self.other_size
+                offset = self.first_size + ((self.page - 2) * self.other_size)
+
+        return RawParams(
+            limit=limit,
+            offset=offset,
+        )
+
+
+class RaggedSearchPage(RaggedPageParams, SearchParams):
+    """
+    Combination of ragged page params and search params
+    """
+
+
 SearchPage = CustomizedPage[Page[T], UseParams(SearchParams)]
+RaggedSearchPage = CustomizedPage[Page[T], UseParams(RaggedSearchPage)]

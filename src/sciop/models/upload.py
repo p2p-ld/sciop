@@ -10,7 +10,15 @@ from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship, func, select
 
 from sciop.config import config
-from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile, TorrentTrackerLink, TorrentFileRead
+from sciop.models import (
+    Account,
+    AuditLog,
+    Dataset,
+    DatasetPart,
+    TorrentFile,
+    TorrentFileRead,
+    TorrentTrackerLink,
+)
 from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixins import (
     EditableMixin,
