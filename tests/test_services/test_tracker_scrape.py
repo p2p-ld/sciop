@@ -10,6 +10,7 @@ from sqlmodel import select
 
 from sciop.models import TorrentFile, TorrentTrackerLink
 from sciop.services.tracker_scrape import (
+    ScrapeResponse,
     UDPTrackerClient,
     gather_scrapable_torrents,
     scrape_http_tracker,
@@ -214,6 +215,41 @@ async def test_scrape_http_tracker_single(tracker, monkeypatch, httpx_mock: HTTP
         assert response.seeders > 0
         assert response.completed > 0
         assert response.announce_url == tracker
+
+
+async def test_scrape_http_tracker_all(monkeypatch, httpx_mock: HTTPXMock):
+    """
+    We can scrape trackers who only return multiple infohashes by scraping all data they have
+    :param monkeypatch:
+    :param httpx_mock:
+    :return:
+    """
+    from sciop.services import tracker_scrape
+
+    tracker = "https://academictorrents.com/announce.php"
+    monkeypatch.setattr(
+        tracker_scrape.config.tracker_scraping,
+        "http_tracker_scrape_all",
+        [tracker],
+    )
+
+    httpx_mock.add_response(
+        url="https://academictorrents.com/scrape.php",
+        content=b"d5:filesd20:\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00d8:completei0e10:downloadedi0e10:incompletei0ee20:\x19V\xfbU\xa8S\xaa\xf0U\x8a \xf7Z\xdf\xcbe\x15K|jd8:completei6e10:downloadedi13e10:incompletei6ee20:\xb8\x1c\x1b\xe4\xf0\xb7\xecb.\xc9\xcb\xde%Q\xaa\xf1T}\xc3<d8:completei3e10:downloadedi1e10:incompletei4eeee",  # noqa: E501
+    )
+    infohashes = [
+        "b81c1be4f0b7ec622ec9cbde2551aaf1547dc33c",
+        "1956fb55a853aaf0558a20f75adfcb65154b7c6a",
+    ]
+    res = await scrape_http_tracker(tracker, infohashes)
+    assert len(res.errors) == 0
+    assert len(res.responses) == 2
+    assert res.responses[infohashes[0]] == ScrapeResponse(
+        infohash=infohashes[0], announce_url=tracker, seeders=3, completed=1, leechers=4
+    )
+    assert res.responses[infohashes[1]] == ScrapeResponse(
+        infohash=infohashes[1], announce_url=tracker, seeders=6, completed=13, leechers=6
+    )
 
 
 @pytest.mark.parametrize("infohashes", [["0" * 40], ["0" * 40, "1" * 40]])

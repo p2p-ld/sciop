@@ -464,8 +464,12 @@ class HTTPTrackerClient:
     async def scrape(self, infohashes: list[str]) -> ScrapeResult:
         results = ScrapeResult()
         async with httpx.AsyncClient() as client:
-            for i in range(0, len(infohashes), self.max_scrape):
-                results += await self._scrape_page(infohashes[i : i + self.max_scrape], client)
+            if self.announce_url in config.tracker_scraping.http_tracker_scrape_all:
+                self.logger.debug("Scraping ALL for %s", self.announce_url)
+                results = await self._scrape_page(infohashes, client, scrape_all=True)
+            else:
+                for i in range(0, len(infohashes), self.max_scrape):
+                    results += await self._scrape_page(infohashes[i : i + self.max_scrape], client)
 
         if len(results.responses) == 0 and len(results.errors) == 0:
             self.logger.warning(f"Got no responses for {self.announce_url}, {infohashes}")
@@ -497,12 +501,14 @@ class HTTPTrackerClient:
         full_scrape_url = cast(str, full_scrape_url)
         return full_scrape_url
 
-    async def _scrape_page(self, infohashes: list[str], client: httpx.AsyncClient) -> ScrapeResult:
+    async def _scrape_page(
+        self, infohashes: list[str], client: httpx.AsyncClient, scrape_all: bool = False
+    ) -> ScrapeResult:
         """
         Http tracker scrapes seem to handle multi-hash requests poorly,
         so we attempt doing it all in one go, but if that fails we fallback to doing it one by one
         """
-        scrape_url = self.make_scrape_url(infohashes)
+        scrape_url = self.scrape_url if scrape_all else self.make_scrape_url(infohashes)
         responses = {}
         errors = []
         try:
@@ -546,6 +552,8 @@ class HTTPTrackerClient:
 
             for ih_encoded, value in files.items():
                 infohash = ih_encoded.hex()
+                if (infohash not in infohashes) and scrape_all:
+                    continue
                 responses[infohash] = ScrapeResponse(
                     infohash=infohash,
                     announce_url=self.announce_url,
