@@ -215,9 +215,7 @@ class ScrapeConfig(JobConfig):
     so we only try and scrape from them if they are special trackers we
     really want peer information from.
     """
-    http_tracker_scrape_all: list[str] = Field(
-        default_factory=lambda: list(["https://academictorrents.com/announce.php"])
-    )
+    http_tracker_scrape_all: list[str] = Field(default_factory=list)
     """
     Announce URLs of HTTP trackers that are known to only allow scraping *all*
     torrents from a request to a `scrape` URL, rather than a subset specified by infohash.
