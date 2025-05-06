@@ -5,6 +5,7 @@ import sciop
 from sciop import crud
 from sciop.api.deps import CurrentAccount, RequireCurrentAccount, SessionDep
 from sciop.const import STATIC_DIR
+from sciop.frontend.rss import SIZE_BREAKPOINTS
 from sciop.frontend.templates import templates
 from sciop.models import DatasetCreate, HitCount
 
@@ -35,7 +36,9 @@ async def index(request: Request, session: SessionDep):
 
 @index_router.get("/feeds", response_class=HTMLResponse)
 async def feeds(request: Request):
-    return templates.TemplateResponse(request, "pages/feeds.html")
+    return templates.TemplateResponse(
+        request, "pages/feeds.html", {"size_breakpoints": SIZE_BREAKPOINTS}
+    )
 
 
 @index_router.get("/about", response_class=HTMLResponse)

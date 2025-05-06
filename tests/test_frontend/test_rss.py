@@ -1,6 +1,9 @@
+from typing import Callable
+
 import pytest
 from lxml import etree
 
+from sciop.frontend.rss import SIZE_BREAKPOINTS
 from sciop.models import TorrentFile, Upload
 
 
@@ -23,20 +26,25 @@ def seed_feed_uploads(upload, torrentfile, dataset, session) -> tuple[Upload, ..
 
 
 @pytest.fixture()
-def size_feed_uploads(upload, torrentfile, dataset, session) -> tuple[Upload, ...]:
+def size_feed_uploads(upload, torrentfile, dataset, session) -> Callable[[int], tuple[Upload, ...]]:
+
     ds = dataset()
 
-    sizes = [10 * (2**40), 5 * (2**40), 1 * (2**40), 500 * (2**30), 2**30, 1**20]
-    names = ["10tb", "5tb", "1tb", "500gb", "1gb", "1mb"]
-    uls = []
-    for name, size in zip(names, sizes):
-        t: TorrentFile = torrentfile(file_name=f"{name}.torrent")
-        t.total_size = size
-        session.add(t)
-        session.commit()
-        ul = upload(dataset_=ds, torrentfile_=t)
-        uls.append(ul)
-    return tuple(uls)
+    def _size_feed_uploads(size: int) -> tuple[Upload, ...]:
+
+        sizes = [size - 1, size, size + 1]
+        names = ["smaller", "equal", "larger"]
+        uls = []
+        for name, size in zip(names, sizes):
+            t: TorrentFile = torrentfile(file_name=f"{name}.torrent")
+            t.total_size = size
+            session.add(t)
+            session.commit()
+            ul = upload(dataset_=ds, torrentfile_=t)
+            uls.append(ul)
+        return tuple(uls)
+
+    return _size_feed_uploads
 
 
 def test_tag_feed(upload, dataset, client):
@@ -110,29 +118,39 @@ def test_low_seeds_feed(client, seed_feed_uploads):
     assert sorted(names) == sorted(["1.torrent", "5.torrent", "10.torrent"])
 
 
-def test_1tb_feed(client, size_feed_uploads, session):
+@pytest.mark.parametrize("size", SIZE_BREAKPOINTS.keys())
+def test_gt_feed(size, client, size_feed_uploads, session):
     """
-    1TB feed should include torrents larger than 1TB
+    Less-than feeds should include everything smaller than the breakpoint
     """
-    feed = client.get("/rss/size/gt/1tb.rss")
+    size_title, size_int = SIZE_BREAKPOINTS[size]
+    smaller, equal, larger = size_feed_uploads(size_int)
 
-    tree = etree.fromstring(feed.text.encode("utf-8"))
-    items = tree.findall(".//item")
-    assert len(items) == 3
-
-    names = [item.find("title").text for item in items]
-    assert sorted(names) == sorted(["10tb.torrent", "5tb.torrent", "1tb.torrent"])
-
-
-def test_5tb_feed(client, size_feed_uploads):
-    """
-    1TB feed should include torrents larger than 5TB
-    """
-    feed = client.get("/rss/size/gt/5tb.rss")
+    feed = client.get(f"/rss/size/gt/{size}.rss")
+    assert feed.status_code == 200
 
     tree = etree.fromstring(feed.text.encode("utf-8"))
     items = tree.findall(".//item")
     assert len(items) == 2
 
     names = [item.find("title").text for item in items]
-    assert sorted(names) == sorted(["10tb.torrent", "5tb.torrent"])
+    assert sorted(names) == sorted(["equal.torrent", "larger.torrent"])
+
+
+@pytest.mark.parametrize("size", SIZE_BREAKPOINTS.keys())
+def test_lt_feed(size, client, size_feed_uploads, session):
+    """
+    Less-than feeds should include everything smaller than the breakpoint
+    """
+    size_title, size_int = SIZE_BREAKPOINTS[size]
+    smaller, equal, larger = size_feed_uploads(size_int)
+
+    feed = client.get(f"/rss/size/lt/{size}.rss")
+    assert feed.status_code == 200
+
+    tree = etree.fromstring(feed.text.encode("utf-8"))
+    items = tree.findall(".//item")
+    assert len(items) == 2
+
+    names = [item.find("title").text for item in items]
+    assert sorted(names) == sorted(["smaller.torrent", "equal.torrent"])
