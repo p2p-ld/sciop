@@ -26,7 +26,7 @@ from sciop.models.mixins import EditableMixin, SortableCol, SortMixin, TableMixi
 from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
 
-if sys.version_info <= (3, 11):
+if sys.version_info < (3, 12):
     if os.name == "nt":
         from pathlib import _windows_flavour as _flavour
     else:
@@ -48,13 +48,23 @@ class TorrentVersion(StrEnum):
 
 
 class _File(Path):
-    if sys.version_info <= (3, 11):
+    if sys.version_info < (3, 12):
+        # apparently pathlib.Path didn't have __init__ before 3.12
+        # https://discuss.python.org/t/subclass-pureposixpath-typeerror-object-init-takes-exactly-one-argument-the-instance-to-initialize/51555/3
+
         _flavour: ClassVar = _flavour
         # https://codereview.stackexchange.com/q/162426
 
-    def __init__(self, path: str | Path, size: int) -> None:
-        super().__init__(path)
-        self.size = size
+        def __new__(cls, path: str | Path, size: int, *args: Any, **kwargs: Any):
+            self = Path.__new__(cls, path, *args, **kwargs)
+            self.size = size
+            return self
+
+    else:
+
+        def __init__(self, path: str | Path, size: int) -> None:
+            super().__init__(path)
+            self.size = size
 
     @property
     def path(self) -> str:
