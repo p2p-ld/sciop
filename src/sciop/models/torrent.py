@@ -1,6 +1,7 @@
 import hashlib
 import os
 import re
+import sys
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Self
@@ -25,6 +26,14 @@ from sciop.models.mixins import EditableMixin, SortableCol, SortMixin, TableMixi
 from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
 
+if sys.version_info <= (3, 11):
+    if os.name == "nt":
+        from pathlib import _windows_flavour as _flavour
+    else:
+        from pathlib import _posix_flavour as _flavour
+else:
+    _flavour = None
+
 if TYPE_CHECKING:
     from sciop.models import Upload
     from sciop.models.dataset import Account
@@ -39,6 +48,10 @@ class TorrentVersion(StrEnum):
 
 
 class _File(Path):
+    if sys.version_info <= (3, 11):
+        _flavour = _flavour
+        # https://codereview.stackexchange.com/q/162426
+
     def __init__(self, path: str | Path, size: int) -> None:
         super().__init__(path)
         self.size = size

@@ -1,3 +1,5 @@
+from time import time
+
 import pytest
 from playwright.async_api import Page, expect
 
@@ -81,7 +83,9 @@ async def test_scroll_files(torrentfile, upload, page: Page, run_server: Uvicorn
     await expect(page.locator(".file-table tr")).to_have_count(102)
     await page.locator(".file-table").evaluate("e => e.scrollTo(0, e.scrollHeight)")
     # let backend execute
-    await page.wait_for_timeout(50)
+    start = time()
+    while run_server.server_state.tasks and time() - start < 1:
+        await page.wait_for_timeout(100)
     await page.get_by_text("100.bin").scroll_into_view_if_needed()
     await expect(page.get_by_text("100.bin")).to_be_visible()
     # one of the hidden trigger elements is replaced, two more are added
