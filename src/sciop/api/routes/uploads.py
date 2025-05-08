@@ -10,13 +10,25 @@ from starlette.responses import Response
 from sciop import crud
 from sciop.api.deps import (
     CurrentAccount,
+    RaggedQueryNoCurrentUrl,
     RequireCurrentAccount,
     RequireEditableBy,
     RequireUpload,
     RequireVisibleUpload,
     SessionDep,
 )
-from sciop.models import ModerationAction, SuccessResponse, Upload, UploadRead, UploadUpdate
+from sciop.frontend.templates import jinja
+from sciop.models import (
+    FileInTorrent,
+    FileInTorrentRead,
+    ModerationAction,
+    RaggedSearchPage,
+    SuccessResponse,
+    TorrentFile,
+    Upload,
+    UploadRead,
+    UploadUpdate,
+)
 
 uploads_router = APIRouter(prefix="/uploads")
 
@@ -72,3 +84,29 @@ async def upload_delete(
         action=ModerationAction.remove,
     )
     return SuccessResponse(success=True)
+
+
+@uploads_router.get("/{infohash}/files")
+@jinja.hx("partials/files.html")
+async def upload_files(
+    infohash: str,
+    upload: RequireVisibleUpload,
+    session: SessionDep,
+    request: Request,
+    response: Response,
+    search: RaggedQueryNoCurrentUrl,
+) -> RaggedSearchPage[FileInTorrentRead]:
+    """
+    Files in a torrent file
+    """
+    stmt = (
+        select(FileInTorrent)
+        .join(FileInTorrent.torrent)
+        .where(TorrentFile.upload_id == upload.upload_id)
+        .order_by(FileInTorrent.file_in_torrent_id)
+    )
+    if search.query:
+        raise HTTPException(400, "Search query not supported for torrent files")
+    request.state.upload = upload
+    stmt = search.apply_sort(stmt, FileInTorrent)
+    return paginate(conn=session, query=stmt)

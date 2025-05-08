@@ -17,6 +17,7 @@ from sciop.models import (
     Account,
     Dataset,
     DatasetPart,
+    RaggedSearchParams,
     Scopes,
     SearchParams,
     Tag,
@@ -409,7 +410,22 @@ def parse_search_query_params_ignoring_current_url(
     return search_params
 
 
+def parse_ragged_query_params_ignoring_current_url(
+    search: Annotated[RaggedSearchParams, Query()], request: Request
+) -> SearchParams:
+    """
+    Like above, but using the ragged params model
+    this is not DRY but there isn't an elegant way to change model fields here.
+    """
+    search_params = RaggedSearchParams.from_query_params(request.query_params)
+    request.state.search_params = search_params
+    return search_params
+
+
 SearchQuery = Annotated[SearchParams, Depends(parse_search_query_params)]
 SearchQueryNoCurrentUrl = Annotated[
     SearchParams, Depends(parse_search_query_params_ignoring_current_url)
+]
+RaggedQueryNoCurrentUrl = Annotated[
+    RaggedSearchParams, Depends(parse_ragged_query_params_ignoring_current_url)
 ]

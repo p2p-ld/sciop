@@ -156,16 +156,22 @@
     <h{{ header_start + 1}}>
        Files
     </h{{ header_start + 1}}>
-    <div class="file-table scrollable">
-        {% for file in upload.torrent.files %}
-        <span class="file-name">{{ file.path }}</span>
-        <span class="file-size">{{ file.human_size }}</span>
-        {% endfor %}
+    <div id="files-container-{{ upload.infohash }}" class="files-container container bordered">
+        <div
+            hx-get="{{ config.api_prefix }}/uploads/{{ upload.infohash }}/files"
+            hx-trigger="load"
+            hx-swap="outerHTML"
+        >
+            <span class="htmx-indicator search-indicator" id="files-indicator">
+                <span>Loading files...</span>
+                <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+            </span>
+        </div>
     </div>
     <h{{ header_start + 1}}>
         Trackers
     </h{{ header_start + 1}}>
-    <div class="trackers-container container scrollable">
+    <div class="trackers-container container scrollable bordered">
     <table class="trackers-table">
         <thead>
         <tr>

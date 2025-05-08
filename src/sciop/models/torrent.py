@@ -1,10 +1,10 @@
 import hashlib
 import os
 import re
-from dataclasses import dataclass
+import sys
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Self
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generator, Optional, Self
 from urllib.parse import ParseResult, quote, urlparse, urlunparse
 
 import bencodepy
@@ -22,9 +22,17 @@ from torf import _errors, _torrent, _utils
 from sciop.config import config
 from sciop.models.base import SQLModel
 from sciop.models.magnet import MagnetLink
-from sciop.models.mixins import EditableMixin, TableMixin
+from sciop.models.mixins import EditableMixin, SortableCol, SortMixin, TableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
+
+if sys.version_info < (3, 12):
+    if os.name == "nt":
+        from pathlib import _windows_flavour as _flavour
+    else:
+        from pathlib import _posix_flavour as _flavour
+else:
+    _flavour = None
 
 if TYPE_CHECKING:
     from sciop.models import Upload
@@ -39,10 +47,28 @@ class TorrentVersion(StrEnum):
     hybrid = "hybrid"
 
 
-@dataclass
-class _File:
-    path: os.PathLike[str]
-    size: int
+class _File(Path):
+    if sys.version_info < (3, 12):
+        # apparently pathlib.Path didn't have __init__ before 3.12
+        # https://discuss.python.org/t/subclass-pureposixpath-typeerror-object-init-takes-exactly-one-argument-the-instance-to-initialize/51555/3
+
+        _flavour: ClassVar = _flavour
+        # https://codereview.stackexchange.com/q/162426
+
+        def __new__(cls, path: str | Path, size: int, *args: Any, **kwargs: Any):
+            self = Path.__new__(cls, path, *args, **kwargs)
+            self.size = size
+            return self
+
+    else:
+
+        def __init__(self, path: str | Path, size: int) -> None:
+            super().__init__(path)
+            self.size = size
+
+    @property
+    def path(self) -> str:
+        return self.as_posix()
 
 
 def _to_str(val: str | bytes) -> str:
@@ -118,7 +144,7 @@ class Torrent(Torrent_):
         """
         info = self.metainfo["info"]
         if self.mode == "singlefile":
-            yield _File(path=_to_str(info.get("name", b"")), size=self.size)
+            yield _File(_to_str(info.get("name", b"")), size=self.size)
         elif self.mode == "multifile":
 
             basedir = _to_str(info.get("name", b""))
@@ -130,7 +156,7 @@ class Torrent(Torrent_):
                 if PADFILE_PATTERN.match(path):
                     continue
                 yield _File(
-                    path=path,
+                    path,
                     size=fileinfo["length"],
                 )
 
@@ -228,8 +254,10 @@ _torrent.utils.key_exists_in_list_or_dict = _key_exists_in_list_or_dict
 _torrent.utils.assert_type = _assert_type
 
 
-class FileInTorrent(TableMixin, table=True):
+class FileInTorrent(TableMixin, SortMixin, table=True):
     """A file within a torrent file"""
+
+    __sortable__ = (SortableCol(name="path"), SortableCol(name="size"))
 
     __tablename__ = "files_in_torrent"
 
@@ -250,6 +278,10 @@ class FileInTorrent(TableMixin, table=True):
 class FileInTorrentCreate(SQLModel):
     path: str = Field(max_length=4096)
     size: int
+
+    @property
+    def human_size(self) -> str:
+        return humanize.naturalsize(self.size, binary=True)
 
 
 class FileInTorrentRead(FileInTorrentCreate):
@@ -493,7 +525,6 @@ class TorrentFileCreate(TorrentFileBase):
 
 
 class TorrentFileRead(TorrentFileBase):
-    files: list[str]
     short_hash: str = Field(
         None,
         min_length=8,
@@ -504,10 +535,6 @@ class TorrentFileRead(TorrentFileBase):
     announce_urls: list[MaxLenURL] = Field(default_factory=list)
     seeders: Optional[int] = None
     leechers: Optional[int] = None
-
-    @field_validator("files", mode="before")
-    def flatten_files(cls, val: list[FileInTorrentRead]) -> list[str]:
-        return [v.path for v in val]
 
     @model_validator(mode="wrap")
     @classmethod

@@ -1,4 +1,7 @@
 import pytest
+from playwright.async_api import Page, expect
+
+from ..fixtures.server import UvicornTestServer
 
 
 @pytest.mark.parametrize("use_hash", ["v1_infohash", "v2_infohash", "short_hash"])
@@ -58,6 +61,31 @@ def test_no_include_removed(dataset, upload, client, session):
     assert res.status_code == 200
     assert removed_infohash not in res.text
     assert approved_infohash in res.text
+
+
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.playwright
+async def test_scroll_files(torrentfile, upload, page: Page, run_server: UvicornTestServer):
+    """
+    Scrolling the file list loads more files.
+
+    Correctness of file list is tested in test_api/test_upload,
+    this just tests the interactive loading behavior.
+    """
+    tf = torrentfile(n_files=2000, total_size=2000 * (16 * 2**10))
+    ul = upload(torrentfile_=tf)
+
+    await page.goto(f"http://127.0.0.1:8080/uploads/{ul.infohash}")
+    await expect(page.locator(".file-table tbody")).to_be_visible()
+    # 102 because of the two hidden trigger elements
+    await expect(page.locator(".file-table tr")).to_have_count(102)
+    # scroll to fetch list
+    await page.get_by_text("99.bin").scroll_into_view_if_needed()
+    # wait for list items to be present
+    await page.get_by_text("100.bin").scroll_into_view_if_needed()
+    await expect(page.get_by_text("100.bin")).to_be_visible()
+    # one of the hidden trigger elements is replaced, two more are added
+    await expect(page.locator(".file-table tr")).to_have_count(1103)
 
 
 @pytest.mark.skip(reason="TODO")

@@ -1,0 +1,42 @@
+{% from "macros/pagination.html" import page_header %}
+{% if items %}
+{% set upload = request.state.upload %}
+{% if page == 1 %}
+<div id="files-sacrificial-swap-{{ upload.infohash }}">
+<table id="file-table-{{ upload.infohash }}" class="file-table">
+  <thead>
+  {{ page_header(
+      request,
+      id=upload.infohash + "-files-sort",
+      columns=models.FileInTorrent.get_sortable_cols(False),
+      swap_target="#files-sacrificial-swap-" + upload.infohash,
+      header_style="table")
+  }}
+  </thead>
+  <tbody id="file-table-body-{{ upload.infohash }}" class="">
+{% endif %}
+{% for item in items %}
+  <tr>
+    <td class="file-path" colspan="1">{{ item.path }}</td>
+    <td class="file-size" colspan="1">{{ item.human_size }}</td>
+  </tr>
+  {% if (loop.length > 250 and loop.revindex == 250) %}
+  <tr class="scroll-trigger-early"
+      hx-trigger="intersect once"
+      hx-target="#scroll-trigger-page-{{ page }}"
+      hx-get="{{ request.url.include_query_params(page = page + 1) }}"
+      hx-swap="outerHTML"
+  ></tr>
+  {% endif %}
+{% endfor %}
+  <tr id="scroll-trigger-page-{{ page }}" class="scroll-trigger"
+  hx-trigger="intersect once"
+  hx-get="{{ request.url.include_query_params(page = page + 1) }}"
+  hx-swap="outerHTML"
+  ></tr>
+{% if page == 1 %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endif %}

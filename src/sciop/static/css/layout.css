@@ -278,17 +278,46 @@ table {
   }
 }
 
-.file-table {
-  display: grid;
-  font-size: 0.9em;
-  grid-template-columns: 8fr 1fr;
-  font-family: var(--font-mono);
+.files-container {
+  .file-table,
+  .table-head {
+    font-size: 0.9em;
+  }
 
-  .file-size {
-    text-align: right
+  .file-table {
+    font-family: var(--font-mono);
+    width: 100%;
+    max-width: 100%;
+    overflow-y: scroll;
+    max-height: 50vh;
+    display: block;
+
+    thead tr {
+      display: table-row;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      vertical-align: bottom;
+      box-shadow: 0px 5px 7px var(--color-background);
+
+      .sort-link {
+        width: 100%;
+      }
+    }
+
+    .file-path {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      width: 100%;
+    }
+    .file-size {
+      text-align: right;
+      white-space: nowrap;
+    }
   }
 }
-
 .tokens-container {
   display: flex;
   flex-direction: row;
@@ -346,18 +375,19 @@ table {
 
 }
 
-.scrollable {
-  max-height: 50vh;
-  overflow-y: scroll;
-  padding-right: 1em;
-
-  &.container {
+.container {
+  &.bordered {
     padding: 0.5em;
     border: 1px solid var(--color-border);
     border-radius: 5px;
     box-shadow: inset 0 0 1.5em var(--color-background-deemphasized);
   }
+  &.scrollable {
+    max-height: 50vh;
+    overflow-y: scroll;
+  }
 }
+
 
 .trackers-table {
   width: 100%;

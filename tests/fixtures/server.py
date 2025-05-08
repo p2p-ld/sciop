@@ -103,7 +103,7 @@ async def run_server(session: Session) -> UvicornTestServer:
 
     server = UvicornTestServer(config=config)
     await server.up()
-    yield
+    yield server
     await server.down()
 
 
@@ -134,13 +134,17 @@ async def context(context: BrowserContext) -> BrowserContext:
 
 @pytest.fixture
 async def page(page: Page) -> Page:
+    """
+    This does not request run_server so that it can be agnostic to scope.
+    Request the appropriate run_server/run_server_module depending on the test
+    """
     page.set_default_navigation_timeout(10 * 1000)
     yield page
 
 
 @pytest.fixture()
 async def page_as_admin(
-    run_server: UvicornTestServer, context: BrowserContext, admin_token: "Token", page: Page
+    context: BrowserContext, admin_token: "Token", page: Page, run_server: UvicornTestServer
 ) -> Page:
     await context.add_cookies(
         [

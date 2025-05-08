@@ -10,7 +10,15 @@ from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship, func, select
 
 from sciop.config import config
-from sciop.models import Account, AuditLog, Dataset, DatasetPart, TorrentFile, TorrentTrackerLink
+from sciop.models import (
+    Account,
+    AuditLog,
+    Dataset,
+    DatasetPart,
+    TorrentFile,
+    TorrentFileRead,
+    TorrentTrackerLink,
+)
 from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixins import (
     EditableMixin,
@@ -324,7 +332,7 @@ class UploadRead(UploadBase, TableReadMixin):
     """Version of datasaet upload returned when reading"""
 
     dataset: Optional[SlugStr] = None
-    torrent: Optional["TorrentFile"] = None
+    torrent: Optional["TorrentFileRead"] = None
     seeders: Optional[int] = None
     leechers: Optional[int] = None
 
