@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Literal, Optional, Self
+from functools import cached_property
 
 from platformdirs import PlatformDirs
 from pydantic import (
@@ -45,6 +46,11 @@ class InstanceConfig(BaseModel):
     rules: list[InstanceRule] = Field(
         default_factory=list, description="Site rules to display in the docs"
     )
+    footer: str = Field(
+        "",
+        description="Footer message shown on the bottom-right of every page."
+        "Markdown is supported.",
+    )
 
     @property
     def contact_email_obfuscated(self) -> str | None:
@@ -54,6 +60,15 @@ class InstanceConfig(BaseModel):
         user, domain = self.contact_email.split("@")
         domain, tld = domain.rsplit(".", 1)
         return f"{user} [at] {domain} (dot) {tld}"
+
+    @cached_property
+    def footer_html(self) -> str:
+        # if self._footer_html is None:
+        from sciop.services.markdown import render_markdown
+
+        # self._footer_html = render_markdown(self.footer)
+        # return self._footer_html
+        return render_markdown(self.footer)
 
 
 class LogConfig(BaseModel):

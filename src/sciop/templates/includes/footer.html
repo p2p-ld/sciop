@@ -13,12 +13,7 @@
       </li>
     </ul>
     <div class="footer-id">
-      <p>
-        A project emerging from a loose collaboration within Safeguarding Research and Culture
-      </p>
-      <p>
-        With consultation from <a href="https://piracy.solutions">Peertech Industrial Concern Intl.</a>, Corporate Outreach, Waste-Metal Corrosives, & Archives Division.
-      </p>
+      {{ config.instance.footer_html | safe }}
       {% if config.instance.contact_email %}
       <p>
         Contact: <code>{{ config.instance.contact_email_obfuscated }}</code>
