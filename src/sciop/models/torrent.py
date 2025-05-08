@@ -4,7 +4,7 @@ import re
 import sys
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Self
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generator, Optional, Self
 from urllib.parse import ParseResult, quote, urlparse, urlunparse
 
 import bencodepy
@@ -49,7 +49,7 @@ class TorrentVersion(StrEnum):
 
 class _File(Path):
     if sys.version_info <= (3, 11):
-        _flavour = _flavour
+        _flavour: ClassVar = _flavour
         # https://codereview.stackexchange.com/q/162426
 
     def __init__(self, path: str | Path, size: int) -> None:

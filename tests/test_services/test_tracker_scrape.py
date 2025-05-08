@@ -181,6 +181,11 @@ async def test_scrape_http_tracker_single(tracker, monkeypatch, httpx_mock: HTTP
         "http_tracker_single_only",
         ["https://academictorrents.com/announce.php"],
     )
+    monkeypatch.setattr(
+        tracker_scrape.config.tracker_scraping,
+        "http_tracker_scrape_all",
+        [],
+    )
 
     # mock responses
     httpx_mock.add_response(
@@ -227,6 +232,11 @@ async def test_scrape_http_tracker_all(monkeypatch, httpx_mock: HTTPXMock):
     from sciop.services import tracker_scrape
 
     tracker = "https://academictorrents.com/announce.php"
+    monkeypatch.setattr(
+        tracker_scrape.config.tracker_scraping,
+        "http_tracker_single_only",
+        [],
+    )
     monkeypatch.setattr(
         tracker_scrape.config.tracker_scraping,
         "http_tracker_scrape_all",

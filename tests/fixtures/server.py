@@ -103,7 +103,7 @@ async def run_server(session: Session) -> UvicornTestServer:
 
     server = UvicornTestServer(config=config)
     await server.up()
-    yield
+    yield server
     await server.down()
 
 
