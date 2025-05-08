@@ -390,6 +390,11 @@ def _generate_upload(
     created_torrent = crud.create_torrent(
         session=session, created_torrent=created_torrent, account=uploader
     )
+    for tracker_link in created_torrent.tracker_links:
+        tracker_link.seeders = random.randint(1, 100)
+        tracker_link.leechers = random.randint(1, 100)
+    session.add(created_torrent)
+    session.commit()
 
     upload = UploadCreate(
         method="I downloaded it",
