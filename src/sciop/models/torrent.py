@@ -39,9 +39,13 @@ class TorrentVersion(StrEnum):
 
 
 class _File(Path):
-    def __init__(self, path: str | Path, size: int, *args: Any) -> None:
-        super().__init__(path, *args)
+    def __init__(self, path: str | Path, size: int) -> None:
+        super().__init__(path)
         self.size = size
+
+    @property
+    def path(self) -> str:
+        return self.as_posix()
 
 
 def _to_str(val: str | bytes) -> str:

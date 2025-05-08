@@ -137,7 +137,7 @@ class SearchParams(Params):
             params["sort"] = [params["sort"]]
         if params.get("query") == "":
             del params["query"]
-        return SearchParams(**params)
+        return cls(**params)
 
     def apply_sort(self, stmt: Select, model: type[SQLModel]) -> Select:
         if not self.sort:

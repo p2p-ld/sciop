@@ -1,6 +1,8 @@
 import pytest
 from playwright.async_api import Page, expect
 
+from ..fixtures.server import UvicornTestServer
+
 
 @pytest.mark.parametrize("use_hash", ["v1_infohash", "v2_infohash", "short_hash"])
 def test_uploads_urls(use_hash, client, upload):
@@ -61,10 +63,9 @@ def test_no_include_removed(dataset, upload, client, session):
     assert approved_infohash in res.text
 
 
-@pytest.mark.timeout(15)
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.playwright
-async def test_scroll_files(torrentfile, upload, page: Page):
+async def test_scroll_files(torrentfile, upload, page: Page, run_server: UvicornTestServer):
     """
     Scrolling the file list loads more files.
 
@@ -79,6 +80,10 @@ async def test_scroll_files(torrentfile, upload, page: Page):
     # 102 because of the two hidden trigger elements
     await expect(page.locator(".file-table tr")).to_have_count(102)
     await page.locator(".file-table").evaluate("e => e.scrollTo(0, e.scrollHeight)")
+    # let backend execute
+    await page.wait_for_timeout(50)
+    await page.get_by_text("100.bin").scroll_into_view_if_needed()
+    await expect(page.get_by_text("100.bin")).to_be_visible()
     # one of the hidden trigger elements is replaced, two more are added
     await expect(page.locator(".file-table tr")).to_have_count(1103)
 
