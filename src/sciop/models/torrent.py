@@ -371,20 +371,6 @@ class TorrentFileBase(SQLModel):
         return {link.tracker.announce_url: link for link in self.tracker_links}
 
     @property
-    def seeders(self) -> int | None:
-        seeders = [link.seeders for link in self.tracker_links if link.seeders is not None]
-        if not seeders:
-            return None
-        return max(seeders)
-
-    @property
-    def leechers(self) -> int | None:
-        leechers = [link.leechers for link in self.tracker_links if link.leechers is not None]
-        if not leechers:
-            return None
-        return max(leechers)
-
-    @property
     def n_files(self) -> int:
         return len(self.files)
 
