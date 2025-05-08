@@ -25,7 +25,13 @@ from sciop.models.account import (
     Token,
     TokenPayload,
 )
-from sciop.models.api import RaggedSearchPage, SearchPage, SearchParams, SuccessResponse
+from sciop.models.api import (
+    RaggedSearchPage,
+    RaggedSearchParams,
+    SearchPage,
+    SearchParams,
+    SuccessResponse,
+)
 from sciop.models.counter import HitCount
 from sciop.models.dataset import (
     Dataset,
@@ -96,6 +102,7 @@ __all__ = [
     "MagnetLink",
     "ModerationAction",
     "RaggedSearchPage",
+    "RaggedSearchParams",
     "Scope",
     "Scopes",
     "SearchPage",

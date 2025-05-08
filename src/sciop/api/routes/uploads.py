@@ -10,11 +10,11 @@ from starlette.responses import Response
 from sciop import crud
 from sciop.api.deps import (
     CurrentAccount,
+    RaggedQueryNoCurrentUrl,
     RequireCurrentAccount,
     RequireEditableBy,
     RequireUpload,
     RequireVisibleUpload,
-    SearchQueryNoCurrentUrl,
     SessionDep,
 )
 from sciop.frontend.templates import jinja
@@ -94,7 +94,7 @@ async def upload_files(
     session: SessionDep,
     request: Request,
     response: Response,
-    search: SearchQueryNoCurrentUrl,
+    search: RaggedQueryNoCurrentUrl,
 ) -> RaggedSearchPage[FileInTorrentRead]:
     """
     Files in a torrent file
@@ -103,7 +103,7 @@ async def upload_files(
         select(FileInTorrent)
         .join(FileInTorrent.torrent)
         .where(TorrentFile.upload_id == upload.upload_id)
-        .order_by(FileInTorrent.path)
+        .order_by(FileInTorrent.file_in_torrent_id)
     )
     if search.query:
         raise HTTPException(400, "Search query not supported for torrent files")

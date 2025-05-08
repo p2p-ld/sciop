@@ -133,15 +133,13 @@ async def context(context: BrowserContext) -> BrowserContext:
 
 
 @pytest.fixture
-async def page(page: Page) -> Page:
+async def page(run_server: UvicornTestServer, page: Page) -> Page:
     page.set_default_navigation_timeout(10 * 1000)
     yield page
 
 
 @pytest.fixture()
-async def page_as_admin(
-    run_server: UvicornTestServer, context: BrowserContext, admin_token: "Token", page: Page
-) -> Page:
+async def page_as_admin(context: BrowserContext, admin_token: "Token", page: Page) -> Page:
     await context.add_cookies(
         [
             {

@@ -1,7 +1,6 @@
 import hashlib
 import os
 import re
-from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Self
@@ -39,10 +38,10 @@ class TorrentVersion(StrEnum):
     hybrid = "hybrid"
 
 
-@dataclass
-class _File:
-    path: os.PathLike[str]
-    size: int
+class _File(Path):
+    def __init__(self, path: str | Path, size: int, *args: Any) -> None:
+        super().__init__(path, *args)
+        self.size = size
 
 
 def _to_str(val: str | bytes) -> str:
@@ -118,7 +117,7 @@ class Torrent(Torrent_):
         """
         info = self.metainfo["info"]
         if self.mode == "singlefile":
-            yield _File(path=_to_str(info.get("name", b"")), size=self.size)
+            yield _File(_to_str(info.get("name", b"")), size=self.size)
         elif self.mode == "multifile":
 
             basedir = _to_str(info.get("name", b""))
@@ -130,7 +129,7 @@ class Torrent(Torrent_):
                 if PADFILE_PATTERN.match(path):
                     continue
                 yield _File(
-                    path=path,
+                    path,
                     size=fileinfo["length"],
                 )
 

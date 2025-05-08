@@ -295,10 +295,11 @@ def _make_torrent(tmp_path: Path, **kwargs: Any) -> Torrent:
     if not file_in_torrent.is_absolute():
         file_in_torrent = tmp_path / file_in_torrent
 
-    hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
-    hash_data = hash_data.encode("utf-8")
-    with open(file_in_torrent, "wb") as f:
-        f.write(hash_data)
+    if not file_in_torrent.exists():
+        hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
+        hash_data = hash_data.encode("utf-8")
+        with open(file_in_torrent, "wb") as f:
+            f.write(hash_data)
     kwargs["path"] = file_in_torrent
 
     t = Torrent(**kwargs)
@@ -397,6 +398,7 @@ def _torrentfile(
     tmp_path: Path,
     torrent_: C[[Any, ...], Torrent],
     extra_trackers: Optional[list[str]] = None,
+    n_files: int = 1,
     account_: Account | None = None,
     session_: Session | None = None,
     **kwargs: P.kwargs,
@@ -408,10 +410,25 @@ def _torrentfile(
     if "torrent" in kwargs:
         t = kwargs.pop("torrent")
     else:
-        file_in_torrent = tmp_path / "default.bin"
-        hash_data = generator.bytes(kwargs["total_size"])
-        with open(file_in_torrent, "wb") as f:
-            f.write(hash_data)
+        if n_files == 1:
+            file_in_torrent = tmp_path / "default.bin"
+            hash_data = generator.bytes(kwargs["total_size"])
+            with open(file_in_torrent, "wb") as f:
+                f.write(hash_data)
+            kwargs["files"] = [{"path": "default.bin", "size": kwargs["total_size"]}]
+        else:
+            file_in_torrent = tmp_path
+            each_file = np.floor(kwargs["total_size"] / n_files)
+            sizes = [each_file] * n_files
+            # make last file pick up the remainder
+            sizes[-1] += kwargs["total_size"] - np.sum(sizes)
+            files = []
+            for i, size in enumerate(sizes):
+                hash_data = generator.bytes(size)
+                files.append({"path": f"{i}.bin", "size": size})
+                with open(file_in_torrent / f"{i}.bin", "wb") as f:
+                    f.write(hash_data)
+            kwargs["files"] = files
 
         t = torrent_(path=file_in_torrent)
 
@@ -437,11 +454,6 @@ def _torrentfile(
         tf.filesystem_path.parent.mkdir(exist_ok=True, parents=True)
         t.write(tf.filesystem_path, overwrite=True)
     created = crud.create_torrent(session=session_, created_torrent=tf, account=account_)
-    # for link in created.tracker_links:
-    #     link.seeders = generator.integers(0, 100)
-    #     link.leechers = generator.integers(0, 100)
-    # session_.add(created)
-    # session_.commit()
     return created
 
 

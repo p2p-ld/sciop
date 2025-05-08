@@ -213,11 +213,13 @@ class RaggedPageParams(Params):
         )
 
 
-class RaggedSearchPage(RaggedPageParams, SearchParams):
+class RaggedSearchParams(RaggedPageParams, SearchParams):
     """
     Combination of ragged page params and search params
     """
 
+    size: int | None = Query(None, ge=1, le=5000)
+
 
 SearchPage = CustomizedPage[Page[T], UseParams(SearchParams)]
-RaggedSearchPage = CustomizedPage[Page[T], UseParams(RaggedSearchPage)]
+RaggedSearchPage = CustomizedPage[Page[T], UseParams(RaggedSearchParams)]

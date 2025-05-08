@@ -169,3 +169,43 @@ def test_reject_duplicated_upload(client, upload, uploader, get_auth_header):
         assert response.status_code == 400
 
     assert "identical torrent file" in response.json()["detail"]["msg"]
+
+
+def test_files_ragged_pagination(client, upload, torrentfile):
+    """
+    Torrent files do ragged pagination:
+    When no size is specified:
+    first page is 100 files,
+    every other page is 1000 files
+
+    When a size is specified, all pages are equal
+    """
+    tf = torrentfile(n_files=2000, total_size=2000 * (16 * 2**10))
+    ul = upload(torrentfile_=tf)
+    res = client.get(config.api_prefix + f"/uploads/{ul.infohash}/files")
+    assert res.status_code == 200
+    page_1 = res.json()
+    assert len(page_1["items"]) == 100
+    assert page_1["items"][0]["path"] == "0.bin"
+    assert page_1["items"][-1]["path"] == "99.bin"
+
+    res = client.get(config.api_prefix + f"/uploads/{ul.infohash}/files/?page=2")
+    assert res.status_code == 200
+    page_2 = res.json()
+    assert len(page_2["items"]) == 1000
+    assert page_2["items"][0]["path"] == "100.bin"
+    assert page_2["items"][-1]["path"] == "1099.bin"
+
+    res = client.get(config.api_prefix + f"/uploads/{ul.infohash}/files/?size=500")
+    assert res.status_code == 200
+    page_1_sized = res.json()
+    assert len(page_1_sized["items"]) == 500
+    assert page_1_sized["items"][0]["path"] == "0.bin"
+    assert page_1_sized["items"][-1]["path"] == "499.bin"
+
+    res = client.get(config.api_prefix + f"/uploads/{ul.infohash}/files/?size=500&page=2")
+    assert res.status_code == 200
+    page_2_sized = res.json()
+    assert len(page_2_sized["items"]) == 500
+    assert page_2_sized["items"][0]["path"] == "500.bin"
+    assert page_2_sized["items"][-1]["path"] == "999.bin"
