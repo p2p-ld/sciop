@@ -1,6 +1,6 @@
+from functools import cached_property
 from pathlib import Path
 from typing import Literal, Optional, Self
-from functools import cached_property
 
 from platformdirs import PlatformDirs
 from pydantic import (
@@ -64,6 +64,7 @@ class InstanceConfig(BaseModel):
     @cached_property
     def footer_html(self) -> str:
         from sciop.services.markdown import render_markdown
+
         return render_markdown(self.footer)
 
 
