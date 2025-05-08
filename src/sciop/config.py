@@ -63,11 +63,7 @@ class InstanceConfig(BaseModel):
 
     @cached_property
     def footer_html(self) -> str:
-        # if self._footer_html is None:
         from sciop.services.markdown import render_markdown
-
-        # self._footer_html = render_markdown(self.footer)
-        # return self._footer_html
         return render_markdown(self.footer)
 
 
