@@ -123,9 +123,9 @@
                         {% set edit_url="/datasets/" + dataset.slug + "/edit" %}
                         {{ edit_button(url=edit_url, item_type="dataset", name=dataset.slug)}}
                         {% endif %}
-                        {% if dataset.editable_by(current_account) %}
-                        {% set unapprove_url="/datasets/" + dataset.slug + "/unapprove" %}
-                        {{ unapprove_button(url=unapprove_url, item_type="dataset", name=dataset.slug)}}
+                        {% if (dataset.editable_by(current_account) and dataset.is_approved) %}
+                        {% set unapprove_url="/api/v1/datasets/" + dataset.slug + "/unapprove" %}
+                        {{ unapprove_button(url=unapprove_url, item_type="dataset", name=dataset.slug) }}
                         {% endif %}
                         {% if dataset.removable_by(current_account) %}
                         {% set delete_url= config.api_prefix + "/datasets/" + dataset.slug %}

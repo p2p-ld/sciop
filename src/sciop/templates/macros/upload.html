@@ -133,8 +133,8 @@
                     {% set edit_url="/uploads/" + upload.infohash + "/edit" %}
                     {{ edit_button(url=edit_url, item_type="upload", name=upload.file_name)}}
                     {% endif %}
-                    {% if upload.editable_by(current_account) %}
-                    {% set unapprove_url="/uploads/" + upload.infohash + "/unapprove" %}
+                    {% if upload.editable_by(current_account) and upload.is_approved %}
+                    {% set unapprove_url="/api/v1/uploads/" + upload.infohash + "/unapprove" %}
                     {{ unapprove_button(url=unapprove_url, item_type="upload", name=upload.file_name)}}
                     {% endif %}
                     {% if upload.removable_by(current_account) %}
