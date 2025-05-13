@@ -13,6 +13,10 @@ Welcome to sciop, a website online.
 Choose your path:
 </p>
 
+<div class="quickstart-container">
+    <a href="quickstart/">quickstart</a>
+</div>
+
 
 <div class="index-linkbox">
 <a href="intro/overview" aria-label="Intro">

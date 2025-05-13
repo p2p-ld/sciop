@@ -58,6 +58,7 @@ sciop = "sciop.cli.main:_main"
 [project.optional-dependencies]
 docs = [
     "sciop-cli>=0.1.4",
+    "mkdocs-mermaid2-plugin>=1.2.1",
 ]
 test = [
     "sciop[docs]",
@@ -102,7 +103,7 @@ format.composite = [
     "black .",
     "ruff check --fix",
 ]
-
+docs = "mkdocs serve --dirty"
 alembic = "alembic -c ./src/sciop/migrations/alembic.ini"
 migrate = "alembic -c ./src/sciop/migrations/alembic.ini upgrade head"
 migration.composite = [
