@@ -183,3 +183,7 @@ pre.index-link {
     filter: hue-rotate(0deg);
   }
 }
+
+.mermaid {
+  text-align: center;
+}

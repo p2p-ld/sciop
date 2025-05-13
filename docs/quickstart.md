@@ -1,7 +1,8 @@
 # Quickstart
 
-I am a ... how can i help?
+I am a `{this kind of creature}` how can i help?
 
+* What the... [where am I](./intro/overview.md)?
 * I have some spare hard drives lying around but have never torrented before... 
   [Seed Anything](#seed-anything)
 * I have a big seedbox and want to let it loose for the public good... 

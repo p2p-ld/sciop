@@ -138,9 +138,10 @@ markdown_extensions:
 plugins:
   - autorefs
   - git-authors:
-      enabled: false
+      enabled: true
       show_email_address: false
   - macros
+  - mermaid2
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -180,8 +181,8 @@ plugins:
               - "!__history_meta_cols__"
               - "!rebuild_history_models"
             extensions:
-#              - griffe_fieldz:
-#                  include_inherited: true
+              - griffe_fieldz:
+                  include_inherited: true
               - griffe_inherited_docstrings
   - redirects:
       redirect_maps:
