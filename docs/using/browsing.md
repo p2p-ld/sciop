@@ -75,7 +75,7 @@ we can use **Dataset Parts**
 Dataset parts are useful for a few kinds of organization, but their meaning is not prescriptive -
 use them however they are useful!
 
-- **Subsets**, which together make up the whole dataset, like the `forest-maps` example below
+- **Subsets**, which together make up the whole dataset, like `the-forests` example below
 - **Versions**, groupings of uploads of the same thing at different periods
 - **Releases**, different editions of a dataset, like the annual dump of a dataset
 - **Formats**, if something comes as an HTML file, a PDF, a video, and so on,
@@ -85,10 +85,10 @@ use them however they are useful!
 ```mermaid
 flowchart LR
     D1(("**Dataset**
-    forest-maps")) --> DP1(["**Part 1**
-    forest-maps/boreal"]) & DP2(["**Part 2**
-    forest-maps/temperate"]) & DP3(["**Part 3**
-    forest-maps/tropical"])
+    the-forests")) --> DP1(["**Part 1**
+    the-forests/boreal"]) & DP2(["**Part 2**
+    the-forests/temperate"]) & DP3(["**Part 3**
+    the-forests/tropical"])
 ```
 
 ### All together...
@@ -101,10 +101,10 @@ and multiple uploads can exist for each.
 ```mermaid
 flowchart LR
     D1(("**Dataset**
-    forest-maps")) --> DP1(["**Part 1**
-    forest-maps/boreal"]) & DP2(["**Part 2**
-    forest-maps/temperate"]) & DP3(["**Part 3**
-    forest-maps/tropical"]) & UP4["**Upload**
+    the-forests")) --> DP1(["**Part 1**
+    the-forests/boreal"]) & DP2(["**Part 2**
+    the-forests/temperate"]) & DP3(["**Part 3**
+    the-forests/tropical"]) & UP4["**Upload**
     all-forests.torrent"] & UP5["**Upload**
     all-forests-REPACK.torrent"]
     DP1 --> UP2["**Upload**
