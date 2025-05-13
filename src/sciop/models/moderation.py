@@ -18,6 +18,8 @@ class ModerationAction(StrEnum):
     """Request some permission or action"""
     approve = "approve"
     """Approve a request - e.g. a dataset or upload request"""
+    unapprove = "unapprove"
+    """Unapprove an already accepted request - e.g. a dataset or upload request"""
     deny = "deny"
     """Deny a request, as above"""
     report = "report"

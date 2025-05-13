@@ -1,6 +1,6 @@
 {% from "macros/model-table.html" import model_table %}
 {% from "macros/tag.html" import feed_link %}
-{% from "macros/actions.html" import edit_button, delete_button %}
+{% from "macros/actions.html" import edit_button, delete_button, unapprove_button %}
 {% macro dataset_row(dataset, current_account, config, header_start=1) %}
 <div class="dataset" id="dataset-{{ dataset.slug }}">
     <div class="dataset-topmatter topmatter">
@@ -122,6 +122,10 @@
                         {% if dataset.editable_by(current_account) %}
                         {% set edit_url="/datasets/" + dataset.slug + "/edit" %}
                         {{ edit_button(url=edit_url, item_type="dataset", name=dataset.slug)}}
+                        {% endif %}
+                        {% if dataset.editable_by(current_account) %}
+                        {% set unapprove_url="/datasets/" + dataset.slug + "/unapprove" %}
+                        {{ unapprove_button(url=unapprove_url, item_type="dataset", name=dataset.slug)}}
                         {% endif %}
                         {% if dataset.removable_by(current_account) %}
                         {% set delete_url= config.api_prefix + "/datasets/" + dataset.slug %}

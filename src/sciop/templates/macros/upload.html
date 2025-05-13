@@ -1,4 +1,4 @@
-{% from "macros/actions.html" import delete_button, edit_button %}
+{% from "macros/actions.html" import delete_button, edit_button, unapprove_button %}
 {% macro upload_row(upload, current_account, config, header_start=1) %}
 <div class="upload" id="upload-{{ upload.infohash }}">
     <div class="upload-topmatter topmatter">
@@ -132,6 +132,10 @@
                     {% if upload.editable_by(current_account) %}
                     {% set edit_url="/uploads/" + upload.infohash + "/edit" %}
                     {{ edit_button(url=edit_url, item_type="upload", name=upload.file_name)}}
+                    {% endif %}
+                    {% if upload.editable_by(current_account) %}
+                    {% set unapprove_url="/uploads/" + upload.infohash + "/unapprove" %}
+                    {{ unapprove_button(url=unapprove_url, item_type="upload", name=upload.file_name)}}
                     {% endif %}
                     {% if upload.removable_by(current_account) %}
                     {% set delete_url= config.api_prefix + "/uploads/" + upload.infohash %}

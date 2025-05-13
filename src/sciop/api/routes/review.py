@@ -23,11 +23,11 @@ review_router = APIRouter()
 
 @review_router.post("/datasets/{dataset_slug}/approve")
 async def approve_dataset(
-    dataset_slug: str,
-    account: RequireReviewer,
-    session: SessionDep,
-    dataset: RequireDataset,
-    response: Response,
+        dataset_slug: str,
+        account: RequireReviewer,
+        session: SessionDep,
+        dataset: RequireDataset,
+        response: Response,
 ) -> SuccessResponse:
     dataset.is_approved = True
     session.add(dataset)
@@ -39,9 +39,27 @@ async def approve_dataset(
     return SuccessResponse(success=True)
 
 
+@review_router.post("/datasets/{dataset_slug}/unapprove")
+async def unapprove_dataset(
+        dataset_slug: str,
+        account: RequireReviewer,
+        session: SessionDep,
+        dataset: RequireDataset,
+        response: Response,
+) -> SuccessResponse:
+    dataset.is_approved = False
+    session.add(dataset)
+    session.commit()
+
+    crud.log_moderation_action(
+        session=session, actor=account, action=ModerationAction.unapprove, target=dataset
+    )
+    return SuccessResponse(success=True)
+
+
 @review_router.post("/datasets/{dataset_slug}/deny")
 async def deny_dataset(
-    dataset_slug: str, account: RequireReviewer, session: SessionDep, dataset: RequireDataset
+        dataset_slug: str, account: RequireReviewer, session: SessionDep, dataset: RequireDataset
 ) -> SuccessResponse:
     dataset.is_removed = True
     session.add(dataset)
@@ -55,13 +73,13 @@ async def deny_dataset(
 
 @review_router.post("/datasets/{dataset_slug}/{dataset_part_slug}/approve")
 async def approve_dataset_part(
-    dataset_slug: str,
-    dataset_part_slug: str,
-    account: RequireReviewer,
-    session: SessionDep,
-    dataset: RequireDataset,
-    part: RequireDatasetPart,
-    response: Response,
+        dataset_slug: str,
+        dataset_part_slug: str,
+        account: RequireReviewer,
+        session: SessionDep,
+        dataset: RequireDataset,
+        part: RequireDatasetPart,
+        response: Response,
 ) -> SuccessResponse:
     part.is_approved = True
     session.add(part)
@@ -73,14 +91,34 @@ async def approve_dataset_part(
     return SuccessResponse(success=True)
 
 
+@review_router.post("/datasets/{dataset_slug}/{dataset_part_slug}/unapprove")
+async def unapprove_dataset_part(
+        dataset_slug: str,
+        dataset_part_slug: str,
+        account: RequireReviewer,
+        session: SessionDep,
+        dataset: RequireDataset,
+        part: RequireDatasetPart,
+        response: Response,
+) -> SuccessResponse:
+    part.is_approved = False
+    session.add(part)
+    session.commit()
+
+    crud.log_moderation_action(
+        session=session, actor=account, action=ModerationAction.unapprove, target=part
+    )
+    return SuccessResponse(success=True)
+
+
 @review_router.post("/datasets/{dataset_slug}/{dataset_part_slug}/deny")
 async def deny_dataset_part(
-    dataset_slug: str,
-    dataset_part_slug: str,
-    account: RequireReviewer,
-    session: SessionDep,
-    dataset: RequireDataset,
-    part: RequireDatasetPart,
+        dataset_slug: str,
+        dataset_part_slug: str,
+        account: RequireReviewer,
+        session: SessionDep,
+        dataset: RequireDataset,
+        part: RequireDatasetPart,
 ) -> SuccessResponse:
     part.is_removed = True
     session.add(part)
@@ -94,7 +132,7 @@ async def deny_dataset_part(
 
 @review_router.post("/uploads/{infohash}/approve")
 async def approve_upload(
-    infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
+        infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
 ) -> SuccessResponse:
     upload.is_approved = True
     session.add(upload)
@@ -106,9 +144,23 @@ async def approve_upload(
     return SuccessResponse(success=True)
 
 
+@review_router.post("/uploads/{infohash}/unapprove")
+async def unapprove_upload(
+        infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
+) -> SuccessResponse:
+    upload.is_approved = False
+    session.add(upload)
+    session.commit()
+
+    crud.log_moderation_action(
+        session=session, actor=account, action=ModerationAction.unapprove, target=upload
+    )
+    return SuccessResponse(success=True)
+
+
 @review_router.post("/uploads/{infohash}/deny")
 async def deny_upload(
-    infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
+        infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
 ) -> SuccessResponse:
     upload.is_removed = True
     session.add(upload)
@@ -121,7 +173,7 @@ async def deny_upload(
 
 @review_router.post("/accounts/{username}/suspend")
 async def suspend_account(
-    username: str, account: RequireAccount, session: SessionDep, current_account: RequireAdmin
+        username: str, account: RequireAccount, session: SessionDep, current_account: RequireAdmin
 ) -> SuccessResponse:
     if account.id == current_account.id:
         raise HTTPException(403, "You cannot suspend yourself")
@@ -138,7 +190,7 @@ async def suspend_account(
 
 @review_router.post("/accounts/{username}/restore")
 async def restore_account(
-    username: str, account: RequireAnyAccount, session: SessionDep, current_account: RequireAdmin
+        username: str, account: RequireAnyAccount, session: SessionDep, current_account: RequireAdmin
 ) -> SuccessResponse:
     if account.id == current_account.id:
         raise HTTPException(403, "You cannot restore yourself")
@@ -156,11 +208,11 @@ async def restore_account(
 @review_router.put("/accounts/{username}/scopes/{scope_name}")
 @jinja.hx("partials/scope-toggle-button.html")
 async def grant_account_scope(
-    username: str,
-    scope_name: ValidScope,
-    current_account: RequireAdmin,
-    account: RequireAccount,
-    session: SessionDep,
+        username: str,
+        scope_name: ValidScope,
+        current_account: RequireAdmin,
+        account: RequireAccount,
+        session: SessionDep,
 ):
     if scope_name == "root":
         if not current_account.get_scope("root"):
@@ -190,11 +242,11 @@ async def grant_account_scope(
 @review_router.delete("/accounts/{username}/scopes/{scope_name}")
 @jinja.hx("partials/scope-toggle-button.html")
 async def revoke_account_scope(
-    username: str,
-    scope_name: ValidScope,
-    current_account: RequireAdmin,
-    account: RequireAccount,
-    session: SessionDep,
+        username: str,
+        scope_name: ValidScope,
+        current_account: RequireAdmin,
+        account: RequireAccount,
+        session: SessionDep,
 ):
     if scope_name == "root":
         if not current_account.get_scope("root"):
