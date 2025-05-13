@@ -500,7 +500,7 @@ body.light-theme {
 .site-index {
   #new-here {
     position: relative;
-    margin: 2em auto;
+    margin: 3em auto;
     padding: 1em 5em 3em 5em;
     transform: skew(-15deg) rotate(-5deg);
     border-radius: 0;
