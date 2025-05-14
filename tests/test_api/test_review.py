@@ -158,6 +158,24 @@ def test_deny_dataset_no_delete(client, dataset, session, admin_auth_header):
     assert log.action == "deny"
 
 
+def test_approve_dataset(client, dataset, session, admin_auth_header):
+    ds_ = dataset(slug="unapproved", is_approved=False)
+    res = client.post(f"{config.api_prefix}/datasets/{ds_.slug}/approve", headers=admin_auth_header)
+    assert res.status_code == 200
+    session.refresh(ds_)
+    assert ds_.is_approved
+
+
+def test_unapprove_dataset(client, dataset, session, admin_auth_header):
+    ds_ = dataset(slug="approved", is_approved=True)
+    res = client.post(
+        f"{config.api_prefix}/datasets/{ds_.slug}/unapprove", headers=admin_auth_header
+    )
+    assert res.status_code == 200
+    session.refresh(ds_)
+    assert not ds_.is_approved
+
+
 def test_deny_dataset_part_no_delete(client, dataset, session, admin_auth_header):
     ds_ = dataset(slug="unapproved", is_approved=True)
     ds_.parts.append(DatasetPart(part_slug="unapproved-part"))
