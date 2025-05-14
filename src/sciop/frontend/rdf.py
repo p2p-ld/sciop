@@ -12,7 +12,7 @@ from sciop import crud
 from sciop.api.deps import SessionDep
 from sciop.config import config
 from sciop.models.dataset import Dataset
-from sciop.types import ctype_to_suffix, suffix_to_ctype
+from sciop.types import RDFSuffixType, ctype_to_suffix, suffix_to_ctype
 
 BIBO = Namespace("http://purl.org/ontology/bibo/")
 TAGS = Namespace(f"{config.base_url}/id/tag/")
@@ -37,7 +37,7 @@ class Graph(RGraph):
         self.namespace_manager.bind("sciop", SCIOP)
 
 
-def serialise_graph(g: Graph, format: str) -> Response:
+def serialise_graph(g: Graph, format: RDFSuffixType) -> Response:
     """
     Serialises an RDF graph into an HTTP response, setting
     the content-type header correctly.
@@ -115,7 +115,7 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
 
 
 @rdf_router.get("/datasets/{slug}.{suffix}")
-async def dataset_graph(slug: str, suffix: str, session: SessionDep) -> Response:
+async def dataset_graph(slug: str, suffix: RDFSuffixType, session: SessionDep) -> Response:
     """
     Produce a dcat:Dataset from a dataset.
     """
@@ -130,7 +130,7 @@ async def dataset_graph(slug: str, suffix: str, session: SessionDep) -> Response
 
 
 @rdf_router.get("/tag/{tag}.{suffix}")
-async def tag_graph(tag: str, suffix: str, session: SessionDep) -> Response:
+async def tag_graph(tag: str, suffix: RDFSuffixType, session: SessionDep) -> Response:
     """
     Produce a dcat:Catalog from a tag. A catalog contains several datasets.
     """

@@ -22,7 +22,7 @@ People volunteering small amounts of storage to make a mighty [swarm](intro/bitt
 You don't need any special expertise! just some extra storage and some kind of computer.
 
 - Install a [bittorrent client](./using/torrenting.md)
-- [Find an upload](./using/browsing.md) - search, browse a [./using/rss.md](feed), 
+- [Find an upload](./using/browsing.md) - search, browse a [feed](./using/rss.md), 
   sort by seeders and find something that needs help!
 - Download the torrent and leave your client running. Now you're seeding!
   Every seed helps keep information alive <3.
@@ -48,7 +48,7 @@ but you can create new datasets and uploads without waiting for moderation!
 
 - [Make an account](/login/)
 - [Scrape something](./scraping/index.md)
-- [Create a dataset](./using/curating.md) (or look for datasets without uploads) to describe what you scraped
+- [Make a dataset](./using/curating.md) (or look for datasets without uploads) to describe what you scraped
 - [Make a torrent](./uploading/torrents.md)
 - Upload the torrent along with a description of what you did!
 
@@ -59,8 +59,8 @@ in addition to being a way to distribute data! (work in progress...)
 
 Datasets and dataset parts can be created without already having the upload in hand:
 
-- [Create a container dataset](./using/curating.md) that describes what a dataset is and why it is threatened
-- Optionally, create [dataset parts](./using/curating.md#using-dataset-parts) to subdivide the data into
+- [Create a container dataset](./using/browsing.md) that describes what a dataset is and why it is threatened
+- Optionally, create [dataset parts](./using/browsing.md#dataset-parts) to subdivide the data into
   smaller chunks so that people can share the work of scraping.
 - Make a thread on the [forum](https://forum.safeguar.de) to let people know that help is needed
   (soon sciop will be able to do this as well)
