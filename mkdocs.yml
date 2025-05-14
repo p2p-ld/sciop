@@ -8,6 +8,7 @@ copyright: CC BY-NC-SA 4.0
 
 nav:
   - index.md
+  - quickstart.md
   - Intro:
       - intro/overview.md
       - intro/bittorrent.md
@@ -129,6 +130,7 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tilde
   - tables
   - toc:
       permalink: true
@@ -139,6 +141,7 @@ plugins:
       enabled: true
       show_email_address: false
   - macros
+  - mermaid2
   - mkdocstrings:
       default_handler: python
       handlers:

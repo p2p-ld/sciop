@@ -50,6 +50,7 @@ body {
   --color-primary-darker-1: color-mix(in lch, var(--color-primary) 80%, var(--color-dark-background));
   --color-border: #666;
   --color-border-deemphasized: #333;
+  --color-border-emphasized: color-mix(in lch, var(--color-border) 70%, var(--color-text));
   --color-deemphasized: #888;
   --color-disabled: #404040;
   --color-alert: var(--color-threat-watchlist);
@@ -70,5 +71,7 @@ body {
     --color-primary-contrast: #000;
     --color-primary-shade-1: lch(44% 132 317);
     --color-caution-contrast: var(--color-primary-contrast);
+
+    --color-good: lch(69.29% 92.19 133.94);
   }
 }

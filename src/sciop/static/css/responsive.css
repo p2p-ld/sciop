@@ -13,6 +13,16 @@
 		}
   }
 
+	.site-index .center-column {
+		blockquote {
+			margin: 1em 1em;
+		}
+		& > p {
+			padding-left: 1em;
+			padding-right: 1em;
+		}
+	}
+
   .page-container {
 		width: 100%;
 		padding: 0 0.5em;
@@ -165,6 +175,12 @@
 	}
 
 	nav.navbar {
+		.nav-link {
+			font-size: 1em;
+		}
+		.nav-button {
+			padding: 0.25em 1em;
+		}
 		.site-title.text {
 			display: none;
 		}

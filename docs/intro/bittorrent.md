@@ -302,7 +302,7 @@ In summary:
 ### Example
 
 So, as a practical worked example: you have some data you want to share!
-First, you [create a torrent](../uploading/torrents) for it.
+First, you [create a torrent](../uploading/torrents.md) for it.
 Then you open a bittorrent client, add that torrent, and start "seeding."
 When you start seeding, you connect to a tracker and tell it that you have those files!
 Then you send the torrent to your friend and they add it to their torrent client.

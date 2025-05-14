@@ -125,3 +125,65 @@ pre.index-link {
 .good {
   color: var(--color-good);
 }
+
+.quickstart-container {
+  font-size: 4em;
+  font-weight: bold;
+  font-style: italic;
+  border: 1px solid var(--md-primary-fg-color);
+  display: flex;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 1rem;
+
+  a {
+    position: relative;
+    text-shadow: 3px 3px var(--md-default-bg-color);
+    text-decoration: underline;
+    width: 100%;
+    text-align: center;
+    &:after {
+      z-index: -1;
+      content: "quickstart";
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      width: 100%;
+      animation: rotate-hue 2s infinite;
+    }
+    &:hover {
+      background: linear-gradient(to right, rgba(255,0,0,1) 0%, rgba(255,154,0,1) 10%, rgba(208,222,33,1) 20%, rgba(79,220,74,1) 30%, rgba(63,218,216,1) 40%, rgba(47,201,226,1) 50%, rgba(28,127,238,1) 60%, rgba(95,21,242,1) 70%, rgba(186,12,248,1) 80%, rgba(251,7,217,1) 90%, rgba(255,0,0,1) 100%)
+   0 0/200% 100%;
+      /*color: var(--md-default-bg-color);*/
+      animation: rainbow 2s infinite;
+    }
+  }
+}
+
+@media screen and (prefers-reduced-motion: reduce) {
+  .quickstart-container a:after,
+  .quickstart-container a:hover {
+    animation: none;
+  }
+}
+
+@keyframes rainbow {
+  to { background-position: -200% 0 }
+}
+
+
+@keyframes rotate-hue {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(180deg);
+  }
+  100% {
+    filter: hue-rotate(0deg);
+  }
+}
+
+.mermaid {
+  text-align: center;
+}

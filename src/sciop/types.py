@@ -4,7 +4,7 @@ from enum import StrEnum
 from html import escape
 from os import PathLike as PathLike_
 from pathlib import Path
-from typing import Annotated, Optional, TypeAlias
+from typing import Annotated, Literal, Optional, TypeAlias
 
 import sqlalchemy as sqla
 from annotated_types import Gt, MaxLen, MinLen
@@ -254,6 +254,7 @@ class ExternalIdentifierType(StrEnum):
     orcid: Annotated[str, "Open Researcher and Contributor ID"] = "orcid"
 
 
+RDFSuffixType: TypeAlias = Literal["ttl", "rdf", "nt", "json"]
 suffix_to_ctype = {
     "html": "text/html",
     "xhtml": "application/xhtml+xml",
