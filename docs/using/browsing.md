@@ -27,9 +27,25 @@ flowchart LR
     the-ocean"))
 ```
 
-If a dataset hasn't been scraped yet,
+Alone, a Dataset is an identifier[^rdf] that represents and describes single "thing" or set of related "things" 
+like a set.. of data, an artistic work, a website, a whole domain, a video archive, or in this case the ocean.
+
+If a dataset hasn't been scraped and rendered as a torrent yet,
 or someone knows about it needing to be archived but doesn't have the means to do so themselves,
 it can be helpful to create a dataset and leave it open as the future space for uploads.
+
+??? info "In a federated context..."
+
+    When sciop experiences the fecundity of federation,
+    the `Dataset` will be a primary means of coordinating information between groups of people.
+  
+    Different instances may have different sets of uploads,
+    different descriptions, tags, ways of relating it to other datasets,
+    but separating the abstract `Dataset` from concrete `Upload`,
+    and clustering dataset parts as sub-identifiers under a dataset
+    is one way of making it possible to refer to the _same thing_[^uniqueness-of-qualia]
+    without needing to treat them as being *identical in content or form.* 
+
 
 ### Dataset + Upload
 
@@ -77,8 +93,8 @@ use them however they are useful!
 
 - **Subsets**, which together make up the whole dataset, like `the-forests` example below
 - **Versions**, groupings of uploads of the same thing at different periods
-- **Releases**, different editions of a dataset, like the annual dump of a dataset
-- **Formats**, if something comes as an HTML file, a PDF, a video, and so on,
+- **Releases**, different editions of a dataset, like the annual updates to a rolling dataset
+- **Formats**, if something comes as an HTML file, a PDF, a video, etc.
   dataset parts make an abbreviated namespace like `dataset-name / pdf`
 - **...** and so on
 
@@ -123,7 +139,7 @@ flowchart LR
 In the future we will add additional layers for arbitrary metadata relationships
 between datasets, parts, and torrents, but for now they are constrained to this
 hierarchy and set of terms. That will let us do interesting things like
-share peers and files between multiple torrents, mutable torrents, and so on,
+share peers and files between multiple torrents and mutable torrents
 but that's still in the future...
 
 
@@ -181,3 +197,13 @@ profile page linked from their items.
 !!! warning
 
     Enumerating all accounts is currently not possible, and likely will not be.
+
+
+[^rdf]: Properly, a dataset is currently identified as its URI, `{domain}/datasets/{slug}`.
+    This identifier should be considered as a metadata-grade, PURL-like, 
+    [linked data-aware](https://sciop.net/docs/api#/frontend/dataset_graph_rdf_datasets__slug___suffix__get)
+    identifier. We are actively pursuing non-DNS based form of identifier that is portable
+    beyond the domain along with a portable identity model. Stay tuned.
+
+[^uniqueness-of-qualia]: To the degree that any manifestation of this great gay earth can be considered 
+    "the same thing" as another.
