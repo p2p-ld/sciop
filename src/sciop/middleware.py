@@ -192,7 +192,7 @@ async def security_headers(request: Request, call_next: RequestResponseEndpoint)
                 **{
                     **config.csp.model_dump(),
                     "style_src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
-                    "script_src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+                    "script_src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com",
                     "font_src": "'self' https://fonts.gstatic.com",
                     "enable_nonce": [],
                 }
