@@ -5,15 +5,17 @@
   --color-good: lch(76.36% 99.79 133.94);
   --color-neutral: lch(56.05% 49.39 256.63);
   --color-evil: red;
+  --color-warning: #FF6319;
   --color-threat-unknown: var(--color-background-shade);
   --color-threat-indefinite: var(--color-neutral);
   --color-threat-watchlist: #FCCC0A;
-  --color-threat-endangered: #FF6319;
+  --color-threat-endangered: var(--color-warning);
   --color-threat-takedown_issued: lch(47.26% 75.67 14.74);
   --color-threat-extinct: var(--color-background-shade);
   --color-caution: var(--color-evil);
   --color-caution-darker-1: color-mix(in lch, var(--color-caution) 80%, var(--color-dark-background));
   --color-neutral-darker-1: color-mix(in lch, var(--color-neutral) 80%, var(--color-dark-background));
+  --color-warning-darker-1: #BB4811; /* mixing the color makes it too red */
 
 
   --font-sans: "Work Sans", "Helvetica Neue", "Segoe UI", "Helvetica", "Roboto", sans-serif;
@@ -55,7 +57,7 @@ body {
   --color-disabled: #404040;
   --color-alert: var(--color-threat-watchlist);
   --color-caution-contrast: var(--color-primary-contrast);
-
+  --color-warning-contrast: #000;
 
 
   &.light-theme {

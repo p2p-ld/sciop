@@ -27,6 +27,7 @@ async def approve_dataset(
     account: RequireReviewer,
     session: SessionDep,
     dataset: RequireDataset,
+    request: Request,
     response: Response,
 ) -> SuccessResponse:
     dataset.is_approved = True
@@ -36,6 +37,10 @@ async def approve_dataset(
     crud.log_moderation_action(
         session=session, actor=account, action=ModerationAction.approve, target=dataset
     )
+
+    if "HX-Request" in request.headers and "review" not in request.headers.get("HX-Current-URL"):
+        response.headers["HX-Refresh"] = "true"
+
     return SuccessResponse(success=True)
 
 
@@ -45,6 +50,7 @@ async def unapprove_dataset(
     account: RequireReviewer,
     session: SessionDep,
     dataset: RequireDataset,
+    request: Request,
     response: Response,
 ) -> SuccessResponse:
     dataset.is_approved = False
@@ -54,6 +60,10 @@ async def unapprove_dataset(
     crud.log_moderation_action(
         session=session, actor=account, action=ModerationAction.unapprove, target=dataset
     )
+
+    if "HX-Request" in request.headers:
+        response.headers["HX-Refresh"] = "true"
+
     return SuccessResponse(success=True)
 
 
@@ -132,7 +142,12 @@ async def deny_dataset_part(
 
 @review_router.post("/uploads/{infohash}/approve")
 async def approve_upload(
-    infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
+    infohash: str,
+    account: RequireReviewer,
+    session: SessionDep,
+    upload: RequireUpload,
+    request: Request,
+    response: Response,
 ) -> SuccessResponse:
     upload.is_approved = True
     session.add(upload)
@@ -141,12 +156,21 @@ async def approve_upload(
     crud.log_moderation_action(
         session=session, actor=account, action=ModerationAction.approve, target=upload
     )
+
+    if "HX-Request" in request.headers and "review" not in request.headers.get("HX-Current-URL"):
+        response.headers["HX-Refresh"] = "true"
+
     return SuccessResponse(success=True)
 
 
 @review_router.post("/uploads/{infohash}/unapprove")
 async def unapprove_upload(
-    infohash: str, account: RequireReviewer, session: SessionDep, upload: RequireUpload
+    infohash: str,
+    account: RequireReviewer,
+    session: SessionDep,
+    upload: RequireUpload,
+    request: Request,
+    response: Response,
 ) -> SuccessResponse:
     upload.is_approved = False
     session.add(upload)
@@ -155,6 +179,10 @@ async def unapprove_upload(
     crud.log_moderation_action(
         session=session, actor=account, action=ModerationAction.unapprove, target=upload
     )
+
+    if "HX-Request" in request.headers and "review" not in request.headers.get("HX-Current-URL"):
+        response.headers["HX-Refresh"] = "true"
+
     return SuccessResponse(success=True)
 
 

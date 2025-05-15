@@ -14,7 +14,7 @@
 {% endmacro %}
 
 {% macro unapprove_button(url, item_type="item", name="") %}
-<a class="button unapprove-button success-button caution"
+<a class="button unapprove-button success-button warning"
    role="button"
    aria-roledescription="Unapproves the {{ item_type }} {{ name }}"
    hx-post="{{ url }}">Unapprove

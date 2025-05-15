@@ -27,6 +27,7 @@ button,
   transition: all .2s;
   padding: 0.1em 0.5em;
   cursor: pointer;
+  text-wrap: nowrap;
 
   &.form-button {
     padding: 0.25em 2em;
@@ -59,6 +60,18 @@ button,
       color: var(--color-caution-contrast);
     }
   }
+
+  &.warning {
+    border-color: var(--color-warning);
+    color: var(--color-warning);
+    box-shadow: 2px 2px 0 var(--color-warning-darker-1);
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-warning);
+      color: var(--color-warning-contrast);
+    }
+  }
+
 
   &.neutral {
     border-color: var(--color-neutral);
