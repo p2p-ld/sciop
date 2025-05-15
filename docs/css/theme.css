@@ -48,6 +48,10 @@ div.index-linkbox {
         width: 100%;
         transition: width 1s;
       }
+      .index-link {
+        color: var(--md-primary-fg-color--dark);
+        transition: color 1s;
+      }
     }
     .index-link-label {
       width: 0;
@@ -68,14 +72,7 @@ div.index-linkbox {
 pre.index-link {
   line-height: 1em;
   margin: 0;
-  transition: font-size 10s ease-in;
   font-family: ui-monospace, monospace;
-
-  &:hover {
-    color: var(--md-primary-fg-color--dark);
-    font-size: 10em;
-    transition: color 1s, font-size 100s;
-  }
 }
 
 @media screen and (max-width: 500px){
