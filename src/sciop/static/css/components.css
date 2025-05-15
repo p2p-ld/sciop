@@ -583,16 +583,3 @@ progress::-moz-progress-bar {
     color: var(--color-link);
   }
 }
-
-.src-icon {
-    display: flex;
-  align-items: center;
-  justify-content: center
-  max-width: 100%;
-  .text {
-      display: inline-block;
-  }
-  .img {
-    float: right;
-  }
-}
