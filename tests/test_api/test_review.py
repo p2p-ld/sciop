@@ -160,6 +160,7 @@ def test_deny_dataset_no_delete(client, dataset, session, admin_auth_header):
 
 def test_approve_dataset(client, dataset, session, admin_auth_header):
     ds_ = dataset(slug="unapproved", is_approved=False)
+    assert not ds_.is_approved
     res = client.post(f"{config.api_prefix}/datasets/{ds_.slug}/approve", headers=admin_auth_header)
     assert res.status_code == 200
     session.refresh(ds_)
@@ -168,12 +169,35 @@ def test_approve_dataset(client, dataset, session, admin_auth_header):
 
 def test_unapprove_dataset(client, dataset, session, admin_auth_header):
     ds_ = dataset(slug="approved", is_approved=True)
+    assert ds_.is_approved
     res = client.post(
         f"{config.api_prefix}/datasets/{ds_.slug}/unapprove", headers=admin_auth_header
     )
     assert res.status_code == 200
     session.refresh(ds_)
     assert not ds_.is_approved
+
+
+def test_approve_upload(client, upload, session, admin_auth_header):
+    ul_ = upload(is_approved=False)
+    assert not ul_.is_approved
+    res = client.post(
+        f"{config.api_prefix}/uploads/{ul_.infohash}/approve", headers=admin_auth_header
+    )
+    assert res.status_code == 200
+    session.refresh(ul_)
+    assert ul_.is_approved
+
+
+def test_unapprove_upload(client, upload, session, admin_auth_header):
+    ul_ = upload(is_approved=True)
+    assert ul_.is_approved
+    res = client.post(
+        f"{config.api_prefix}/uploads/{ul_.infohash}/unapprove", headers=admin_auth_header
+    )
+    assert res.status_code == 200
+    session.refresh(ul_)
+    assert not ul_.is_approved
 
 
 def test_deny_dataset_part_no_delete(client, dataset, session, admin_auth_header):
