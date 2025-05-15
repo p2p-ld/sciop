@@ -1,7 +1,8 @@
 // Transform a "success: true" message to just be "success" or "failure"
 htmx.on("htmx:afterRequest", (e) => {
   if (e.target.classList.contains('success-button')){
-    e.target.innerHTML = e.detail.successful ? "Success!" : "Error!"
+    const response = JSON.parse(e.detail.xhr.responseText);
+    e.target.innerHTML = e.detail.successful || response.success ? "Success!" : "Error!"
   }
 })
 
