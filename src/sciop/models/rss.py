@@ -36,7 +36,7 @@ class TorrentFeed(RSSFeed):
 
     @classmethod
     def from_uploads(
-        cls, title: str, link: str, description: str, uploads: list["Upload"]
+            cls, title: str, link: str, description: str, uploads: list["Upload"]
     ) -> "TorrentFeed":
         items = [TorrentItem.from_upload(upload) for upload in uploads]
         return TorrentFeed(
@@ -50,6 +50,7 @@ class TorrentFeed(RSSFeed):
 
 class RSSFeedCache:
     cache_table: Dict[str, Tuple[datetime, TorrentFeed]] = {}
+    time_last_cleared_cache: datetime = datetime.now()
 
     def clean_cache(self) -> None:
         keys_to_purge: List[str] = []
@@ -69,6 +70,8 @@ class RSSFeedCache:
         return self.cache_table[key][0] > datetime.now() - config.rss_feed_cache_delta
 
     def get_valid_cached_item(self, key: str) -> Optional[TorrentFeed]:
+        if datetime.now() - self.time_last_cleared_cache > config.rss_feed_cache_clear_time:
+            self.clean_cache()
         if self.is_valid_cache_entry(key):
             return self.cache_table[key][1]
         return None

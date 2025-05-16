@@ -38,7 +38,6 @@ async def all_feed(session: SessionDep) -> RSSResponse:
     cache_result = rss_cache.get_valid_cached_item("/all.rss")
 
     if cache_result is not None:
-        rss_cache.clean_cache()
         return RSSResponse(cache_result)
     stmt = (
         select(Upload)
