@@ -16,6 +16,9 @@
   --color-caution-darker-1: color-mix(in lch, var(--color-caution) 80%, var(--color-dark-background));
   --color-neutral-darker-1: color-mix(in lch, var(--color-neutral) 80%, var(--color-dark-background));
   --color-warning-darker-1: #BB4811; /* mixing the color makes it too red */
+  --color-src: #fbd259;
+  --color-src-background: #4a4e53;
+  --color-src-buildings: #222426;
 
 
   --font-sans: "Work Sans", "Helvetica Neue", "Segoe UI", "Helvetica", "Roboto", sans-serif;

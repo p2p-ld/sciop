@@ -31,12 +31,28 @@
             <div class="corner bottom-right"></div>
         </div>
 
-        <p>
-            <strong>SciOp</strong> is part of <a href="https://forum.safeguar.de/about"><em>Safeguarding Research & Culture (SRC)</em></a>.<br>
-            The bits must flow: let us resurrect the ancient art of Bittorrent to ensure that our cultural, intellectual and scientific heritage exists in multiple copies, in multiple places, and that no single entity or group of entities can make it all disappear.<br>
-            Please raise bugs and feature requests in <a
-            href="https://codeberg.org/Safeguarding/sciop/issues">the repo.</a>
-        </p>
+        <div id="about-sciop">
+            <div class="content">
+                <div class="text">
+                    <p>
+                        <strong>SciOp</strong> is part of <a class="src-link" href="https://forum.safeguar.de/about"><em>Safeguarding Research & Culture (SRC)</em></a>.
+                    </p>
+                    <p>
+                        As a <strong>website and a group of people,</strong>
+                        SciOp is dedicated to ensuring that our cultural, intellectual and scientific heritage exists in multiple copies, in multiple places, and that no single entity or group of entities can make it all disappear.
+                    </p>
+                    <p>
+                        As <strong>software,</strong>
+                        SciOp is dreaming expansively about what a bittorrent tracker can be,
+                        bringing federation to torrent trackers, implementing mobile identity on the fediverse,
+                        and extending the bittorrent protocol to meet the needs of evolving, multi-origin data.
+                    </p>
+                </div>
+                <div class="spotlight">
+                    {% include "includes/src-logo-spotlight-long.svg" %}
+                </div>
+            </div>
+        </div>
 
         {% if stats %}
         <div class="site-stats-container">
@@ -73,4 +89,4 @@
 </div>
 
 
-{% endblock %}
+{% endblock content %}

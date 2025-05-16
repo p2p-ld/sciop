@@ -499,6 +499,73 @@ body.light-theme {
 }
 
 .site-index {
+  blockquote {
+    max-width: var(--width-container);
+  }
+
+  #about-sciop {
+    width: 100%;
+    padding-left: 1em;
+    padding-right: 1em;
+    background-image: url("/static/img/src-logo-buildings.svg");
+    background-repeat: repeat-x;
+    background-size: auto 5em;
+    background-position-y: 100%;
+    background-color: var(--color-src-background);
+    overflow: hidden;
+
+    .content {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      max-width: var(--width-container);
+      gap: 1.5em;
+      margin: auto;
+      min-height: 400px;
+
+      .src-link {
+        color: var(--color-src);
+      }
+
+      .text {
+        margin-top: 1em;
+        flex-grow: 1;
+        align-self: start;
+        background-color: var(--color-src-buildings);
+        box-shadow: 3px 3px 3px var(--color-background);
+        text-shadow: 0 0 2px var(--color-background);
+        padding: 0 1em;
+        border: 1px solid var(--color-border-deemphasized);
+        border-radius: 5px;
+        flex-basis: 60%;
+      }
+
+      .spotlight {
+        object-fit: contain;
+        max-width: 200px;
+        min-width: 150px;
+        width: 20%;
+        flex-basis: 25%;
+        align-self: end;
+
+        @media screen and (max-width: 535px) {
+          max-height: 200px;
+        }
+
+        .cls-1,.cls-2{fill:#fbd259;}
+        .cls-1{fill-opacity:0.4;}
+        .cls-3{fill:#222426;fill-rule:evenodd;}
+
+        #spotlight {
+          animation: 4s infinite spotlight-waver;
+          transform-origin: bottom left;
+        }
+      }
+    }
+  }
+
   #new-here {
     position: relative;
     margin: 3em auto;
@@ -554,6 +621,21 @@ body.light-theme {
         transition-delay: 500ms;
       }
     }
+  }
+}
+
+@keyframes spotlight-waver {
+  20% {
+    transform: translate(-2px, 2px) rotate(-1deg);
+  }
+  30% {
+    transform: translate(-2px, 2px) rotate(-1deg);
+  }
+  70% {
+    transform: translate(-2px, 2px) rotate(1deg);
+  }
+  80% {
+    transform: translate(-2px, 2px) rotate(1deg);
   }
 }
 
