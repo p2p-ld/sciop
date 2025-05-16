@@ -566,10 +566,12 @@ body.light-theme {
           overflow: visible;
         }
 
-        #spotlight {
-          animation: spotlight-waver 3s ease-in-out infinite;
-          will-change: transform;
-          transform-origin: bottom left;
+        @media screen and (prefers-reduced-motion: no-preference) {
+          #spotlight {
+            animation: spotlight-waver 3s ease-in-out infinite;
+            will-change: transform;
+            transform-origin: bottom left;
+          }
         }
       }
     }
