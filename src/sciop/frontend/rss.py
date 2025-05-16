@@ -44,7 +44,7 @@ async def all_feed(session: SessionDep) -> RSSResponse:
         select(Upload)
         .filter(Upload.is_visible == True)
         .order_by(Upload.created_at.desc())
-        .limit(500)
+        .limit(MAX_FEED_ITEMS)
     )
     uploads = session.exec(stmt).all()
     feed = TorrentFeed.from_uploads(
@@ -153,7 +153,7 @@ async def low_seeders(session: SessionDep) -> RSSResponse:
             Upload.seeders <= 10,
         )
         .order_by(Upload.created_at.desc())
-        .limit(500)
+        .limit(MAX_FEED_ITEMS)
     )
     uploads = session.exec(stmt).all()
     feed = TorrentFeed.from_uploads(
@@ -178,7 +178,7 @@ async def unseeded(session: SessionDep) -> RSSResponse:
             Upload.seeders == 0,
         )
         .order_by(Upload.created_at.desc())
-        .limit(500)
+        .limit(MAX_FEED_ITEMS)
     )
     uploads = session.exec(stmt).all()
     feed = TorrentFeed.from_uploads(
