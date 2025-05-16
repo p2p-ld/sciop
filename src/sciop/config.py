@@ -1,3 +1,4 @@
+import datetime
 from functools import cached_property
 from pathlib import Path
 from typing import Literal, Optional, Self
@@ -318,6 +319,7 @@ class Config(BaseSettings):
     
     This value is set to `None` by `db.ensure_root` when the program is started normally.    
     """
+    rss_feed_cache_delta: datetime.timedelta = datetime.timedelta(minutes=30)
     clear_jobs: bool = False
     """Clear any remaining scheduler jobs on startup"""
     template_dir: Optional[Path] = None

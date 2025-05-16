@@ -4,8 +4,9 @@ for the bittorrent RSS spec
 """
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+from sciop.config import config
 from sciop.vendor.fastapi_rss.models import GUID, Enclosure, EnclosureAttrs, Item, RSSFeed
 
 if TYPE_CHECKING:
@@ -45,3 +46,32 @@ class TorrentFeed(RSSFeed):
             item=items,
             last_build_date=datetime.now(UTC),
         )
+
+
+class RSSFeedCache:
+    cache_table: Dict[str, Tuple[datetime, TorrentFeed]] = {}
+
+    def clean_cache(self) -> None:
+        keys_to_purge: List[str] = []
+        purge_time_before = datetime.now() - config.rss_feed_cache_delta
+        for key, val_tuple in self.cache_table:
+            time_stored, data = val_tuple
+            if time_stored < purge_time_before:
+                keys_to_purge.append(key)
+
+        for purge_key in keys_to_purge:
+            del self.cache_table[purge_key]
+
+    def is_valid_cache_entry(self, key: str) -> bool:
+        if key not in self.cache_table:
+            return False
+
+        return self.cache_table[key][0] > datetime.now() - config.rss_feed_cache_delta
+
+    def get_valid_cached_item(self, key: str) -> Optional[TorrentFeed]:
+        if self.is_valid_cache_entry(key):
+            return self.cache_table[key][1]
+        return None
+
+    def add_to_cache(self, key: str, item: TorrentFeed) -> None:
+        self.cache_table[key] = (datetime.now(), item)

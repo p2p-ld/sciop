@@ -9,6 +9,7 @@ from sciop import crud
 from sciop.api.deps import SessionDep
 from sciop.config import config
 from sciop.models import Dataset, TorrentFeed, Upload
+from sciop.models.rss import RSSFeedCache
 from sciop.types import Scarcity, Threat
 from sciop.vendor.fastapi_rss.rss_response import RSSResponse
 
@@ -29,9 +30,16 @@ _BREAKPOINTS_TYPE = Literal["1gb", "10gb", "100gb", "500gb", "1tb", "5tb"]
 For the benefit of the type checker and docs, try to keep this in sync w/ breakpoints
 """
 
+rss_cache = RSSFeedCache()
+
 
 @rss_router.get("/all.rss")
 async def all_feed(session: SessionDep) -> RSSResponse:
+    cache_result = rss_cache.get_valid_cached_item("/all.rss")
+
+    if cache_result is not None:
+        rss_cache.clean_cache()
+        return RSSResponse(cache_result)
     stmt = (
         select(Upload)
         .filter(Upload.is_visible == True)
@@ -45,6 +53,7 @@ async def all_feed(session: SessionDep) -> RSSResponse:
         link=urljoin(f"{config.base_url}", "/all.rss"),
         uploads=uploads,
     )
+    rss_cache.add_to_cache("/all.rss", feed)
     return RSSResponse(feed)
 
 
@@ -85,6 +94,10 @@ async def size_lt(size: _BREAKPOINTS_TYPE, session: SessionDep) -> RSSResponse:
     """
     if size not in SIZE_BREAKPOINTS:
         raise HTTPException(404, f"Unknown size, must be one of {set(SIZE_BREAKPOINTS.keys())}")
+    cache_result = rss_cache.get_valid_cached_item(f"/size/lt/{size}.rss")
+    if cache_result is not None:
+        return RSSResponse(cache_result)
+
     size_title, size_int = SIZE_BREAKPOINTS[size]
 
     stmt = _size_stmt(size_int, direction="lt")
@@ -95,6 +108,7 @@ async def size_lt(size: _BREAKPOINTS_TYPE, session: SessionDep) -> RSSResponse:
         link=urljoin(f"{config.base_url}", f"/size/lt/{size}.rss"),
         uploads=uploads,
     )
+    rss_cache.add_to_cache(f"/size/lt/{size}.rss", feed)
     return RSSResponse(feed)
 
 
@@ -109,6 +123,9 @@ async def size_gt(size: _BREAKPOINTS_TYPE, session: SessionDep) -> RSSResponse:
     """
     if size not in SIZE_BREAKPOINTS:
         raise HTTPException(404, f"Unknown size, must be one of {set(SIZE_BREAKPOINTS.keys())}")
+    cache_result = rss_cache.get_valid_cached_item(f"/size/gt/{size}.rss")
+    if cache_result is not None:
+        return RSSResponse(cache_result)
     size_title, size_int = SIZE_BREAKPOINTS[size]
 
     stmt = _size_stmt(size_int, direction="gt")
@@ -119,11 +136,15 @@ async def size_gt(size: _BREAKPOINTS_TYPE, session: SessionDep) -> RSSResponse:
         link=urljoin(f"{config.base_url}", f"/size/gt/{size}.rss"),
         uploads=uploads,
     )
+    rss_cache.add_to_cache(f"/size/gt/{size}.rss", feed)
     return RSSResponse(feed)
 
 
 @rss_router.get("/seeds/1-10.rss")
 async def low_seeders(session: SessionDep) -> RSSResponse:
+    cache_result = rss_cache.get_valid_cached_item("/seeds/1-10.rss")
+    if cache_result is not None:
+        return RSSResponse(cache_result)
     stmt = (
         select(Upload)
         .filter(
@@ -141,11 +162,15 @@ async def low_seeders(session: SessionDep) -> RSSResponse:
         link=urljoin(f"{config.base_url}", "/seeds/1-10.rss"),
         uploads=uploads,
     )
+    rss_cache.add_to_cache("/seeds/1-10.rss", feed)
     return RSSResponse(feed)
 
 
 @rss_router.get("/seeds/unseeded.rss")
 async def unseeded(session: SessionDep) -> RSSResponse:
+    cache_result = rss_cache.get_valid_cached_item("/seeds/unseeded.rss")
+    if cache_result is not None:
+        return RSSResponse(cache_result)
     stmt = (
         select(Upload)
         .filter(
@@ -162,11 +187,15 @@ async def unseeded(session: SessionDep) -> RSSResponse:
         link=urljoin(f"{config.base_url}", "/seeds/unseeded.rss"),
         uploads=uploads,
     )
+    rss_cache.add_to_cache("/seeds/unseeded.rss", feed)
     return RSSResponse(feed)
 
 
 @rss_router.get("/tag/{tag}.rss")
 async def tag_feed(tag: str, session: SessionDep) -> RSSResponse:
+    cache_result = rss_cache.get_valid_cached_item(f"/tag/{tag}.rss")
+    if cache_result is not None:
+        return RSSResponse(cache_result)
     uploads = crud.get_uploads_from_tag(session=session, tag=tag, visible=True)
     if not uploads:
         raise HTTPException(404, detail=f"No uploads found for tag {tag}")
@@ -176,11 +205,15 @@ async def tag_feed(tag: str, session: SessionDep) -> RSSResponse:
         link=urljoin(f"{config.base_url}", f"/tag/{tag}.rss"),
         uploads=uploads,
     )
+    rss_cache.add_to_cache(f"/tag/{tag}.rss", feed)
     return RSSResponse(feed)
 
 
 @rss_router.get("/source/{availability}.rss")
 async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
+    cache_result = rss_cache.get_valid_cached_item(f"/source/{availability}.rss")
+    if cache_result is not None:
+        return RSSResponse(cache_result)
     if availability == "available":
         stmt = (
             select(Upload)
@@ -206,6 +239,7 @@ async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
         link=urljoin(f"{config.base_url}", f"/source/{availability}.rss"),
         uploads=uploads,
     )
+    rss_cache.add_to_cache(f"/source/{availability}.rss", feed)
     return RSSResponse(feed)
 
 
@@ -213,6 +247,9 @@ async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
 async def scarcity_feed(scarcity: str, session: SessionDep) -> RSSResponse:
     if scarcity not in Scarcity:
         raise HTTPException(404, detail=f"Scarcity {scarcity} does not exist")
+    cache_result = rss_cache.get_valid_cached_item(f"/scarcity/{scarcity}.rss")
+    if cache_result is not None:
+        return RSSResponse(cache_result)
     stmt = (
         select(Upload)
         .join(Dataset)
@@ -227,6 +264,7 @@ async def scarcity_feed(scarcity: str, session: SessionDep) -> RSSResponse:
         link=urljoin(f"{config.base_url}", f"/source/{scarcity}.rss"),
         uploads=uploads,
     )
+    rss_cache.add_to_cache(f"/scarcity/{scarcity}.rss", feed)
     return RSSResponse(feed)
 
 
@@ -234,6 +272,9 @@ async def scarcity_feed(scarcity: str, session: SessionDep) -> RSSResponse:
 async def threat_feed(threat: str, session: SessionDep) -> RSSResponse:
     if threat not in Threat:
         raise HTTPException(404, detail=f"Threat {threat} does not exist")
+    cache_result = rss_cache.get_valid_cached_item(f"/threat/{threat}.rss")
+    if cache_result is not None:
+        return RSSResponse(cache_result)
     stmt = (
         select(Upload)
         .join(Dataset)
@@ -248,4 +289,5 @@ async def threat_feed(threat: str, session: SessionDep) -> RSSResponse:
         link=urljoin(f"{config.base_url}", f"/source/{threat}.rss"),
         uploads=uploads,
     )
+    rss_cache.add_to_cache(f"/threat/{threat}.rss", feed)
     return RSSResponse(feed)
