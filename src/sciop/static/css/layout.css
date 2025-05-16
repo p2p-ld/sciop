@@ -509,7 +509,7 @@ body.light-theme {
     padding-right: 1em;
     background-image: url("/static/img/src-buildings-stretch.svg");
     background-repeat: repeat-x;
-    background-size: auto 7em;
+    background-size: auto 8em;
     background-position-y: 100%;
     background-color: var(--color-src-background);
     overflow: hidden;
