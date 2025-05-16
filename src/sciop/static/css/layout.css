@@ -558,9 +558,11 @@ body.light-theme {
         .cls-1{fill-opacity:0.4;}
         .cls-3{fill:#222426;fill-rule:evenodd;}
 
-        #spotlight {
-          animation: 4s infinite spotlight-waver;
-          transform-origin: bottom left;
+        @media screen and (prefers-reduced-motion: no-preference) {
+          #spotlight {
+            animation: 4s infinite spotlight-waver;
+            transform-origin: bottom left;
+          }
         }
       }
     }
