@@ -36,7 +36,7 @@ class TorrentFeed(RSSFeed):
 
     @classmethod
     def from_uploads(
-            cls, title: str, link: str, description: str, uploads: list["Upload"]
+        cls, title: str, link: str, description: str, uploads: list["Upload"]
     ) -> "TorrentFeed":
         items = [TorrentItem.from_upload(upload) for upload in uploads]
         return TorrentFeed(
