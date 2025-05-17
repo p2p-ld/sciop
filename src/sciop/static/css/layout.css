@@ -568,7 +568,7 @@ body.light-theme {
 
         @media screen and (prefers-reduced-motion: no-preference) {
           #spotlight {
-            animation: spotlight-waver 3s ease-in-out infinite;
+            animation: spotlight-waver 3s linear infinite;
             will-change: transform;
             transform-origin: bottom left;
           }
@@ -637,20 +637,21 @@ body.light-theme {
 
 @keyframes spotlight-waver {
   0% {
-    transform: translate(0, 2px) rotate(-1deg) scale(1.01, 1.01);
+    transform: translate(0, 2px) rotate(-1deg) scale(1.01);
   }
-  25% {
-    transform: translate(0, 2px) rotate(-0.5deg) scale(1.015, 1.015);
+  20% {
+    transform: translate(0, 2px) rotate(-0.5deg) scale(1.012);
   }
-  50% {
-    transform: translate(0, 2px) rotate(1deg) scale(1.02, 1.02);
+  40% {
+    transform: translate(0, 2px) rotate(0deg) scale(1.015);
   }
-  75% {
-    transform: translate(0, 2px) rotate(0.5deg) scale(1.01, 1.01);
+  60% {
+    transform: translate(0, 2px) rotate(0.5deg) scale(1.012);
+  }
+  80% {
+    transform: translate(0, 2px) rotate(1deg) scale(1.01);
   }
   100% {
-    transform: translate(0, 2px) rotate(-1deg) scale(1.01, 1.01); /* back to start */
+    transform: translate(0, 2px) rotate(-1deg) scale(1.01);
   }
 }
-
-
