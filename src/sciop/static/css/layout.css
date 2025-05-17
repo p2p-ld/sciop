@@ -552,7 +552,7 @@ body.light-theme {
         position: relative;
 
         @media screen and (max-width: 535px) {
-          max-height: 200px;
+          min-height: 280px;
         }
 
         .cls-1,.cls-2{fill:#fbd259;}
