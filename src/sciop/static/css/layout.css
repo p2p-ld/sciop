@@ -507,9 +507,9 @@ body.light-theme {
     width: 100%;
     padding-left: 1em;
     padding-right: 1em;
-    background-image: url("/static/img/src-logo-buildings.svg");
+    background-image: url("/static/img/src-buildings-stretch.svg");
     background-repeat: repeat-x;
-    background-size: auto 5em;
+    background-size: auto 8em;
     background-position-y: 100%;
     background-color: var(--color-src-background);
     overflow: hidden;
@@ -549,18 +549,27 @@ body.light-theme {
         width: 20%;
         flex-basis: 25%;
         align-self: end;
+        position: relative;
 
         @media screen and (max-width: 535px) {
-          max-height: 200px;
+          min-height: 280px;
         }
 
         .cls-1,.cls-2{fill:#fbd259;}
         .cls-1{fill-opacity:0.4;}
         .cls-3{fill:#222426;fill-rule:evenodd;}
 
+        svg {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          overflow: visible;
+        }
+
         @media screen and (prefers-reduced-motion: no-preference) {
           #spotlight {
-            animation: 4s infinite spotlight-waver;
+            animation: spotlight-waver 3s linear infinite;
+            will-change: transform;
             transform-origin: bottom left;
           }
         }
@@ -627,18 +636,22 @@ body.light-theme {
 }
 
 @keyframes spotlight-waver {
+  0% {
+    transform: translate(0, 2px) rotate(-1deg) scale(1.01);
+  }
   20% {
-    transform: translate(-2px, 2px) rotate(-1deg);
+    transform: translate(0, 2px) rotate(-0.5deg) scale(1.012);
   }
-  30% {
-    transform: translate(-2px, 2px) rotate(-1deg);
+  40% {
+    transform: translate(0, 2px) rotate(0deg) scale(1.015);
   }
-  70% {
-    transform: translate(-2px, 2px) rotate(1deg);
+  60% {
+    transform: translate(0, 2px) rotate(0.5deg) scale(1.012);
   }
   80% {
-    transform: translate(-2px, 2px) rotate(1deg);
+    transform: translate(0, 2px) rotate(1deg) scale(1.01);
+  }
+  100% {
+    transform: translate(0, 2px) rotate(-1deg) scale(1.01);
   }
 }
-
-
