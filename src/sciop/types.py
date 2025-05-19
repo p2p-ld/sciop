@@ -1,5 +1,5 @@
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from html import escape
 from os import PathLike as PathLike_
@@ -8,7 +8,7 @@ from typing import Annotated, Literal, Optional, TypeAlias
 
 import sqlalchemy as sqla
 from annotated_types import Gt, MaxLen, MinLen
-from pydantic import AfterValidator, AnyUrl, BeforeValidator, TypeAdapter
+from pydantic import AfterValidator, AnyUrl, BeforeValidator, PlainSerializer, TypeAdapter
 from slugify import slugify
 from sqlalchemy import Case, ColumnElement, case
 from sqlmodel import Field
@@ -28,6 +28,16 @@ def _validate_no_traversal(path: PathLike_) -> PathLike_:
     posix = Path(path).as_posix()
     assert "/" not in posix, "Filesystem paths cannot have path separators in them"
     return path
+
+
+def _delta_from_minutes(minutes: int | timedelta) -> timedelta:
+    if isinstance(minutes, (int, float)):
+        minutes = timedelta(minutes=minutes)
+    return minutes
+
+
+def _minutes_from_delta(delta: timedelta) -> int:
+    return int(delta.total_seconds() / 60)
 
 
 IDField: TypeAlias = Optional[Annotated[int, Gt(0)]]
@@ -51,6 +61,12 @@ Datetime object that is cast to UTC
 
 # although this does not get applied when models are reloaded,
 # as it seems like values are populated by assignment, and we have validate_assignment=False
+"""
+DeltaMinutes = Annotated[
+    timedelta, BeforeValidator(_delta_from_minutes), PlainSerializer(_minutes_from_delta)
+]
+"""
+Serializable timedeltas from (integer) minutes.
 """
 
 

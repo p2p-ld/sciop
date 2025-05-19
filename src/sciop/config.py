@@ -1,3 +1,4 @@
+import datetime
 from functools import cached_property
 from pathlib import Path
 from typing import Literal, Optional, Self
@@ -18,6 +19,8 @@ from pydantic_settings import (
     SettingsConfigDict,
     YamlConfigSettingsSource,
 )
+
+from sciop.types import DeltaMinutes
 
 _default_userdir = Path().home() / ".config" / "mio"
 _dirs = PlatformDirs("sciop", "sciop")
@@ -318,6 +321,10 @@ class Config(BaseSettings):
     
     This value is set to `None` by `db.ensure_root` when the program is started normally.    
     """
+    rss_feed_cache_delta: DeltaMinutes = datetime.timedelta(minutes=30)
+    """The amount of time a cached rss feed entry will be considered valid"""
+    rss_feed_cache_clear_time: DeltaMinutes = datetime.timedelta(minutes=10)
+    """The amount of time between clearing all the dead keys in the rss feed cache"""
     clear_jobs: bool = False
     """Clear any remaining scheduler jobs on startup"""
     template_dir: Optional[Path] = None

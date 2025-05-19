@@ -9,8 +9,11 @@ from sciop import crud
 from sciop.api.deps import SessionDep
 from sciop.config import config
 from sciop.models import Dataset, TorrentFeed, Upload
+from sciop.models.rss import RSSCacheWrapper
 from sciop.types import Scarcity, Threat
 from sciop.vendor.fastapi_rss.rss_response import RSSResponse
+
+rss_cache = RSSCacheWrapper()
 
 rss_router = APIRouter(prefix="/rss")
 
@@ -31,12 +34,13 @@ For the benefit of the type checker and docs, try to keep this in sync w/ breakp
 
 
 @rss_router.get("/all.rss")
+@rss_cache.wrap
 async def all_feed(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
         .filter(Upload.is_visible == True)
         .order_by(Upload.created_at.desc())
-        .limit(500)
+        .limit(MAX_FEED_ITEMS)
     )
     uploads = session.exec(stmt).all()
     feed = TorrentFeed.from_uploads(
@@ -75,6 +79,7 @@ def _size_stmt(size: int, direction: Literal["lt", "gt"]) -> Select:
 
 
 @rss_router.get("/size/lt/{size}.rss")
+@rss_cache.wrap
 async def size_lt(size: _BREAKPOINTS_TYPE, session: SessionDep) -> RSSResponse:
     """
     Feed of items smaller than the given size.
@@ -85,6 +90,7 @@ async def size_lt(size: _BREAKPOINTS_TYPE, session: SessionDep) -> RSSResponse:
     """
     if size not in SIZE_BREAKPOINTS:
         raise HTTPException(404, f"Unknown size, must be one of {set(SIZE_BREAKPOINTS.keys())}")
+
     size_title, size_int = SIZE_BREAKPOINTS[size]
 
     stmt = _size_stmt(size_int, direction="lt")
@@ -99,6 +105,7 @@ async def size_lt(size: _BREAKPOINTS_TYPE, session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/size/gt/{size}.rss")
+@rss_cache.wrap
 async def size_gt(size: _BREAKPOINTS_TYPE, session: SessionDep) -> RSSResponse:
     """
     Feed of items larger than the given size.
@@ -123,6 +130,7 @@ async def size_gt(size: _BREAKPOINTS_TYPE, session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/seeds/1-10.rss")
+@rss_cache.wrap
 async def low_seeders(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
@@ -132,7 +140,7 @@ async def low_seeders(session: SessionDep) -> RSSResponse:
             Upload.seeders <= 10,
         )
         .order_by(Upload.created_at.desc())
-        .limit(500)
+        .limit(MAX_FEED_ITEMS)
     )
     uploads = session.exec(stmt).all()
     feed = TorrentFeed.from_uploads(
@@ -145,6 +153,7 @@ async def low_seeders(session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/seeds/unseeded.rss")
+@rss_cache.wrap
 async def unseeded(session: SessionDep) -> RSSResponse:
     stmt = (
         select(Upload)
@@ -153,7 +162,7 @@ async def unseeded(session: SessionDep) -> RSSResponse:
             Upload.seeders == 0,
         )
         .order_by(Upload.created_at.desc())
-        .limit(500)
+        .limit(MAX_FEED_ITEMS)
     )
     uploads = session.exec(stmt).all()
     feed = TorrentFeed.from_uploads(
@@ -166,6 +175,7 @@ async def unseeded(session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/tag/{tag}.rss")
+@rss_cache.wrap
 async def tag_feed(tag: str, session: SessionDep) -> RSSResponse:
     uploads = crud.get_uploads_from_tag(session=session, tag=tag, visible=True)
     if not uploads:
@@ -180,6 +190,7 @@ async def tag_feed(tag: str, session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/source/{availability}.rss")
+@rss_cache.wrap
 async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
     if availability == "available":
         stmt = (
@@ -210,6 +221,7 @@ async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/scarcity/{scarcity}.rss")
+@rss_cache.wrap
 async def scarcity_feed(scarcity: str, session: SessionDep) -> RSSResponse:
     if scarcity not in Scarcity:
         raise HTTPException(404, detail=f"Scarcity {scarcity} does not exist")
@@ -231,6 +243,7 @@ async def scarcity_feed(scarcity: str, session: SessionDep) -> RSSResponse:
 
 
 @rss_router.get("/threat/{threat}.rss")
+@rss_cache.wrap
 async def threat_feed(threat: str, session: SessionDep) -> RSSResponse:
     if threat not in Threat:
         raise HTTPException(404, detail=f"Threat {threat} does not exist")
