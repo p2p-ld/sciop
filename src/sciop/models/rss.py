@@ -7,20 +7,7 @@ import asyncio
 import inspect
 from datetime import UTC, datetime, timedelta
 from functools import wraps
-from typing import (
-    TYPE_CHECKING,
-    Annotated,
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    Optional,
-    ParamSpec,
-    Tuple,
-    TypeAlias,
-)
+from typing import TYPE_CHECKING, Annotated, Any, Awaitable, Callable, Mapping, ParamSpec, TypeAlias
 
 from fastapi import Depends
 from fastapi import Request as FARequest
@@ -88,7 +75,7 @@ class TorrentFeed(RSSFeed):
 
 class RSSFeedCache:
     def __init__(self, delta: int | None = None, clear_timeout: int | None = None):
-        self.cache_table: Dict[str, Tuple[datetime, bytes]] = {}
+        self.cache_table: dict[str, tuple[datetime, bytes]] = {}
         self.time_last_cleared_cache: datetime = datetime.now()
         self.logger = init_logger("rss.cache")
         self._lock = asyncio.Lock()
@@ -107,7 +94,7 @@ class RSSFeedCache:
         self.logger.debug("Cleaning cache")
 
         async with self._lock:
-            keys_to_purge: List[str] = []
+            keys_to_purge: list[str] = []
             purge_time_before = datetime.now() - self.delta
             self.time_last_cleared_cache = datetime.now()
             for key, val_tuple in self.cache_table.items():
@@ -124,7 +111,7 @@ class RSSFeedCache:
 
         return self.cache_table[key][0] > datetime.now() - self.delta
 
-    async def get_valid_cached_item(self, key: str) -> Optional[bytes]:
+    async def get_valid_cached_item(self, key: str) -> bytes | None:
         if datetime.now() - self.time_last_cleared_cache > self.clear_timeout:
             await self.clean_cache()
         async with self._lock:
