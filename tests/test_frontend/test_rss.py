@@ -1,10 +1,13 @@
+from datetime import datetime, timedelta
 from typing import Callable
 
 import pytest
 from lxml import etree
 
+from sciop.frontend import rss as rss_module
 from sciop.frontend.rss import SIZE_BREAKPOINTS
 from sciop.models import TorrentFile, Upload
+from sciop.models.rss import RSSCacheWrapper, RSSFeedCache
 
 
 @pytest.fixture()
@@ -45,6 +48,15 @@ def size_feed_uploads(upload, torrentfile, dataset, session) -> Callable[[int], 
         return tuple(uls)
 
     return _size_feed_uploads
+
+
+@pytest.fixture()
+def rss_cache(monkeypatch: pytest.MonkeyPatch) -> RSSCacheWrapper:
+    """Fresh, monkeypatched version of the rss feed cache"""
+    rss_cache = RSSFeedCache(delta=1, clear_timeout=1)
+    monkeypatch.setattr(rss_module.rss_cache, "rss_cache", rss_cache)
+
+    return rss_module.rss_cache
 
 
 def test_tag_feed(upload, dataset, client):
@@ -154,3 +166,62 @@ def test_lt_feed(size, client, size_feed_uploads, session):
 
     names = [item.find("title").text for item in items]
     assert sorted(names) == sorted(["smaller.torrent", "equal.torrent"])
+
+
+def test_cache_hit(client, size_feed_uploads, rss_cache, capsys, upload, dataset):
+    """
+    When we hit an RSS feed twice, we should return a cached copy
+    """
+    cache_key = "/rss/all.rss"
+    assert cache_key not in rss_cache.rss_cache.cache_table
+    feed_1 = client.get(cache_key)
+    assert feed_1.status_code == 200
+    assert cache_key in rss_cache.rss_cache.cache_table
+
+    ds = dataset(slug="cache-hit")
+    _ = upload(dataset_=ds)
+
+    feed_2 = client.get(cache_key)
+    assert feed_1.status_code == 200
+
+    # If they were cached, they should be identical
+    # (i.e. the timestamp, and should not include the new upload)
+    assert feed_1.content == feed_2.content
+    out = capsys.readouterr().out
+    assert sum(["Cache miss" in line for line in out.split("\n")]) == 1
+    assert sum(["Cache hit" in line for line in out.split("\n")]) == 1
+
+
+def test_cache_evict(client, size_feed_uploads, rss_cache, capsys, upload, dataset):
+    """
+    When a cached feed is expired, we should recompute the feed
+    """
+    cache_key = "/rss/all.rss"
+    assert cache_key not in rss_cache.rss_cache.cache_table
+    feed_1 = client.get(cache_key)
+    assert feed_1.status_code == 200
+    assert cache_key in rss_cache.rss_cache.cache_table
+
+    # expire the cache clear interval and the individual item
+    cache_clear_time = datetime.now() - timedelta(hours=1)
+    rss_cache.rss_cache.cache_table[cache_key] = (
+        cache_clear_time,
+        rss_cache.rss_cache.cache_table[cache_key][1],
+    )
+    rss_cache.rss_cache.time_last_cleared_cache = cache_clear_time
+
+    # make a new item
+    ds = dataset(slug="cache-miss")
+    _ = upload(dataset_=ds)
+
+    feed_2 = client.get(cache_key)
+    assert feed_1.status_code == 200
+
+    # The second feed should be recomputed
+    assert feed_1.content != feed_2.content
+    out = capsys.readouterr().out
+    assert sum(["Cache miss" in line for line in out.split("\n")]) == 2
+    assert sum(["Cleaning cache" in line for line in out.split("\n")]) == 1
+    assert sum(["Cache hit" in line for line in out.split("\n")]) == 0
+    # we should have gotten a new cache clear time while clearing
+    assert rss_cache.rss_cache.time_last_cleared_cache != cache_clear_time
