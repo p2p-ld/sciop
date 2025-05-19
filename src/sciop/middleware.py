@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import gzip
 import logging
 import traceback
@@ -33,9 +34,9 @@ class ContentSizeLimitMiddleware:
     """
 
     def __init__(
-        self,
-        app: "FastAPI",
-        max_content_size: Optional[int] = None,
+            self,
+            app: "FastAPI",
+            max_content_size: Optional[int] = None,
     ):
         self.app = app
         self.max_content_size = max_content_size
@@ -43,7 +44,7 @@ class ContentSizeLimitMiddleware:
         self.logger = init_logger("middleware.content-size-limit")
 
     def receive_wrapper(
-        self, receive: Receive
+            self, receive: Receive
     ) -> Callable[[], Coroutine[Any, Any, MutableMapping[str, Any]]]:
         received = 0
 
@@ -104,7 +105,13 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         try:
+            time_recieved = None
+            if config.request_timing:
+                time_recieved = datetime.now()
             response = await call_next(request)
+            time_finished = None
+            if config.request_timing:
+                time_finished = datetime.now()
             msg = None
             if response.status_code < 400:
                 level = logging.INFO
@@ -114,9 +121,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             else:
                 msg = await self._decode_body(response)
                 level = logging.ERROR
+            total_time = None
+            if config.request_timing:
+                total_time = time_finished-time_recieved
 
             self._log_message(
-                response_code=response.status_code, request=request, msg=msg, level=level
+                response_code=response.status_code, request=request, msg=msg, level=level, request_total_time=total_time
             )
             return response
         except HTTPException as e:
@@ -130,18 +140,23 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             raise e
 
     def _log_message(
-        self,
-        response_code: int,
-        request: Request,
-        msg: Optional[str] = None,
-        level: int = logging.INFO,
+            self,
+            response_code: int,
+            request: Request,
+            msg: Optional[str] = None,
+            level: int = logging.INFO,
+            request_total_time: Optional[timedelta] = None
     ) -> None:
+        time_msg = ''
+        if config.request_timing and request_total_time is not None:
+            time_msg = f"{round(request_total_time/timedelta(milliseconds=1), 1)}ms"
+
         if msg:
             self.logger.log(
-                level, "[%s] %s: %s - %s", response_code, request.method, request.url.path, msg
+                level, "[%s] %s %s: %s - %s", response_code, time_msg, request.method, request.url.path, msg
             )
         else:
-            self.logger.log(level, "[%s] %s: %s", response_code, request.method, request.url.path)
+            self.logger.log(level, "[%s] %s %s: %s", response_code, time_msg, request.method, request.url.path)
 
     async def _decode_body(self, response: Response) -> str:
 
