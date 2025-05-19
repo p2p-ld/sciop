@@ -565,13 +565,14 @@ body.light-theme {
           left: 0;
           overflow: visible;
         }
-
+        /*
         @media screen and (prefers-reduced-motion: no-preference) {
           #spotlight {
             animation: spotlight-waver 3s linear infinite;
             will-change: transform;
             transform-origin: bottom left;
           }
+          */
         }
       }
     }
