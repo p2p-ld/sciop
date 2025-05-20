@@ -244,7 +244,7 @@ use the `page` fixture (or `page_as_admin`, `page_as_user` for a pre-logged in s
 @pytest.mark.playwright
 @pytest.mark.asyncio(loop_scope="session")
 async def test_playwright_thing(page):
-    await page.toto("http://127.0.0.1:8080/datasets/")
+    await page.goto("http://127.0.0.1:8080/datasets/")
 ```
 
 Mark all playwright tests with `pytest.mark.playwright` as above.
@@ -256,6 +256,32 @@ and playwright tests are comparatively expensive and should be used sparingly.
 Playwright tests are mostly useful when one needs to specifically test ux or accessibility behavior
 that can't be tested using the static HTML returned by the `TestClient`
 
+While working with playwright tests, you can invoke pytest with the `--headed` flag to show the browser.
+
+Playwright has a code generation mode that is useful to get the general shape of a test,
+though you should always ensure that the generated code reflects exactly what you had intended to test.
+
+To invoke it, do whatever setup you need to do for the test, and then await `page.pause()`
+(after invoking pytest with `--headed`)
+
+```python
+@pytest.mark.playwright
+@pytest.mark.asyncio(loop_scope="session")
+async def test_playwright_thing(page):
+    # use fixture functions to make datasets, whatever...
+    await page.goto("http://127.0.0.1:8080/datasets/")
+    await page.pause()
+```
+
+The browser window should appear along with a second "playwright inspector" window.
+Click "record" in the playwright inspector. 
+After you make one action, you should be able to chang ethe "target" to "Library async"
+(at the time of writing, there is a mode for *synchronous* pytest output,
+but not async.)
+
+Generate the code, and then copy it into the body of your test! 
+You'll likely need to swap out some of the values and use `expect` statements,
+but the code generator can handle some of the boilerplate.
 
 ## DB Migrations
 

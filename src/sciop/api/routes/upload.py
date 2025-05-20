@@ -1,9 +1,9 @@
 from hashlib import blake2b
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 from typing import Literal as L
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException, Query, UploadFile
 from starlette.requests import Request
 from starlette.responses import Response
 from torf import BdecodeError, MetainfoError
@@ -45,6 +45,13 @@ async def upload_torrent(
     account: RequireCurrentAccount,
     file: UploadFile,
     session: SessionDep,
+    force: Annotated[
+        bool,
+        Query(
+            description="If an existing torrent with matching infohash exists, "
+            "and we can edit it, replace it."
+        ),
+    ] = False,
 ) -> TorrentFileRead:
     """
     Upload a torrent file prior to creating a Dataset upload
@@ -62,22 +69,47 @@ async def upload_torrent(
     except MetainfoError as e:
         raise HTTPException(status_code=415, detail=f"MetaInfo invalid: {str(e)}") from None
 
+    creating_account = account
+    existing_upload = None
     existing_torrent = crud.get_torrent_from_infohash(
         session=session, v1=torrent.infohash, v2=torrent.v2_infohash
     )
     if existing_torrent:
         if existing_torrent.upload is not None:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "msg": "An identical torrent file already exists "
-                    "and is associated with an upload: "
-                    f'<a href="/uploads/{existing_torrent.infohash}">'
+            if not force:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "msg": "An identical torrent file already exists "
+                        "and is associated with an upload: "
+                        f'<a href="/uploads/{existing_torrent.infohash}">'
+                        f"{existing_torrent.infohash}"
+                        "</a>",
+                        "raw_html": True,
+                    },
+                )
+            elif force and existing_torrent.upload.editable_by(account):
+                upload_logger.info(
+                    f"Replacing existing torrent with another that matches infohash "
                     f"{existing_torrent.infohash}"
-                    "</a>",
-                    "raw_html": True,
-                },
-            )
+                )
+                # preserve the original creator of the upload when the infohash is unchanged
+                creating_account = existing_torrent.upload.account
+                existing_upload = existing_torrent.upload
+                session.delete(existing_torrent)
+                session.commit()
+            else:
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "msg": "An identical torrent file already exists "
+                        "and is associated with an upload: "
+                        f'<a href="/uploads/{existing_torrent.infohash}">'
+                        f"{existing_torrent.infohash}"
+                        "</a> and current account does not have permissions to edit it",
+                        "raw_html": True,
+                    },
+                )
         else:
             upload_logger.debug("Replacing existing orphaned torrent with new torrent")
             session.delete(existing_torrent)
@@ -118,7 +150,11 @@ async def upload_torrent(
     created_torrent.torrent_size = Path(created_torrent.filesystem_path).stat().st_size
     upload_logger.debug("Creating torrent file in db")
     created_torrent = crud.create_torrent(
-        session=session, created_torrent=created_torrent, account=account
+        session=session, created_torrent=created_torrent, account=creating_account
     )
+    if existing_upload:
+        existing_upload.torrent = created_torrent
+        session.add(existing_upload)
+        session.commit()
 
     return TorrentFileRead.model_validate(created_torrent)

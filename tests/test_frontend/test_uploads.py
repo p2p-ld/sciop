@@ -88,6 +88,40 @@ async def test_scroll_files(torrentfile, upload, page: Page, run_server: Uvicorn
     await expect(page.locator(".file-table tr")).to_have_count(1103)
 
 
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.playwright
+async def test_upload_edit_replace_torrent(
+    page_as_admin: Page, torrent_pair, account, dataset, torrentfile, upload, tmp_path
+):
+    torrent_1, torrent_2 = torrent_pair
+    page = page_as_admin
+
+    assert torrent_1.infohash == torrent_2.infohash
+
+    torrent_2_path = tmp_path / "torrent_2.torrent"
+    torrent_2.write(torrent_2_path)
+
+    acct1 = account(username="original_uploader", scopes=["upload"])
+    ds = dataset(slug="duplicate-dataset", account_=acct1)
+    tf1 = torrentfile(torrent=torrent_1, account_=acct1, v2_infohash=False)
+    ul = upload(torrentfile_=tf1, account_=acct1, dataset_=ds)
+
+    await page.goto(f"http://127.0.0.1:8080/uploads/{ul.infohash}")
+    await expect(page.get_by_role("cell", name="http://example.com/announce")).not_to_be_visible()
+
+    await page.get_by_role("link", name="Edit").click()
+    await expect(page).to_have_url(f"http://127.0.0.1:8080/uploads/{ul.infohash}/edit")
+    await page.get_by_role("button", name="Choose File").set_input_files(str(torrent_2_path))
+    await page.get_by_role("button", name="Upload").click()
+    # wait for the server to process
+    await expect(page.locator("input#file_name")).to_have_value("torrent_2.torrent")
+    await page.get_by_role("button", name="Submit").click()
+
+    await expect(page).to_have_url(f"http://127.0.0.1:8080/uploads/{ul.infohash}")
+    await expect(page.get_by_role("cell", name="udp://example.com/announce")).to_be_visible()
+    await expect(page.get_by_role("cell", name="http://example.com/announce")).to_be_visible()
+
+
 @pytest.mark.skip(reason="TODO")
 def test_show_trackers():
     """

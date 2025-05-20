@@ -20,7 +20,7 @@
 {{ model_table(id="torrent-table", model=torrent) }}
 {% endmacro %}
 
-{% macro upload_form(dataset, parts=None, id=None, target=None, post_to="datasets") %}
+{% macro upload_form(dataset, parts=None, id=None, target=None, post_to="datasets", force=False) %}
 {% if id is none %}
 {% set id = dataset.slug + "-upload-form" %}
 {% endif %}
@@ -28,7 +28,7 @@
       {% if post_to == 'datasets' %}
       hx-post="/datasets/{{ dataset.slug }}/upload/torrent{% if parts %}?{{ parts | join('=on&') }}=on{% endif %}"
       {% else %}
-      hx-post="{{ config.api_prefix }}/upload/torrent/"
+      hx-post="{{ config.api_prefix }}/upload/torrent/{% if force %}?force=true{% endif %}"
       {% endif %}
       hx-indicator="#{{ dataset.slug }}-upload-indicator"
       hx-swap="outerHTML"
