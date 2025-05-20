@@ -583,3 +583,7 @@ progress::-moz-progress-bar {
     color: var(--color-link);
   }
 }
+
+.hidden {
+    display: none;
+}
