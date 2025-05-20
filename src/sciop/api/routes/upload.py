@@ -100,7 +100,7 @@ async def upload_torrent(
                 session.commit()
             else:
                 raise HTTPException(
-                    status_code=401,
+                    status_code=403,
                     detail={
                         "msg": "An identical torrent file already exists "
                         "and is associated with an upload: "
