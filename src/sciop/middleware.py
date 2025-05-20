@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta
 import gzip
 import logging
@@ -106,12 +107,14 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         try:
             time_recieved = None
-            if config.request_timing:
-                time_recieved = datetime.now()
-            response = await call_next(request)
             time_finished = None
+            total_time = None
+
             if config.request_timing:
-                time_finished = datetime.now()
+                time_recieved = time.time()
+            response = await call_next(request)
+            if config.request_timing:
+                time_finished = time.time()
             msg = None
             if response.status_code < 400:
                 level = logging.INFO
@@ -121,7 +124,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             else:
                 msg = await self._decode_body(response)
                 level = logging.ERROR
-            total_time = None
+
             if config.request_timing:
                 total_time = time_finished-time_recieved
 
@@ -145,11 +148,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             request: Request,
             msg: Optional[str] = None,
             level: int = logging.INFO,
-            request_total_time: Optional[timedelta] = None
+            request_total_time: Optional[float] = None
     ) -> None:
         time_msg = ''
         if config.request_timing and request_total_time is not None:
-            time_msg = f"{round(request_total_time/timedelta(milliseconds=1), 1)}ms"
+            time_msg = f"{round(request_total_time*1000, 1)}ms"
 
         if msg:
             self.logger.log(

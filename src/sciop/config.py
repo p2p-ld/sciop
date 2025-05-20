@@ -274,7 +274,7 @@ class Config(BaseSettings):
     """
     db_echo: bool = False
     """Echo all queries made to the database"""
-    request_timing: bool = True
+    request_timing: bool = False
     """Enable timing requests, and logging request time"""
     db_pool_size: int = 10
     """Number of active database connections to maintain"""
