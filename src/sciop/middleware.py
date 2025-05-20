@@ -1,5 +1,6 @@
 import gzip
 import logging
+import re
 import time
 import traceback
 from io import BytesIO
@@ -99,6 +100,17 @@ def exempt_scoped(request: Request) -> bool:
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
+    PATTERN = re.compile(
+        r"^\[(?P<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})]\s"
+        r"(?P<level>\w+)\s"
+        r"\[(?P<logger>\S*)]:\s"
+        r"(?:\[(?P<status_code>\d+)]\s)?"
+        r"(?:\((?P<duration>\d+\.\d)ms\)\s)?"
+        r"(?:(?P<method>\w*):\s)?"
+        r"(?P<msg>.*)",
+        re.MULTILINE,
+    )
+
     def __init__(self, app: ASGIApp, logger: logging.Logger):
         self.logger = logger
         super().__init__(app)
