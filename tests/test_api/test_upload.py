@@ -110,7 +110,6 @@ def test_upload_noscope(
     assert ul.needs_review
 
 
-@pytest.mark.playwright
 def test_replace_orphaned_upload(
     client: TestClient, session, torrentfile, uploader, get_auth_header
 ):
