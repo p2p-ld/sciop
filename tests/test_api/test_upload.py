@@ -4,7 +4,7 @@ from starlette.testclient import TestClient
 
 from sciop import crud
 from sciop.config import config
-from sciop.models import TorrentFile, UploadCreate
+from sciop.models import TorrentFile, Upload, UploadCreate
 from sciop.models.torrent import TorrentVersion
 
 from ..fixtures.paths import DATA_DIR
@@ -110,7 +110,6 @@ def test_upload_noscope(
     assert ul.needs_review
 
 
-@pytest.mark.playwright
 def test_replace_orphaned_upload(
     client: TestClient, session, torrentfile, uploader, get_auth_header
 ):
@@ -169,6 +168,72 @@ def test_reject_duplicated_upload(client, upload, uploader, get_auth_header):
         assert response.status_code == 400
 
     assert "identical torrent file" in response.json()["detail"]["msg"]
+
+
+@pytest.mark.parametrize("has_permission", [False, True])
+def test_replace_duplicate_with_force(
+    client,
+    upload,
+    dataset,
+    account,
+    torrentfile,
+    get_auth_header,
+    tmp_path,
+    has_permission,
+    session,
+    torrent_pair,
+):
+    """
+    When uploading a torrent file with `force`, we can replace one with a matching infohash
+    """
+    torrent_1, torrent_2 = torrent_pair
+    torrent_2_path = tmp_path / "default_torrent_2.torrent"
+    torrent_2.write(torrent_2_path)
+    assert torrent_1.infohash == torrent_2.infohash
+
+    # the first one should already exist as an upload
+    acct1 = account(username="original_uploader", scopes=["upload"])
+    ds = dataset(slug="duplicate-dataset", account_=acct1)
+    tf1 = torrentfile(torrent=torrent_1, account_=acct1)
+    ul = upload(torrentfile_=tf1, account_=acct1, dataset_=ds)
+    existing_tf = ul.torrent
+    existing_torrent_path = existing_tf.filesystem_path
+    assert existing_torrent_path.exists()
+    assert len(ul.torrent.trackers) == 1
+
+    # try and upload a new one
+    if has_permission:
+        acct2 = account(username="new_uploader", scopes=["upload", "review"])
+    else:
+        acct2 = account(username="new_uploader", scopes=["upload"])
+    header = get_auth_header("new_uploader")
+    with open(torrent_2_path, "rb") as f:
+        response = client.post(
+            config.api_prefix + "/upload/torrent/?force=true",
+            headers=header,
+            files={"file": (torrent_2_path.name, f, "application/x-bittorrent")},
+        )
+
+    if not has_permission:
+        assert response.status_code == 403
+        assert "identical torrent file" in response.json()["detail"]["msg"]
+        assert "current account does not have permissions" in response.json()["detail"]["msg"]
+        return
+
+    assert response.status_code == 200
+    # reload the whole upload object
+    ul_reload = session.exec(select(Upload).where(Upload.upload_id == ul.upload_id)).first()
+    # added the new trackers (and thus are the new torrent file)
+    assert ul.torrent.infohash == ul_reload.torrent.infohash
+    assert len(ul_reload.torrent.trackers) == 2
+    # kept the old account associated with the upload
+    assert ul_reload.account == acct1
+    # and the API response is correct
+    res_data = response.json()
+    assert res_data["announce_urls"] == [
+        "udp://example.com/announce",
+        "http://example.com/announce",
+    ]
 
 
 def test_files_ragged_pagination(client, upload, torrentfile):

@@ -403,12 +403,18 @@ def _torrentfile(
     session_: Session | None = None,
     **kwargs: P.kwargs,
 ) -> TorrentFile:
-    passed_announce_urls = "announce_urls" in kwargs
+    passed_announce_urls = "announce_urls" in kwargs or "torrent" in kwargs
     kwargs = deepcopy({**default_torrentfile(), **kwargs})
     generator = np.random.default_rng()
 
     if "torrent" in kwargs:
-        t = kwargs.pop("torrent")
+        t: Torrent = kwargs.pop("torrent")
+        announce_urls_nested = t.trackers
+        announce_urls = []
+        for tier in announce_urls_nested:
+            announce_urls.extend(tier)
+        kwargs["announce_urls"] = announce_urls
+
     else:
         if n_files == 1:
             file_in_torrent = tmp_path / "default.bin"
@@ -626,3 +632,28 @@ def default_db(
         is_approved=True, torrentfile_=tfile, account_=uploader, dataset_=dataset_, session_=session
     )
     yield admin, uploader, tfile, dataset_, upload_
+
+
+@pytest.fixture()
+def torrent_pair(tmp_path: Path, torrent: C[..., Torrent]) -> tuple[Torrent, Torrent]:
+    """Two torrents with same infohash but different trackers"""
+    data_file = tmp_path / "data.bin"
+    with open(data_file, "wb") as f:
+        data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
+        data = data.encode("utf-8")
+        f.write(data)
+
+    # make two torrents that should have identical infohash
+    kwargs_1 = {
+        "path": str(data_file),
+        "name": "Default Torrent 1",
+        "trackers": [["udp://example.com/announce"]],
+        "comment": "My comment",
+        "piece_size": 16384,
+    }
+    kwargs_2 = deepcopy(kwargs_1)
+    kwargs_2["trackers"].append(["http://example.com/announce"])
+
+    torrent_1 = torrent(**kwargs_1)
+    torrent_2 = torrent(**kwargs_2)
+    return torrent_1, torrent_2
