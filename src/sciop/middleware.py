@@ -114,6 +114,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             if config.request_timing:
                 time_finished = time.time()
+
             msg = None
             if response.status_code < 400:
                 level = logging.INFO

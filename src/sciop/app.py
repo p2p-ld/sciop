@@ -49,14 +49,23 @@ app = FastAPI(
     dependencies=[Depends(get_current_account)],
 )
 
+# ----------------------------------------------------------------------------------------
+# Middleware
+# ~~~~~~~~~~
+# Order is important here!
+# Middleware run in "outside-in-then-return" order:
+# before the endpoint method - starting from the most recently added (later lines),
+# after the endpoint method - back up in reverse order (earlier lines)
+#
+# When adding new middleware, you likely want to add it to the *top* (inside) of the stack,
+# but mind any comments that describe the position of a middleware
+# -----------------------------------------------------------------------------------------
+
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(ContentSizeLimitMiddleware, max_content_size=config.upload_limit)
 app.middleware("http")(security_headers)
-app.add_middleware(LoggingMiddleware, logger=init_logger("requests"))
-app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
 
-# Set all CORS enabled origins
 if config.all_cors_origins:
     app.add_middleware(
         CORSMiddleware,
@@ -65,6 +74,14 @@ if config.all_cors_origins:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# Logging wraps the other middlewares (except gzip),
+# because it also is responsible for timing responses
+app.add_middleware(LoggingMiddleware, logger=init_logger("requests"))
+
+# GZip should be the very outer middleware, since the response is completed,
+# just needs to be compressed. and coming earlier requires other middlewares to decompress.
+app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=5)
 
 
 app.include_router(api_router)
