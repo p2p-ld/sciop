@@ -155,12 +155,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     ) -> None:
         time_msg = ""
         if config.request_timing and request_total_time is not None:
-            time_msg = f"{round(request_total_time*1000, 1)}ms"
+            time_msg = f" ({round(request_total_time*1000, 1)}ms)"
 
         if msg:
             self.logger.log(
                 level,
-                "[%s] %s %s: %s - %s",
+                "[%s]%s %s: %s - %s",
                 response_code,
                 time_msg,
                 request.method,
@@ -169,7 +169,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             )
         else:
             self.logger.log(
-                level, "[%s] %s %s: %s", response_code, time_msg, request.method, request.url.path
+                level, "[%s]%s %s: %s", response_code, time_msg, request.method, request.url.path
             )
 
     async def _decode_body(self, response: Response) -> str:
