@@ -304,6 +304,8 @@ class Config(BaseSettings):
     """Directory to store uploaded torrents"""
     enable_versions: bool = True
     """Keep version histories of editable objects"""
+    request_timing: bool = False
+    """Enable timing requests, and logging request time"""
     csp: CSPConfig = CSPConfig()
     """Submodel containing CSP config"""
     root_user: str = "root"
