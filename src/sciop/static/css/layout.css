@@ -550,6 +550,8 @@ body.light-theme {
         flex-basis: 25%;
         align-self: end;
         position: relative;
+        display: flex;
+        align-items: flex-end;
 
         @media screen and (max-width: 535px) {
           min-height: 280px;
