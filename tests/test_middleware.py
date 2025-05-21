@@ -56,6 +56,35 @@ def test_logging(
         assert len(log_entries) == 0
 
 
+@pytest.mark.parametrize("enabled", (True, False))
+def test_logging_timing(monkeypatch, capsys, log_dir, enabled, client):
+    """
+    When request timing is enabled, logging outputs request timestamps
+    """
+    from sciop import middleware
+
+    monkeypatch.setattr(middleware.config, "request_timing", enabled)
+
+    _ = client.get("/")
+
+    with open(log_dir) as f:
+        log_entries = f.readlines()
+
+    response = log_entries[-1]
+    # first just a simple string test in case our regex
+    # doesn't work that we are looking at the right string
+    assert "GET" in response
+    assert response.endswith("/\n")
+
+    match = middleware.LoggingMiddleware.PATTERN.match(response)
+    if enabled:
+        assert "duration" in match.groupdict()
+        # ensure that we got a number from it, but we don't know what it is
+        assert isinstance(float(match.groupdict()["duration"]), float)
+    else:
+        assert match.groupdict()["duration"] is None
+
+
 def test_security_headers(client):
     response = client.get("/")
     expected_headers = (

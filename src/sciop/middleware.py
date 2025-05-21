@@ -1,5 +1,7 @@
 import gzip
 import logging
+import re
+import time
 import traceback
 from io import BytesIO
 from secrets import token_urlsafe
@@ -98,13 +100,33 @@ def exempt_scoped(request: Request) -> bool:
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
+    PATTERN = re.compile(
+        r"^\[(?P<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})]\s"
+        r"(?P<level>\w+)\s"
+        r"\[(?P<logger>\S*)]:\s"
+        r"(?:\[(?P<status_code>\d+)]\s)?"
+        r"(?:\((?P<duration>\d+\.\d)ms\)\s)?"
+        r"(?:(?P<method>\w*):\s)?"
+        r"(?P<msg>.*)",
+        re.MULTILINE,
+    )
+
     def __init__(self, app: ASGIApp, logger: logging.Logger):
         self.logger = logger
         super().__init__(app)
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         try:
+            time_recieved = None
+            time_finished = None
+            total_time = None
+
+            if config.request_timing:
+                time_recieved = time.time()
             response = await call_next(request)
+            if config.request_timing:
+                time_finished = time.time()
+
             msg = None
             if response.status_code < 400:
                 level = logging.INFO
@@ -115,8 +137,15 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 msg = await self._decode_body(response)
                 level = logging.ERROR
 
+            if config.request_timing:
+                total_time = time_finished - time_recieved
+
             self._log_message(
-                response_code=response.status_code, request=request, msg=msg, level=level
+                response_code=response.status_code,
+                request=request,
+                msg=msg,
+                level=level,
+                request_total_time=total_time,
             )
             return response
         except HTTPException as e:
@@ -135,13 +164,26 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         request: Request,
         msg: Optional[str] = None,
         level: int = logging.INFO,
+        request_total_time: Optional[float] = None,
     ) -> None:
+        time_msg = ""
+        if config.request_timing and request_total_time is not None:
+            time_msg = f" ({round(request_total_time*1000, 1)}ms)"
+
         if msg:
             self.logger.log(
-                level, "[%s] %s: %s - %s", response_code, request.method, request.url.path, msg
+                level,
+                "[%s]%s %s: %s - %s",
+                response_code,
+                time_msg,
+                request.method,
+                request.url.path,
+                msg,
             )
         else:
-            self.logger.log(level, "[%s] %s: %s", response_code, request.method, request.url.path)
+            self.logger.log(
+                level, "[%s]%s %s: %s", response_code, time_msg, request.method, request.url.path
+            )
 
     async def _decode_body(self, response: Response) -> str:
 
