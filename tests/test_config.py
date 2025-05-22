@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from time import time, sleep
+from time import sleep, time
 
 import pytest
 import yaml
@@ -81,11 +81,16 @@ def test_config_autoload(tmp_path_factory, monkeypatch: pytest.MonkeyPatch, defa
     assert config_1.instance.footer == footer
     assert config_1._yaml_source == config_path
 
+    original_mtime = main._config._source_mtimes[config_path]
+
     # force checking mtime by pretending we last checked a long time ago
     # without changes, shouldn't reload (object memory id should be unchanged)
     main._config._last_checked = time() - 100000
     assert get_config() is config_1
     assert get_config().instance.footer == footer
+
+    # does it take a second to decide about mtime or something???
+    sleep(0.1)
 
     # now update it and force the mtime check again
     new_footer = "and change it whenever you want too"
@@ -93,10 +98,8 @@ def test_config_autoload(tmp_path_factory, monkeypatch: pytest.MonkeyPatch, defa
     with open(config_path, "w") as f:
         yaml.safe_dump(cfg, f)
 
-    # does it take a second to decide about mtime or something???
-    sleep(0.1)
-
     fake_time = time() - 100000
+    assert main._config._source_mtimes[config_path] == original_mtime
     assert main._config._source_mtimes[config_path] < config_path.stat().st_mtime
     assert main._config._last_checked > fake_time
     main._config._last_checked = fake_time
