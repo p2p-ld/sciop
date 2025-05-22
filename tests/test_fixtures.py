@@ -9,4 +9,4 @@ def test_config_monkeypatch(request):
         assert config.db.name == "db.test.sqlite"
     else:
         assert config.db is None
-    assert config.secret_key.get_secret_value() == "12345"
+    assert config.secret_key.get_secret_value() == "1" * 64

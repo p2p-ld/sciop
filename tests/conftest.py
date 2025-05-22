@@ -8,7 +8,6 @@ from _pytest.monkeypatch import MonkeyPatch
 from _pytest.python import Function
 
 mpatch = MonkeyPatch()
-mpatch.setenv("SCIOP_SECRET_KEY", "12345")
 mpatch.setenv("SCIOP_ENV", "test")
 
 from sqlalchemy.orm import sessionmaker
@@ -105,7 +104,7 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
         env="test",
         db=db_path,
         torrent_dir=TORRENT_DIR,
-        secret_key="12345",
+        secret_key="1" * 64,
         clear_jobs=True,
         base_url="http://localhost:8080",
         enable_versions=True,
