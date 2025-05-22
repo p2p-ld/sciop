@@ -57,5 +57,24 @@ This also allowed us to add a `sciop start -c some-other-config.yaml` cli option
 
 Existing configs will need to be modified to use the new keys:
 
-| Old | New |
-| --- | --- |
+| Old                       | New                       |
+|---------------------------|---------------------------|
+| db                        | paths.db                  |
+| template_dir              | paths.template_override   |
+| logs.dir                  | paths.logs                |
+| torrent_dir               | paths.torrents            |
+| base_url                  | server.base_url           |
+| public_url                | server.base_url           |
+| host                      | server.host               |
+| port                      | server.port               |
+| csp                       | server.csp                |
+| db_echo                   | db.echo                   |
+| db_pool_size              | db.pool_size              |
+| db_overflow_size          | db.overflow_size          |
+| rss_feed_cache_delta      | feeds.cache_delta         |
+| rss_feed_cache_clear_time | feeds.cache_clear_time    |
+| clear_jobs                | services.clear_jobs       |
+| tracker_scraping          | services.tracker_scraping |
+| site_stats                | services.site_stats       |
+| request_timing            | logs.request_timing       |
+
