@@ -40,6 +40,6 @@ class HitCount(SQLModel, table=True):
         counter = HitCount(path=path, count=0) if maybe_counter is None else maybe_counter
         count = counter.count + 1
         counter.count = count
+        yield count
         session.add(counter)
         session.commit()
-        return count
