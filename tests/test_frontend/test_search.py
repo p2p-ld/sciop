@@ -239,6 +239,7 @@ async def test_url_swap_search_sort(items, page: Page, run_server_module):
     await page.goto("http://127.0.0.1:8080/datasets/")
     col = page.locator('.sort-link[data-col="slug"]')
     await col.click()
+    await expect(page).to_have_url("http://127.0.0.1:8080/datasets/?sort=slug")
     await page.locator(".search-input").fill("a")
     await expect(page).to_have_url("http://127.0.0.1:8080/datasets/?query=a&sort=slug")
     await page.locator('.page-link[data-page="2"]').first.click()

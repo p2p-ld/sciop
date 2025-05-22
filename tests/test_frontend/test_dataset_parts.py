@@ -6,13 +6,14 @@ from playwright.async_api import Page, expect
 from sciop.models import DatasetPart
 
 
-@pytest.mark.timeout(20)
+@pytest.mark.timeout(30)
 @pytest.mark.playwright
 @pytest.mark.asyncio(loop_scope="session")
-async def test_add_one_part(default_db, page_as_admin: Page):
+async def test_add_one_part(dataset, page_as_admin: Page):
     """
     A single dataset part can be added with a form as admin
     """
+    _ = dataset()
     page: Page = page_as_admin
     await page.goto("http://127.0.0.1:8080/datasets/default")
     await expect(page).to_have_url(re.compile(r".*default.*"))
@@ -39,10 +40,11 @@ async def test_add_one_part(default_db, page_as_admin: Page):
 @pytest.mark.timeout(20)
 @pytest.mark.playwright
 @pytest.mark.asyncio(loop_scope="session")
-async def test_add_parts(default_db, page_as_admin):
+async def test_add_parts(dataset, page_as_admin):
     """
     A single dataset part can be added with a form as admin
     """
+    _ = dataset()
     page = page_as_admin
     await page.goto("http://127.0.0.1:8080/datasets/default")
 

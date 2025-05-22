@@ -10,7 +10,6 @@ from _pytest.python import Function
 mpatch = MonkeyPatch()
 mpatch.setenv("SCIOP_ENV", "test")
 
-from sqlalchemy.orm import sessionmaker
 
 from .fixtures import *
 from .fixtures import LOGS_DIR, TMP_DIR, TORRENT_DIR
@@ -90,7 +89,6 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
     After we are able to declare environmental variables in session start,
     patch the config
     """
-    from sqlmodel import Session, create_engine
 
     from sciop import config
 
@@ -108,6 +106,7 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
         clear_jobs=True,
         base_url="http://localhost:8080",
         enable_versions=True,
+        request_timing=False,
     )
     new_config.logs.dir = LOGS_DIR
     new_config.logs.level_file = "DEBUG"
@@ -119,20 +118,3 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
             continue
         with contextlib.suppress(AttributeError):
             monkeypatch_session.setattr(module, "config", new_config)
-
-    from sciop import db
-
-    engine_kwargs = {}
-    if request.config.getoption("--file-db"):
-        engine_kwargs = {
-            "pool_size": new_config.db_pool_size,
-            "max_overflow": new_config.db_overflow_size,
-        }
-    if request.config.getoption("--echo-queries"):
-        engine_kwargs["echo"] = True
-
-    engine = create_engine(str(new_config.sqlite_path), **engine_kwargs)
-    monkeypatch_session.setattr(db, "engine", engine)
-    maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
-    monkeypatch_session.setattr(db, "maker", maker)
-    db.create_tables(engine, check_migrations=False)
