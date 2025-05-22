@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -34,3 +35,17 @@ def test_config_env_overrides(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     config = Config()
     assert config.env == "dev"
     assert config.base_url == "testenv"
+
+
+def test_config_defaults(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """
+    Config should be instantiable with default values without having any declared.
+    """
+
+    # move to directory without any configs, and clear any env vars
+    monkeypatch.chdir(tmp_path)
+    for key in os.environ:
+        if key.startswith("SCIOP_"):
+            monkeypatch.delenv(key)
+
+    _ = Config()

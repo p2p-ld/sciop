@@ -1,4 +1,5 @@
 import datetime
+import secrets
 from functools import cached_property
 from pathlib import Path
 from typing import Literal, Optional, Self
@@ -257,11 +258,33 @@ class Config(BaseSettings):
         nested_model_default_partial_update=True,
         yaml_file="sciop.yaml",
     )
-
+    env: Literal["dev", "prod", "test"] = "dev"
+    """
+    dev: interactive, live reloading development mode with dummy data
+    test: when running pytest
+    prod: when service a live sciop instance
+    
+    `dev` and `test` modes should *never* be made publicly accessible,
+    and should *always* be assumed to be temporary and local.
+    """
     base_url: str = "http://localhost:8000"
     """Root URL where the site is hosted"""
-    secret_key: SecretStr
-    """Secret key to use when generating auth tokens"""
+    secret_key: SecretStr = Field(default_factory=lambda: secrets.token_hex(32), min_length=64)
+    """
+    Secret key to use when generating auth tokens
+    
+    When not explicitly specified, 
+    a new secret key will be generated every time Config is instantiated.
+    This will mean that all existing authentication cookies will no longer be valid
+    and everyone will need to login. 
+    At the moment, this is more of an annoyance than anything,
+    but in the future when the secret key will be used to sign instance events,
+    leaving this unset will likely break everything.
+    
+    You should generate and explicitly set a secret_key,
+    either using the sciop cli: `sciop config copy` 
+    or openssl: `openssl rand -hex 32`
+    """
     db: Optional[Path]
     """
     Defaults:
@@ -284,12 +307,6 @@ class Config(BaseSettings):
     """Host portion of url"""
     port: int = 8000
     """Port where local service should serve from"""
-    env: Literal["dev", "prod", "test"]
-    """
-    dev: interactive, live reloading development mode with dummy data
-    test: when running pytest
-    prod: when service a live sciop instance
-    """
     public_url: str = "http://localhost"
     token_expire_minutes: int = 60 * 24  # AKA 1 day
     """Login authorization token expiration time in minutes"""
@@ -389,8 +406,8 @@ class Config(BaseSettings):
     @model_validator(mode="before")
     def default_db(cls, value: dict) -> dict:
         """Add a default db path to args, if not present"""
-        if "db" not in value and "env" in value:
-            value["db"] = DEFAULT_DB_LOCATIONS[value["env"]]
+        if "db" not in value:
+            value["db"] = DEFAULT_DB_LOCATIONS[value.get("env", "dev")]
         return value
 
     @model_validator(mode="before")

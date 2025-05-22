@@ -8,7 +8,6 @@ from _pytest.monkeypatch import MonkeyPatch
 from _pytest.python import Function
 
 mpatch = MonkeyPatch()
-mpatch.setenv("SCIOP_SECRET_KEY", "12345")
 mpatch.setenv("SCIOP_ENV", "test")
 
 from sqlalchemy.orm import sessionmaker
