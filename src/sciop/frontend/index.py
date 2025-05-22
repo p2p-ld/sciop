@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
@@ -21,7 +23,8 @@ async def index(request: Request, session: SessionDep):
 
     stats = crud.get_latest_site_stats(session=session)
     hit_count = HitCount.next(path="/", session=session)
-
+    executor = ThreadPoolExecutor(max_workers=100)
+    executor.submit(HitCount.writeback, path="/", session=session)
     return templates.TemplateResponse(
         request,
         "pages/index.html",
