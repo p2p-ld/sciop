@@ -168,3 +168,5 @@ __tmp__
 src/sciop/docs
 prof
 sciop.yaml
+sciop.*.yaml
+.env*

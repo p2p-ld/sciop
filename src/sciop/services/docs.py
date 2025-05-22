@@ -46,7 +46,7 @@ def build_docs(
     index = output_dir / "index.html"
 
     # if testing or in prod, only build once per run
-    timeout = 10 if config.env == "dev" else 300
+    timeout = 10 if config.env == "dev" else 1000
 
     if index.exists() and (time() - index.stat().st_mtime) < timeout:
         logger.debug("Not rebuilding docs, built less than %s seconds ago", timeout)

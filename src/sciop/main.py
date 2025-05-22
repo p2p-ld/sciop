@@ -20,7 +20,7 @@ def main(config: Optional["Config"] = None) -> None:
         "sciop.app:app",
         host=config.server.host,
         port=config.server.port,
-        reload=config.reload,
+        reload=config.reload_uvicorn,
         reload_includes=["*.py", "*.md", "*.yml", "*.yaml"],
         reload_excludes=[str(in_pkg_docs)],
         lifespan="on",

@@ -58,9 +58,10 @@ SCIOP_LOGS__LEVEL=INFO
 ## Usage
 
 Within `sciop`, the `Config` behaves like a singleton, loaded once per run.
-You should not re-instantiate it, and instead use the [get_config][sciop.config.get_config] accessor.
-Using `get_config` is cheap, and it should be treated effectively as a constant for perf concerns.
-Once loaded, the config should *never* be mutated.
+- You should not re-instantiate it, and instead use the [get_config][sciop.config.get_config] accessor.
+- Using `get_config` is cheap, and it should be treated effectively as a constant for perf concerns.
+- Once loaded, the config should *never* be mutated.
+- You should *avoid* storing references to or copies of the config, just use `get_config()`.
 
 Config is available in templates as the global variable `config`.
 Plugins and template overrides should *never* print the full config,

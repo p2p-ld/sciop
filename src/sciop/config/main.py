@@ -1,10 +1,15 @@
 import secrets
+import sys
 from pathlib import Path
-from typing import Literal, Optional, Self
+from time import time
+from typing import Any, Literal, Optional, Self
 
 from pydantic import (
     Field,
+    ModelWrapValidatorHandler,
+    PrivateAttr,
     SecretStr,
+    ValidationInfo,
     model_validator,
 )
 from pydantic_settings import (
@@ -33,8 +38,22 @@ def get_config(reload: bool = False) -> "Config":
         reload (bool): If ``True``, reload the config from default sources.
     """
     global _config
-    if _config is None or reload:
+    if _config is None:
         _config = Config()
+    elif reload or _config.should_reload():
+        _config = _config.reload()
+
+    return _config
+
+
+def set_config(config: "Config") -> "Config":
+    """
+    Set an instantiated config object as the active config that will be returned by `get_config`.
+
+    Setting individual values on a config object is not supported and should not be done.
+    """
+    global _config
+    _config = config
     return _config
 
 
@@ -99,6 +118,12 @@ class Config(BaseSettings):
 
     This value is set to `None` by `db.ensure_root` when the program is started normally.    
     """
+    config_watch_minutes: int = 5
+    """
+    Minutes to wait between re-checking the mtime of any config sources that were found
+    to reload the config. This avoids needing to `stat` source files in the potentially
+    thousands of times the config object is accessed per minute.
+    """
 
     # --------------------------------------------------
     # Configuration sub-models
@@ -118,8 +143,12 @@ class Config(BaseSettings):
     services: ServicesConfig = ServicesConfig()
     """Configuration for all background tasks and services"""
 
+    _yaml_source: Path | None = None
+    _source_mtimes: dict[Path, float] = PrivateAttr(default_factory=dict)
+    _last_checked: float = time()
+
     @property
-    def reload(self) -> bool:
+    def reload_uvicorn(self) -> bool:
         """whether to reload the wsgi server ie. when in dev mode"""
         return self.env == "dev"
 
@@ -150,6 +179,37 @@ class Config(BaseSettings):
                 self.root_password != self.__class__.model_fields["root_password"].default
             ), "root_password cannot be equal to the default in prod, and must be set explicitly"
         return self
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def get_source_mtimes(
+        cls, data: Any, handler: ModelWrapValidatorHandler[Self], info: ValidationInfo
+    ) -> Self:
+        """
+        Get the mtimes of any source files found
+
+        If the config file was loaded from a yaml file with [.read][sciop.config.Config.read],
+        use that as the source file to check.
+
+        Otherwise watch a `.env` and/or `sciop.yaml` file in the cwd, if found.
+        """
+
+        after = handler(data)
+        # if "_yaml_source" in data:
+        # breakpoint()
+        mtimes = {}
+        if (env := Path.cwd() / ".env").exists():
+            mtimes[env] = env.stat().st_mtime
+        if "_yaml_source" in data:
+            after._yaml_source = Path(data["_yaml_source"]).resolve()
+        elif (local_yaml := Path.cwd() / "sciop.yaml").exists():
+            after._yaml_source = local_yaml
+
+        if after._yaml_source is not None:
+            mtimes[after._yaml_source] = after._yaml_source.stat().st_mtime
+
+        after._source_mtimes = mtimes
+        return after
 
     @classmethod
     def settings_customise_sources(
@@ -184,11 +244,108 @@ class Config(BaseSettings):
 
             with open(path) as f:
                 cfg = yaml.safe_load(f)
+            cfg["_yaml_source"] = path
             return Config(**cfg)
         elif path.name == ".env" or path.suffix == ".env":
             return Config(_env_file=path)
         else:
             ValueError("Path must be a .yaml/.yml or .env file")
+
+    def should_reload(self) -> bool:
+        """
+        Whether the config sources have been changed and the config should be reloaded
+
+        Returns `False` if the [config_watch_minutes][.config_watch_minutes] have not elapsed
+        since the last check, if the mtimes are unchanged, or no source files were found.
+
+        Returns `True` if the mtimes of the identified source files have changed
+
+        When reloading elsewhere, use `.reload()` rather than re-instantiating the object
+        to preserve any explicitly-passed config source paths.
+        """
+        if not self._source_mtimes:
+            return False
+
+        current_time = time()
+        if current_time < self._last_checked + (self.config_watch_minutes * 60):
+            self._last_checked = current_time
+            return False
+
+        self._last_checked = current_time
+        return any(source.stat().st_mtime > mtime for source, mtime in self._source_mtimes.items())
+
+    def reload(self) -> "Config":
+        """
+        If instantiated from a custom yaml source with `.load`,
+        recreate a new `Config` object from that source.
+
+        Otherwise equivalent to instantiating without arguments.
+        """
+        if (
+            self._yaml_source
+            and self._yaml_source.resolve() != (Path().cwd() / "sciop.yaml").resolve()
+        ):
+            new_config = Config.load(self._yaml_source)
+        else:
+            new_config = Config()
+        return new_config
+
+
+def _lifespan_load_config() -> None:
+    """
+    Private method to load from a passed config file within the app when started with
+    `sciop start -c custom_config`, since uvicorn reloads the whole interpreter
+    every time, we have to get a little meta and re-evaluate the cli params.
+
+    If we can't or no custom config was passed, does nothing and allows
+    `get_config` to work as normal.
+    """
+    args = sys.argv
+    try:
+        # avoid getting any `-c` params potentially passed to the interpreter
+        # or otherwise not for us
+        start_idx = args.index("start")
+    except ValueError:
+        # not run via the `start` command
+        return
+
+    args = args[start_idx:]
+    if "-c" in args:
+        flag_idx = args.index("-c")
+    elif "--config" in args:
+        flag_idx = args.index("--config")
+    else:
+        return
+
+    config_path = None
+    try:
+        config_path = args[flag_idx + 1]
+        cfg = Config.load(Path(config_path))
+        from sciop.logging import init_logger
+
+        logger = init_logger(
+            "config",
+            log_dir=cfg.paths.logs,
+            log_file_n=cfg.logs.file_n,
+            log_file_size=cfg.logs.file_size,
+            level=cfg.logs.level_stdout if cfg.logs.level_stdout is not None else cfg.logs.level,
+            file_level=cfg.logs.level_file if cfg.logs.level_file is not None else cfg.logs.level,
+        )
+        logger.info(f"Using config from custom path: {config_path}")
+        logger.info(Path(config_path).read_text())
+        set_config(cfg)
+    except Exception as e:
+
+        from sciop.logging import init_logger
+
+        logger = init_logger("config")
+        logger.warning(
+            f"Detected config passed with -c or --config, but got error when loading. "
+            f"Attempting to continue with config loaded from standard locations.\n"
+            f"Got config arg: {config_path}\n"
+            f"Got error:\n{str(e)}"
+        )
+        return
 
 
 config = Config()

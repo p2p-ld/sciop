@@ -44,6 +44,8 @@ The module-level `config` object was also converted into a [get_config][sciop.co
 function, which allows better control over config at runtime and avoids
 needing to load and validate a config at import time.
 
+This also allowed us to add a `sciop start -c some-other-config.yaml` cli option :)
+
 Existing configs will need to be modified to use the new keys:
 
 | Old | New |

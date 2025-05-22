@@ -1,10 +1,13 @@
 from importlib.metadata import version
 from warnings import filterwarnings as _filterwarnings
 
+from sciop.config import get_config
+
 __version__ = version("sciop")
 
 __all__ = [
     "__version__",
+    "get_config",
 ]
 
 # annoying pydantic warnings from editable mixin about overriding parent attributes

@@ -68,3 +68,21 @@ jobs:
         run: |
           mkdir $HOME/tmp
           pytest -m "playwright"
+
+  test-slow:
+    name: tests-slow
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: https://code.forgejo.org/actions/checkout@v4
+      - name: Install python
+        uses: https://code.forgejo.org/actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: 'pip'
+      - name: Install deps
+        run: pip install -e .[test]
+      - name: Run tests
+        run: |
+          mkdir $HOME/tmp
+          pytest --with-slow -m "slow"

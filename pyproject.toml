@@ -190,6 +190,7 @@ asyncio_default_fixture_loop_scope = "session"
 markers = """
   playwright: tests that use the playwright webdriver
   markdown: tests that render markdown within HTML
+  slow: slow tests!
 """
 filterwarnings = [
     'ignore:Python 3.14 will, by default, filter extracted tar archives',

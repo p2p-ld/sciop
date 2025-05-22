@@ -13,6 +13,7 @@ from sciop import jobs  # noqa: F401 - import to register
 from sciop.api.deps import get_current_account
 from sciop.api.main import api_router
 from sciop.config import config
+from sciop.config.main import _lifespan_load_config
 from sciop.const import DOCS_DIR, STATIC_DIR
 from sciop.db import create_tables
 from sciop.exceptions import http_handler, rate_limit_handler
@@ -30,6 +31,9 @@ from sciop.services import build_docs
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Generator[None, None, None]:
+    # loading config this must happen first
+    _lifespan_load_config()
+
     create_tables()
     if config.env != "prod":
         build_docs(clean=False)

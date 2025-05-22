@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 
 from sciop import models, types
-from sciop.config import Config, config
+from sciop.config import Config, get_config
 from sciop.models.mixins.template import get_environment
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ def template_account(request: Request) -> dict[L["current_account"], Optional["A
 
 def template_config(request: Request) -> dict[L["config"], Config]:
     """no-op context processor to pass config to every template"""
-    return {"config": config}
+    return {"config": get_config()}
 
 
 def template_models(request: Request) -> dict[L["models", "types"], ModuleType]:
