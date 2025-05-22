@@ -78,6 +78,7 @@ def test_config_autoload(tmp_path_factory, monkeypatch: pytest.MonkeyPatch, defa
     monkeypatch.setattr(main, "_config", new_config)
     config_1 = get_config()
     assert config_1.instance.footer == footer
+    assert config_1._yaml_source == config_path
 
     # force checking mtime by pretending we last checked a long time ago
     # without changes, shouldn't reload (object memory id should be unchanged)
@@ -92,10 +93,11 @@ def test_config_autoload(tmp_path_factory, monkeypatch: pytest.MonkeyPatch, defa
         yaml.safe_dump(cfg, f)
 
     get_config()._last_checked = time() - 100000
-    assert main._config.should_reload()
+    assert get_config().should_reload()
     # doing this check updates the check time, so we have to do it twice.
-    assert not main._config.should_reload()
+    assert not get_config().should_reload()
     get_config()._last_checked = time() - 100000
     config_2 = get_config()
     assert config_2.instance.footer == new_footer
     assert config_1 is not config_2
+    assert config_2._yaml_source == config_path
