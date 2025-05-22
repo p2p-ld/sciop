@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from time import time
+from time import time, sleep
 
 import pytest
 import yaml
@@ -74,6 +74,7 @@ def test_config_autoload(tmp_path_factory, monkeypatch: pytest.MonkeyPatch, defa
     # create a version of the config as it would be either if passed with -c
     # or loaded normally from default locations
     new_config = Config() if default else Config.load(config_path)
+    new_config.config_watch_minutes = 0
 
     monkeypatch.setattr(main, "_config", new_config)
     config_1 = get_config()
@@ -92,7 +93,15 @@ def test_config_autoload(tmp_path_factory, monkeypatch: pytest.MonkeyPatch, defa
     with open(config_path, "w") as f:
         yaml.safe_dump(cfg, f)
 
-    main._config._last_checked = time() - 100000
+    # does it take a second to decide about mtime or something???
+    sleep(0.1)
+
+    fake_time = time() - 100000
+    assert main._config._source_mtimes[config_path] < config_path.stat().st_mtime
+    assert main._config._last_checked > fake_time
+    main._config._last_checked = fake_time
+    assert main._config._last_checked == fake_time
+
     config_2 = get_config()
     assert config_2.instance.footer == new_footer
     assert config_1 is not config_2
