@@ -9,6 +9,7 @@ import pytest_asyncio
 from _pytest.monkeypatch import MonkeyPatch
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from faker import Faker
+from sqlalchemy import Engine
 
 from sciop import scheduler
 from sciop.models import Account, Dataset, TorrentFile, Upload
@@ -24,7 +25,7 @@ def log_console_width(monkeypatch: "MonkeyPatch") -> None:
 
 
 @pytest_asyncio.fixture(loop_scope="function")
-async def clean_scheduler(monkeypatch: "MonkeyPatch") -> AsyncIOScheduler:
+async def clean_scheduler(monkeypatch: "MonkeyPatch", engine: Engine) -> AsyncIOScheduler:
     """Ensure scheduler state is clean during a test function"""
     scheduler.remove_all_jobs()
     scheduler.shutdown()

@@ -21,36 +21,43 @@ if TYPE_CHECKING:
 
     from sciop.models import Account, Dataset, DatasetCreate, Upload
 
-engine = create_engine(
-    str(config.sqlite_path),
-    echo=config.db_echo,
-    pool_size=config.db_pool_size,
-    max_overflow=config.db_overflow_size,
-)
-maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
+_engine: Engine | None = None
+_maker: sessionmaker | None = None
 
 
 def get_session() -> Generator[Session, None, None]:
     from sciop.models.mixins import EditableMixin
 
+    maker = get_maker()
+
     with maker() as session:
         session = EditableMixin.editable_session(session)
         yield session
-    #     session = Session(engine)
-    # try:
-    #     yield session
-    #     # db = maker()
-    #     # yield db
-    # finally:
-    #     session.close()
 
 
 def get_engine() -> Engine:
-    return engine
+    global _engine
+    if _engine is None:
+        _engine = create_engine(
+            str(config.sqlite_path),
+            echo=config.db_echo,
+            pool_size=config.db_pool_size,
+            max_overflow=config.db_overflow_size,
+        )
+    return _engine
+
+
+def get_maker(engine: Engine | None = None) -> sessionmaker:
+    global _maker
+    if _maker is None:
+        if engine is None:
+            engine = get_engine()
+        _maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
+    return _maker
 
 
 def create_tables(
-    engine: Engine = engine, check_migrations: bool = True, check_existing: bool = True
+    engine: Engine | None = None, check_migrations: bool = True, check_existing: bool = True
 ) -> None:
     """
     Create tables and stamps with an alembic version
@@ -58,6 +65,9 @@ def create_tables(
     References:
         - https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-an-up-to-date-database-from-scratch
     """
+    if engine is None:
+        engine = get_engine()
+
     from sciop import models
 
     # FIXME: Super janky, do this in a __new__ or a decorator
@@ -148,6 +158,7 @@ def create_seed_data() -> None:
     from sciop.models import AccountCreate, Dataset, DatasetCreate, Scope, Scopes
 
     fake = Faker()
+    maker = get_maker()
 
     with maker() as session:
         admin = crud.get_account(username="admin", session=session)

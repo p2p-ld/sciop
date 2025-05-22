@@ -16,4 +16,5 @@ def log_dir(monkeypatch: "MonkeyPatch", tmp_path: Path) -> Path:
     base_file = tmp_path / "sciop.log"
     root_logger.handlers[0].close()
     monkeypatch.setattr(root_logger.handlers[0], "baseFilename", base_file)
-    return base_file
+    yield base_file
+    root_logger.handlers[0].close()

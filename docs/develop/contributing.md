@@ -206,6 +206,17 @@ python -m pytest
 Look for existing tests to see how tests are commonly written,
 and see the `tests/fixtures` directory for utility fixtures to help you write tests.
 
+!!! danger "Always use the db fixtures!"
+
+    Do not use the in-package `db.get_session`, `db.get_engine` database accessors in tests! 
+    Always use the `session` and `engine` fixtures 
+    (or their module-scoped `session_module`/`engine_module` siblings)
+    to ensure that tests do not modify the development databases.
+    The test setup tries to protect you from this, but it can't protect against everything!
+
+    We also *do not* recommend running the tests from the directory where you have 
+    a production instance of sciop running to avoid accidentally modifying your production database!
+
 Some common fixtures you may need to use are...
 
 **Fabricators**
