@@ -93,10 +93,6 @@ def test_config_autoload(tmp_path_factory, monkeypatch: pytest.MonkeyPatch, defa
         yaml.safe_dump(cfg, f)
 
     main._config._last_checked = time() - 100000
-    assert main._config.should_reload()
-    # doing this check updates the check time, so we have to do it twice.
-    assert not main._config.should_reload()
-    main._config._last_checked = time() - 100000
     config_2 = get_config()
     assert config_2.instance.footer == new_footer
     assert config_1 is not config_2

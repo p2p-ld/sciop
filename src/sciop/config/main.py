@@ -271,8 +271,18 @@ class Config(BaseSettings):
             self._last_checked = current_time
             return False
 
-        self._last_checked = current_time
-        return any(source.stat().st_mtime > mtime for source, mtime in self._source_mtimes.items())
+        try:
+            self._last_checked = current_time
+            return any(
+                source.stat().st_mtime > mtime for source, mtime in self._source_mtimes.items()
+            )
+        except Exception as e:
+            # maybe the OS doesn't support mtimes, we shouldn't crash here
+            from sciop.logging import init_logger
+
+            logger = init_logger("config")
+            logger.warning(f"Caught error while checking whether should reload config:\n{e}")
+            return False
 
     def reload(self) -> "Config":
         """
