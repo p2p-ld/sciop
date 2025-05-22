@@ -65,15 +65,13 @@ app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(ContentSizeLimitMiddleware, max_content_size=config.upload_limit)
 app.middleware("http")(security_headers)
-
-if config.all_cors_origins:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=config.all_cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[config.server.base_url],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Logging wraps the other middlewares (except gzip),
 # because it also is responsible for timing responses
@@ -88,7 +86,7 @@ app.include_router(api_router)
 app.include_router(frontend_router)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-app.mount("/torrents", StaticFiles(directory=config.torrent_dir), name="torrents")
+app.mount("/torrents", StaticFiles(directory=config.paths.torrents), name="torrents")
 DOCS_DIR.mkdir(exist_ok=True)
 app.mount("/docs", StaticFiles(directory=DOCS_DIR, html=True), name="docs")
 add_pagination(app)

@@ -337,7 +337,7 @@ class TorrentFileBase(SQLModel):
 
     @classmethod
     def get_filesystem_path(cls, infohash: str, file_name: str) -> Path:
-        return config.torrent_dir / infohash / file_name
+        return config.paths.torrents / infohash / file_name
 
     @property
     def human_size(self) -> str:

@@ -72,9 +72,9 @@ def get_loader() -> jinja2.BaseLoader:
     # sorry.
     if _loader is None:
         builtin_loader = jinja2.FileSystemLoader(TEMPLATE_DIR)
-        if config.template_dir:
+        if config.paths.template_override:
             _loader = jinja2.ChoiceLoader(
-                [jinja2.FileSystemLoader(config.template_dir), builtin_loader]
+                [jinja2.FileSystemLoader(config.paths.template_override), builtin_loader]
             )
         else:
             _loader = builtin_loader

@@ -39,10 +39,10 @@ def get_engine() -> Engine:
     global _engine
     if _engine is None:
         _engine = create_engine(
-            str(config.sqlite_path),
-            echo=config.db_echo,
-            pool_size=config.db_pool_size,
-            max_overflow=config.db_overflow_size,
+            str(config.paths.sqlite),
+            echo=config.db.echo,
+            pool_size=config.db.pool_size,
+            max_overflow=config.db.overflow_size,
         )
     return _engine
 
@@ -368,7 +368,7 @@ def _generate_upload(
     from sciop import crud
     from sciop.models import FileInTorrentCreate, Torrent, TorrentFileCreate, UploadCreate
 
-    torrent_file = config.torrent_dir / (name + str(fake.file_name(extension="torrent")))
+    torrent_file = config.paths.torrents / (name + str(fake.file_name(extension="torrent")))
     with open(torrent_file, "wb") as tfile:
         tfile.write(b"0" * 16384)
 

@@ -10,7 +10,8 @@ from typing import Any, Optional, Union
 
 from rich.logging import RichHandler
 
-from sciop.config import LOG_LEVELS, config
+from sciop.config import config
+from sciop.config.logs import LOG_LEVELS
 
 
 def init_logger(
@@ -46,7 +47,7 @@ def init_logger(
         :class:`logging.Logger`
     """
     if log_dir is None:
-        log_dir = config.logs.dir
+        log_dir = config.paths.logs
     if level is None:
         level: LOG_LEVELS = (
             config.logs.level_stdout if config.logs.level_stdout is not None else config.logs.level

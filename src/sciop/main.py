@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional
 import uvicorn
 
 if TYPE_CHECKING:
-    from sciop.config import Config
+    from sciop.config.main import Config
 
 
 def main(config: Optional["Config"] = None) -> None:
@@ -18,8 +18,8 @@ def main(config: Optional["Config"] = None) -> None:
 
     uvicorn.run(
         "sciop.app:app",
-        host=config.host,
-        port=config.port,
+        host=config.server.host,
+        port=config.server.port,
         reload=config.reload,
         reload_includes=["*.py", "*.md", "*.yml", "*.yaml"],
         reload_excludes=[str(in_pkg_docs)],

@@ -86,7 +86,7 @@ class UploadBase(ModerableMixin):
     @property
     def absolute_download_path(self) -> str:
         """Download path including the site root"""
-        return urljoin(config.base_url, self.download_path)
+        return urljoin(config.server.base_url, self.download_path)
 
     @property
     def short_hash(self) -> Optional[str]:
@@ -104,14 +104,14 @@ class UploadBase(ModerableMixin):
         return f"""
             <p>
             <strong>Dataset:</strong> 
-              <a href="{config.base_url}/datasets/{self.dataset.slug}">
-                {config.base_url}/datasets/{self.dataset.slug}
+              <a href="{config.server.base_url}/datasets/{self.dataset.slug}">
+                {config.server.base_url}/datasets/{self.dataset.slug}
               </a>
             </p>
             <p>
             <strong>Upload:</strong> 
-              <a href="{config.base_url}/uploads/{self.infohash}">
-              {config.base_url}/uploads/{self.infohash}
+              <a href="{config.server.base_url}/uploads/{self.infohash}">
+              {config.server.base_url}/uploads/{self.infohash}
               </a>
             </p>
             <p>

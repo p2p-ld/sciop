@@ -7,7 +7,7 @@ def test_instance_stats_disabled(client, monkeypatch):
     """When instance stats are disabled, we get a 404"""
     from sciop.api.routes import instance
 
-    monkeypatch.setattr(instance.config.site_stats, "enabled", False)
+    monkeypatch.setattr(instance.config.services.site_stats, "enabled", False)
 
     res = client.get("/api/v1/instance/stats")
     assert res.status_code == 404

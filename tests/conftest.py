@@ -90,29 +90,28 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
     patch the config
     """
 
-    from sciop import config
+    from sciop.config import main
 
     if request.config.getoption("--file-db"):
         db_path = TMP_DIR / "db.test.sqlite"
         db_path.unlink(missing_ok=True)
     else:
-        db_path = None
+        db_path = "memory"
 
-    new_config = config.Config(
+    new_config = main.Config(
         env="test",
-        db=db_path,
-        torrent_dir=TORRENT_DIR,
         secret_key="1" * 64,
-        clear_jobs=True,
-        base_url="http://localhost:8080",
         enable_versions=True,
-        request_timing=False,
+        paths={"torrents": TORRENT_DIR, "db": db_path},
+        logs={"request_timing": False},
+        server={"base_url": "http://localhost:8080"},
+        services={"clear_jobs": True},
     )
-    new_config.logs.dir = LOGS_DIR
+    new_config.paths.logs = LOGS_DIR
     new_config.logs.level_file = "DEBUG"
     new_config.logs.level_stdout = "DEBUG"
-    new_config.site_stats.enabled = True
-    monkeypatch_session.setattr(config, "config", new_config)
+    new_config.services.site_stats.enabled = True
+    monkeypatch_session.setattr(main, "config", new_config)
     for key, module in sys.modules.items():
         if not key.startswith("sciop.") and not key.startswith("tests."):
             continue

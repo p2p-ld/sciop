@@ -6,14 +6,14 @@ import yaml
 from click.testing import CliRunner
 
 from sciop.cli.config import cli_config, config_copy, config_set
-from sciop.config import Config
+from sciop.config.main import Config
 
 
 @pytest.fixture
 def tmp_config(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("SCIOP_ENV")
-    cfg = {"env": "dev", "base_url": "test", "logs": {"level": "ERROR"}}
+    cfg = {"env": "dev", "server": {"base_url": "test"}, "logs": {"level": "ERROR"}}
     with open(tmp_path / "sciop.yaml", "w") as f:
         yaml.safe_dump(cfg, f)
 
@@ -50,19 +50,30 @@ def test_config_set(tmp_config, tmp_path):
     :return:
     """
     runner = CliRunner()
-    result = runner.invoke(config_set, ["base_url=newtest", "logs.level=INFO"])
+    result = runner.invoke(
+        config_set, ["root_user=newtest", "logs.level=INFO", "services.site_stats.enabled=false"]
+    )
     assert result.exit_code == 0
-    assert result.stdout == "Updated config:\n{'base_url': 'newtest', 'logs': {'level': 'INFO'}}\n"
+    assert result.stdout == (
+        "Updated config:\n"
+        "{\n"
+        "    'root_user': 'newtest',\n"
+        "    'logs': {'level': 'INFO'},\n"
+        "    'services': {'site_stats': {'enabled': False}}\n"
+        "}\n"
+    )
 
     with open(tmp_path / "sciop.yaml") as f:
         cfg = yaml.safe_load(f)
 
-    assert cfg["base_url"] == "newtest"
+    assert cfg["root_user"] == "newtest"
     assert cfg["logs"]["level"] == "INFO"
+    assert not cfg["services"]["site_stats"]["enabled"]
 
     config = Config()
-    assert config.base_url == "newtest"
+    assert config.root_user == "newtest"
     assert config.logs.level == "INFO"
+    assert not config.services.site_stats.enabled
 
 
 def test_config_set_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -75,7 +86,7 @@ def test_config_set_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     # making a very informative comment
     env: dev
     db: ./test.sqlite
-    base_url: test
+    root_user: test
     
     # logging config
     logs:
@@ -86,7 +97,7 @@ def test_config_set_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         f.write(cfg)
 
     runner = CliRunner()
-    result = runner.invoke(config_set, ["base_url=newtest", "logs.level=INFO"])
+    result = runner.invoke(config_set, ["root_user=newtest", "logs.level=INFO"])
     assert result.exit_code == 0
     with open(tmp_path / "sciop.yaml") as f:
         cfg = f.read()
@@ -95,7 +106,7 @@ def test_config_set_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         """    # making a very informative comment
     env: dev
     db: ./test.sqlite
-    base_url: newtest
+    root_user: newtest
     
     # logging config
     logs:
@@ -105,10 +116,11 @@ def test_config_set_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     assert cfg == expected
 
 
-def test_config_copy(tmp_path):
+def test_config_copy(tmp_path, monkeypatch):
     """
     `sciop config copy` makes a new default config
     """
+    monkeypatch.chdir(tmp_path)
     runner = CliRunner()
     result = runner.invoke(config_copy, ["-o", str(tmp_path / "sciop.yaml")])
     assert result.exit_code == 0

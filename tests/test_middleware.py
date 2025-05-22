@@ -13,7 +13,7 @@ def test_logging(
 ):
     monkeypatch.setattr(config.logs, "level_file", level)
     monkeypatch.setattr(config.logs, "level_stdout", level)
-    monkeypatch.setattr(config.logs, "dir", tmp_path)
+    monkeypatch.setattr(config.paths, "logs", tmp_path)
 
     # clear the root logger so it gets recreated
     # but monkeypatch so we don't mess up other tests
@@ -63,7 +63,7 @@ def test_logging_timing(monkeypatch, capsys, log_dir, enabled, client):
     """
     from sciop import middleware
 
-    monkeypatch.setattr(middleware.config, "request_timing", enabled)
+    monkeypatch.setattr(middleware.config.logs, "request_timing", enabled)
 
     _ = client.get("/")
 

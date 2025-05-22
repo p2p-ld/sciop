@@ -9,22 +9,31 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel
 from sqlmodel.pool import StaticPool
 
+__all__ = [
+    "engine",
+    "engine_module",
+    "session",
+    "session_module",
+    "recreate_models",
+    "alembic_config",
+]
+
 
 def _engine(request: pytest.FixtureRequest) -> Engine:
     if request.config.getoption("--file-db"):
         from sciop.config import config
 
         engine_kwargs = {
-            "pool_size": config.db_pool_size,
-            "max_overflow": config.db_overflow_size,
+            "pool_size": config.db.pool_size,
+            "max_overflow": config.db.overflow_size,
         }
         if request.config.getoption("--echo-queries"):
             engine_kwargs["echo"] = True
 
         assert (
-            str(config.sqlite_path) == "db.test.sqlite"
+            str(config.paths.sqlite) == "db.test.sqlite"
         ), "Must use db.test.sqlite for file dbs in testing"
-        engine = create_engine(str(config.sqlite_path), **engine_kwargs)
+        engine = create_engine(str(config.paths.sqlite), **engine_kwargs)
     else:
         engine = _in_memory_engine(request)
     return engine

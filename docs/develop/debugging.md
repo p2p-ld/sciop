@@ -7,21 +7,21 @@
 When the database is doing unexpected things,
 a decent first step is to take a look at the queries that are emitted to the database.
 
-To echo db queries in the development server, set the `DB_ECHO` config param to `true`
+To echo db queries in the development server, set the `DB__ECHO` config param to `true`
 
 In `.env` file:
 
 ```env
-SCIOP_DB_ECHO=true
+SCIOP_DB__ECHO=true
 ```
 
 In env var
 
 ```shell
 # with pdm
-SCIOP_DB_ECHO=true pdm run start
+SCIOP_DB__ECHO=true pdm run start
 # with venv
-SCIO_DB_ECHO=true sciop start 
+SCIO_DB__ECHO=true sciop start 
 ```
 
 This is usually very noisy, 

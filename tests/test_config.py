@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from sciop.config import Config
+from sciop.config.main import Config
 
 
 def test_config_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -13,12 +13,12 @@ def test_config_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("SCIOP_ENV")
-    cfg = {"env": "dev", "base_url": "test"}
+    cfg = {"env": "dev", "server": {"base_url": "test"}}
     with open(tmp_path / "sciop.yaml", "w") as f:
         yaml.safe_dump(cfg, f)
     config = Config()
     assert config.env == "dev"
-    assert config.base_url == "test"
+    assert config.server.base_url == "test"
 
 
 def test_config_env_overrides(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -27,14 +27,14 @@ def test_config_env_overrides(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("SCIOP_ENV")
-    cfg = {"env": "dev", "base_url": "test"}
+    cfg = {"env": "dev", "server": {"base_url": "test"}}
     with open(tmp_path / "sciop.yaml", "w") as f:
         yaml.safe_dump(cfg, f)
 
-    monkeypatch.setenv("SCIOP_BASE_URL", "testenv")
+    monkeypatch.setenv("SCIOP_SERVER__BASE_URL", "testenv")
     config = Config()
     assert config.env == "dev"
-    assert config.base_url == "testenv"
+    assert config.server.base_url == "testenv"
 
 
 def test_config_defaults(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

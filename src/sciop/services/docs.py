@@ -62,7 +62,7 @@ def build_docs(
 
     cfg.plugins.on_startup(command="build", dirty=not clean)
     cfg.site_dir = output_dir
-    cfg.site_url = urljoin(config.external_url, "/docs")
+    cfg.site_url = urljoin(config.server.base_url, "/docs")
 
     logger.debug("Building docs...")
     try:

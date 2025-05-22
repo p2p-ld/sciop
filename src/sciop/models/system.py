@@ -10,11 +10,11 @@ class NginxConfig(TemplateModel):
     __template__ = "system/nginx.conf.j2"
 
     host: str = Field(
-        default=config.host,
+        default=config.server.host,
         description="The hostname that sciop will be hosted at, e.g. `sciop.net`",
     )
     port: int = Field(
-        default=config.port,
+        default=config.server.port,
         description="The localhost port that sciop will be hosted at",
     )
     max_upload_size: str = Field(

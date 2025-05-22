@@ -12,7 +12,7 @@ config = context.config
 url = config.get_main_option("sqlalchemy.url")
 if url is None:
     # don't override if it's already been given to use explicitly
-    config.set_main_option("sqlalchemy.url", sciop_config.sqlite_path)
+    config.set_main_option("sqlalchemy.url", sciop_config.paths.sqlite)
 
 
 # Interpret the config file for Python logging.

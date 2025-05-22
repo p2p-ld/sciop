@@ -66,7 +66,7 @@ def start_scheduler() -> None:
     else:
         raise RuntimeError("Scheduler already started")
 
-    if config.clear_jobs:
+    if config.services.clear_jobs:
         remove_all_jobs()
     scheduler.start()
 

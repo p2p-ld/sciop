@@ -14,6 +14,15 @@ from sqlalchemy import Engine
 from sciop import scheduler
 from sciop.models import Account, Dataset, TorrentFile, Upload
 
+__all__ = [
+    "clean_scheduler",
+    "countables",
+    "log_console_width",
+    "monkeypatch_module",
+    "monkeypatch_session",
+    "set_config",
+]
+
 
 @pytest.fixture
 def log_console_width(monkeypatch: "MonkeyPatch") -> None:

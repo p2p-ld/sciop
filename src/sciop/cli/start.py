@@ -11,6 +11,6 @@ def start(port: Optional[int] = None) -> None:
     from sciop.main import main
 
     if port is not None:
-        config.port = port
+        config.server.port = port
 
     main(config=config)

@@ -15,6 +15,19 @@ from uvicorn import Config, Server
 if TYPE_CHECKING:
     from sciop.models import Token
 
+__all__ = [
+    "client",
+    "client_lifespan",
+    "client_module",
+    "context",
+    "page",
+    "page_as_admin",
+    "page_as_user",
+    "run_server",
+    "run_server_module",
+    "unused_tcp_port",
+]
+
 
 @pytest.fixture()
 def client(session: Session) -> TestClient:
