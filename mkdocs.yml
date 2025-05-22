@@ -79,6 +79,7 @@ nav:
       - develop/backend.md
       - develop/error_handling.md
       - develop/jobs.md
+  - changelog.md
 
 theme:
   name: material
@@ -109,7 +110,7 @@ extra_css:
   - css/theme.css
 
 
-# this will get overridden by {config.public_url} + '/docs/'
+# this will get overridden by {config.server.base_url} + '/docs/'
 # when built by the app
 site_url: https://sciop.net/docs/
 

@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 from mkdocs import config as mkdocs_config
 from mkdocs.commands import build
 
-from sciop.config import config
+from sciop.config import get_config
 from sciop.logging import init_logger
 
 
@@ -46,7 +46,7 @@ def build_docs(
     index = output_dir / "index.html"
 
     # if testing or in prod, only build once per run
-    timeout = 10 if config.env == "dev" else 300
+    timeout = 10 if get_config().env == "dev" else 1000
 
     if index.exists() and (time() - index.stat().st_mtime) < timeout:
         logger.debug("Not rebuilding docs, built less than %s seconds ago", timeout)
@@ -54,15 +54,15 @@ def build_docs(
 
     cfg = mkdocs_config.load_config(config_file=str(config_file))
     # expose instance config to mkdocs
-    cfg.extra["instance_config"] = config.instance
+    cfg.extra["instance_config"] = get_config().instance
 
     # if testing, don't bother with the git blame plugin, which is surprisingly expensive
-    if config.env == "test":
+    if get_config().env == "test":
         cfg.plugins["git-authors"].config.enabled = False
 
     cfg.plugins.on_startup(command="build", dirty=not clean)
     cfg.site_dir = output_dir
-    cfg.site_url = urljoin(config.external_url, "/docs")
+    cfg.site_url = urljoin(get_config().server.base_url, "/docs")
 
     logger.debug("Building docs...")
     try:

@@ -147,18 +147,18 @@ async def test_sort_multiparam(items, page: Page, run_server_module):
     col = page.locator('.sort-link[data-col="slug"]')
     first = page.locator(".collapsible-table .collapsible:first-child .dataset-slug")
     last = page.locator(".collapsible-table .collapsible:last-child .dataset-slug")
-    slugs = sorted([ds.slug for ds in items[1]])
+
+    await page.locator(".search-input").fill("aaa")
+    # wait for search to happen
+    await expect(page).to_have_url("http://127.0.0.1:8080/datasets/?query=aaa")
 
     await col.click()
-    await page.locator(".search-input").fill("aaa")
-
+    await expect(page).to_have_url("http://127.0.0.1:8080/datasets/?query=aaa&sort=slug")
     await expect(first).to_have_text("aaa")
     await expect(last).to_have_text("aaaa")
 
     await col.click()
-    await col.click()
-    await page.wait_for_timeout(100)
-
+    await expect(page).to_have_url("http://127.0.0.1:8080/datasets/?query=aaa&sort=-slug")
     await expect(first).to_have_text("aaaa")
     await expect(last).to_have_text("aaa")
 

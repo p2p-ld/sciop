@@ -2,7 +2,7 @@ from typing import Optional, Self
 
 from pydantic import Field, field_validator, model_validator
 
-from sciop.config import config
+from sciop.config import get_config
 from sciop.models.mixins import TemplateModel
 
 
@@ -10,11 +10,11 @@ class NginxConfig(TemplateModel):
     __template__ = "system/nginx.conf.j2"
 
     host: str = Field(
-        default=config.host,
+        default=get_config().server.host,
         description="The hostname that sciop will be hosted at, e.g. `sciop.net`",
     )
     port: int = Field(
-        default=config.port,
+        default=get_config().server.port,
         description="The localhost port that sciop will be hosted at",
     )
     max_upload_size: str = Field(

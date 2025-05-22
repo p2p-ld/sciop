@@ -17,7 +17,7 @@ from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from sciop.api.deps import get_current_account
-from sciop.config import config
+from sciop.config import get_config
 from sciop.db import get_session
 from sciop.exceptions import UploadSizeExceeded
 from sciop.logging import init_logger
@@ -121,10 +121,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             time_finished = None
             total_time = None
 
-            if config.request_timing:
+            if get_config().logs.request_timing:
                 time_recieved = time.time()
             response = await call_next(request)
-            if config.request_timing:
+            if get_config().logs.request_timing:
                 time_finished = time.time()
 
             msg = None
@@ -137,7 +137,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 msg = await self._decode_body(response)
                 level = logging.ERROR
 
-            if config.request_timing:
+            if get_config().logs.request_timing:
                 total_time = time_finished - time_recieved
 
             self._log_message(
@@ -167,7 +167,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         request_total_time: Optional[float] = None,
     ) -> None:
         time_msg = ""
-        if config.request_timing and request_total_time is not None:
+        if get_config().logs.request_timing and request_total_time is not None:
             time_msg = f" ({round(request_total_time*1000, 1)}ms)"
 
         if msg:
@@ -211,7 +211,7 @@ async def security_headers(request: Request, call_next: RequestResponseEndpoint)
     """
     CSP, cross-origin, content-type noshiff, deny frames
     """
-    nonce = token_urlsafe(config.csp.nonce_entropy)
+    nonce = token_urlsafe(get_config().server.csp.nonce_entropy)
     request.state.nonce = nonce
 
     response = await call_next(request)
@@ -220,7 +220,7 @@ async def security_headers(request: Request, call_next: RequestResponseEndpoint)
         return response
 
     sec_headers = {
-        "Content-Security-Policy": config.csp.format(nonce),
+        "Content-Security-Policy": get_config().server.csp.format(nonce),
         "Cross-Origin-Opener-Policy": "same-origin",
         "Referrer-Policy": "strict-origin-when-cross-origin",
         "X-Content-Type-Options": "nosniff",
@@ -229,10 +229,10 @@ async def security_headers(request: Request, call_next: RequestResponseEndpoint)
     # swagger docs need js
     if "/docs" in request.url.path:
         sec_headers["Content-Security-Policy"] = (
-            type(config.csp)
+            type(get_config().server.csp)
             .model_construct(
                 **{
-                    **config.csp.model_dump(),
+                    **get_config().server.csp.model_dump(),
                     "style_src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
                     "script_src": "'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com",
                     "font_src": "'self' https://fonts.gstatic.com",

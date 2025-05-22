@@ -44,7 +44,7 @@ def get_env_globals() -> dict:
     # const within closure to avoid the infinite monkeypatching hell problem
     # since we need to import models here
     from sciop import models
-    from sciop.config import config
+    from sciop.config import get_config
 
     return {
         "models": models,
@@ -52,7 +52,7 @@ def get_env_globals() -> dict:
         "UTC": UTC,
         "unwrap_optional": unwrap_optional,
         "unwrap_annotated": unwrap_annotated,
-        "config": config,
+        "config": get_config(),
         "humanize": humanize,
     }
 
@@ -64,7 +64,7 @@ def get_env_tests() -> dict:
 
 
 def get_loader() -> jinja2.BaseLoader:
-    from sciop.config import config
+    from sciop.config import get_config
 
     global _loader
     # hopefully this doesn't need locking,
@@ -72,9 +72,9 @@ def get_loader() -> jinja2.BaseLoader:
     # sorry.
     if _loader is None:
         builtin_loader = jinja2.FileSystemLoader(TEMPLATE_DIR)
-        if config.template_dir:
+        if get_config().paths.template_override:
             _loader = jinja2.ChoiceLoader(
-                [jinja2.FileSystemLoader(config.template_dir), builtin_loader]
+                [jinja2.FileSystemLoader(get_config().paths.template_override), builtin_loader]
             )
         else:
             _loader = builtin_loader

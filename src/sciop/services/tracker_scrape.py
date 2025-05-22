@@ -19,7 +19,7 @@ import httpx
 import sqlalchemy as sqla
 from sqlmodel import select, update
 
-from sciop.config import config
+from sciop.config import get_config
 from sciop.exceptions import (
     DNSException,
     ScrapeErrorType,
@@ -321,7 +321,7 @@ class UDPTrackerClient:
         future = self.loop.create_future()
         protocol = UDPProtocolHandler(msg, tid, future)
         transport, protocol = await self.tracker_send_and_receive(
-            protocol, timeout=config.tracker_scraping.connection_timeout
+            protocol, timeout=get_config().services.tracker_scraping.connection_timeout
         )
 
         if protocol.result is None:
@@ -450,7 +450,7 @@ class HTTPTrackerClient:
         self,
         url: str,
         max_scrape: int = MAX_SCRAPE,
-        timeout: int = config.tracker_scraping.connection_timeout,
+        timeout: int = get_config().services.tracker_scraping.connection_timeout,
     ):
         self.announce_url = url
         if "announce" not in self.announce_url:
@@ -464,7 +464,7 @@ class HTTPTrackerClient:
     async def scrape(self, infohashes: list[str]) -> ScrapeResult:
         results = ScrapeResult()
         async with httpx.AsyncClient() as client:
-            if self.announce_url in config.tracker_scraping.http_tracker_scrape_all:
+            if self.announce_url in get_config().services.tracker_scraping.http_tracker_scrape_all:
                 self.logger.debug("Scraping ALL for %s", self.announce_url)
                 results = await self._scrape_page(infohashes, client, scrape_all=True)
             else:
@@ -517,7 +517,8 @@ class HTTPTrackerClient:
                 len(infohashes) > 1
                 and response.status_code != 200
                 and response.status_code != 429
-                and self.announce_url in config.tracker_scraping.http_tracker_single_only
+                and self.announce_url
+                in get_config().services.tracker_scraping.http_tracker_single_only
             ):
                 # tracker doesn't handle multiple infohashes, do them indvidually
                 return await self._scrape_single(infohashes, client)
@@ -541,7 +542,10 @@ class HTTPTrackerClient:
 
             files = decoded[b"files"]
             if len(files) <= 1 and len(infohashes) > 1:
-                if self.announce_url in config.tracker_scraping.http_tracker_single_only:
+                if (
+                    self.announce_url
+                    in get_config().services.tracker_scraping.http_tracker_single_only
+                ):
                     # we've been told to try and scrape each of these individually
                     return await self._scrape_single(infohashes, client)
                 else:
@@ -628,7 +632,7 @@ async def scrape_torrent_stats() -> None:
     """
     logger = init_logger("jobs.scrape_stats")
     to_scrape = gather_scrapable_torrents()
-    sem = asyncio.Semaphore(value=config.tracker_scraping.n_workers)
+    sem = asyncio.Semaphore(value=get_config().services.tracker_scraping.n_workers)
     logger.debug("Scraping torrent stats for: %s", to_scrape)
     results = await asyncio.gather(
         *[
@@ -654,7 +658,9 @@ def gather_scrapable_torrents() -> dict[str, list[str]]:
     from sciop.db import get_session
     from sciop.models import TorrentFile, TorrentTrackerLink, Tracker
 
-    last_scrape_time = datetime.now(UTC) - timedelta(minutes=config.tracker_scraping.interval)
+    last_scrape_time = datetime.now(UTC) - timedelta(
+        minutes=get_config().services.tracker_scraping.interval
+    )
     statement = (
         select(TorrentFile.v1_infohash, TorrentFile.v2_infohash, Tracker.announce_url)
         .join(TorrentFile.tracker_links)
@@ -718,7 +724,7 @@ async def _scrape_udp_tracker(url: str, infohashes: list[str], logger: Logger) -
     logger.debug("scraping tracker %s with %s", url, infohashes)
     try:
         client = await UDPTrackerClient.from_url(
-            url, timeout=config.tracker_scraping.scrape_timeout
+            url, timeout=get_config().services.tracker_scraping.scrape_timeout
         )
         results = await client.scrape(infohashes)
     except DNSException as e:
@@ -819,11 +825,11 @@ def _compute_backoff(
 ) -> float:
     if isinstance(error_type, ScrapeErrorType):
         error_type = error_type.value
-    multipliers = config.tracker_scraping.backoff.model_dump()
+    multipliers = get_config().services.tracker_scraping.backoff.model_dump()
 
     multiplier = multipliers.get(error_type, multipliers.get("default", 1))
-    backoff = config.tracker_scraping.interval * multiplier * (2**n_errors)
-    return min(backoff, config.tracker_scraping.max_backoff)
+    backoff = get_config().services.tracker_scraping.interval * multiplier * (2**n_errors)
+    return min(backoff, get_config().services.tracker_scraping.max_backoff)
 
 
 def _touch_tracker(url: str, results: ScrapeResult) -> None:

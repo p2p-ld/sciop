@@ -1,6 +1,4 @@
-import contextlib
 import logging
-import sys
 from typing import Any
 from typing import Callable as C
 
@@ -11,8 +9,17 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from faker import Faker
 from sqlalchemy import Engine
 
-from sciop import scheduler
+from sciop import get_config, scheduler
 from sciop.models import Account, Dataset, TorrentFile, Upload
+
+__all__ = [
+    "clean_scheduler",
+    "countables",
+    "log_console_width",
+    "monkeypatch_module",
+    "monkeypatch_session",
+    "set_config",
+]
 
 
 @pytest.fixture
@@ -59,12 +66,9 @@ def countables(
 @pytest.fixture
 def set_config(monkeypatch: MonkeyPatch) -> C:
     def _set_config(**kwargs: Any) -> None:
+        config = get_config()
         for k, v in kwargs.items():
-            for mod_name, mod in sys.modules.items():
-                if not mod_name.startswith("sciop") and not mod_name.startswith("tests."):
-                    continue
-                with contextlib.suppress(AttributeError):
-                    monkeypatch.setattr(mod.config, k, v)
+            monkeypatch.setattr(config, k, v)
 
     return _set_config
 

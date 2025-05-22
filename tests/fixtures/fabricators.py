@@ -36,6 +36,37 @@ fake = Faker()
 
 P = ParamSpec("P")
 
+__all__ = [
+    "account",
+    "account_module",
+    "admin_auth_header",
+    "admin_user",
+    "admin_token",
+    "dataset",
+    "dataset_module",
+    "default_account",
+    "default_created_torrent",
+    "default_dataset",
+    "default_db",
+    "default_upload",
+    "default_torrent",
+    "default_torrentfile",
+    "get_auth_header",
+    "infohashes",
+    "reviewer",
+    "root_auth_header",
+    "root_user",
+    "root_token",
+    "torrent",
+    "torrent_module",
+    "torrent_pair",
+    "torrentfile",
+    "torrentfile_module",
+    "upload",
+    "upload_module",
+    "uploader",
+]
+
 
 def default_account() -> dict:
     return {

@@ -14,7 +14,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine, func, select
 
-from sciop.config import config
+from sciop.config import get_config
 
 if TYPE_CHECKING:
     from faker import Faker
@@ -39,10 +39,10 @@ def get_engine() -> Engine:
     global _engine
     if _engine is None:
         _engine = create_engine(
-            str(config.sqlite_path),
-            echo=config.db_echo,
-            pool_size=config.db_pool_size,
-            max_overflow=config.db_overflow_size,
+            str(get_config().paths.sqlite),
+            echo=get_config().db.echo,
+            pool_size=get_config().db.pool_size,
+            max_overflow=get_config().db.overflow_size,
         )
     return _engine
 
@@ -76,14 +76,14 @@ def create_tables(
     models.Upload.register_events()
 
     SQLModel.metadata.create_all(engine, checkfirst=check_existing)
-    if check_migrations and config.env != "test":
+    if check_migrations and get_config().env != "test":
         # check version here since creating the table is the same action as
         # ensuring our migration metadata is correct!
         ensure_alembic_version(engine)
 
     with Session(engine) as session:
         models.Scope.ensure_enum_values(session=session)
-        if config.env != "test":
+        if get_config().env != "test":
             ensure_root(session=session)
 
     create_seed_data()
@@ -150,7 +150,7 @@ def alembic_version(engine: Engine) -> Optional[str]:
 
 
 def create_seed_data() -> None:
-    if config.env != "dev":
+    if get_config().env != "dev":
         return
     from faker import Faker
 
@@ -339,10 +339,12 @@ def ensure_root(session: Session) -> Optional["Account"]:
     from sciop import crud
     from sciop.models import AccountCreate, Scope, Scopes
 
-    root = crud.get_account(username=config.root_user, session=session)
+    root = crud.get_account(username=get_config().root_user, session=session)
     if not root:
         root = crud.create_account(
-            account_create=AccountCreate(username=config.root_user, password=config.root_password),
+            account_create=AccountCreate(
+                username=get_config().root_user, password=get_config().root_password
+            ),
             session=session,
         )
         scopes = [Scope.get_item(a_scope, session) for a_scope in Scopes.__members__.values()]
@@ -351,7 +353,7 @@ def ensure_root(session: Session) -> Optional["Account"]:
         session.commit()
         session.refresh(root)
 
-    config.root_password = None
+    get_config().root_password = None
     return root
 
 
@@ -368,7 +370,7 @@ def _generate_upload(
     from sciop import crud
     from sciop.models import FileInTorrentCreate, Torrent, TorrentFileCreate, UploadCreate
 
-    torrent_file = config.torrent_dir / (name + str(fake.file_name(extension="torrent")))
+    torrent_file = get_config().paths.torrents / (name + str(fake.file_name(extension="torrent")))
     with open(torrent_file, "wb") as tfile:
         tfile.write(b"0" * 16384)
 

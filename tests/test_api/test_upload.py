@@ -3,7 +3,7 @@ from sqlmodel import select
 from starlette.testclient import TestClient
 
 from sciop import crud
-from sciop.config import config
+from sciop.config import get_config
 from sciop.models import TorrentFile, Upload, UploadCreate
 from sciop.models.torrent import TorrentVersion
 
@@ -40,7 +40,7 @@ def test_upload_torrent_infohash(
     header = get_auth_header()
     with open(torrent, "rb") as f:
         response = client.post(
-            config.api_prefix + "/upload/torrent", headers=header, files={"file": f}
+            get_config().api_prefix + "/upload/torrent", headers=header, files={"file": f}
         )
 
     if version in (TorrentVersion.v1, TorrentVersion.hybrid):
@@ -65,7 +65,7 @@ def test_upload_trackerless(client, uploader, get_auth_header, torrent, hx_reque
     torrent_.write(tfile)
     with open(tfile, "rb") as f:
         response = client.post(
-            config.api_prefix + "/upload/torrent",
+            get_config().api_prefix + "/upload/torrent",
             headers=header,
             files={"file": ("filename.torrent", f, "application/x-bittorrent")},
         )
@@ -91,7 +91,7 @@ def test_upload_noscope(
     torrent_.write(tfile)
     with open(tfile, "rb") as f:
         response = client.post(
-            config.api_prefix + "/upload/torrent",
+            get_config().api_prefix + "/upload/torrent",
             headers=header,
             files={"file": ("filename.torrent", f, "application/x-bittorrent")},
         )
@@ -102,7 +102,9 @@ def test_upload_noscope(
     )
 
     res = client.post(
-        f"{config.api_prefix}/datasets/{ds.slug}/uploads", headers=header, json=ul.model_dump()
+        f"{get_config().api_prefix}/datasets/{ds.slug}/uploads",
+        headers=header,
+        json=ul.model_dump(),
     )
     assert res.status_code == 200
     ul = crud.get_upload_from_infohash(infohash=torrent_.infohash, session=session)
@@ -129,7 +131,7 @@ def test_replace_orphaned_upload(
     header = get_auth_header()
     with open(existing_torrent_path, "rb") as f:
         response = client.post(
-            config.api_prefix + "/upload/torrent",
+            get_config().api_prefix + "/upload/torrent",
             headers=header,
             files={"file": (new_torrent_path.name, f, "application/x-bittorrent")},
         )
@@ -161,7 +163,7 @@ def test_reject_duplicated_upload(client, upload, uploader, get_auth_header):
     header = get_auth_header()
     with open(existing_torrent_path, "rb") as f:
         response = client.post(
-            config.api_prefix + "/upload/torrent",
+            get_config().api_prefix + "/upload/torrent",
             headers=header,
             files={"file": (new_torrent_path.name, f, "application/x-bittorrent")},
         )
@@ -209,7 +211,7 @@ def test_replace_duplicate_with_force(
     header = get_auth_header("new_uploader")
     with open(torrent_2_path, "rb") as f:
         response = client.post(
-            config.api_prefix + "/upload/torrent/?force=true",
+            get_config().api_prefix + "/upload/torrent/?force=true",
             headers=header,
             files={"file": (torrent_2_path.name, f, "application/x-bittorrent")},
         )
@@ -247,28 +249,28 @@ def test_files_ragged_pagination(client, upload, torrentfile):
     """
     tf = torrentfile(n_files=2000, total_size=2000 * (16 * 2**10))
     ul = upload(torrentfile_=tf)
-    res = client.get(config.api_prefix + f"/uploads/{ul.infohash}/files")
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/files")
     assert res.status_code == 200
     page_1 = res.json()
     assert len(page_1["items"]) == 100
     assert page_1["items"][0]["path"] == "0.bin"
     assert page_1["items"][-1]["path"] == "99.bin"
 
-    res = client.get(config.api_prefix + f"/uploads/{ul.infohash}/files/?page=2")
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/files/?page=2")
     assert res.status_code == 200
     page_2 = res.json()
     assert len(page_2["items"]) == 1000
     assert page_2["items"][0]["path"] == "100.bin"
     assert page_2["items"][-1]["path"] == "1099.bin"
 
-    res = client.get(config.api_prefix + f"/uploads/{ul.infohash}/files/?size=500")
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/files/?size=500")
     assert res.status_code == 200
     page_1_sized = res.json()
     assert len(page_1_sized["items"]) == 500
     assert page_1_sized["items"][0]["path"] == "0.bin"
     assert page_1_sized["items"][-1]["path"] == "499.bin"
 
-    res = client.get(config.api_prefix + f"/uploads/{ul.infohash}/files/?size=500&page=2")
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/files/?size=500&page=2")
     assert res.status_code == 200
     page_2_sized = res.json()
     assert len(page_2_sized["items"]) == 500

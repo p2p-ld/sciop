@@ -4,6 +4,14 @@ from pathlib import Path
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
+__all__ = [
+    "TMP_DIR",
+    "TORRENT_DIR",
+    "LOGS_DIR",
+    "DATA_DIR",
+    "log_dir",
+]
+
 TMP_DIR = Path(__file__).parents[1] / "__tmp__"
 TORRENT_DIR = TMP_DIR / "torrents"
 LOGS_DIR = TMP_DIR / "logs"

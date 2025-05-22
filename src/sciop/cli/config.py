@@ -12,7 +12,7 @@ from rich.panel import Panel
 from ruamel.yaml import YAML
 
 from sciop.cli.common import config_option
-from sciop.config import Config
+from sciop.config.main import Config
 from sciop.helpers import flatten_dict, merge_dicts, unflatten_dict, validate_field
 
 

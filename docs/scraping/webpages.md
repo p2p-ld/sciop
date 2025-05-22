@@ -145,7 +145,7 @@ docker run \
 rm /tmp/scrape.$$
 ```
 
-Now we can assemble the archive, ready for [uploading](../uploading),
+Now we can assemble the archive, ready for [uploading](../uploading/index.md),
 
 ```shell
 mkdir archive

@@ -1,12 +1,12 @@
 """whoa meta"""
 
-from sciop.config import config
+from sciop.config import get_config
 
 
 def test_config_monkeypatch(request):
-    assert config.env == "test"
+    assert get_config().env == "test"
     if request.config.getoption("--file-db"):
-        assert config.db.name == "db.test.sqlite"
+        assert get_config().paths.db.name == "db.test.sqlite"
     else:
-        assert config.db is None
-    assert config.secret_key.get_secret_value() == "1" * 64
+        assert get_config().paths.db == "memory"
+    assert get_config().secret_key.get_secret_value() == "1" * 64

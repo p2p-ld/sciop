@@ -4,12 +4,14 @@ from typing import TYPE_CHECKING, Optional
 import uvicorn
 
 if TYPE_CHECKING:
-    from sciop.config import Config
+    from sciop.config.main import Config
 
 
 def main(config: Optional["Config"] = None) -> None:
     if config is None:
-        from sciop.config import config
+        from sciop.config import get_config
+
+        config = get_config()
 
     # add in-package docs to exclude list to avoid infinite reloads
     in_pkg_docs = Path(__file__).parent / "docs"
@@ -18,9 +20,9 @@ def main(config: Optional["Config"] = None) -> None:
 
     uvicorn.run(
         "sciop.app:app",
-        host=config.host,
-        port=config.port,
-        reload=config.reload,
+        host=config.server.host,
+        port=config.server.port,
+        reload=config.reload_uvicorn,
         reload_includes=["*.py", "*.md", "*.yml", "*.yaml"],
         reload_excludes=[str(in_pkg_docs)],
         lifespan="on",

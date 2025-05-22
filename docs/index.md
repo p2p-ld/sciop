@@ -119,6 +119,17 @@ Choose your path:
 </pre>
 <span class="index-link-label" aria-hidden="true">"developing"</span>
 </a>
+<a href="changelog/" aria-label="Changelog">
+<pre class="index-link" role="img">
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█▀▄▀█░████░▄▄▀█░▄▄▀█░▄▄▄█░▄▄█░██▀▄▄▀█░▄▄▄
+█░█▀█░▄▄░█░▀▀░█░██░█░█▄▀█░▄▄█░██░██░█░█▄▀
+██▄██▄██▄█▄██▄█▄██▄█▄▄▄▄█▄▄▄█▄▄██▄▄██▄▄▄▄
+▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+</pre>
+<span class="index-link-label" aria-hidden="true">"changelog"</span>
+</a>
 </div>
 
 

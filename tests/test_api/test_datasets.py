@@ -4,7 +4,7 @@ from collections import defaultdict
 from sqlmodel import Session, select
 from starlette.testclient import TestClient
 
-from sciop.config import config
+from sciop.config import get_config
 from sciop.models import DatasetRead, DatasetTagLink, DatasetURL, ExternalIdentifier
 from sciop.services.markdown import render_markdown
 
@@ -15,12 +15,12 @@ def test_edit_unauthorized(client: TestClient, dataset, get_auth_header, account
     """
     ds = dataset()
     patch = {"slug": "new-slug"}
-    res = client.patch(config.api_prefix + f"/datasets/{ds.slug}", json=patch)
+    res = client.patch(get_config().api_prefix + f"/datasets/{ds.slug}", json=patch)
     assert res.status_code == 401
 
     acc = account(username="newbie")
     header = get_auth_header(username=acc.username)
-    res = client.patch(config.api_prefix + f"/datasets/{ds.slug}", json=patch, headers=header)
+    res = client.patch(get_config().api_prefix + f"/datasets/{ds.slug}", json=patch, headers=header)
     assert res.status_code == 401
 
 
@@ -36,7 +36,7 @@ def test_edit_scalars(client, dataset, admin_auth_header):
     patched = {**original, **patch}
     patched["description_html"] = render_markdown(patch["description"])
     res = client.patch(
-        config.api_prefix + f"/datasets/{ds.slug}", json=patch, headers=admin_auth_header
+        get_config().api_prefix + f"/datasets/{ds.slug}", json=patch, headers=admin_auth_header
     )
     assert res.status_code == 200
     res_json = res.json()
@@ -71,7 +71,7 @@ def test_edit_relations(client, dataset, admin_auth_header, session: Session):
     assert patched["urls"] == new_urls
 
     res = client.patch(
-        config.api_prefix + f"/datasets/{ds.slug}", json=patch, headers=admin_auth_header
+        get_config().api_prefix + f"/datasets/{ds.slug}", json=patch, headers=admin_auth_header
     )
     assert res.status_code == 200
     res_json = res.json()

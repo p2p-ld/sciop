@@ -19,7 +19,7 @@ from sqlmodel import Field, Relationship, select
 from torf import Torrent as Torrent_
 from torf import _errors, _torrent, _utils
 
-from sciop.config import config
+from sciop.config import get_config
 from sciop.models.base import SQLModel
 from sciop.models.magnet import MagnetLink
 from sciop.models.mixins import EditableMixin, SortableCol, SortMixin, TableMixin
@@ -86,7 +86,7 @@ class Torrent(Torrent_):
     and not spend literally eons processing torrent files
     """
 
-    MAX_TORRENT_FILE_SIZE = config.upload_limit
+    MAX_TORRENT_FILE_SIZE = get_config().upload_limit
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -337,7 +337,7 @@ class TorrentFileBase(SQLModel):
 
     @classmethod
     def get_filesystem_path(cls, infohash: str, file_name: str) -> Path:
-        return config.torrent_dir / infohash / file_name
+        return get_config().paths.torrents / infohash / file_name
 
     @property
     def human_size(self) -> str:

@@ -13,7 +13,7 @@ from fastapi import Depends
 from fastapi import Request as FARequest
 from fasthx.utils import append_to_signature
 
-from sciop.config import config
+from sciop.config import get_config
 from sciop.logging import init_logger
 from sciop.vendor.fastapi_rss.models import GUID, Enclosure, EnclosureAttrs, Item, RSSFeed
 from sciop.vendor.fastapi_rss.rss_response import RSSResponse
@@ -81,12 +81,12 @@ class RSSFeedCache:
         self._lock = asyncio.Lock()
 
         if delta is None:
-            self.delta = config.rss_feed_cache_delta
+            self.delta = get_config().feeds.cache_delta
         else:
             self.delta = timedelta(minutes=delta)
 
         if clear_timeout is None:
-            self.clear_timeout = config.rss_feed_cache_clear_time
+            self.clear_timeout = get_config().feeds.cache_clear_time
         else:
             self.clear_timeout = timedelta(minutes=clear_timeout)
 
@@ -136,7 +136,7 @@ RequireRequest = Annotated[Request, Depends(_get_request)]
 class RSSCacheWrapper:
     """
     Cache RSS responses, keyed by the request path, and expired according to
-    :attr:`.Config.rss_feed_cache_delta`.
+    :attr:`.config.feeds.cache_delta`.
 
     Applied as a decorator to individual routes rather than used as an actual middleware,
     see https://github.com/fastapi/fastapi/discussions/7691#discussioncomment-7529698
