@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from sciop.config import config
+from sciop import get_config, middleware
 from sciop.logging import init_logger
 
 
@@ -11,6 +11,7 @@ from sciop.logging import init_logger
 def test_logging(
     client, monkeypatch, capsys, tmp_path, log_dir, log_console_width, level, status_code
 ):
+    config = get_config()
     monkeypatch.setattr(config.logs, "level_file", level)
     monkeypatch.setattr(config.logs, "level_stdout", level)
     monkeypatch.setattr(config.paths, "logs", tmp_path)
@@ -61,9 +62,9 @@ def test_logging_timing(monkeypatch, capsys, log_dir, enabled, client):
     """
     When request timing is enabled, logging outputs request timestamps
     """
-    from sciop import middleware
+    config = get_config()
 
-    monkeypatch.setattr(middleware.config.logs, "request_timing", enabled)
+    monkeypatch.setattr(config.logs, "request_timing", enabled)
 
     _ = client.get("/")
 

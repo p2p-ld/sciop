@@ -11,7 +11,7 @@ from starlette.datastructures import QueryParams
 
 from sciop import crud
 from sciop.api.auth import ALGORITHM
-from sciop.config import config
+from sciop.config import get_config
 from sciop.db import get_session
 from sciop.models import (
     Account,
@@ -44,7 +44,7 @@ class OAuth2PasswordBearerCookie(OAuth2PasswordBearer):
 
 
 reusable_oauth2 = OAuth2PasswordBearerCookie(
-    cookie_key="access_token", tokenUrl=f"{config.api_prefix}/login", auto_error=False
+    cookie_key="access_token", tokenUrl=f"{get_config().api_prefix}/login", auto_error=False
 )
 
 
@@ -68,7 +68,9 @@ async def require_current_account(
         raise HTTPException(401, detail="Not authorized", headers={"HX-Redirect": "/login"})
 
     try:
-        payload = jwt.decode(token, config.secret_key.get_secret_value(), algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            token, get_config().secret_key.get_secret_value(), algorithms=[ALGORITHM]
+        )
         token_data = TokenPayload(**payload)
     except (InvalidTokenError, ValidationError) as e:
         raise HTTPException(

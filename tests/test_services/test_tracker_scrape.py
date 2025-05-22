@@ -8,6 +8,7 @@ import pytest
 from pytest_httpx import HTTPXMock
 from sqlmodel import select
 
+from sciop import get_config
 from sciop.models import TorrentFile, TorrentTrackerLink
 from sciop.services.tracker_scrape import (
     ScrapeResponse,
@@ -174,15 +175,15 @@ async def test_scrape_http_tracker_single(tracker, monkeypatch, httpx_mock: HTTP
     and we have configured ourselves to do so,
     we should request each infohash individually
     """
-    from sciop.services import tracker_scrape
+    config = get_config()
 
     monkeypatch.setattr(
-        tracker_scrape.config.services.tracker_scraping,
+        config.services.tracker_scraping,
         "http_tracker_single_only",
         ["https://academictorrents.com/announce.php"],
     )
     monkeypatch.setattr(
-        tracker_scrape.config.services.tracker_scraping,
+        config.services.tracker_scraping,
         "http_tracker_scrape_all",
         [],
     )
@@ -229,16 +230,16 @@ async def test_scrape_http_tracker_all(monkeypatch, httpx_mock: HTTPXMock):
     :param httpx_mock:
     :return:
     """
-    from sciop.services import tracker_scrape
+    config = get_config()
 
     tracker = "https://academictorrents.com/announce.php"
     monkeypatch.setattr(
-        tracker_scrape.config.services.tracker_scraping,
+        config.services.tracker_scraping,
         "http_tracker_single_only",
         [],
     )
     monkeypatch.setattr(
-        tracker_scrape.config.services.tracker_scraping,
+        config.services.tracker_scraping,
         "http_tracker_scrape_all",
         [tracker],
     )

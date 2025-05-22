@@ -8,7 +8,7 @@ from starlette.responses import Response
 from sciop import crud
 from sciop.api.auth import create_access_token
 from sciop.api.deps import SessionDep
-from sciop.config import config
+from sciop.config import get_config
 from sciop.crud import create_account, get_account
 from sciop.middleware import limiter
 from sciop.models import AccountCreate, AccountRead, SuccessResponse, Token
@@ -32,7 +32,7 @@ def login(
     elif account.is_suspended:
         raise HTTPException(status_code=403, detail="Account is suspended")
 
-    access_token_expires = timedelta(minutes=config.token_expire_minutes)
+    access_token_expires = timedelta(minutes=get_config().token_expire_minutes)
     token = create_access_token(account.account_id, expires_delta=access_token_expires)
     response.set_cookie(
         key="access_token", value=token, httponly=True, secure=True, samesite="strict"
@@ -63,7 +63,7 @@ def register(
             detail="The user with this username already exists in the system.",
         )
     created_account = create_account(session=session, account_create=account)
-    access_token_expires = timedelta(minutes=config.token_expire_minutes)
+    access_token_expires = timedelta(minutes=get_config().token_expire_minutes)
     token = create_access_token(created_account.account_id, access_token_expires)
     response.set_cookie(
         key="access_token", value=token, httponly=True, secure=True, samesite="strict"

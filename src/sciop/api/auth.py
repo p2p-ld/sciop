@@ -5,7 +5,7 @@ import bcrypt
 import jwt
 from pydantic import SecretStr
 
-from sciop.config import config
+from sciop.config import get_config
 
 ALGORITHM = "HS256"
 
@@ -13,7 +13,9 @@ ALGORITHM = "HS256"
 def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
     expire = datetime.now(UTC) + expires_delta
     to_encode = {"exp": expire, "sub": str(subject)}
-    encoded_jwt = jwt.encode(to_encode, config.secret_key.get_secret_value(), algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, get_config().secret_key.get_secret_value(), algorithm=ALGORITHM
+    )
     return encoded_jwt
 
 

@@ -7,7 +7,7 @@ from sqlmodel.sql.expression import Select
 
 from sciop import crud
 from sciop.api.deps import SessionDep
-from sciop.config import config
+from sciop.config import get_config
 from sciop.models import Dataset, TorrentFeed, Upload
 from sciop.models.rss import RSSCacheWrapper
 from sciop.types import Scarcity, Threat
@@ -46,7 +46,7 @@ async def all_feed(session: SessionDep) -> RSSResponse:
     feed = TorrentFeed.from_uploads(
         title="Sciop: All",
         description="All recent uploads",
-        link=urljoin(f"{config.server.base_url}", "/all.rss"),
+        link=urljoin(f"{get_config().server.base_url}", "/all.rss"),
         uploads=uploads,
     )
     return RSSResponse(feed)
@@ -98,7 +98,7 @@ async def size_lt(size: _BREAKPOINTS_TYPE, session: SessionDep) -> RSSResponse:
     feed = TorrentFeed.from_uploads(
         title=f"Sciop: <{size_title}",
         description=f"All uploads less than {size_title}",
-        link=urljoin(f"{config.server.base_url}", f"/size/lt/{size}.rss"),
+        link=urljoin(f"{get_config().server.base_url}", f"/size/lt/{size}.rss"),
         uploads=uploads,
     )
     return RSSResponse(feed)
@@ -123,7 +123,7 @@ async def size_gt(size: _BREAKPOINTS_TYPE, session: SessionDep) -> RSSResponse:
     feed = TorrentFeed.from_uploads(
         title=f"Sciop: >{size_title}",
         description=f"All uploads larger than {size_title}",
-        link=urljoin(f"{config.server.base_url}", f"/size/gt/{size}.rss"),
+        link=urljoin(f"{get_config().server.base_url}", f"/size/gt/{size}.rss"),
         uploads=uploads,
     )
     return RSSResponse(feed)
@@ -146,7 +146,7 @@ async def low_seeders(session: SessionDep) -> RSSResponse:
     feed = TorrentFeed.from_uploads(
         title="Sciop: Seeds Needed",
         description="Uploads with at least one, but less than 10 seeders",
-        link=urljoin(f"{config.server.base_url}", "/seeds/1-10.rss"),
+        link=urljoin(f"{get_config().server.base_url}", "/seeds/1-10.rss"),
         uploads=uploads,
     )
     return RSSResponse(feed)
@@ -168,7 +168,7 @@ async def unseeded(session: SessionDep) -> RSSResponse:
     feed = TorrentFeed.from_uploads(
         title="Sciop: Reseeds Needed",
         description="Torrents with no current seeds",
-        link=urljoin(f"{config.server.base_url}", "/seeds/unseeded.rss"),
+        link=urljoin(f"{get_config().server.base_url}", "/seeds/unseeded.rss"),
         uploads=uploads,
     )
     return RSSResponse(feed)
@@ -183,7 +183,7 @@ async def tag_feed(tag: str, session: SessionDep) -> RSSResponse:
     feed = TorrentFeed.from_uploads(
         title=f"Sciop tag: {tag}",
         description=f"A feed of public data torrents tagged with {tag}",
-        link=urljoin(f"{config.server.base_url}", f"/tag/{tag}.rss"),
+        link=urljoin(f"{get_config().server.base_url}", f"/tag/{tag}.rss"),
         uploads=uploads,
     )
     return RSSResponse(feed)
@@ -214,7 +214,7 @@ async def source_feed(availability: str, session: SessionDep) -> RSSResponse:
     feed = TorrentFeed.from_uploads(
         title=f"Sciop availability: {availability}",
         description=f"A feed of public data torrents which are {availability} at their source",
-        link=urljoin(f"{config.server.base_url}", f"/source/{availability}.rss"),
+        link=urljoin(f"{get_config().server.base_url}", f"/source/{availability}.rss"),
         uploads=uploads,
     )
     return RSSResponse(feed)
@@ -236,7 +236,7 @@ async def scarcity_feed(scarcity: str, session: SessionDep) -> RSSResponse:
     feed = TorrentFeed.from_uploads(
         title=f"Sciop scarcity: {scarcity}",
         description=f"A feed of public data torrents which have scarcity level {scarcity}",
-        link=urljoin(f"{config.server.base_url}", f"/source/{scarcity}.rss"),
+        link=urljoin(f"{get_config().server.base_url}", f"/source/{scarcity}.rss"),
         uploads=uploads,
     )
     return RSSResponse(feed)
@@ -258,7 +258,7 @@ async def threat_feed(threat: str, session: SessionDep) -> RSSResponse:
     feed = TorrentFeed.from_uploads(
         title=f"Sciop threat: {threat}",
         description=f"A feed of public data torrents which have threat level {threat}",
-        link=urljoin(f"{config.server.base_url}", f"/source/{threat}.rss"),
+        link=urljoin(f"{get_config().server.base_url}", f"/source/{threat}.rss"),
         uploads=uploads,
     )
     return RSSResponse(feed)

@@ -12,7 +12,7 @@ from starlette.middleware.cors import CORSMiddleware
 from sciop import jobs  # noqa: F401 - import to register
 from sciop.api.deps import get_current_account
 from sciop.api.main import api_router
-from sciop.config import config
+from sciop.config import get_config
 from sciop.config.main import _lifespan_load_config
 from sciop.const import DOCS_DIR, STATIC_DIR
 from sciop.db import create_tables
@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI) -> Generator[None, None, None]:
     _lifespan_load_config()
 
     create_tables()
-    if config.env != "prod":
+    if get_config().env != "prod":
         build_docs(clean=False)
     start_scheduler()
     yield
@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI) -> Generator[None, None, None]:
 
 app = FastAPI(
     title="sciop",
-    openapi_url=f"{config.api_prefix}/openapi.json",
+    openapi_url=f"{get_config().api_prefix}/openapi.json",
     lifespan=lifespan,
     license_info={"name": "European Union Public License - 1.2", "identifier": "EUPL-1.2"},
     docs_url="/docs/api",
@@ -67,11 +67,11 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
-app.add_middleware(ContentSizeLimitMiddleware, max_content_size=config.upload_limit)
+app.add_middleware(ContentSizeLimitMiddleware, max_content_size=get_config().upload_limit)
 app.middleware("http")(security_headers)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[config.server.base_url],
+    allow_origins=[get_config().server.base_url],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -90,7 +90,7 @@ app.include_router(api_router)
 app.include_router(frontend_router)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-app.mount("/torrents", StaticFiles(directory=config.paths.torrents), name="torrents")
+app.mount("/torrents", StaticFiles(directory=get_config().paths.torrents), name="torrents")
 DOCS_DIR.mkdir(exist_ok=True)
 app.mount("/docs", StaticFiles(directory=DOCS_DIR, html=True), name="docs")
 add_pagination(app)

@@ -14,13 +14,11 @@ from sciop.config.services import (
 
 from sciop.config.main import (
     Config,
-    config,
     get_config,
 )  # noqa: I001 - has to come last, since it imports the others
 
 __all__ = [
     "DEFAULT_DB_PATHS",
-    "config",
     "Config",
     "CSPConfig",
     "DBConfig",

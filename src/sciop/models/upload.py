@@ -9,7 +9,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship, func, select
 
-from sciop.config import config
+from sciop.config import get_config
 from sciop.models import (
     Account,
     AuditLog,
@@ -86,7 +86,7 @@ class UploadBase(ModerableMixin):
     @property
     def absolute_download_path(self) -> str:
         """Download path including the site root"""
-        return urljoin(config.server.base_url, self.download_path)
+        return urljoin(get_config().server.base_url, self.download_path)
 
     @property
     def short_hash(self) -> Optional[str]:
@@ -104,14 +104,14 @@ class UploadBase(ModerableMixin):
         return f"""
             <p>
             <strong>Dataset:</strong> 
-              <a href="{config.server.base_url}/datasets/{self.dataset.slug}">
-                {config.server.base_url}/datasets/{self.dataset.slug}
+              <a href="{get_config().server.base_url}/datasets/{self.dataset.slug}">
+                {get_config().server.base_url}/datasets/{self.dataset.slug}
               </a>
             </p>
             <p>
             <strong>Upload:</strong> 
-              <a href="{config.server.base_url}/uploads/{self.infohash}">
-              {config.server.base_url}/uploads/{self.infohash}
+              <a href="{get_config().server.base_url}/uploads/{self.infohash}">
+              {get_config().server.base_url}/uploads/{self.infohash}
               </a>
             </p>
             <p>

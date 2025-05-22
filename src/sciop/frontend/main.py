@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from sciop.api.deps import add_htmx_response_trigger
-from sciop.config import config
+from sciop.config import get_config
 from sciop.frontend.accounts import accounts_router
 from sciop.frontend.autocomplete import autocomplete_router
 from sciop.frontend.datasets import datasets_router
@@ -28,5 +28,5 @@ frontend_router.include_router(self_router)
 frontend_router.include_router(tags_router)
 frontend_router.include_router(uploads_router)
 
-if config.env != "prod":
+if get_config().env != "prod":
     frontend_router.include_router(test_router)

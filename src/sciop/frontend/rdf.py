@@ -10,14 +10,14 @@ from starlette.responses import Response
 
 from sciop import crud
 from sciop.api.deps import SessionDep
-from sciop.config import config
+from sciop.config import get_config
 from sciop.models.dataset import Dataset
 from sciop.types import RDFSuffixType, ctype_to_suffix, suffix_to_ctype
 
 BIBO = Namespace("http://purl.org/ontology/bibo/")
-TAGS = Namespace(f"{config.server.base_url}/id/tag/")
-DSID = Namespace(f"{config.server.base_url}/id/datasets/")
-DSPG = Namespace(f"{config.server.base_url}/datasets/")
+TAGS = Namespace(f"{get_config().server.base_url}/id/tag/")
+DSID = Namespace(f"{get_config().server.base_url}/id/datasets/")
+DSPG = Namespace(f"{get_config().server.base_url}/datasets/")
 SCIOP = Namespace("https://sciop.net/ns#")
 
 rdf_router = APIRouter(prefix="/rdf")
@@ -104,10 +104,10 @@ def dataset_to_rdf(g: Graph, d: Dataset) -> Graph:
         if s.description is not None:
             g.add((n, DCTERMS["description"], Literal(s.description)))
     docs = [
-        URIRef(f"{config.server.base_url}/rdf/datasets/{d.slug}.ttl"),
-        URIRef(f"{config.server.base_url}/rdf/datasets/{d.slug}.rdf"),
-        URIRef(f"{config.server.base_url}/rdf/datasets/{d.slug}.json"),
-        URIRef(f"{config.server.base_url}/rdf/datasets/{d.slug}.nt"),
+        URIRef(f"{get_config().server.base_url}/rdf/datasets/{d.slug}.ttl"),
+        URIRef(f"{get_config().server.base_url}/rdf/datasets/{d.slug}.rdf"),
+        URIRef(f"{get_config().server.base_url}/rdf/datasets/{d.slug}.json"),
+        URIRef(f"{get_config().server.base_url}/rdf/datasets/{d.slug}.nt"),
     ]
     for doc in docs:
         g.add((DSID[d.slug], FOAF["isPrimaryTopicOf"], doc))
@@ -145,11 +145,11 @@ async def tag_graph(tag: str, suffix: RDFSuffixType, session: SessionDep) -> Res
     g.add((cat, RDFS["label"], Literal(f"SciOp catalog for tag: {tag}")))
     g.add((cat, DCTERMS["title"], Literal(f"SciOp catalog for tag: {tag}")))
     docs = [
-        URIRef(f"{config.server.base_url}/rdf/tag/{tag}.ttl"),
-        URIRef(f"{config.server.base_url}/rdf/tag/{tag}.rdf"),
-        URIRef(f"{config.server.base_url}/rdf/tag/{tag}.nt"),
-        URIRef(f"{config.server.base_url}/rdf/tag/{tag}.json"),
-        URIRef(f"{config.server.base_url}/rdf/tag/{tag}.rss"),
+        URIRef(f"{get_config().server.base_url}/rdf/tag/{tag}.ttl"),
+        URIRef(f"{get_config().server.base_url}/rdf/tag/{tag}.rdf"),
+        URIRef(f"{get_config().server.base_url}/rdf/tag/{tag}.nt"),
+        URIRef(f"{get_config().server.base_url}/rdf/tag/{tag}.json"),
+        URIRef(f"{get_config().server.base_url}/rdf/tag/{tag}.rss"),
     ]
     for doc in docs:
         g.add((cat, FOAF["isPrimaryTopicOf"], doc))

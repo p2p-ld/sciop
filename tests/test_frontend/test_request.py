@@ -5,7 +5,7 @@ import pytest
 from bs4 import BeautifulSoup as bs
 from playwright.async_api import Page, expect
 
-from sciop.config import config
+from sciop.config import get_config
 
 
 @pytest.mark.timeout(15)
@@ -30,7 +30,7 @@ async def test_request(default_db, page_as_admin: Page):
     await expect(page).to_have_url("http://127.0.0.1:8080/datasets/test-item")
 
     async with httpx.AsyncClient() as client:
-        res = await client.get(f"http://127.0.0.1:8080{config.api_prefix}/datasets/test-item")
+        res = await client.get(f"http://127.0.0.1:8080{get_config().api_prefix}/datasets/test-item")
     dataset = res.json()
     assert dataset["title"] == title
     assert dataset["slug"] == slug
@@ -115,7 +115,7 @@ async def test_rm_subform_items(page_as_admin: Page):
 
     # and confirm with api copy
     async with httpx.AsyncClient() as client:
-        res = await client.get(f"http://127.0.0.1:8080{config.api_prefix}/datasets/test-item")
+        res = await client.get(f"http://127.0.0.1:8080{get_config().api_prefix}/datasets/test-item")
     dataset = res.json()
     external_ids = dataset["external_identifiers"]
     api_dois = [ext["identifier"] for ext in external_ids]

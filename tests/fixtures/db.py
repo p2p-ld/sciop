@@ -21,19 +21,19 @@ __all__ = [
 
 def _engine(request: pytest.FixtureRequest) -> Engine:
     if request.config.getoption("--file-db"):
-        from sciop.config import config
+        from sciop.config import get_config
 
         engine_kwargs = {
-            "pool_size": config.db.pool_size,
-            "max_overflow": config.db.overflow_size,
+            "pool_size": get_config().db.pool_size,
+            "max_overflow": get_config().db.overflow_size,
         }
         if request.config.getoption("--echo-queries"):
             engine_kwargs["echo"] = True
 
         assert (
-            str(config.paths.sqlite) == "db.test.sqlite"
+            str(get_config().paths.sqlite) == "db.test.sqlite"
         ), "Must use db.test.sqlite for file dbs in testing"
-        engine = create_engine(str(config.paths.sqlite), **engine_kwargs)
+        engine = create_engine(str(get_config().paths.sqlite), **engine_kwargs)
     else:
         engine = _in_memory_engine(request)
     return engine

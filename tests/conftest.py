@@ -1,7 +1,5 @@
 import argparse
-import contextlib
 import shutil
-import sys
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
@@ -118,9 +116,9 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
     new_config.logs.level_file = "DEBUG"
     new_config.logs.level_stdout = "DEBUG"
     new_config.services.site_stats.enabled = True
-    monkeypatch_session.setattr(main, "config", new_config)
-    for key, module in sys.modules.items():
-        if not key.startswith("sciop.") and not key.startswith("tests."):
-            continue
-        with contextlib.suppress(AttributeError):
-            monkeypatch_session.setattr(module, "config", new_config)
+    monkeypatch_session.setattr(main, "_config", new_config)
+    # for key, module in sys.modules.items():
+    #     if not key.startswith("sciop.") and not key.startswith("tests."):
+    #         continue
+    #     with contextlib.suppress(AttributeError):
+    #         monkeypatch_session.setattr(module, "config", new_config)

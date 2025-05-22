@@ -36,6 +36,15 @@ Replaced with `get_engine` and `get_maker` universally.
 Also resolved some resource management issues that were causing hundreds of errors from unclosed dbs
 to be raised during tests.
 
+#### New config runtime features
+
+- You can pass a custom config yaml file with `sciop start -c some-other-config.yaml` now.
+- Configs (both default `sciop.yaml` in cwd and custom locations) auto-reload,
+  checking every `config_watch_minutes` for changes - no more restarting prod to change a config variable!
+  This does *not* necessarily work for *every* config variable - e.g. scheduled services
+  read and consume their timing values at import time, but it *does* work with any variables
+  that are dynamically accessed. Please raise an issue if there is some config value that isn't responding to changes.
+
 #### Breaking - Refactor config
 
 The Config object was split into more submodels and made into a subpackage.

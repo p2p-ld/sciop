@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from sciop.config import config
+from sciop.config import get_config
 
 
 @pytest.mark.parametrize(
@@ -12,7 +12,7 @@ def test_register_bogus_username(username, client: TestClient):
     We reject bogus usernames
     """
     response = client.post(
-        config.api_prefix + "/register",
+        get_config().api_prefix + "/register",
         data={"username": username, "password": "super sick password123"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
@@ -28,14 +28,14 @@ def test_register_case_insensitive(client: TestClient):
     Don't allow a username to be created twice, case-insensitively
     """
     response = client.post(
-        config.api_prefix + "/register",
+        get_config().api_prefix + "/register",
         data={"username": "Original", "password": "super sick password123"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert response.status_code == 200
 
     response2 = client.post(
-        config.api_prefix + "/register",
+        get_config().api_prefix + "/register",
         data={"username": "original", "password": "super sick password123"},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )

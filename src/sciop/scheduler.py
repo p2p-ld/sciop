@@ -12,7 +12,7 @@ from apscheduler.triggers.date import DateTrigger
 from pydantic import BaseModel, Field
 from sqlalchemy.engine.base import Engine
 
-from sciop.config import config
+from sciop.config import get_config
 from sciop.db import get_engine
 from sciop.logging import init_logger
 
@@ -66,7 +66,7 @@ def start_scheduler() -> None:
     else:
         raise RuntimeError("Scheduler already started")
 
-    if config.services.clear_jobs:
+    if get_config().services.clear_jobs:
         remove_all_jobs()
     scheduler.start()
 
@@ -165,7 +165,7 @@ def interval(
 
     If ``start_date`` is ``None`` , schedule the first run for 10s in the future
     """
-    if start_date is None and config.env != "test":
+    if start_date is None and get_config().env != "test":
         start_date = datetime.now(UTC) + timedelta(seconds=10)
     outer_kwargs = {**locals()}
     outer_kwargs = {

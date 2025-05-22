@@ -346,6 +346,3 @@ def _lifespan_load_config() -> None:
             f"Got error:\n{str(e)}"
         )
         return
-
-
-config = Config()

@@ -3,7 +3,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from sciop.config import config as sciop_config
+from sciop.config import get_config
 from sciop.models import SQLModel  # noqa: F401
 
 # this is the Alembic Config object, which provides
@@ -12,7 +12,7 @@ config = context.config
 url = config.get_main_option("sqlalchemy.url")
 if url is None:
     # don't override if it's already been given to use explicitly
-    config.set_main_option("sqlalchemy.url", sciop_config.paths.sqlite)
+    config.set_main_option("sqlalchemy.url", get_config().paths.sqlite)
 
 
 # Interpret the config file for Python logging.

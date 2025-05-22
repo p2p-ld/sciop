@@ -9,7 +9,9 @@ if TYPE_CHECKING:
 
 def main(config: Optional["Config"] = None) -> None:
     if config is None:
-        from sciop.config import config
+        from sciop.config import get_config
+
+        config = get_config()
 
     # add in-package docs to exclude list to avoid infinite reloads
     in_pkg_docs = Path(__file__).parent / "docs"

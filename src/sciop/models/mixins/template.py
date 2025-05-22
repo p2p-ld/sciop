@@ -64,7 +64,7 @@ def get_env_tests() -> dict:
 
 
 def get_loader() -> jinja2.BaseLoader:
-    from sciop.config import config
+    from sciop.config import get_config
 
     global _loader
     # hopefully this doesn't need locking,
@@ -72,9 +72,9 @@ def get_loader() -> jinja2.BaseLoader:
     # sorry.
     if _loader is None:
         builtin_loader = jinja2.FileSystemLoader(TEMPLATE_DIR)
-        if config.paths.template_override:
+        if get_config().paths.template_override:
             _loader = jinja2.ChoiceLoader(
-                [jinja2.FileSystemLoader(config.paths.template_override), builtin_loader]
+                [jinja2.FileSystemLoader(get_config().paths.template_override), builtin_loader]
             )
         else:
             _loader = builtin_loader

@@ -180,7 +180,7 @@ def get_approved_datasets_from_tag(*, session: Session, tag: str) -> list[Upload
     return session.exec(statement).all()
 
 
-def get_visible_datasets_from_tag(*, session: Session, tag: str) -> list[Upload]:
+def get_visible_datasets_from_tag(*, session: Session, tag: str) -> list[Dataset]:
     statement = select(Dataset).where(Dataset.is_visible == True, Dataset.tags.any(tag=tag))
     return session.exec(statement).all()
 

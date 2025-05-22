@@ -10,7 +10,7 @@ from typing import Any, Optional, Union
 
 from rich.logging import RichHandler
 
-from sciop.config import config
+from sciop.config import get_config
 from sciop.config.logs import LOG_LEVELS
 
 
@@ -47,19 +47,23 @@ def init_logger(
         :class:`logging.Logger`
     """
     if log_dir is None:
-        log_dir = config.paths.logs
+        log_dir = get_config().paths.logs
     if level is None:
         level: LOG_LEVELS = (
-            config.logs.level_stdout if config.logs.level_stdout is not None else config.logs.level
+            get_config().logs.level_stdout
+            if get_config().logs.level_stdout is not None
+            else get_config().logs.level
         )
     if file_level is None:
         file_level: LOG_LEVELS = (
-            config.logs.level_file if config.logs.level_file is not None else config.logs.level
+            get_config().logs.level_file
+            if get_config().logs.level_file is not None
+            else get_config().logs.level
         )
     if log_file_n is None:
-        log_file_n = config.logs.file_n
+        log_file_n = get_config().logs.file_n
     if log_file_size is None:
-        log_file_size = config.logs.file_size
+        log_file_size = get_config().logs.file_size
 
     # set our logger to the minimum of the levels so that it always handles at least that severity
     # even if one or the other handlers might not.

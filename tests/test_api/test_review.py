@@ -1,7 +1,7 @@
 import pytest
 from sqlmodel import select
 
-from sciop.config import config
+from sciop.config import get_config
 from sciop.models import AuditLog, DatasetPart, Scopes
 
 
@@ -11,7 +11,7 @@ def test_account_scope_grant(scope: Scopes, client, account, session, header_typ
     auth_header = request.getfixturevalue(header_type)
     account_ = account(username="scoped")
     response = client.put(
-        config.api_prefix + f"/accounts/{account_.username}/scopes/{scope.value}",
+        get_config().api_prefix + f"/accounts/{account_.username}/scopes/{scope.value}",
         headers=auth_header,
     )
     if scope not in (Scopes.admin, Scopes.root) or header_type == "root_auth_header":
@@ -29,7 +29,7 @@ def test_self_revoke_admin(client, admin_auth_header):
     Admin accounts can't revoke their own admin scope
     """
     response = client.delete(
-        config.api_prefix + "/accounts/admin/scopes/admin",
+        get_config().api_prefix + "/accounts/admin/scopes/admin",
         headers=admin_auth_header,
     )
     assert response.status_code == 403
@@ -41,7 +41,7 @@ def test_self_revoke_root(client, root_auth_header):
     Root accounts can't revoke their own admin scope
     """
     response = client.delete(
-        config.api_prefix + "/accounts/root/scopes/root",
+        get_config().api_prefix + "/accounts/root/scopes/root",
         headers=root_auth_header,
     )
     assert response.status_code == 403
@@ -67,13 +67,13 @@ def test_only_root_can_privilege(
     if method == "put":
         receiving_account_ = account(username="receiving")
         response = client.put(
-            config.api_prefix + f"/accounts/receiving/scopes/{privileged_scope}",
+            get_config().api_prefix + f"/accounts/receiving/scopes/{privileged_scope}",
             headers=auth_header,
         )
     elif method == "delete":
         receiving_account_ = account(scopes=[privileged_scope], username="receiving")
         response = client.delete(
-            config.api_prefix + f"/accounts/receiving/scopes/{privileged_scope}",
+            get_config().api_prefix + f"/accounts/receiving/scopes/{privileged_scope}",
             headers=auth_header,
         )
     else:
@@ -100,7 +100,7 @@ def test_self_suspend(client, admin_auth_header):
     Accounts should not be able to suspend themselves
     """
     response = client.post(
-        config.api_prefix + "/accounts/admin/suspend",
+        get_config().api_prefix + "/accounts/admin/suspend",
         headers=admin_auth_header,
     )
     assert response.status_code == 403
@@ -112,7 +112,7 @@ def test_no_admin_suspend(client, account, get_auth_header, account_type, admin_
     account_ = account(scopes=["admin"], username="new_admin", password="passywordy123")
     auth_header = get_auth_header(username="new_admin", password="passywordy123")
     response = client.post(
-        config.api_prefix + f"/accounts/{account_type}/suspend",
+        get_config().api_prefix + f"/accounts/{account_type}/suspend",
         headers=auth_header,
     )
     assert response.status_code == 403
@@ -127,7 +127,7 @@ def test_no_double_scope(session, client, account, admin_auth_header):
     assert not account_.has_scope("review")
     assert len(account_.scopes) == 0
     response = client.put(
-        config.api_prefix + f"/accounts/{account_.username}/scopes/review",
+        get_config().api_prefix + f"/accounts/{account_.username}/scopes/review",
         headers=admin_auth_header,
     )
     assert response.status_code == 200
@@ -137,7 +137,7 @@ def test_no_double_scope(session, client, account, admin_auth_header):
     assert len(account_.scopes) == 1
 
     response = client.put(
-        config.api_prefix + f"/accounts/{account_.username}/scopes/review",
+        get_config().api_prefix + f"/accounts/{account_.username}/scopes/review",
         headers=admin_auth_header,
     )
     assert response.status_code == 200
@@ -148,7 +148,9 @@ def test_no_double_scope(session, client, account, admin_auth_header):
 
 def test_deny_dataset_no_delete(client, dataset, session, admin_auth_header):
     ds_ = dataset(slug="unapproved", is_approved=False)
-    res = client.post(f"{config.api_prefix}/datasets/{ds_.slug}/deny", headers=admin_auth_header)
+    res = client.post(
+        f"{get_config().api_prefix}/datasets/{ds_.slug}/deny", headers=admin_auth_header
+    )
     assert res.status_code == 200
     session.refresh(ds_)
     assert ds_.is_removed
@@ -161,7 +163,9 @@ def test_deny_dataset_no_delete(client, dataset, session, admin_auth_header):
 def test_approve_dataset(client, dataset, session, admin_auth_header):
     ds_ = dataset(slug="unapproved", is_approved=False)
     assert not ds_.is_approved
-    res = client.post(f"{config.api_prefix}/datasets/{ds_.slug}/approve", headers=admin_auth_header)
+    res = client.post(
+        f"{get_config().api_prefix}/datasets/{ds_.slug}/approve", headers=admin_auth_header
+    )
     assert res.status_code == 200
     session.refresh(ds_)
     assert ds_.is_approved
@@ -171,7 +175,7 @@ def test_unapprove_dataset(client, dataset, session, admin_auth_header):
     ds_ = dataset(slug="approved", is_approved=True)
     assert ds_.is_approved
     res = client.post(
-        f"{config.api_prefix}/datasets/{ds_.slug}/unapprove", headers=admin_auth_header
+        f"{get_config().api_prefix}/datasets/{ds_.slug}/unapprove", headers=admin_auth_header
     )
     assert res.status_code == 200
     session.refresh(ds_)
@@ -182,7 +186,7 @@ def test_approve_upload(client, upload, session, admin_auth_header):
     ul_ = upload(is_approved=False)
     assert not ul_.is_approved
     res = client.post(
-        f"{config.api_prefix}/uploads/{ul_.infohash}/approve", headers=admin_auth_header
+        f"{get_config().api_prefix}/uploads/{ul_.infohash}/approve", headers=admin_auth_header
     )
     assert res.status_code == 200
     session.refresh(ul_)
@@ -193,7 +197,7 @@ def test_unapprove_upload(client, upload, session, admin_auth_header):
     ul_ = upload(is_approved=True)
     assert ul_.is_approved
     res = client.post(
-        f"{config.api_prefix}/uploads/{ul_.infohash}/unapprove", headers=admin_auth_header
+        f"{get_config().api_prefix}/uploads/{ul_.infohash}/unapprove", headers=admin_auth_header
     )
     assert res.status_code == 200
     session.refresh(ul_)
@@ -206,7 +210,8 @@ def test_deny_dataset_part_no_delete(client, dataset, session, admin_auth_header
     session.add(ds_)
     session.commit()
     res = client.post(
-        f"{config.api_prefix}/datasets/{ds_.slug}/unapproved-part/deny", headers=admin_auth_header
+        f"{get_config().api_prefix}/datasets/{ds_.slug}/unapproved-part/deny",
+        headers=admin_auth_header,
     )
     assert res.status_code == 200
     session.refresh(ds_)
@@ -220,7 +225,9 @@ def test_deny_dataset_part_no_delete(client, dataset, session, admin_auth_header
 
 def test_deny_upload_no_delete(client, upload, session, admin_auth_header):
     ul = upload(is_approved=False)
-    res = client.post(f"{config.api_prefix}/uploads/{ul.infohash}/deny", headers=admin_auth_header)
+    res = client.post(
+        f"{get_config().api_prefix}/uploads/{ul.infohash}/deny", headers=admin_auth_header
+    )
     assert res.status_code == 200
     session.refresh(ul)
     assert ul.is_removed
@@ -233,7 +240,7 @@ def test_deny_upload_no_delete(client, upload, session, admin_auth_header):
 def test_suspend_account_no_delete(client, account, session, admin_auth_header):
     acc = account()
     res = client.post(
-        f"{config.api_prefix}/accounts/{acc.username}/suspend", headers=admin_auth_header
+        f"{get_config().api_prefix}/accounts/{acc.username}/suspend", headers=admin_auth_header
     )
     assert res.status_code == 200
     session.refresh(acc)
@@ -253,18 +260,20 @@ def test_suspended_accounts_cant_unsuspend(
     acc_header = get_auth_header(username=acc.username)
 
     res = client.post(
-        f"{config.api_prefix}/accounts/{acc.username}/suspend", headers=root_auth_header
+        f"{get_config().api_prefix}/accounts/{acc.username}/suspend", headers=root_auth_header
     )
     assert res.status_code == 200
     session.refresh(acc)
     assert acc.is_suspended
 
-    res = client.post(f"{config.api_prefix}/accounts/{acc.username}/restore", headers=acc_header)
+    res = client.post(
+        f"{get_config().api_prefix}/accounts/{acc.username}/restore", headers=acc_header
+    )
     assert res.status_code == 403
     session.refresh(acc)
     assert acc.is_suspended
 
-    res = client.put(f"{config.api_prefix}/accounts/smurf/scopes/review", headers=acc_header)
+    res = client.put(f"{get_config().api_prefix}/accounts/smurf/scopes/review", headers=acc_header)
     assert res.status_code == 403
     session.refresh(smurf)
     assert not smurf.has_scope("review")
