@@ -1,14 +1,17 @@
+import random
+
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 import sciop
 from sciop import crud
+from sciop.config import get_config
 from sciop.api.deps import CurrentAccount, RequireCurrentAccount, SessionDep
 from sciop.const import STATIC_DIR
 from sciop.frontend.rss import SIZE_BREAKPOINTS
 from sciop.frontend.templates import templates
 from sciop.models import DatasetCreate, HitCount
-
+from sciop.services.markdown import render_markdown
 index_router = APIRouter()
 
 
@@ -21,12 +24,13 @@ async def index(request: Request, session: SessionDep):
 
     stats = crud.get_latest_site_stats(session=session)
     hit_count = HitCount.next(path="/", session=session)
-
+    quote = random.choice(get_config().instance.quotes)
     return templates.TemplateResponse(
         request,
         "pages/index.html",
         {
             "version": sciop.__version__,
+            "quote": quote,
             "short_hash": short_hash,
             "stats": stats,
             "hit_count": hit_count,
