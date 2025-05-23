@@ -5,13 +5,13 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 import sciop
 from sciop import crud
-from sciop.config import get_config
 from sciop.api.deps import CurrentAccount, RequireCurrentAccount, SessionDep
+from sciop.config import get_config
 from sciop.const import STATIC_DIR
 from sciop.frontend.rss import SIZE_BREAKPOINTS
 from sciop.frontend.templates import templates
 from sciop.models import DatasetCreate, HitCount
-from sciop.services.markdown import render_markdown
+
 index_router = APIRouter()
 
 
