@@ -1,7 +1,7 @@
 {% macro instance_quote(quote) %}
 {% if quote %}
 <blockquote class="title-quote">
-    "{{ quote.content }}"
+    "{{ quote.content.strip() }}"
     <p class="attribution">
         — {{ quote.attribution }}, <a href="{{ quote.link }}">{{ quote.link_text }}</a>
     </p>
