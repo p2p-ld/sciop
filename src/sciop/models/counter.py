@@ -42,7 +42,7 @@ class HitCount(SQLModel, table=True):
         return count
 
     @classmethod
-    def writeback(cls, path: str, session: Session):
+    def writeback(cls, path: str, session: Session) -> None:
         path = _normalize_path(path)
         maybe_counter = session.exec(select(HitCount).where(HitCount.path == path)).first()
         counter = HitCount(path=path, count=0) if maybe_counter is None else maybe_counter

@@ -1,6 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor
-
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 import sciop
@@ -15,7 +13,7 @@ index_router = APIRouter()
 
 
 @index_router.get("/", response_class=HTMLResponse)
-async def index(request: Request, session: SessionDep):
+async def index(request: Request, session: SessionDep, background_tasks: BackgroundTasks):
     try:
         short_hash = sciop.__version__.split("+")[1]
     except IndexError:
@@ -23,8 +21,8 @@ async def index(request: Request, session: SessionDep):
 
     stats = crud.get_latest_site_stats(session=session)
     hit_count = HitCount.next(path="/", session=session)
-    executor = ThreadPoolExecutor(max_workers=100)
-    executor.submit(HitCount.writeback, path="/", session=session)
+
+    background_tasks.add_task(HitCount.writeback, path="/", session=session)
     return templates.TemplateResponse(
         request,
         "pages/index.html",
