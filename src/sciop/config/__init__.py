@@ -1,6 +1,6 @@
 from sciop.config.db import DBConfig  # noqa: I001
 from sciop.config.feeds import FeedConfig
-from sciop.config.instance import InstanceConfig, InstanceRule
+from sciop.config.instance import InstanceConfig, InstanceRule, InstanceQuote
 from sciop.config.logs import LogConfig
 from sciop.config.paths import DEFAULT_DB_PATHS, PathConfig
 from sciop.config.server import CSPConfig, ServerConfig
@@ -26,6 +26,7 @@ __all__ = [
     "get_config",
     "InstanceConfig",
     "InstanceRule",
+    "InstanceQuote",
     "JobConfig",
     "LogConfig",
     "PathConfig",
