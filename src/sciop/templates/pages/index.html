@@ -82,7 +82,7 @@
     <div class="hidden">
         <a rel="nofollow" href="/crawlers">crawlers</a>
     </div>
-    {% if hit_count %}
+    {% if hit_count is number %}
     {{ counter(hit_count) }}
     {% endif %}
 </div>

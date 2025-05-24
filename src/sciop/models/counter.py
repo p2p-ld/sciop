@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from typing import Optional
 
+from fastapi import BackgroundTasks
 from pydantic import field_validator
 from sqlmodel import Field, Session, select
 
@@ -31,15 +32,24 @@ class HitCount(SQLModel, table=True):
         return _normalize_path(path)
 
     @classmethod
-    def next(cls, path: str, session: Session) -> int:
+    def next(cls, path: str, session: Session, background_tasks: BackgroundTasks) -> int:
         """
         Increment and return the next count for a path
         """
         path = _normalize_path(path)
         maybe_counter = session.exec(select(HitCount).where(HitCount.path == path)).first()
+        count = 0 if maybe_counter is None else maybe_counter.count
+        background_tasks.add_task(HitCount.writeback, path=path, session=session)
+        return count
+
+    @classmethod
+    def writeback(cls, path: str, session: Session) -> None:
+        path = _normalize_path(path)
+        maybe_counter = session.exec(select(HitCount).where(HitCount.path == path)).first()
         counter = HitCount(path=path, count=0) if maybe_counter is None else maybe_counter
-        count = counter.count + 1
-        counter.count = count
+        if maybe_counter is None:
+            session.add(counter)
+            session.commit()
+        counter.count = HitCount.count + 1
         session.add(counter)
         session.commit()
-        return count
