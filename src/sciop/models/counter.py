@@ -38,8 +38,7 @@ class HitCount(SQLModel, table=True):
         """
         path = _normalize_path(path)
         maybe_counter = session.exec(select(HitCount).where(HitCount.path == path)).first()
-        counter = HitCount(path=path, count=0) if maybe_counter is None else maybe_counter
-        count = counter.count
+        count = 0 if maybe_counter is None else maybe_counter.count
         background_tasks.add_task(HitCount.writeback, path=path, session=session)
         return count
 
