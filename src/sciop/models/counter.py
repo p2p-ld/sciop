@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Optional
 
 from pydantic import field_validator
+from sqlalchemy import update
 from sqlmodel import Field, Session, select
 
 from sciop.models.base import SQLModel
@@ -46,7 +47,6 @@ class HitCount(SQLModel, table=True):
         path = _normalize_path(path)
         maybe_counter = session.exec(select(HitCount).where(HitCount.path == path)).first()
         counter = HitCount(path=path, count=0) if maybe_counter is None else maybe_counter
-        count = counter.count + 1
-        counter.count = count
+        counter.count = HitCount.count + 1
         session.add(counter)
         session.commit()
