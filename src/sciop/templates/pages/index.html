@@ -2,6 +2,7 @@
 {% from 'macros/dataset.html' import dataset_collapsible %}
 {% from 'macros/stats.html' import site_stats %}
 {% from 'macros/counter.html' import counter %}
+{% from 'macros/quote.html' import instance_quote %}
 {% block container_class %}text-container{% endblock %}
 {% block content %}
 <div class="site-index">
@@ -15,12 +16,7 @@
             </a>
         </p>
 
-        <blockquote class="title-quote">
-            “We must become undisciplined. The work we do now requires new modes and methods of research and teaching; new ways of entering and leaving the archives.”
-            <p class="attribution">
-            — Christina Sharpe, <a href="https://dhdebates.gc.cuny.edu/read/the-digital-black-atlantic/section/b5c2c6f7-c1a2-4645-8cf7-9d5cc70aa019#ch02">In the Wake</a>
-            </p>
-        </blockquote>
+        {{ instance_quote(quote) }}
 
         <div class="admonition surface" id="new-here">
             <div class="corner top-left"></div>

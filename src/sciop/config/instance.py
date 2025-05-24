@@ -9,6 +9,13 @@ class InstanceRule(BaseModel):
     description: str
 
 
+class InstanceQuote(BaseModel):
+    content: str
+    attribution: str
+    link_text: str
+    link: str
+
+
 class InstanceConfig(BaseModel):
     """
     Configuration for the public-facing parts of this instance
@@ -16,6 +23,10 @@ class InstanceConfig(BaseModel):
 
     contact_email: Optional[EmailStr] = Field(
         default=None, description="Email to list as contact in page footer"
+    )
+    quotes: list[InstanceQuote] = Field(
+        description="A list of quotes to show on the homepage",
+        default_factory=list,
     )
     rules: list[InstanceRule] = Field(
         default_factory=list, description="Site rules to display in the docs"
