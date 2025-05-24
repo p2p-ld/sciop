@@ -46,7 +46,7 @@ class HitCount(SQLModel, table=True):
         path = _normalize_path(path)
         maybe_counter = session.exec(select(HitCount).where(HitCount.path == path)).first()
         counter = HitCount(path=path, count=0) if maybe_counter is None else maybe_counter
-        if counter.count == 0:
+        if maybe_counter is None:
             session.add(counter)
             session.commit()
         counter.count = HitCount.count + 1
