@@ -20,9 +20,8 @@ async def index(request: Request, session: SessionDep, background_tasks: Backgro
         short_hash = ""
 
     stats = crud.get_latest_site_stats(session=session)
-    hit_count = HitCount.next(path="/", session=session)
+    hit_count = HitCount.next(path="/", session=session, background_tasks=background_tasks)
 
-    background_tasks.add_task(HitCount.writeback, path="/", session=session)
     return templates.TemplateResponse(
         request,
         "pages/index.html",
