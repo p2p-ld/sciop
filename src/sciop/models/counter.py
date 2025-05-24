@@ -2,7 +2,6 @@ from datetime import UTC, datetime
 from typing import Optional
 
 from pydantic import field_validator
-from sqlalchemy import update
 from sqlmodel import Field, Session, select
 
 from sciop.models.base import SQLModel
