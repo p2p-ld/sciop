@@ -25,7 +25,7 @@ async def index(request: Request, session: SessionDep):
     stats = crud.get_latest_site_stats(session=session)
     hit_count = HitCount.next(path="/", session=session)
     quotes = get_config().instance.quotes
-    quote = random.choice(quotes) if len(quotes) > 0 else None
+    quote = random.choice(quotes) if quotes else None
     return templates.TemplateResponse(
         request,
         "pages/index.html",

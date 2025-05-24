@@ -26,17 +26,7 @@ class InstanceConfig(BaseModel):
     )
     quotes: list[InstanceQuote] = Field(
         description="A list of quotes to show on the homepage",
-        default=[
-            InstanceQuote(
-                content="We must become undisciplined. "
-                "The work we do now requires new modes and methods of research "
-                "and teaching; new ways of entering and leaving the archives.",
-                attribution="Christina Sharpe",
-                link="https://dhdebates.gc.cuny.edu"
-                "/read/the-digital-black-atlantic/section/b5c2c6f7-c1a2-4645-8cf7-9d5cc70aa019#ch02",
-                link_text="In the Wake",
-            )
-        ],
+        default_factory=list,
     )
     rules: list[InstanceRule] = Field(
         default_factory=list, description="Site rules to display in the docs"
