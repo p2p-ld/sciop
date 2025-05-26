@@ -95,13 +95,15 @@ def gunicorn(output: Optional[Path] = None, force: bool = False, **kwargs: Any) 
 
     After generation...
 
-    - Copy the generated config to the systemd services directory (e.g. /etc/systemd/system/sciop.service)
+    - Copy the generated config to the systemd services directory
+      (e.g. /etc/systemd/system/sciop.service)
     - Enable the service (`systemctl enable sciop`)
     - Start the service (`systemctl start sciop`)
 
     This template is a relatively standard gunicorn invocation script,
-    except it uses the `--preload` flag to ensure that the module-level semaphors and other objects are
-    loaded and run only once (e.g. to avoid running a separate APscheduler instance in every worker)
+    except it uses the `--preload` flag to ensure that the module-level semaphors
+    and other objects are loaded and run only once
+    (e.g. to avoid running a separate APscheduler instance in every worker)
     """
     if output is not None and output.exists() and not force:
         raise click.ClickException("Output file already exists, use -f to overwrite.")

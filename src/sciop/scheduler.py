@@ -88,10 +88,11 @@ def started() -> bool:
 
 
 def shutdown() -> None:
-    global scheduler, _REGISTRY
+    global scheduler, _REGISTRY, _SCHEDULER_CREATED
     if scheduler is not None:
         scheduler.shutdown()
     scheduler = None
+    _SCHEDULER_CREATED.release()
 
 
 def remove_all_jobs() -> None:
