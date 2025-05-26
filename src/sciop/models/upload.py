@@ -1,4 +1,5 @@
 import re
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Optional, Self, cast
 from urllib.parse import urljoin
 
@@ -31,7 +32,7 @@ from sciop.models.mixins import (
     all_optional,
 )
 from sciop.services.markdown import render_db_fields_to_html
-from sciop.types import FileName, IDField, InputType, SlugStr
+from sciop.types import FileName, IDField, InputType, SlugStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sqlmodel import Session
@@ -161,7 +162,7 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
             title="made",
         ),
     )
-
+    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     upload_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id", index=True)
     dataset: Dataset = Relationship(back_populates="uploads")

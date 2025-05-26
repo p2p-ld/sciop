@@ -452,4 +452,4 @@ def get_tags(*, session: Session, tags: list[str], commit: bool = False) -> list
 
 
 def get_latest_site_stats(*, session: Session) -> SiteStats:
-    return session.exec(select(SiteStats).order_by(SiteStats.created_at.desc())).first()
+    return session.exec(select(SiteStats).order_by(SiteStats.created_at.desc()).limit(1)).first()

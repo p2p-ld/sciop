@@ -1,6 +1,6 @@
 import hashlib
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union, cast
 
 from annotated_types import MaxLen
@@ -235,7 +235,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
         ),
         SortableCol(name="created_at", title="created"),
     )
-
+    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     slug: SlugStr = Field(
         unique=True,
         index=True,
