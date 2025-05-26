@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta, tzinfo
 from functools import wraps
+from multiprocessing import Semaphore
 from types import FunctionType
 from typing import Any, Callable, Literal, Optional, ParamSpec, Sequence, TypeVar, cast
 
@@ -26,6 +27,8 @@ _JOB_PARAMS: dict[str, "_ScheduledJob"] = {}
 """All job parameterizations"""
 _REGISTRY: dict[str, Job] = {}
 """All registered jobs"""
+_SCHEDULER_CREATED = Semaphore(1)
+"""Limit the creation of scheduler instances to one"""
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -61,6 +64,12 @@ def get_scheduler() -> AsyncIOScheduler:
 
 def start_scheduler() -> None:
     global scheduler
+    # prevent multiple schedulers from being spawned in multiple workers.
+    # Use the --preload flag in gunicorn (see deployment docs)
+    should_create = _SCHEDULER_CREATED.acquire(False)
+    if not should_create:
+        return
+
     if scheduler is None:
         scheduler = create_scheduler()
     else:
