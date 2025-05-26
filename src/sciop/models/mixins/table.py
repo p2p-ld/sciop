@@ -12,7 +12,7 @@ from sciop.types import IDField, UTCDateTime
 class TableMixin(SQLModel):
     """Mixin to add base elements to all tables"""
 
-    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     updated_at: Optional[UTCDateTime] = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"onupdate": lambda: datetime.now(UTC)},
