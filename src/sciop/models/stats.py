@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Optional
 
 from sqlmodel import Field
@@ -14,6 +14,7 @@ class SiteStatsBase(SQLModel):
 
     Items that require tracker scraping to be enabled are optional
     """
+
     n_seeders: int | None = None
     n_downloaders: int | None = None
     n_datasets: int

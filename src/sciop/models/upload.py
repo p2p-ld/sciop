@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Optional, Self, cast
 from urllib.parse import urljoin
 
@@ -42,6 +42,7 @@ class UploadBase(ModerableMixin):
     """
     A copy of a dataset
     """
+
     created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     method: Optional[str] = Field(
         None,
