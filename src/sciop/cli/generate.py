@@ -4,7 +4,7 @@ from typing import Any, Optional
 import click
 
 from sciop.cli.common import ensure_nonroot, model_options
-from sciop.models.system import NginxConfig
+from sciop.models.system import GunicornConfig, NginxConfig
 
 
 @click.group("generate")
@@ -64,6 +64,51 @@ def nginx(output: Optional[Path] = None, force: bool = False, **kwargs: Any) -> 
 
     ensure_nonroot()
     model = NginxConfig(**kwargs)
+    result = model.render()
+    if output is None:
+        click.echo(result)
+    else:
+        with open(output, "w") as ofile:
+            ofile.write(result)
+
+
+@model_options(GunicornConfig)
+@click.option(
+    "-f", "--force", is_flag=True, default=False, help="Overwrite if the output file exists"
+)
+@click.option(
+    "-o",
+    "--output",
+    default=None,
+    required=False,
+    type=click.Path(),
+    show_default=True,
+    help="Write output to file. If None (default), print to stdout",
+)
+@generate.command("gunicorn")
+def gunicorn(output: Optional[Path] = None, force: bool = False, **kwargs: Any) -> None:
+    """
+    Generate a systemd service file to run gunicorn for production deployment.
+
+    This template should be generated and then installed to systemd in two steps,
+    aka do not run this as root, as you should not run anything in sciop as root.
+
+    After generation...
+
+    - Copy the generated config to the systemd services directory (e.g. /etc/systemd/system/sciop.service)
+    - Enable the service (`systemctl enable sciop`)
+    - Start the service (`systemctl start sciop`)
+
+    This template is a relatively standard gunicorn invocation script,
+    except it uses the `--preload` flag to ensure that the module-level semaphors and other objects are
+    loaded and run only once (e.g. to avoid running a separate APscheduler instance in every worker)
+    """
+    if output is not None and output.exists() and not force:
+        raise click.ClickException("Output file already exists, use -f to overwrite.")
+
+    ensure_nonroot()
+    kwargs = {k: v for k, v in kwargs.items() if v is not None}
+    model = GunicornConfig(**kwargs)
     result = model.render()
     if output is None:
         click.echo(result)
