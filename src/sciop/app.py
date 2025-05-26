@@ -26,6 +26,7 @@ from sciop.middleware import (
     security_headers,
 )
 from sciop.scheduler import remove_all_jobs, shutdown, start_scheduler
+from sciop.services import build_docs
 
 
 @asynccontextmanager
@@ -34,8 +35,8 @@ async def lifespan(app: FastAPI) -> Generator[None, None, None]:
     _lifespan_load_config()
 
     create_tables()
-    # if get_config().env != "prod":
-    #     build_docs(clean=False)
+    if get_config().env != "prod":
+        build_docs(clean=False)
     start_scheduler()
     yield
     remove_all_jobs()
