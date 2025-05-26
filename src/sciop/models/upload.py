@@ -43,7 +43,6 @@ class UploadBase(ModerableMixin):
     A copy of a dataset
     """
 
-    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     method: Optional[str] = Field(
         None,
         title="Method",
@@ -163,7 +162,7 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
             title="made",
         ),
     )
-
+    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     upload_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id", index=True)
     dataset: Dataset = Relationship(back_populates="uploads")

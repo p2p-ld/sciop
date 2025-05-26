@@ -76,7 +76,6 @@ def _prefixed_len(info: FieldInfo) -> int:
 
 
 class DatasetBase(ModerableMixin):
-    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     title: str = Field(
         title="Title",
         description="""
@@ -236,7 +235,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
         ),
         SortableCol(name="created_at", title="created"),
     )
-
+    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     slug: SlugStr = Field(
         unique=True,
         index=True,

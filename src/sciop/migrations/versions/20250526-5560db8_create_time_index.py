@@ -1,8 +1,8 @@
 """create_time index
 
-Revision ID: f52be90fc3c8
+Revision ID: 5560db834bbe
 Revises: 0f29b9ed0f9d
-Create Date: 2025-05-26 17:41:23.959305+00:00
+Create Date: 2025-05-26 17:46:04.679016+00:00
 
 """
 
@@ -11,7 +11,7 @@ from typing import Sequence, Union
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "f52be90fc3c8"
+revision: str = "5560db834bbe"
 down_revision: Union[str, None] = "0f29b9ed0f9d"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
