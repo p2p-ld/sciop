@@ -1,8 +1,8 @@
 """create_time index
 
-Revision ID: 0f06a275f152
+Revision ID: f52be90fc3c8
 Revises: 0f29b9ed0f9d
-Create Date: 2025-05-26 17:37:02.187948+00:00
+Create Date: 2025-05-26 17:41:23.959305+00:00
 
 """
 
@@ -11,7 +11,7 @@ from typing import Sequence, Union
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "0f06a275f152"
+revision: str = "f52be90fc3c8"
 down_revision: Union[str, None] = "0f29b9ed0f9d"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -27,8 +27,8 @@ def upgrade() -> None:
             batch_op.f("ix_datasets__history_created_at"), ["created_at"], unique=False
         )
 
-    with op.batch_alter_table("hitcount", schema=None) as batch_op:
-        batch_op.create_index(batch_op.f("ix_hitcount_created_at"), ["created_at"], unique=False)
+    with op.batch_alter_table("site_stats", schema=None) as batch_op:
+        batch_op.create_index(batch_op.f("ix_site_stats_created_at"), ["created_at"], unique=False)
 
     with op.batch_alter_table("uploads", schema=None) as batch_op:
         batch_op.create_index(batch_op.f("ix_uploads_created_at"), ["created_at"], unique=False)
@@ -49,8 +49,8 @@ def downgrade() -> None:
     with op.batch_alter_table("uploads", schema=None) as batch_op:
         batch_op.drop_index(batch_op.f("ix_uploads_created_at"))
 
-    with op.batch_alter_table("hitcount", schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f("ix_hitcount_created_at"))
+    with op.batch_alter_table("site_stats", schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f("ix_site_stats_created_at"))
 
     with op.batch_alter_table("datasets__history", schema=None) as batch_op:
         batch_op.drop_index(batch_op.f("ix_datasets__history_created_at"))

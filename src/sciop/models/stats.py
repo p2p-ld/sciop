@@ -1,3 +1,6 @@
+from datetime import datetime, UTC
+from typing import Optional
+
 from sqlmodel import Field
 
 from sciop.models.base import SQLModel
@@ -11,7 +14,6 @@ class SiteStatsBase(SQLModel):
 
     Items that require tracker scraping to be enabled are optional
     """
-
     n_seeders: int | None = None
     n_downloaders: int | None = None
     n_datasets: int
@@ -23,7 +25,7 @@ class SiteStatsBase(SQLModel):
 
 class SiteStats(SiteStatsBase, TableMixin, table=True):
     __tablename__ = "site_stats"
-
+    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     site_stats_id: IDField = Field(None, primary_key=True)
 
 
