@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, UTC
 from typing import TYPE_CHECKING, Optional, Self, cast
 from urllib.parse import urljoin
 
@@ -31,7 +32,7 @@ from sciop.models.mixins import (
     all_optional,
 )
 from sciop.services.markdown import render_db_fields_to_html
-from sciop.types import FileName, IDField, InputType, SlugStr
+from sciop.types import FileName, IDField, InputType, SlugStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sqlmodel import Session
@@ -41,7 +42,7 @@ class UploadBase(ModerableMixin):
     """
     A copy of a dataset
     """
-
+    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     method: Optional[str] = Field(
         None,
         title="Method",

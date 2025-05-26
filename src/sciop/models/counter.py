@@ -19,7 +19,7 @@ class HitCount(SQLModel, table=True):
     """Hitcount for a page"""
 
     hit_count_id: IDField = Field(None, primary_key=True)
-    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     path: str = Field(..., index=True, unique=True)
     count: int = 0
 

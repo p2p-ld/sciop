@@ -1,6 +1,6 @@
 import hashlib
 import re
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union, cast
 
 from annotated_types import MaxLen
@@ -76,6 +76,7 @@ def _prefixed_len(info: FieldInfo) -> int:
 
 
 class DatasetBase(ModerableMixin):
+    created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     title: str = Field(
         title="Title",
         description="""
