@@ -113,7 +113,8 @@ extra_css:
 # this will get overridden by {config.server.base_url} + '/docs/'
 # when built by the app
 site_url: https://sciop.net/docs/
-
+extra:
+ homepage: /
 markdown_extensions:
   - admonition
   - attr_list
