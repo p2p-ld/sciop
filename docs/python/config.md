@@ -109,6 +109,11 @@ Configuration for the user-facing parts of an instance, like its rules, name, et
         heading_level: 4
         parameter_headings: false
 
+::: sciop.config.InstanceQuote
+    options:
+        heading_level: 4
+        parameter_headings: false
+
 ### Logs
 
 ::: sciop.config.LogConfig

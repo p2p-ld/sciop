@@ -131,7 +131,7 @@ class TemplateModel(BaseModel):
         if environment is None:
             environment = TemplateModel.environment()
 
-        fields = {**self.__class__model_fields, **self.__class__.model_computed_fields}
+        fields = {**self.__class__.model_fields, **self.__class__.model_computed_fields}
 
         data = {k: _render(getattr(self, k, None), environment) for k in fields}
         template = environment.get_template(self.__template__)

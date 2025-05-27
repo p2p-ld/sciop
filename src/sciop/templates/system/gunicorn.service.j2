@@ -1,0 +1,17 @@
+[Unit]
+Description=SciOp web service
+After=network.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+
+User={{ user }}
+Group={{ user }}
+RuntimeDirectory=gunicorn
+WorkingDirectory=/home/sciop/sciop/
+ExecStart={{ gunicorn_binary }} -w {{ workers }} -k uvicorn.workers.UvicornWorker -b "0.0.0.0:{{ port }}" --forwarded-allow-ips="127.0.0.1" --timeout 300 --preload sciop.app:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

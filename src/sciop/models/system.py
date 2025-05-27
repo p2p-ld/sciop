@@ -1,3 +1,6 @@
+import multiprocessing as mp
+import shutil
+from pathlib import Path
 from typing import Optional, Self
 
 from pydantic import Field, field_validator, model_validator
@@ -78,3 +81,21 @@ class NginxConfig(TemplateModel):
         if val == 0:
             return "nodelay"
         return val
+
+
+class GunicornConfig(TemplateModel):
+    """
+    Gunicorn systemd service for production deployment
+    """
+
+    __template__ = "system/gunicorn.service.j2"
+
+    user: str = Field("sciop", description="The user/group that should run the gunicorn service")
+    gunicorn_binary: Path = Field(
+        default_factory=lambda: Path(shutil.which("gunicorn")),
+        description="Location of gunicorn binary",
+    )
+    workers: int = Field(
+        default_factory=lambda: mp.cpu_count(), description="Number of gunicorn workers"
+    )
+    port: int = Field(8000, description="Port on which the gunicorn service is listening")

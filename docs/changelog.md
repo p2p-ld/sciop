@@ -2,6 +2,32 @@
 
 ## 2025-05
 
+### 2025-05-26.0
+
+**Perf**
+
+- [#401](https://codeberg.org/Safeguarding/sciop/pulls/401) ([@transorsmth](https://codeberg.org/transorsmth)) - 
+  Add indices to `created_at` columns for Datasets, Uploads, and SiteStats for faster sort by queries,
+  also add a `limit(1)` to the site stats to avoid loading all the stats at once
+
+**Bugfix**
+
+- [#403](https://codeberg.org/Safeguarding/sciop/pulls/403) - Run scheduler only once when launched with multiple workers,
+  Add a `sciop generate gunicorn` template to standardize deployments.
+
+### 2025-05-23.0
+
+**Perf**
+
+- [#397](https://codeberg.org/Safeguarding/sciop/pulls/397) ([@transorsmth](https://codeberg.org/transorsmth)) -
+  Make the hit counter update as a delayed background task that doesn't slow down returning `index.html`
+
+**Feature**
+
+- [#398](https://codeberg.org/Safeguarding/sciop/pulls/398) ([@transorsmth](https://codeberg.org/transorsmth)) -
+  Add configurable quote randomizer for homepage, see [`InstanceConfig.quotes`][sciop.config.instance.InstanceConfig.quotes]
+  and [`InstanceQuote`][sciop.config.instance.InstanceQuote]
+
 ### 2025-05-21.0 - Start Changelog, Refactor Module-level items
 
 - Changelog started, sorry about that.
