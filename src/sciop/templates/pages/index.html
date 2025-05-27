@@ -3,6 +3,7 @@
 {% from 'macros/stats.html' import site_stats %}
 {% from 'macros/counter.html' import counter %}
 {% from 'macros/quote.html' import instance_quote %}
+{% from 'macros/instance-updates.html' import instance_updates %}
 {% block container_class %}text-container{% endblock %}
 {% block content %}
 <div class="site-index">
@@ -55,29 +56,7 @@
         {{ site_stats(stats) }}
         </div>
         {% endif %}
-
-        <div class="status-strip">
-            <div class="window">
-                <div class="title-bar">
-                    <h2 class="title-bar-text">2025-03-25 Project Status</h2>
-                    <div class="title-bar-controls">
-                        <button class="index-cancel-button" aria-label="Close"></button>
-                    </div>
-                </div>
-                <div class="window-body">
-                    <p class="status-text">Open Beta</p>
-                    <p>Sign up, upload, and maybe even download. <br>Help us buff out the rough parts and get the archive ready for mass use.</p>
-                    <section class="field-row">
-                        <a href="/login"><button>OK</button></a>
-                      <button class="index-cancel-button">Cancel</button>
-                    </section>
-                </div>
-                <div class="status-bar">
-                    <p class="status-bar-field">Swarm: Assembling</p>
-                    <p class="status-bar-field">Odds of Bits Torrented: 100%</p>
-                </div>
-            </div>
-        </div>
+        {{ instance_updates(updates) }}
     </div>
     <div class="hidden">
         <a rel="nofollow" href="/crawlers">crawlers</a>
