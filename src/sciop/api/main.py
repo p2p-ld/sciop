@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from sciop.api.deps import add_htmx_response_trigger
+from sciop.api.routes.claims import claims_router
 from sciop.api.routes.datasets import datasets_router
 from sciop.api.routes.instance import instance_router
 from sciop.api.routes.login import login_router
@@ -14,6 +15,7 @@ api_router = APIRouter(
     prefix=get_config().api_prefix, dependencies=[Depends(add_htmx_response_trigger)], tags=["api"]
 )
 api_router.include_router(login_router)
+api_router.include_router(claims_router)
 api_router.include_router(datasets_router)
 api_router.include_router(instance_router)
 api_router.include_router(review_router)
