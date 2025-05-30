@@ -45,6 +45,7 @@ nav:
           - python/models/base.md
           - python/models/account.md
           - python/models/api.md
+          - python/models/claim.md
           - python/models/dataset.md
           - python/models/moderation.md
           - python/models/rss.md
