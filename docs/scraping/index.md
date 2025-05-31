@@ -16,4 +16,6 @@ AWS-like object storage
 
 ## [FTP](./ftp.md)
 
+## [GitHub](github.md)
 
+How to back up GitHub organisations, their repositories and other paraphernalia.

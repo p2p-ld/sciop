@@ -34,6 +34,7 @@ nav:
       - scraping/webpages.md
       - scraping/s3.md
       - scraping/ftp.md
+      - scraping/github.md
   - privacy.md
   - API: /docs/api
   - Python API:
