@@ -67,6 +67,8 @@ async def upload_torrent(
             detail="Could not decode upload, is this a .torrent file?",
         ) from None
     except MetainfoError as e:
+        if "Missing 'pieces' in ['info', 'pieces']" in str(e):
+            raise HTTPException(status_code=415, detail="At this time, v2 only torrent support is still in development.")
         raise HTTPException(status_code=415, detail=f"MetaInfo invalid: {str(e)}") from None
 
     creating_account = account
