@@ -170,6 +170,13 @@ def get_approved_datasets(*, session: Session) -> list[Dataset]:
     return session.exec(statement).all()
 
 
+def get_visible_dataset(
+    *, session: Session, dataset_slug: str, account: Account | None = None
+) -> Dataset | None:
+    stmt = select(Dataset).where(Dataset.slug == dataset_slug, Dataset.visible_to(account) == True)
+    return session.exec(stmt).first()
+
+
 def get_visible_datasets(*, session: Session, account: Account | None = None) -> list[Dataset]:
     statement = select(Dataset).where(Dataset.visible_to(account) == True)
     return session.exec(statement).all()
