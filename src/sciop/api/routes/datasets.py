@@ -160,7 +160,7 @@ async def datasets_create_upload(
 ) -> UploadRead:
     """Create an upload of a dataset"""
     upload.dataset_slug = dataset_slug
-    return create_upload(session=session, upload=upload, current_account=account)
+    return await create_upload(session=session, upload=upload, current_account=account)
 
 
 @datasets_router.post("/{dataset_slug}/uploads/form")
