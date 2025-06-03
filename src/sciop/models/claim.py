@@ -106,3 +106,9 @@ class DatasetClaimRead(DatasetClaimBase, TableMixin):
             dumped["account"] = data.account.username
             return dumped
         return data
+
+
+class DatasetClaimCreate(DatasetClaimBase):
+    status: ClaimStatus = Field(
+        default=ClaimStatus.in_progress, description="The current status of the dataset"
+    )

@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
+from pydantic import BaseModel
 from sqlmodel import select
 
 from sciop.api.deps import (
@@ -10,13 +11,25 @@ from sciop.api.deps import (
     CurrentDatasetClaim,
     CurrentDatasetPartClaim,
     RequireCurrentAccount,
+    RequireDatasetPartClaim,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
     SessionDep,
 )
-from sciop.models import ClaimStatus, DatasetClaim, DatasetClaimRead, DatasetPart
+from sciop.models import (
+    ClaimStatus,
+    DatasetClaim,
+    DatasetClaimCreate,
+    DatasetClaimRead,
+    DatasetPart,
+    SuccessResponse,
+)
 
 claims_router = APIRouter(prefix="/claims")
+
+
+class _ClaimStatusParam(BaseModel):
+    status: ClaimStatus = ClaimStatus.in_progress
 
 
 @claims_router.get("/")
@@ -28,7 +41,20 @@ def show_all_claims(session: SessionDep) -> Page[DatasetClaimRead]:
     )
 
 
-@claims_router.get("/{dataset_slug}")
+@claims_router.get("/self")
+def show_my_claims(
+    session: SessionDep, current_account: RequireCurrentAccount
+) -> Page[DatasetClaimRead]:
+    """Show all active dataset claims belonging to an account"""
+    return paginate(
+        session,
+        select(DatasetClaim)
+        .where(DatasetClaim.account_id == current_account.account_id)
+        .order_by(DatasetClaim.created_at),
+    )
+
+
+@claims_router.get("/datasets/{dataset_slug}")
 def get_dataset_claims(
     dataset_slug: str,
     session: SessionDep,
@@ -47,7 +73,7 @@ def get_dataset_claims(
     return paginate(session, stmt)
 
 
-@claims_router.get("/{dataset_slug}/parts/{dataset_part_slug}")
+@claims_router.get("/datasets/{dataset_slug}/parts/{dataset_part_slug}")
 def get_dataset_part_claims(
     dataset_slug: str,
     dataset_part_slug: str,
@@ -63,7 +89,7 @@ def get_dataset_part_claims(
     )
 
 
-@claims_router.post("/{dataset_slug}")
+@claims_router.post("/datasets/{dataset_slug}")
 def create_dataset_claim(
     dataset_slug: str,
     dataset: RequireVisibleDataset,
@@ -90,8 +116,8 @@ def create_dataset_claim(
     return claim
 
 
-@claims_router.post("/{dataset_slug}/parts/{dataset_part_slug}")
-def create_dataset_part_claim(
+@claims_router.post("/datasets/{dataset_slug}/parts/{dataset_part_slug}")
+async def create_dataset_part_claim(
     dataset_slug: str,
     dataset_part_slug: str,
     dataset: RequireVisibleDataset,
@@ -99,7 +125,7 @@ def create_dataset_part_claim(
     session: SessionDep,
     current_account: RequireCurrentAccount,
     claim: CurrentDatasetPartClaim,
-    claim_status: ClaimStatus = ClaimStatus.in_progress,
+    claim_status: DatasetClaimCreate | None = None,
 ) -> DatasetClaimRead:
     """
     Create a new dataset claim, or update an existing one.
@@ -107,6 +133,7 @@ def create_dataset_part_claim(
     Only one claim of any type can exist for a given account at once.
     Posting to a dataset updates the updated_at time.
     """
+    claim_status = ClaimStatus.in_progress if claim_status is None else claim_status.status
     if claim:
         claim.updated_at = datetime.now(UTC)
         claim.status = claim_status
@@ -121,7 +148,23 @@ def create_dataset_part_claim(
     return claim
 
 
-@claims_router.post("/{dataset_slug}/next")
+@claims_router.delete("/datasets/{dataset_slug}/parts/{dataset_part_slug}")
+def delete_dataset_part_claim(
+    dataset_slug: str,
+    dataset_part_slug: str,
+    dataset: RequireVisibleDataset,
+    dataset_part: RequireVisibleDatasetPart,
+    session: SessionDep,
+    current_account: RequireCurrentAccount,
+    claim: RequireDatasetPartClaim,
+) -> SuccessResponse:
+    """Delete an existing dataset claim."""
+    session.delete(claim)
+    session.commit()
+    return SuccessResponse(success=True)
+
+
+@claims_router.post("/datasets/{dataset_slug}/next")
 def get_next_unclaimed_part(
     dataset_slug: str,
     dataset: RequireVisibleDataset,
