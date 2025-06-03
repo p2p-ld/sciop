@@ -28,7 +28,7 @@
       {% if post_to == 'datasets' %}
       hx-post="/datasets/{{ dataset.slug }}/upload/torrent{% if parts %}?{{ parts | join('=on&') }}=on{% endif %}"
       {% else %}
-      hx-post="{{ config.api_prefix }}/upload/torrent/{% if force %}?force=true{% endif %}"
+      hx-post="{{ config.api_prefix }}/torrents/{% if force %}?force=true{% endif %}"
       {% endif %}
       hx-indicator="#{{ dataset.slug }}-upload-indicator"
       hx-swap="outerHTML"

@@ -1,4 +1,3 @@
-from hashlib import blake2b
 from pathlib import Path
 from typing import Annotated, Any
 from typing import Literal as L
@@ -13,21 +12,10 @@ from sciop.api.deps import RequireCurrentAccount, SessionDep
 from sciop.frontend.templates import jinja
 from sciop.logging import init_logger
 from sciop.middleware import limiter
-from sciop.models import (
-    FileInTorrentCreate,
-    Torrent,
-    TorrentFileCreate,
-    TorrentFileRead,
-)
+from sciop.models import FileInTorrentCreate, Torrent, TorrentFileCreate, TorrentFileRead
 
-upload_router = APIRouter(prefix="/upload")
-upload_logger = init_logger("api.upload")
-
-
-def _hash_file(file: UploadFile) -> str:
-    hasher = blake2b(digest_size=32)
-    hasher.update(file.file.read())
-    return hasher.hexdigest()
+torrents_router = APIRouter(prefix="/torrents")
+torrents_logger = init_logger("api.torrents")
 
 
 def _passthrough(
@@ -36,7 +24,7 @@ def _passthrough(
     return {"torrent": route_result}
 
 
-@upload_router.post("/torrent")
+@torrents_router.post("/")
 @limiter.limit("60/minute;1000/hour")
 @jinja.hx("partials/torrent.html", make_context=_passthrough)
 async def upload_torrent(
@@ -56,12 +44,12 @@ async def upload_torrent(
     """
     Upload a torrent file prior to creating a Dataset upload
     """
-    upload_logger.debug("Processing torrent file")
+    torrents_logger.debug("Processing torrent file")
     try:
         torrent = Torrent.read_stream(file.file)
         torrent.validate()
     except BdecodeError:
-        upload_logger.exception("Error decoding upload")
+        torrents_logger.exception("Error decoding upload")
         raise HTTPException(
             status_code=415,
             detail="Could not decode upload, is this a .torrent file?",
@@ -94,7 +82,7 @@ async def upload_torrent(
                     },
                 )
             elif force and existing_torrent.upload.editable_by(account):
-                upload_logger.info(
+                torrents_logger.info(
                     f"Replacing existing torrent with another that matches infohash "
                     f"{existing_torrent.infohash}"
                 )
@@ -116,7 +104,7 @@ async def upload_torrent(
                     },
                 )
         else:
-            upload_logger.debug("Replacing existing orphaned torrent with new torrent")
+            torrents_logger.debug("Replacing existing orphaned torrent with new torrent")
             session.delete(existing_torrent)
             session.commit()
 
@@ -145,7 +133,7 @@ async def upload_torrent(
         announce_urls=trackers,
     )
 
-    upload_logger.debug("Writing torrent file to disk")
+    torrents_logger.debug("Writing torrent file to disk")
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
     await file.seek(0)
     with open(created_torrent.filesystem_path, "wb") as f:
@@ -153,7 +141,7 @@ async def upload_torrent(
         f.write(data)
 
     created_torrent.torrent_size = Path(created_torrent.filesystem_path).stat().st_size
-    upload_logger.debug("Creating torrent file in db")
+    torrents_logger.debug("Creating torrent file in db")
     created_torrent = crud.create_torrent(
         session=session, created_torrent=created_torrent, account=creating_account
     )

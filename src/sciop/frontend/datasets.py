@@ -21,7 +21,7 @@ from sciop.api.deps import (
     SearchQueryNoCurrentUrl,
     SessionDep,
 )
-from sciop.api.routes.upload import upload_torrent
+from sciop.api.routes.torrents import upload_torrent
 from sciop.frontend.templates import jinja, templates
 from sciop.models import (
     Dataset,
