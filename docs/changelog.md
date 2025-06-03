@@ -1,5 +1,19 @@
 # Changelog
 
+## 2025-06
+
+### 2025-06-02
+
+**Refactoring**
+
+- [#431](https://codeberg.org/Safeguarding/sciop/pulls/431), [#411](https://codeberg.org/Safeguarding/sciop/issues/411) - 
+  Create an `/api/v1/uploads` POST method for creating a new upload,
+  and refactor the `/api/v1/datasets/{slug}/upload` methods to use it.
+- [#431](https://codeberg.org/Safeguarding/sciop/pulls/431), [#430](https://codeberg.org/Safeguarding/sciop/issues/430) -
+  Move `/api/v1/upload/torrent` to `/api/v1/torrents` because it's ridiculous to
+  have both an `/upload` and an `/uploads` endpoint.
+
+
 ## 2025-05
 
 ### 2025-05-26.0
