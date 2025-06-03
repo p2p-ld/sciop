@@ -26,6 +26,7 @@ from sciop.models import (
     SuccessResponse,
     TorrentFile,
     Upload,
+    UploadCreate,
     UploadRead,
     UploadUpdate,
 )
@@ -41,6 +42,34 @@ async def uploads(session: SessionDep, current_account: CurrentAccount) -> Page[
         .where(Upload.visible_to(current_account) == True)
         .order_by(Upload.created_at),
     )
+
+
+@uploads_router.post("/")
+async def create_upload(
+    session: SessionDep, upload: UploadCreate, current_account: RequireCurrentAccount
+) -> UploadRead:
+    """
+    Create an upload from an already-uploaded torrent's infohash, and
+    a dataset (and optionally dataset part(s)) to attach it to.
+    """
+    torrent = crud.get_torrent_from_infohash(session=session, infohash=upload.infohash)
+    if not torrent:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No torrent with short hash {upload.infohash} exists, " "upload it first!",
+        )
+    dataset = crud.get_visible_dataset(
+        session=session, dataset_slug=upload.dataset_slug, account=current_account
+    )
+    if not dataset:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No dataset {upload.dataset_slug} exists.",
+        )
+    created_upload = crud.create_upload(
+        session=session, created_upload=upload, dataset=dataset, account=current_account
+    )
+    return created_upload
 
 
 @uploads_router.get("/{infohash}")

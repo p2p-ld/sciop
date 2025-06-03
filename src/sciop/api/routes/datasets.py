@@ -23,6 +23,7 @@ from sciop.api.deps import (
     RequireVisibleDatasetPart,
     SessionDep,
 )
+from sciop.api.routes.uploads import create_upload
 from sciop.frontend.templates import jinja
 from sciop.middleware import limiter
 from sciop.models import (
@@ -35,6 +36,7 @@ from sciop.models import (
     ModerationAction,
     Upload,
     UploadCreate,
+    UploadRead,
 )
 from sciop.types import SlugStr
 
@@ -155,18 +157,10 @@ async def datasets_create_upload(
     dataset: RequireVisibleDataset,
     account: RequireCurrentAccount,
     session: SessionDep,
-) -> Upload:
+) -> UploadRead:
     """Create an upload of a dataset"""
-    torrent = crud.get_torrent_from_infohash(session=session, infohash=upload.infohash)
-    if not torrent:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No torrent with short hash {upload.infohash} exists, " "upload it first!",
-        )
-    created_upload = crud.create_upload(
-        session=session, created_upload=upload, dataset=dataset, account=account
-    )
-    return created_upload
+    upload.dataset_slug = dataset_slug
+    return await create_upload(session=session, upload=upload, current_account=account)
 
 
 @datasets_router.post("/{dataset_slug}/uploads/form")

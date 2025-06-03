@@ -333,6 +333,7 @@ class UploadRead(UploadBase, TableReadMixin):
     """Version of datasaet upload returned when reading"""
 
     dataset: Optional[SlugStr] = None
+    dataset_parts: Optional[list[SlugStr]] = None
     torrent: Optional["TorrentFileRead"] = None
     seeders: Optional[int] = None
     leechers: Optional[int] = None
@@ -353,6 +354,12 @@ class UploadRead(UploadBase, TableReadMixin):
             value = value.slug
         return value
 
+    @field_validator("dataset_parts", mode="before")
+    def extract_part_slugs(cls, value: list["DatasetPart"] | None = None) -> list[SlugStr] | None:
+        if value:
+            value = sorted([v.part_slug for v in value])
+        return value
+
     @property
     def magnet_link(self) -> str:
         return self.torrent.magnet_link
@@ -369,6 +376,12 @@ class UploadCreate(UploadBase):
         min_length=40,
         max_length=64,
         description="Infohash of the torrent file, v1 or v2",
+        schema_extra={"json_schema_extra": {"input_type": InputType.none}},
+    )
+    dataset_slug: Optional[SlugStr] = Field(
+        default=None,
+        title="Dataset Slug",
+        description="Parts of a dataset that this upload corresponds to",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
     )
     part_slugs: Optional[list[SlugStr]] = Field(
