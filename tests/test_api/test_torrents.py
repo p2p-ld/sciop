@@ -40,7 +40,7 @@ def test_upload_torrent_infohash(
     header = get_auth_header()
     with open(torrent, "rb") as f:
         response = client.post(
-            get_config().api_prefix + "/upload/torrent", headers=header, files={"file": f}
+            get_config().api_prefix + "/torrents", headers=header, files={"file": f}
         )
 
     if version in (TorrentVersion.v1, TorrentVersion.hybrid):
@@ -65,7 +65,7 @@ def test_upload_trackerless(client, uploader, get_auth_header, torrent, hx_reque
     torrent_.write(tfile)
     with open(tfile, "rb") as f:
         response = client.post(
-            get_config().api_prefix + "/upload/torrent",
+            get_config().api_prefix + "/torrents",
             headers=header,
             files={"file": ("filename.torrent", f, "application/x-bittorrent")},
         )
@@ -91,7 +91,7 @@ def test_upload_noscope(
     torrent_.write(tfile)
     with open(tfile, "rb") as f:
         response = client.post(
-            get_config().api_prefix + "/upload/torrent",
+            get_config().api_prefix + "/torrents",
             headers=header,
             files={"file": ("filename.torrent", f, "application/x-bittorrent")},
         )
@@ -131,7 +131,7 @@ def test_replace_orphaned_upload(
     header = get_auth_header()
     with open(existing_torrent_path, "rb") as f:
         response = client.post(
-            get_config().api_prefix + "/upload/torrent",
+            get_config().api_prefix + "/torrents",
             headers=header,
             files={"file": (new_torrent_path.name, f, "application/x-bittorrent")},
         )
@@ -163,7 +163,7 @@ def test_reject_duplicated_upload(client, upload, uploader, get_auth_header):
     header = get_auth_header()
     with open(existing_torrent_path, "rb") as f:
         response = client.post(
-            get_config().api_prefix + "/upload/torrent",
+            get_config().api_prefix + "/torrents",
             headers=header,
             files={"file": (new_torrent_path.name, f, "application/x-bittorrent")},
         )
@@ -211,7 +211,7 @@ def test_replace_duplicate_with_force(
     header = get_auth_header("new_uploader")
     with open(torrent_2_path, "rb") as f:
         response = client.post(
-            get_config().api_prefix + "/upload/torrent/?force=true",
+            get_config().api_prefix + "/torrents/?force=true",
             headers=header,
             files={"file": (torrent_2_path.name, f, "application/x-bittorrent")},
         )
