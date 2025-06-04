@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from pydantic import BaseModel
 from sqlmodel import select
 
 from sciop.api.deps import (
@@ -26,10 +25,6 @@ from sciop.models import (
 )
 
 claims_router = APIRouter(prefix="/claims")
-
-
-class _ClaimStatusParam(BaseModel):
-    status: ClaimStatus = ClaimStatus.in_progress
 
 
 @claims_router.get("/")
