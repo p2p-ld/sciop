@@ -205,8 +205,12 @@ a.button:hover {
     border: 1px solid transparent;
 	  cursor: pointer;
 
-    &:hover {
+    &:hover:not(:disabled) {
       border: 1px solid var(--color-primary);
+    }
+
+    &:disabled {
+      cursor: unset;
     }
 
     &.current {
