@@ -8,7 +8,7 @@
     {% set start_page = page-2 %}
     {% set end_page = page+2 %}
   {% else %}
-    {% set start_page = pages-5 %}
+    {% set start_page = pages-4 %}
     {% set end_page = pages %}
   {% endif %}
   {% set link_pages = range(start_page, end_page+1) %}
@@ -22,7 +22,8 @@
         hx-swap="outerHTML"
         aria-label="First page"
         data-page="first"
-   class="pagination-link first-link {% if page == 1 %}disabled{% endif %}" >
+        {{ "disabled" if page == 1 else "" }}
+   class="pagination-link first-link" >
   &lt;&lt;
 </button>
 <button hx-get="{{ request.url.include_query_params(page=page-1) }}"
@@ -30,10 +31,11 @@
         hx-swap="outerHTML"
         aria-label="Previous page"
         data-page="previous"
-   class="pagination-link back-link {% if page == 1 %}disabled{% endif %}" >
+        {{ "disabled" if page == 1 else "" }}
+   class="pagination-link back-link" >
   &lt;
 </button>
-{% if pages > 5 and page > 3 %}
+{% if link_pages[0] > 1 %}
   <span class="pagination-ellipses">···</span>
 {% endif %}
 {% for page_num in link_pages %}
@@ -46,7 +48,7 @@
     {{ page_num }}
 </button>
 {% endfor %}
-{% if pages > 5 and page < pages-3 %}
+{% if link_pages[-1] != pages %}
   <span class="pagination-ellipses">···</span>
 {% endif %}
 
@@ -55,7 +57,9 @@
         hx-swap="outerHTML"
         aria-label="Next page"
         data-page="next"
- class="pagination-link forward-link {% if page == pages %}disabled{% endif %}" >
+        {{ "disabled" if page == pages else "" }}
+  class="pagination-link forward-link"
+>
 &gt;
 </button>
 <button hx-get="{{ request.url.include_query_params(page=pages) }}"
@@ -63,7 +67,9 @@
         hx-swap="outerHTML"
         aria-label="Last page"
         data-page="last"
- class="pagination-link end-link {% if page == pages %}disabled{% endif %}" >
+        {{ "disabled" if page == pages else "" }}
+  class="pagination-link end-link"
+>
 &gt;&gt;
 </button>
 </div>
