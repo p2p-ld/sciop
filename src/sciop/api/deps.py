@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, Query, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, ValidationError
-from sqlmodel import Session
+from sqlmodel import Session, select
 from starlette.datastructures import QueryParams
 
 from sciop import crud
@@ -16,6 +16,7 @@ from sciop.db import get_session
 from sciop.models import (
     Account,
     Dataset,
+    DatasetClaim,
     DatasetPart,
     RaggedSearchParams,
     Scopes,
@@ -232,6 +233,15 @@ def require_visible_dataset(dataset: RequireDataset, current_account: CurrentAcc
 RequireVisibleDataset = Annotated[Dataset, Depends(require_visible_dataset)]
 
 
+def current_dataset_part(
+    dataset: RequireVisibleDataset, dataset_part_slug: str, session: SessionDep
+) -> DatasetPart | None:
+    part = crud.get_dataset_part(
+        session=session, dataset_slug=dataset.slug, dataset_part_slug=dataset_part_slug
+    )
+    return part
+
+
 def require_dataset_part(
     dataset_slug: str, dataset_part_slug: str, session: SessionDep
 ) -> DatasetPart:
@@ -246,6 +256,7 @@ def require_dataset_part(
     return part
 
 
+CurrentDatasetPart = Annotated[DatasetPart | None, Depends(current_dataset_part)]
 RequireDatasetPart = Annotated[DatasetPart, Depends(require_dataset_part)]
 
 
@@ -431,3 +442,45 @@ SearchQueryNoCurrentUrl = Annotated[
 RaggedQueryNoCurrentUrl = Annotated[
     RaggedSearchParams, Depends(parse_ragged_query_params_ignoring_current_url)
 ]
+
+
+def current_dataset_claim(
+    dataset: RequireVisibleDataset, current_account: RequireCurrentAccount, session: SessionDep
+) -> DatasetClaim | None:
+    stmt = select(DatasetClaim).where(
+        DatasetClaim.dataset == dataset,
+        DatasetClaim.dataset_part == None,  # noqa: E711
+        DatasetClaim.account == current_account,
+    )
+    return session.exec(stmt).first()
+
+
+def current_dataset_part_claim(
+    dataset_part: RequireVisibleDatasetPart,
+    current_account: RequireCurrentAccount,
+    session: SessionDep,
+) -> DatasetClaim | None:
+    stmt = select(DatasetClaim).where(
+        DatasetClaim.dataset_part == dataset_part, DatasetClaim.account == current_account
+    )
+    return session.exec(stmt).first()
+
+
+CurrentDatasetClaim = Annotated[DatasetClaim | None, Depends(current_dataset_claim)]
+CurrentDatasetPartClaim = Annotated[DatasetClaim | None, Depends(current_dataset_part_claim)]
+
+
+def require_dataset_claim(claim: CurrentDatasetClaim) -> DatasetClaim:
+    if claim is None:
+        raise HTTPException(404)
+    return claim
+
+
+def require_dataset_part_claim(claim: CurrentDatasetPartClaim) -> DatasetClaim:
+    if claim is None:
+        raise HTTPException(404)
+    return claim
+
+
+RequireDatasetClaim = Annotated[DatasetClaim | None, Depends(require_dataset_claim)]
+RequireDatasetPartClaim = Annotated[DatasetClaim | None, Depends(require_dataset_part_claim)]

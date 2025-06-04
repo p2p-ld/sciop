@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from sciop.models import (
         AuditLog,
         Dataset,
+        DatasetClaim,
         DatasetPart,
         ExternalSource,
         TorrentFile,
@@ -150,6 +151,7 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
         ),
     )
     is_suspended: bool = False
+    claims: list["DatasetClaim"] = Relationship(back_populates="account")
 
     def can_suspend(self, account: "Account") -> bool:
         """Whether this account can suspend another account"""

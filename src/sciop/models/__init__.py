@@ -32,6 +32,7 @@ from sciop.models.api import (
     SearchParams,
     SuccessResponse,
 )
+from sciop.models.claim import ClaimStatus, DatasetClaim, DatasetClaimCreate, DatasetClaimRead
 from sciop.models.counter import HitCount
 from sciop.models.dataset import (
     Dataset,
@@ -82,7 +83,11 @@ __all__ = [
     "AccountScopeLink",
     "AuditLog",
     "AuditLogRead",
+    "ClaimStatus",
     "Dataset",
+    "DatasetClaim",
+    "DatasetClaimCreate",
+    "DatasetClaimRead",
     "DatasetCreate",
     "DatasetPart",
     "DatasetPartCreate",
