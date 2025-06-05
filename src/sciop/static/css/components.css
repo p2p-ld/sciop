@@ -591,3 +591,10 @@ progress::-moz-progress-bar {
 .hidden {
     display: none;
 }
+
+.admonition {
+  margin: 1em 0em;
+  padding: 0.5em 2em;
+  border: 2px solid var(--color-warning);
+  border-radius: 5px;
+}
