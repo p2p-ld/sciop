@@ -3,6 +3,7 @@
 - [`base`](./base.md) - Root model to set common config
 - [`account`](./account.md) - Individual actors
 - [`api`](./api.md) - Models used only in the API
+- [`claim`](./claim.md) - Scrape coordination models
 - [`dataset`](./dataset.md) - Metadata container representing a single item
 - [`moderation`](./moderation.md) - Reports, audit logs
 - [`rss`](./rss.md) - RSS feed generation
