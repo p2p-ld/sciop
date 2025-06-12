@@ -3,8 +3,10 @@ import random
 import string
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from functools import wraps
 from pathlib import Path
+from random import randint
 from typing import Any, Optional, ParamSpec
 from typing import Callable as C
 
@@ -13,12 +15,13 @@ import numpy as np
 from faker import Faker
 from sqlmodel import Session
 
-from sciop import crud
+from sciop import crud, get_config
 from sciop.models import (
     Account,
     AccountCreate,
     Dataset,
     DatasetCreate,
+    FileInTorrentCreate,
     Scope,
     Scopes,
     Torrent,
@@ -255,7 +258,11 @@ def make_upload(
 ) -> Upload:
     kwargs = {**default_upload(), **kwargs}
     if "infohash" not in kwargs:
-        kwargs["infohash"] = torrentfile_.infohash
+        if torrentfile_:
+            kwargs["infohash"] = torrentfile_.infohash
+        elif "name" in kwargs:
+            kwargs["infohash"] = kwargs["name"]
+
     created = UploadCreate(**kwargs)
     created = crud.create_upload(
         session=session_, created_upload=created, dataset=dataset_, account=account_
@@ -265,6 +272,154 @@ def make_upload(
     session_.commit()
     session_.refresh(created)
     return created
+
+
+def random_upload(
+    name: str,
+    account: "Account",
+    dataset: "Dataset",
+    session: Session,
+    fake: Faker | None = None,
+    is_approved: bool | None = None,
+    is_removed: bool | None = None,
+    commit: bool = True,
+) -> "Upload":
+    if not fake:
+        fake = Faker()
+
+    torrent_file = get_config().paths.torrents / (name + str(fake.file_name(extension="torrent")))
+    with open(torrent_file, "wb") as tfile:
+        tfile.write(b"0" * 16384)
+
+    file_size = torrent_file.stat().st_size
+
+    torrent = Torrent(
+        path=torrent_file,
+        name=f"Example Torrent {name}",
+        trackers=[["udp://opentracker.io:6969/announce"]],
+        comment="My comment",
+        piece_size=16384,
+    )
+    torrent.generate()
+    hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
+    hash_data = hash_data.encode("utf-8")
+
+    created_torrent = TorrentFileCreate(
+        file_name=torrent_file.name,
+        v1_infohash=hashlib.sha1(hash_data).hexdigest(),
+        v2_infohash=hashlib.sha256(hash_data).hexdigest(),
+        version="hybrid",
+        total_size=16384 * 4,
+        piece_size=16384,
+        torrent_size=64,
+        files=[FileInTorrentCreate(path=str(torrent_file.name), size=file_size)],
+        announce_urls=["udp://opentracker.io:6969/announce"],
+    )
+    created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
+    torrent.write(created_torrent.filesystem_path, overwrite=True)
+    created_torrent = crud.create_torrent(
+        session=session, created_torrent=created_torrent, account=account
+    )
+    for tracker_link in created_torrent.tracker_links:
+        tracker_link.seeders = random.randint(1, 100)
+        tracker_link.leechers = random.randint(1, 100)
+    session.add(created_torrent)
+    session.commit()
+
+    upload = UploadCreate(
+        method="I downloaded it",
+        description="Its all here bub",
+        infohash=created_torrent.infohash,
+    )
+
+    created_upload = crud.create_upload(
+        session=session, created_upload=upload, dataset=dataset, account=account
+    )
+    if is_approved is not None:
+        created_upload.is_approved = is_approved
+    else:
+        created_upload.is_approved = random.random() > 0.5
+    if is_removed is not None:
+        created_upload.is_removed = is_removed
+
+    if commit:
+        session.add(created_upload)
+        session.commit()
+        session.refresh(created_upload)
+    return created_upload
+
+
+def random_dataset(
+    session: Session, account: Account | None = None, commit: bool = True, fake: Faker | None = None
+) -> Dataset:
+    if not fake:
+        fake = Faker()
+
+    from sciop.models import DatasetCreate, DatasetPartCreate, ExternalIdentifierCreate
+    from sciop.types import AccessType, Scarcity, Threat
+
+    dataset_fake = Faker()
+
+    title = fake.unique.bs()
+    slug = title.lower().replace(" ", "-")
+
+    parts = []
+    base_path = Path(fake.unique.file_path(depth=2, extension=tuple()))
+
+    for i in range(random.randint(1, 5)):
+        part_slug = base_path / dataset_fake.unique.file_name(extension="")
+        paths = [str(part_slug / dataset_fake.unique.file_name()) for i in range(5)]
+        part = DatasetPartCreate(part_slug=str(part_slug), paths=paths)
+        parts.append(part)
+
+    tags = []
+    for _ in range(3):
+        tag = fake.word().lower()
+        while len(tag) < 3:
+            tag = fake.word().lower()
+        tags.append(tag)
+
+    ds = DatasetCreate(
+        slug=slug,
+        title=title,
+        publisher=fake.company(),
+        homepage=fake.url(),
+        description=fake.text(1000),
+        priority="low",
+        source="web",
+        source_available=random.choice([True, False]),
+        source_access=random.choice(list(AccessType.__members__.values())),
+        threat=random.choice(list(Threat.__members__.values())),
+        scarcity=random.choice(list(Scarcity.__members__.values())),
+        dataset_created_at=datetime.now(UTC),
+        dataset_updated_at=datetime.now(UTC),
+        urls=[fake.url() for _ in range(3)],
+        tags=tags,
+        external_identifiers=[
+            ExternalIdentifierCreate(
+                type="doi",
+                identifier=f"10.{randint(1000,9999)}/{fake.word().lower()}.{randint(10000,99999)}",
+            )
+        ],
+        parts=parts,
+    )
+
+    ds = crud.create_dataset(session=session, dataset_create=ds)
+    timestamp = datetime.now(UTC) - timedelta(minutes=random.randint(60, 60 * 24 * 7))
+    ds.created_at = timestamp
+    ds.updated_at = timestamp
+
+    ds.is_approved = random.random() > 0.1
+    ds.account = account
+    for part in ds.parts:
+        part.account = account
+        part.is_approved = random.random() > 0.5
+
+    if commit:
+        session.add(ds)
+        session.commit()
+        session.refresh(ds)
+    return ds
 
 
 @dataclass
@@ -292,3 +447,11 @@ class Fabricator:
     @wraps(make_torrentfile)
     def torrentfile(self, **kwargs: P.kwargs) -> TorrentFile:
         return make_torrentfile(session_=self.session, **kwargs)
+
+    @wraps(random_dataset)
+    def random_dataset(self, **kwargs: P.kwargs) -> Dataset | DatasetCreate:
+        return random_dataset(session=self.session, **kwargs)
+
+    @wraps(random_upload)
+    def random_upload(self, **kwargs: P.kwargs) -> Upload:
+        return random_upload(session=self.session, **kwargs)
