@@ -4,8 +4,7 @@ from sqlmodel import select
 
 from sciop import crud
 from sciop.models import DatasetCreate, Tag, TorrentFileCreate, Tracker
-
-from .fixtures.fabricators import default_dataset, default_torrentfile
+from sciop.testing.fabricators import default_dataset, default_torrentfile
 
 
 def test_create_dataset_tags(session):

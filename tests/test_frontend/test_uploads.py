@@ -1,7 +1,7 @@
 import pytest
 from playwright.async_api import Page, expect
 
-from ..fixtures.server import UvicornTestServer
+from sciop.testing.server import UvicornTestServer
 
 
 @pytest.mark.parametrize("use_hash", ["v1_infohash", "v2_infohash", "short_hash"])
