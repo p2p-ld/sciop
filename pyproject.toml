@@ -77,8 +77,6 @@ dev = [
     "watchfiles>=1.0.4",
 ]
 
-[project.entry-points.pytest11]
-pytest-sciop = "sciop.testing.plugin"
 
 [build-system]
 requires = ["pdm-backend"]
