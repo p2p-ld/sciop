@@ -8,6 +8,7 @@ import yaml
 from bs4 import BeautifulSoup
 
 
+@pytest.mark.docs
 @pytest.mark.slow
 @pytest.mark.timeout(30)
 def test_start_with_config(tmp_path, monkeypatch):
@@ -20,6 +21,7 @@ def test_start_with_config(tmp_path, monkeypatch):
     test_config = {
         "server": {"port": 8965},
         "instance": {"footer": footer},
+        "services": {"docs": {"enabled": False}},
     }
     with open(config_path, "w") as f:
         yaml.safe_dump(test_config, f)
@@ -39,8 +41,9 @@ def test_start_with_config(tmp_path, monkeypatch):
             if "startup complete" in stderr:
                 break
             sleep(0.1)
+        sleep(0.25)
 
-        # this tests if the pre-launch stuff works
+        # this tests if the pre-launch configuration stuff works
         res = requests.get("http://localhost:8965/")
         assert res.status_code == 200
 

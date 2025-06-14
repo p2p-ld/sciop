@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 import uvicorn
@@ -13,18 +12,23 @@ def main(config: Optional["Config"] = None) -> None:
 
         config = get_config()
 
-    # add in-package docs to exclude list to avoid infinite reloads
-    in_pkg_docs = Path(__file__).parent / "docs"
-    # premake docs directory so it's correctly detected as directory in uvicorn watchdirs
-    in_pkg_docs.mkdir(exist_ok=True)
+    exclude = []
+
+    include = ["*.py", "*.yml", "*.yaml"]
+    if config.services.docs.enabled:
+        # watch markdown files
+        include.append("*.md")
+
+        # Exclude built docs dir
+        exclude.append(str(config.paths.docs))
 
     uvicorn.run(
         "sciop.app:app",
         host=config.server.host,
         port=config.server.port,
         reload=config.reload_uvicorn,
-        reload_includes=["*.py", "*.md", "*.yml", "*.yaml"],
-        reload_excludes=[str(in_pkg_docs)],
+        reload_includes=include,
+        reload_excludes=exclude,
         lifespan="on",
         access_log=False,
     )

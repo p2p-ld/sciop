@@ -9,6 +9,7 @@ __all__ = [
     "TORRENT_DIR",
     "LOGS_DIR",
     "DATA_DIR",
+    "DOCS_DIR",
     "log_dir",
 ]
 
@@ -16,6 +17,7 @@ TMP_DIR = Path(__file__).parents[1] / "__tmp__"
 TORRENT_DIR = TMP_DIR / "torrents"
 LOGS_DIR = TMP_DIR / "logs"
 DATA_DIR = Path(__file__).parents[1] / "data"
+DOCS_DIR = TMP_DIR / "docs"
 
 
 @pytest.fixture

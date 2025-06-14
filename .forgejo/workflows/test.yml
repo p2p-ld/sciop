@@ -81,8 +81,8 @@ jobs:
           python-version: "3.13"
           cache: 'pip'
       - name: Install deps
-        run: pip install -e .[test]
+        run: pip install -e .[test,docs]
       - name: Run tests
         run: |
           mkdir $HOME/tmp
-          pytest --with-slow -m "slow"
+          pytest --with-slow --with-docs -m "slow or docs"

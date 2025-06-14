@@ -181,3 +181,9 @@ Background services.
 ::: sciop.config.StatsConfig
     options:
         heading_level: 4
+
+### Docs
+
+::: sciop.config.DocsConfig
+    options:
+        heading_level: 4

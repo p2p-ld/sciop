@@ -46,9 +46,11 @@ def client_module(session_module: Session) -> TestClient:
 
 
 @pytest.fixture()
-def client_lifespan(session: Session) -> TestClient:
+def client_lifespan(session: Session, set_config: C[..., None]) -> TestClient:
     """Client that runs the lifespan actions"""
     from sciop.app import app
+
+    set_config({"services.docs.enabled": True})
 
     with TestClient(app) as client:
         yield client

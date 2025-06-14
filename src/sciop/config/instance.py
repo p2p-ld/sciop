@@ -36,6 +36,14 @@ class InstanceConfig(BaseModel):
         description="Footer message shown on the bottom-right of every page."
         "Markdown is supported.",
     )
+    show_docs: bool = Field(
+        True,
+        description="Show link to documentation in navigation. "
+        "If `True`, the docs should either be prebuilt and present in the "
+        "[.paths.docs][sciop.config.paths.PathConfig.docs] directory, "
+        "or the [.services.docs][sciop.config.services.DocsConfig] auto-build "
+        "service should be enabled.",
+    )
 
     @property
     def contact_email_obfuscated(self) -> str | None:

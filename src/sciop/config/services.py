@@ -76,6 +76,28 @@ class StatsConfig(JobConfig):
     )
 
 
+class DocsConfig(JobConfig):
+    """
+    Service for auto-building docs on startup in `dev` mode.
+
+    Sciop must be installed with the optional `[docs]` dependency group.
+
+    See also [PathConfig.docs][sciop.config.paths.PathConfig.docs]
+    for configuring where docs are built to and served from.
+    """
+
+    watch: bool = True
+    """
+    Whether docs should be added to the list of watched directories
+    so they are rebuilt on changes 
+    """
+    dirty: bool = True
+    """
+    Build docs in "dirty" mode, only rebuilding what is stale,
+    or force a full rebuild if `False`
+    """
+
+
 class ServicesConfig(BaseModel):
     """
     Top-level config for all background services
@@ -87,3 +109,5 @@ class ServicesConfig(BaseModel):
     """Service config: Tracker scraping"""
     site_stats: StatsConfig = StatsConfig()
     """Service config: Site stats computation"""
+    docs: DocsConfig = DocsConfig()
+    """Live-building docs in dev mode"""

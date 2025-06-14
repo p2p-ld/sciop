@@ -48,6 +48,8 @@ class PathConfig(BaseModel):
     """
     torrents: Path = Path(_dirs.user_data_dir) / "torrents"
     """Directory to store uploaded torrents"""
+    docs: Path = Path(_dirs.user_data_dir) / "docs"
+    """Directory to store generated docs, if the docs service is enabled"""
 
     @property
     def sqlite(self) -> str:
@@ -57,7 +59,7 @@ class PathConfig(BaseModel):
         else:
             return f"sqlite:///{str(self.db.resolve())}"
 
-    @field_validator("torrents", "logs", mode="after")
+    @field_validator("torrents", "logs", "docs", mode="after")
     def create_dir(cls, value: Path) -> Path:
         """Ensure directories exist"""
         value.mkdir(parents=True, exist_ok=True)
