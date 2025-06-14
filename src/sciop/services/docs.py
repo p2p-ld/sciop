@@ -7,11 +7,15 @@ from time import time
 from typing import Any
 from urllib.parse import urljoin
 
-from mkdocs import config as mkdocs_config
-from mkdocs.commands import build
-
 from sciop.config import get_config
 from sciop.logging import init_logger
+
+try:
+    from mkdocs import config as mkdocs_config
+    from mkdocs.commands import build
+except ImportError:
+    mkdocs_config = None
+    build = None
 
 _DOCS_BUILDING = Semaphore(1)
 
@@ -40,6 +44,9 @@ def build_docs(
     https://github.com/mkdocs/mkdocs/blob/7e4892ab2dd4a52efd95a9de407eee63310e0780/mkdocs/__main__.py#L280
     """
     logger = init_logger("services.docs")
+    if mkdocs_config is None:
+        logger.warning("Docs dependencies not installed, can't build docs.")
+        return
     cfg = get_config()
     if config_file is None:
         config_file = _find_mkdocs_config()

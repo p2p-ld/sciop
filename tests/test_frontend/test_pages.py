@@ -56,6 +56,7 @@ def test_admin_pages_load(url, client: TestClient, admin_auth_header):
     assert account.text == "admin"
 
 
+@pytest.mark.docs
 def test_docs_load(client_lifespan):
     """
     Just make sure we don't trivially break the docs while they're still in-repo

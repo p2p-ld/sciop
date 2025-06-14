@@ -46,6 +46,10 @@ def pytest_addoption(parser: argparse.ArgumentParser) -> None:
         help="Use a file-based sqlite db rather than in-memory db (default)",
     )
     parser.addoption("--with-slow", action="store_true", default=False, help="Run slow tests too")
+    parser.addoption("--with-docs", action="store_true", default=False, help="Run docs tests too")
+    parser.addoption(
+        "--with-all", action="store_true", default=False, help="Run all optional tests"
+    )
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
@@ -58,11 +62,17 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[Function]) 
         if any(["page" in fixture_name for fixture_name in getattr(item, "fixturenames", ())]):
             item.add_marker("playwright")
 
-    if not config.getoption("--with-slow"):
+    if not config.getoption("--with-slow") and not config.getoption("--with-all"):
         skip_slow = pytest.mark.skip(reason="need --with-slow option to run")
         for item in items:
             if item.get_closest_marker("slow"):
                 item.add_marker(skip_slow)
+
+    if not config.getoption("--with-docs") and not config.getoption("--with-all"):
+        skip_docs = pytest.mark.skip(reason="need --with-docs option to run")
+        for item in items:
+            if item.get_closest_marker("docs"):
+                item.add_marker(skip_docs)
 
 
 def pytest_collection_finish(session: pytest.Session) -> None:

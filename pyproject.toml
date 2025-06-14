@@ -60,7 +60,6 @@ docs = [
     "sciop-cli>=0.1.4",
 ]
 test = [
-    "sciop[docs]",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.3",
     "beautifulsoup4>=4.13.3",
@@ -72,7 +71,7 @@ test = [
     "faker>=35.2.0",
 ]
 dev = [
-    "sciop[test]",
+    "sciop[docs,test]",
     "ruff>=0.9.4",
     "black>=25.1.0",
     "watchfiles>=1.0.4",
@@ -189,6 +188,7 @@ markers = """
   playwright: tests that use the playwright webdriver
   markdown: tests that render markdown within HTML
   slow: slow tests!
+  docs: tests that require the docs dependencies/test the docs
 """
 filterwarnings = [
     'ignore:Python 3.14 will, by default, filter extracted tar archives',

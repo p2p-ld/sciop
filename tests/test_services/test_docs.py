@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 
 from sciop.services.docs import build_docs
 
+pytestmark = pytest.mark.docs
+
 
 def test_docs_debounce(capsys):
     """

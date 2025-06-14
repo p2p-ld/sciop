@@ -8,6 +8,7 @@ import yaml
 from bs4 import BeautifulSoup
 
 
+@pytest.mark.docs
 @pytest.mark.slow
 @pytest.mark.timeout(30)
 def test_start_with_config(tmp_path, monkeypatch):
