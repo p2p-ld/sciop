@@ -1,4 +1,7 @@
 import asyncio
+import contextlib
+import time
+from threading import Thread
 
 from uvicorn import Config, Server
 
@@ -35,3 +38,23 @@ class UvicornTestServer(Server):
         """Shut down server asynchronously"""
         self.should_exit = True
         await self._serve_task
+
+
+class UvicornSyncServer(Server):
+    """
+    For running with synchronous code (e.g. with requests rather than httpx)
+
+    Borrowed from https://github.com/encode/uvicorn/discussions/1455
+    """
+
+    @contextlib.contextmanager
+    def run_in_thread(self) -> None:
+        thread = Thread(target=self.run)
+        thread.start()
+        try:
+            while not self.started:
+                time.sleep(1e-3)
+            yield
+        finally:
+            self.should_exit = True
+            thread.join()
