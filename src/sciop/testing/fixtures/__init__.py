@@ -42,6 +42,7 @@ from sciop.testing.fixtures.server import (
     page_as_user,
     run_server,
     run_server_module,
+    run_server_sync,
     unused_tcp_port,
 )
 from sciop.testing.fixtures.tracker import (
@@ -95,6 +96,7 @@ __all__ = [
     "page_as_user",
     "run_server",
     "run_server_module",
+    "run_server_sync",
     "unused_tcp_port",
     # tracker
     "tracker",

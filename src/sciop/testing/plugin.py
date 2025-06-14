@@ -2,6 +2,30 @@
 
 import argparse
 
+import pytest
+from pytest import MonkeyPatch
+
+# import all fixtures
+from sciop.testing.fixtures import *  # noqa: F403
+
+mpatch = MonkeyPatch()
+
+
+def pytest_sessionstart(session: pytest.Session) -> None:
+    from sciop import models  # noqa: F401
+    from sciop.config import get_config
+
+    cfg = get_config()
+    mpatch.setattr(cfg, "env", "test")
+    mpatch.setattr(cfg.services.docs, "enabled", False)
+    mpatch.setenv("SCIOP_ENV", "test")
+    mpatch.setenv("SCIOP_SERVICES__DOCS__ENABLED", "false")
+
+
+def pytest_sessionfinish(session: pytest.Session) -> None:
+    global mpatch
+    mpatch.undo()
+
 
 def pytest_addoption(parser: argparse.ArgumentParser) -> None:
     parser.addoption(

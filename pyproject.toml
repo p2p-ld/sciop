@@ -78,7 +78,7 @@ dev = [
 ]
 
 [project.entry-points.pytest11]
-sciop = "sciop.testing.plugin"
+pytest-sciop = "sciop.testing.plugin"
 
 [build-system]
 requires = ["pdm-backend"]

@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import socket
 from datetime import timedelta
@@ -11,7 +12,7 @@ from sqlmodel import Session
 from starlette.testclient import TestClient
 from uvicorn import Config
 
-from sciop.testing.server import UvicornTestServer
+from sciop.testing.server import UvicornSyncServer, UvicornTestServer
 
 if TYPE_CHECKING:
     from sciop.models import Token
@@ -26,6 +27,7 @@ __all__ = [
     "page_as_user",
     "run_server",
     "run_server_module",
+    "run_server_sync",
     "unused_tcp_port",
 ]
 
@@ -70,7 +72,7 @@ def unused_tcp_port() -> int:
     return _unused_port(socket.SOCK_STREAM)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture(loop_scope="session")
 async def run_server(session: Session) -> UvicornTestServer:
     from sciop.app import app
 
@@ -106,6 +108,26 @@ async def run_server_module(session_module: Session) -> UvicornTestServer:
     await server.up()
     yield
     await server.down()
+
+
+@pytest.fixture
+async def run_server_sync(session: Session) -> UvicornSyncServer:
+    from sciop.app import app
+
+    app.state.limiter.enabled = False
+
+    config = Config(
+        app=app,
+        port=8080,
+        workers=1,
+        reload=False,
+        access_log=False,
+        log_config=None,
+    )
+    server = UvicornSyncServer(config=config)
+    await asyncio.sleep(0.1)
+    with server.run_in_thread():
+        yield server
 
 
 @pytest.fixture
