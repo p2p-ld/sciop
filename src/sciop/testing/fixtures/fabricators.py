@@ -19,7 +19,6 @@ from sciop.models import (
     Token,
     Torrent,
     TorrentFile,
-    TorrentFileCreate,
     Upload,
 )
 from sciop.testing.fabricators import (
@@ -32,7 +31,6 @@ from sciop.testing.fabricators import (
     make_torrentfile,
     make_upload,
 )
-from tests.fixtures.paths import TMP_DIR
 
 __all__ = [
     "account",
@@ -42,7 +40,6 @@ __all__ = [
     "admin_token",
     "dataset",
     "dataset_module",
-    "default_created_torrent",
     "default_db",
     "get_auth_header",
     "infohashes",
@@ -236,7 +233,6 @@ def torrentfile(
     session: Session,
     account: C[..., Account],
     tmp_path: Path,
-    default_created_torrent: Torrent,
 ) -> C[Concatenate[Account | None, Session | None, P], TorrentFile]:
     def _torrentfile_inner(
         extra_trackers: Optional[list[str]] = None,
@@ -266,7 +262,6 @@ def torrentfile_module(
     session_module: Session,
     account_module: C[..., Account],
     tmp_path_factory: pytest.TempPathFactory,
-    default_created_torrent: Torrent,
     request: pytest.FixtureRequest,
 ) -> C[Concatenate[Account | None, Session | None, P], TorrentFile]:
     def _torrentfile_inner(
@@ -398,35 +393,14 @@ def get_auth_header(session: Session) -> C[[str, str], dict[L["Authorization"], 
     return _get_auth_header
 
 
-@pytest.fixture(scope="session")
-def default_created_torrent() -> Torrent:
-    # only make this once for yno perf
-
-    torrent = make_torrent(tmp_path=TMP_DIR, **default_torrent())
-    tf = TorrentFileCreate(
-        file_name="default.torrent",
-        v1_infohash=torrent.infohash,
-        v2_infohash=torrent.v2_infohash,
-        version="hybrid",
-        total_size=torrent.size,
-        piece_size=torrent.piece_size,
-        files=[{"path": "default.bin", "size": 100}],
-        announce_urls=["udp://example.com:6969/announce"],
-    )
-
-    tf.filesystem_path.parent.mkdir(exist_ok=True, parents=True)
-    torrent.write(tf.filesystem_path, overwrite=True)
-    return torrent
-
-
 @pytest.fixture()
 def default_db(
     account: C[..., Account],
     dataset: C[..., Dataset],
     upload: C[..., Upload],
     session: Session,
+    torrent: C[..., Torrent],
     torrentfile: C[..., TorrentFile],
-    default_created_torrent: Torrent,
 ) -> tuple[Account, Account, TorrentFile, Dataset, Upload]:
     admin = account(
         scopes=[Scopes.admin, Scopes.upload, Scopes.review],
@@ -435,7 +409,8 @@ def default_db(
         password="adminadmin12",
     )
     uploader = account(scopes=[Scopes.upload], session_=session, username="uploader")
-    tfile = torrentfile(account_=uploader, session_=session, torrent=default_created_torrent)
+    torrent = torrent()
+    tfile = torrentfile(account_=uploader, session_=session, torrent=torrent)
     dataset_ = dataset(is_approved=True, session_=session)
     upload_ = upload(
         is_approved=True, torrentfile_=tfile, account_=uploader, dataset_=dataset_, session_=session
