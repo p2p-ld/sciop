@@ -11,7 +11,7 @@ mpatch.setenv("SCIOP_ENV", "test")
 from sciop.testing.fixtures import *
 
 from .fixtures import *
-from .fixtures import LOGS_DIR, TMP_DIR, TORRENT_DIR
+from .fixtures import DOCS_DIR, LOGS_DIR, TMP_DIR, TORRENT_DIR
 
 
 # --------------------------------------------------
@@ -108,7 +108,7 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
         env="test",
         secret_key="1" * 64,
         enable_versions=True,
-        paths={"torrents": TORRENT_DIR, "db": db_path},
+        paths={"torrents": TORRENT_DIR, "db": db_path, "docs": DOCS_DIR},
         logs={"request_timing": False},
         server={"base_url": "http://localhost:8080"},
         services={"clear_jobs": True},

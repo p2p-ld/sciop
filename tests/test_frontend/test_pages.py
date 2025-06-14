@@ -60,5 +60,10 @@ def test_docs_load(client_lifespan):
     """
     Just make sure we don't trivially break the docs while they're still in-repo
     """
-    response = client_lifespan.get("/docs")
-    assert response.status_code == 200
+    from sciop.services.docs import _DOCS_BUILDING
+
+    # wait for the docs to build by getting the semaphor,
+    # since they are built in a thread
+    with _DOCS_BUILDING:
+        response = client_lifespan.get("/docs")
+        assert response.status_code == 200
