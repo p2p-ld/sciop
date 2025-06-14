@@ -9,15 +9,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel
 from sqlmodel.pool import StaticPool
 
-__all__ = [
-    "engine",
-    "engine_module",
-    "session",
-    "session_module",
-    "recreate_models",
-    "alembic_config",
-]
-
 
 def _engine(request: pytest.FixtureRequest) -> Engine:
     if request.config.getoption("--file-db"):

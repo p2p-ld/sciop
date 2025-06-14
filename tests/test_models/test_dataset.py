@@ -4,8 +4,7 @@ import pytest
 
 from sciop.models import Dataset, DatasetCreate, DatasetPart
 from sciop.models.dataset import PREFIX_PATTERN
-
-from ..fixtures.fabricators import default_dataset
+from sciop.testing.fabricators import default_dataset
 
 
 def test_dataset_slugification():

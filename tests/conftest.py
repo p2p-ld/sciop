@@ -8,6 +8,7 @@ from _pytest.python import Function
 mpatch = MonkeyPatch()
 mpatch.setenv("SCIOP_ENV", "test")
 
+from sciop.testing.fixtures import *
 
 from .fixtures import *
 from .fixtures import LOGS_DIR, TMP_DIR, TORRENT_DIR

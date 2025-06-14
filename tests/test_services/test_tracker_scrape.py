@@ -17,8 +17,7 @@ from sciop.services.tracker_scrape import (
     scrape_http_tracker,
     scrape_torrent_stats,
 )
-
-from ..fixtures.tracker import MockTrackerProtocol
+from sciop.testing.fixtures.tracker import MockTrackerProtocol
 
 
 @pytest.mark.parametrize("version", ["v1", "v2"])
