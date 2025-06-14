@@ -253,7 +253,11 @@ def ensure_root(session: Session) -> Optional["Account"]:
     from sciop import crud
     from sciop.models import AccountCreate, Scope, Scopes
 
-    root = crud.get_account(username=get_config().root_user, session=session)
+    cfg = get_config()
+    if not (cfg.root_user and cfg.root_password):
+        return
+
+    root = crud.get_account(username=cfg.root_user, session=session)
     if not root:
         root = crud.create_account(
             account_create=AccountCreate(
@@ -267,5 +271,5 @@ def ensure_root(session: Session) -> Optional["Account"]:
         session.commit()
         session.refresh(root)
 
-    get_config().root_password = None
+    cfg.root_password = None
     return root
