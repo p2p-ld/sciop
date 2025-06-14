@@ -85,4 +85,4 @@ jobs:
       - name: Run tests
         run: |
           mkdir $HOME/tmp
-          pytest --with-slow -m "slow" -s
+          pytest --with-slow -m "slow"
