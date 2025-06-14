@@ -20,6 +20,7 @@ def test_start_with_config(tmp_path, monkeypatch):
     test_config = {
         "server": {"port": 8965},
         "instance": {"footer": footer},
+        "services": {"docs": {"enabled": False}},
     }
     with open(config_path, "w") as f:
         yaml.safe_dump(test_config, f)
