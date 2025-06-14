@@ -8,7 +8,7 @@
   <a href="/datasets/" class="nav-link">Datasets</a>
 	<a href="/uploads/" class="nav-link">Uploads</a>
   <a href="/feeds" class="nav-link">Feeds</a>
-  <a href="/docs/" class="nav-link">Docs</a>
+  {% if config.instance.show_docs %}<a href="/docs/" class="nav-link">Docs</a>{% endif %}
   <a href="/about" class="nav-link">About</a>
   <div class="spacer"></div>
 

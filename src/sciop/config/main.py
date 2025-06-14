@@ -188,7 +188,7 @@ class Config(BaseSettings):
         """
         Get the mtimes of any source files found
 
-        If the config file was loaded from a yaml file with [.read][sciop.config.Config.read],
+        If the config file was loaded from a yaml file with [.load][sciop.config.main.Config.load],
         use that as the source file to check.
 
         Otherwise watch a `.env` and/or `sciop.yaml` file in the cwd, if found.

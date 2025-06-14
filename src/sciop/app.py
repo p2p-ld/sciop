@@ -14,7 +14,7 @@ from sciop.api.deps import get_current_account
 from sciop.api.main import api_router
 from sciop.config import get_config
 from sciop.config.main import _lifespan_load_config
-from sciop.const import DOCS_DIR, STATIC_DIR
+from sciop.const import STATIC_DIR
 from sciop.db import create_tables
 from sciop.exceptions import http_handler, rate_limit_handler
 from sciop.frontend.main import frontend_router
@@ -26,17 +26,19 @@ from sciop.middleware import (
     security_headers,
 )
 from sciop.scheduler import remove_all_jobs, shutdown, start_scheduler
-from sciop.services import build_docs
+from sciop.services import build_docs_service
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Generator[None, None, None]:
-    # loading config this must happen first
+    # loading config - this must happen first
     _lifespan_load_config()
 
+    cfg = get_config()
+
     create_tables()
-    if get_config().env != "prod":
-        build_docs(clean=False)
+    if cfg.services.docs.enabled:
+        build_docs_service(dirty=cfg.services.docs.dirty)
     start_scheduler()
     yield
     remove_all_jobs()
@@ -91,8 +93,8 @@ app.include_router(frontend_router)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/torrents", StaticFiles(directory=get_config().paths.torrents), name="torrents")
-DOCS_DIR.mkdir(exist_ok=True)
-app.mount("/docs", StaticFiles(directory=DOCS_DIR, html=True), name="docs")
+if get_config().instance.show_docs or get_config().env == "test":
+    app.mount("/docs", StaticFiles(directory=get_config().paths.docs, html=True), name="docs")
 add_pagination(app)
 
 app.add_exception_handler(429, rate_limit_handler)

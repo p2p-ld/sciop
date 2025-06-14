@@ -5,6 +5,7 @@ from sciop.config.logs import LogConfig
 from sciop.config.paths import DEFAULT_DB_PATHS, PathConfig
 from sciop.config.server import CSPConfig, ServerConfig
 from sciop.config.services import (
+    DocsConfig,
     JobConfig,
     ScrapeConfig,
     ScrapeErrorBackoffs,
@@ -22,6 +23,7 @@ __all__ = [
     "Config",
     "CSPConfig",
     "DBConfig",
+    "DocsConfig",
     "FeedConfig",
     "get_config",
     "InstanceConfig",
