@@ -158,7 +158,7 @@ def test_get_all_dataset_claims(session, account, dataset):
 
 @pytest.mark.parametrize("parts", [None, ["part-1"]])
 def test_upload_clears_claims(session, account, dataset, upload, parts: None | list[str]):
-    """get ALL the dataset claims"""
+    """Making an upload clears any existing dataset claims"""
     ds = dataset(
         slug="test", parts=[{"part_slug": "part-1"}, {"part_slug": "part-2"}], is_approved=True
     )
