@@ -1,9 +1,10 @@
 from copy import deepcopy
 
+import pytest
 from sqlmodel import select
 
 from sciop import crud
-from sciop.models import DatasetCreate, Tag, TorrentFileCreate, Tracker
+from sciop.models import DatasetClaim, DatasetCreate, Tag, TorrentFileCreate, Tracker
 from sciop.testing.fabricators import default_dataset, default_torrentfile
 
 
@@ -82,3 +83,108 @@ def test_create_torrent_with_trackers(session, infohashes, uploader):
     assert b_tracker not in a.trackers
     assert b_tracker in b.trackers
     assert a_tracker not in b.trackers
+
+
+def test_get_dataset_claims(session, account, dataset):
+    """get JUST the parent dataset claims"""
+    ds = dataset(
+        slug="test", parts=[{"part_slug": "part-1"}, {"part_slug": "part-2"}], is_approved=True
+    )
+    acct = account()
+    claims = [
+        DatasetClaim(account=acct, dataset=ds, status="in_progress"),
+        DatasetClaim(account=acct, dataset=ds, dataset_part=ds.parts[0], status="completed"),
+        DatasetClaim(account=acct, dataset=ds, dataset_part=ds.parts[1], status="completed"),
+    ]
+    for c in claims:
+        session.add(c)
+    session.commit()
+
+    claim = crud.get_claims(
+        session=session, username=acct.username, dataset_slug="test", part_slugs=None
+    )
+    assert len(claim) == 1
+    assert claim[0].dataset_part is None
+
+
+def test_get_dataset_part_claims(session, account, dataset):
+    """get JUST the dataset part claims"""
+    ds = dataset(
+        slug="test", parts=[{"part_slug": "part-1"}, {"part_slug": "part-2"}], is_approved=True
+    )
+    acct = account()
+    claims = [
+        DatasetClaim(account=acct, dataset=ds, status="in_progress"),
+        DatasetClaim(account=acct, dataset=ds, dataset_part=ds.parts[0], status="completed"),
+        DatasetClaim(account=acct, dataset=ds, dataset_part=ds.parts[1], status="completed"),
+    ]
+    for c in claims:
+        session.add(c)
+    session.commit()
+
+    claim = crud.get_claims(
+        session=session,
+        username=acct.username,
+        dataset_slug="test",
+        part_slugs=["part-1", "part-2"],
+    )
+    assert len(claim) == 2
+    got_slugs = [c.dataset_part.part_slug if c.dataset_part else "" for c in claim]
+    assert sorted(got_slugs) == sorted(["part-1", "part-2"])
+
+
+def test_get_all_dataset_claims(session, account, dataset):
+    """get ALL the dataset claims"""
+    ds = dataset(
+        slug="test", parts=[{"part_slug": "part-1"}, {"part_slug": "part-2"}], is_approved=True
+    )
+    acct = account()
+    claims = [
+        DatasetClaim(account=acct, dataset=ds, status="in_progress"),
+        DatasetClaim(account=acct, dataset=ds, dataset_part=ds.parts[0], status="completed"),
+        DatasetClaim(account=acct, dataset=ds, dataset_part=ds.parts[1], status="completed"),
+    ]
+    for c in claims:
+        session.add(c)
+    session.commit()
+
+    claim = crud.get_claims(
+        session=session, username=acct.username, dataset_slug="test", part_slugs=True
+    )
+    assert len(claim) == 3
+    got_slugs = [c.dataset_part.part_slug if c.dataset_part else "" for c in claim]
+    assert sorted(got_slugs) == sorted(["", "part-1", "part-2"])
+
+
+@pytest.mark.parametrize("parts", [None, ["part-1"]])
+def test_upload_clears_claims(session, account, dataset, upload, parts: None | list[str]):
+    """get ALL the dataset claims"""
+    ds = dataset(
+        slug="test", parts=[{"part_slug": "part-1"}, {"part_slug": "part-2"}], is_approved=True
+    )
+    acct = account()
+    claims = [
+        DatasetClaim(account=acct, dataset=ds, status="in_progress"),
+        DatasetClaim(account=acct, dataset=ds, dataset_part=ds.parts[0], status="completed"),
+        DatasetClaim(account=acct, dataset=ds, dataset_part=ds.parts[1], status="completed"),
+    ]
+    for c in claims:
+        session.add(c)
+    session.commit()
+
+    ul = upload(
+        dataset_=ds,
+        part_slugs=parts,
+        account_=acct,
+    )
+
+    claim = crud.get_claims(
+        session=session, username=acct.username, dataset_slug="test", part_slugs=True
+    )
+    assert len(claim) == 2
+    got_slugs = sorted([c.dataset_part.part_slug if c.dataset_part else "" for c in claim])
+
+    if parts:
+        assert got_slugs == ["", "part-2"]
+    else:
+        assert got_slugs == ["part-1", "part-2"]
