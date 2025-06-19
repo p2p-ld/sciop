@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from sqlmodel import Session, select
 
@@ -8,6 +8,7 @@ from sciop.models import (
     AccountCreate,
     AuditLog,
     Dataset,
+    DatasetClaim,
     DatasetCreate,
     DatasetPart,
     DatasetPartCreate,
@@ -288,6 +289,11 @@ def create_torrent(
 def create_upload(
     *, session: Session, created_upload: UploadCreate, account: Account, dataset: Dataset
 ) -> Upload:
+    """
+    Create a new upload
+
+    Clears any existing claims against the dataset or dataset parts
+    """
     torrent = get_torrent_from_infohash(session=session, infohash=created_upload.infohash)
     update = {
         "torrent": torrent,
@@ -304,6 +310,16 @@ def create_upload(
     db_obj = Upload.model_validate(created_upload, update=update)
     db_obj.is_approved = account.has_scope("upload")
     session.add(db_obj)
+
+    # clear outstanding claims, if any
+    clear_claims(
+        session=session,
+        username=account.username,
+        dataset_slug=dataset.slug,
+        part_slugs=created_upload.part_slugs,
+        commit=False,
+    )
+
     session.commit()
     session.refresh(db_obj)
     return db_obj
@@ -460,3 +476,73 @@ def get_tags(*, session: Session, tags: list[str], commit: bool = False) -> list
 
 def get_latest_site_stats(*, session: Session) -> SiteStats:
     return session.exec(select(SiteStats).order_by(SiteStats.created_at.desc()).limit(1)).first()
+
+
+def get_claims(
+    *,
+    session: Session,
+    username: str,
+    dataset_slug: str,
+    part_slugs: list[str] | Literal[True] | None = None,
+) -> None | list[DatasetClaim]:
+    """
+    Get dataset claims for a dataset or its parts.
+    If part_slugs is `None`, only return claims for the parent dataset.
+    If part slugs is `True`, return all claims for all parts.
+    """
+    if part_slugs is None:
+        maybe_claim = session.exec(
+            select(DatasetClaim)
+            .join(DatasetClaim.account)
+            .where(
+                Account.username == username,
+                Dataset.slug == dataset_slug,
+                DatasetClaim.dataset_part == None,  # noqa: E711
+            )
+        ).first()
+        if maybe_claim:
+            return [maybe_claim]
+        else:
+            return None
+    elif part_slugs is True:
+        return session.exec(
+            select(DatasetClaim)
+            .join(DatasetClaim.account)
+            .where(Account.username == username, Dataset.slug == dataset_slug)
+        ).all()
+    else:
+        if isinstance(part_slugs, str):
+            part_slugs = [part_slugs]
+        return session.exec(
+            select(DatasetClaim)
+            .join(DatasetClaim.account)
+            .join(DatasetClaim.dataset_part)
+            .where(
+                Account.username == username,
+                Dataset.slug == dataset_slug,
+                DatasetPart.part_slug.in_(part_slugs),
+            )
+        ).all()
+
+
+def clear_claims(
+    *,
+    session: Session,
+    username: str,
+    dataset_slug: str,
+    part_slugs: list[str] | Literal[True] | None = None,
+    commit: bool = True,
+) -> None:
+    """
+    Clear all claims for a dataset or set of dataset parts
+        If part_slugs is `None`, only clear claims for the parent dataset.
+    If part slugs is `True`, clear all claims for all parts.
+    """
+    claims = get_claims(
+        session=session, username=username, dataset_slug=dataset_slug, part_slugs=part_slugs
+    )
+    if claims:
+        for claim in claims:
+            session.delete(claim)
+    if commit:
+        session.commit()

@@ -159,6 +159,8 @@ ignore = [
     "UP006", "UP035",
     # | for Union types (only supported >=3.10
     "UP007", "UP038",
+    # using Optional[] is fine
+    "UP045",
     # docstrings for __init__
     "D107",
     # Equality comparisons to ``True``, which are valid in sqlalchemy
