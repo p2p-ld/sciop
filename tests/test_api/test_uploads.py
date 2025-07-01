@@ -47,6 +47,7 @@ def test_upload(
     assert created["description"] == upload_create["description"]
     assert created["torrent"][infohash_type] == upload_create["infohash"]
     assert created["dataset"] == ds.slug
+    assert created["account"] == uploader.username
 
 
 @pytest.mark.parametrize("part_slugs", (["part-1"], ["part-2", "part-3"]))

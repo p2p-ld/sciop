@@ -32,7 +32,7 @@ from sciop.models.mixins import (
     all_optional,
 )
 from sciop.services.markdown import render_db_fields_to_html
-from sciop.types import FileName, IDField, InputType, SlugStr, UTCDateTime
+from sciop.types import FileName, IDField, InputType, SlugStr, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sqlmodel import Session
@@ -332,6 +332,7 @@ event.listen(Upload, "before_insert", render_db_fields_to_html("description", "m
 class UploadRead(UploadBase, TableReadMixin):
     """Version of datasaet upload returned when reading"""
 
+    account: Optional[UsernameStr] = None
     dataset: Optional[SlugStr] = None
     dataset_parts: Optional[list[SlugStr]] = None
     torrent: Optional["TorrentFileRead"] = None
@@ -358,6 +359,12 @@ class UploadRead(UploadBase, TableReadMixin):
     def extract_part_slugs(cls, value: list["DatasetPart"] | None = None) -> list[SlugStr] | None:
         if value:
             value = sorted([v.part_slug for v in value])
+        return value
+
+    @field_validator("account", mode="before")
+    def extract_username(cls, value: Optional["Account"] = None) -> SlugStr:
+        if value is not None:
+            value = value.username
         return value
 
     @property
