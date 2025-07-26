@@ -1,4 +1,3 @@
-import hashlib
 import random
 import string
 from copy import deepcopy
@@ -10,12 +9,12 @@ from random import randint
 from typing import Any, Optional, ParamSpec
 from typing import Callable as C
 
-import bencodepy
 import numpy as np
 from faker import Faker
 from sqlmodel import Session
+from torrent_models import Torrent, TorrentCreate
 
-from sciop import crud, get_config
+from sciop import crud
 from sciop.models import (
     Account,
     AccountCreate,
@@ -24,7 +23,6 @@ from sciop.models import (
     FileInTorrentCreate,
     Scope,
     Scopes,
-    Torrent,
     TorrentFile,
     TorrentFileCreate,
     Upload,
@@ -172,10 +170,12 @@ def make_torrent(path: Path, tmp_path: Path | None = None, **kwargs: Any) -> Tor
         hash_data = hash_data.encode("utf-8")
         with open(file_in_torrent, "wb") as f:
             f.write(hash_data)
-    kwargs["path"] = file_in_torrent
+    kwargs["paths"] = [file_in_torrent]
+    kwargs["path_root"] = tmp_path
+    kwargs["piece_length"] = 16 * (2**10)
 
-    t = Torrent(**kwargs)
-    t.generate()
+    t = TorrentCreate(**kwargs)
+    t = t.generate(version="hybrid")
     return t
 
 
@@ -224,13 +224,9 @@ def make_torrentfile(
         t = torrent_(tmp_path=tmp_path, path=file_in_torrent)
 
     if kwargs.get("v1_infohash", None) is None:
-        kwargs["v1_infohash"] = t.infohash
+        kwargs["v1_infohash"] = t.v1_infohash.hex()
     if kwargs.get("v2_infohash", None) is None:
-        if t.v2_infohash is None:
-            v2_infohash = hashlib.sha256(bencodepy.encode(t.metainfo["info"])).hexdigest()
-        else:
-            v2_infohash = t.v2_infohash
-        kwargs["v2_infohash"] = v2_infohash
+        kwargs["v2_infohash"] = t.v2_infohash.hex()
     elif "v2_infohash" in kwargs and not kwargs["v2_infohash"]:
         # set to `False`, exclude v2_infohash
         del kwargs["v2_infohash"]
@@ -243,7 +239,7 @@ def make_torrentfile(
     tf = TorrentFileCreate(**kwargs)
     if not tf.filesystem_path.exists():
         tf.filesystem_path.parent.mkdir(exist_ok=True, parents=True)
-        t.write(tf.filesystem_path, overwrite=True)
+        t.write(tf.filesystem_path)
     created = crud.create_torrent(session=session_, created_torrent=tf, account=account_)
     return created
 
@@ -287,27 +283,30 @@ def random_upload(
     if not fake:
         fake = Faker()
 
-    torrent_file = get_config().paths.torrents / (name + str(fake.file_name(extension="torrent")))
+    tmp_parent = Path("__tmp__")
+    tmp_parent.mkdir(exist_ok=True)
+    torrent_file = tmp_parent / (name + str(fake.file_name(extension="bin")))
     with open(torrent_file, "wb") as tfile:
-        tfile.write(b"0" * 16384)
+        hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
+        hash_data = hash_data.encode("utf-8")
+        tfile.write(hash_data)
 
     file_size = torrent_file.stat().st_size
 
-    torrent = Torrent(
-        path=torrent_file,
-        name=f"Example Torrent {name}",
-        trackers=[["udp://opentracker.io:6969/announce"]],
+    torrent = TorrentCreate(
+        paths=[torrent_file],
+        path_root=tmp_parent,
+        trackers=["udp://opentracker.io:6969/announce"],
         comment="My comment",
-        piece_size=16384,
+        piece_length=16384,
+        info={"name": f"test_{name}"},
     )
-    torrent.generate()
-    hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
-    hash_data = hash_data.encode("utf-8")
+    torrent = torrent.generate(version="hybrid")
 
     created_torrent = TorrentFileCreate(
         file_name=torrent_file.name,
-        v1_infohash=hashlib.sha1(hash_data).hexdigest(),
-        v2_infohash=hashlib.sha256(hash_data).hexdigest(),
+        v1_infohash=torrent.v1_infohash.hex(),
+        v2_infohash=torrent.v2_infohash.hex(),
         version="hybrid",
         total_size=16384 * 4,
         piece_size=16384,

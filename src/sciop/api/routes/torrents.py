@@ -3,16 +3,17 @@ from typing import Annotated, Any
 from typing import Literal as L
 
 from fastapi import APIRouter, HTTPException, Query, UploadFile
+from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import Response
-from torf import BdecodeError, MetainfoError
+from torrent_models import Torrent
 
 from sciop import crud
 from sciop.api.deps import RequireCurrentAccount, SessionDep
 from sciop.frontend.templates import jinja
 from sciop.logging import init_logger
 from sciop.middleware import limiter
-from sciop.models import FileInTorrentCreate, Torrent, TorrentFileCreate, TorrentFileRead
+from sciop.models import FileInTorrentCreate, TorrentFileCreate, TorrentFileRead
 
 torrents_router = APIRouter(prefix="/torrents")
 torrents_logger = init_logger("api.torrents")
@@ -47,25 +48,17 @@ async def upload_torrent(
     torrents_logger.debug("Processing torrent file")
     try:
         torrent = Torrent.read_stream(file.file)
-        torrent.validate()
-    except BdecodeError:
+    except ValidationError:
         torrents_logger.exception("Error decoding upload")
         raise HTTPException(
             status_code=415,
             detail="Could not decode upload, is this a .torrent file?",
         ) from None
-    except MetainfoError as e:
-        if "Missing 'pieces' in ['info', 'pieces']" in str(e):
-            raise HTTPException(
-                status_code=415,
-                detail="At this time, v2 only torrent support is still in development.",
-            ) from None
-        raise HTTPException(status_code=415, detail=f"MetaInfo invalid: {str(e)}") from None
 
     creating_account = account
     existing_upload = None
     existing_torrent = crud.get_torrent_from_infohash(
-        session=session, v1=torrent.infohash, v2=torrent.v2_infohash
+        session=session, v1=torrent.v1_infohash, v2=torrent.v2_infohash
     )
     if existing_torrent:
         if existing_torrent.upload is not None:
@@ -108,7 +101,7 @@ async def upload_torrent(
             session.delete(existing_torrent)
             session.commit()
 
-    trackers = [tracker for tier in torrent.trackers for tracker in tier]
+    trackers = [tracker for tier in torrent.flat_trackers for tracker in tier]
     if len(trackers) == 0:
         raise HTTPException(
             status_code=400,
@@ -124,12 +117,12 @@ async def upload_torrent(
 
     created_torrent = TorrentFileCreate(
         file_name=file.filename,
-        v1_infohash=torrent.infohash,
-        v2_infohash=torrent.v2_infohash,
+        v1_infohash=torrent.v1_infohash.hex() if torrent.v1_infohash else None,
+        v2_infohash=torrent.v2_infohash.hex() if torrent.v2_infohash else None,
         version=torrent.torrent_version,
-        total_size=torrent.size,
-        piece_size=torrent.piece_size,
-        files=[FileInTorrentCreate(path=_file.path, size=_file.size) for _file in torrent.files],
+        total_size=torrent.total_size,
+        piece_size=torrent.info.piece_length,
+        files=[FileInTorrentCreate(path=_file.path, size=_file.length) for _file in torrent.files],
         announce_urls=trackers,
     )
 

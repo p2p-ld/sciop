@@ -11,13 +11,13 @@ from typing import Literal as L
 import numpy as np
 import pytest
 from sqlmodel import Session
+from torrent_models import Torrent
 
 from sciop.models import (
     Account,
     Dataset,
     Scopes,
     Token,
-    Torrent,
     TorrentFile,
     Upload,
 )
