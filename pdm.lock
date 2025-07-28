@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:1bc47c500770f523521f39fcddfc005d4a8770cad35509b6c4a433796ed1afb5"
+content_hash = "sha256:25c81ad5d9196cf3aacb9088cd01251f34efc031f8714aaa9682ca87f82d3bbd"
 
 [[metadata.targets]]
 requires_python = ">=3.11"
@@ -196,16 +196,6 @@ dependencies = [
 files = [
     {file = "beautifulsoup4-4.13.4-py3-none-any.whl", hash = "sha256:9bbbb14bfde9d79f38b8cd5f8c7c85f4b8f2523190ebed90e950a8dea4cb1c4b"},
     {file = "beautifulsoup4-4.13.4.tar.gz", hash = "sha256:dbb3c4e1ceae6aefebdaf2423247260cd062430a410e38c66f2baa50a8437195"},
-]
-
-[[package]]
-name = "bencode-py"
-version = "4.0.0"
-summary = "Simple bencode parser (for Python 2, Python 3 and PyPy)"
-groups = ["default"]
-files = [
-    {file = "bencode.py-4.0.0-py2.py3-none-any.whl", hash = "sha256:99c06a55764e85ffe81622fdf9ee78bd737bad3ea61d119784a54bb28860d962"},
-    {file = "bencode.py-4.0.0.tar.gz", hash = "sha256:2a24ccda1725a51a650893d0b63260138359eaa299bb6e7a09961350a2a6e05c"},
 ]
 
 [[package]]

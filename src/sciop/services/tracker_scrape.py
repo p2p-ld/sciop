@@ -14,7 +14,7 @@ from typing import Any, Optional, cast
 from urllib.parse import ParseResult, urlencode, urlparse, urlunparse
 
 import aiodns
-import flatbencode
+import bencode_rs
 import httpx
 import sqlalchemy as sqla
 from sqlmodel import select, update
@@ -530,7 +530,7 @@ class HTTPTrackerClient:
                 return ScrapeResult()
 
             response.raise_for_status()
-            decoded = flatbencode.decode(response.content)
+            decoded = bencode_rs.bdecode(response.content)
             if b"failure_reason" in decoded:
                 errors.append(
                     ScrapeError(
