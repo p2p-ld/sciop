@@ -148,8 +148,9 @@ def make_dataset(
     return dataset
 
 
-def make_torrent(path: Path, tmp_path: Path | None = None, **kwargs: Any) -> Torrent:
+def make_torrent(path: Path | list[Path], tmp_path: Path | None = None, **kwargs: Any) -> Torrent:
     """
+    This function makes decreasing sense over time... simplify this.
 
     Args:
         path (Path): path to a file to make a torrent out of.
@@ -161,16 +162,19 @@ def make_torrent(path: Path, tmp_path: Path | None = None, **kwargs: Any) -> Tor
     Returns:
 
     """
-    file_in_torrent = Path(path)
-    if not file_in_torrent.is_absolute() and tmp_path:
-        file_in_torrent = tmp_path / file_in_torrent
+    if not isinstance(path, list):
+        file_in_torrent = Path(path)
+        if not file_in_torrent.is_absolute() and tmp_path:
+            file_in_torrent = tmp_path / file_in_torrent
 
-    if not file_in_torrent.exists():
-        hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
-        hash_data = hash_data.encode("utf-8")
-        with open(file_in_torrent, "wb") as f:
-            f.write(hash_data)
-    kwargs["paths"] = [file_in_torrent]
+        if not file_in_torrent.exists():
+            hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
+            hash_data = hash_data.encode("utf-8")
+            with open(file_in_torrent, "wb") as f:
+                f.write(hash_data)
+        kwargs["paths"] = [file_in_torrent]
+    else:
+        kwargs["paths"] = path
     kwargs["path_root"] = tmp_path
     kwargs["piece_length"] = 16 * (2**10)
 
@@ -194,7 +198,7 @@ def make_torrentfile(
 
     if "torrent" in kwargs:
         t: Torrent = kwargs.pop("torrent")
-        announce_urls_nested = t.trackers
+        announce_urls_nested = t.announce_list
         announce_urls = []
         for tier in announce_urls_nested:
             announce_urls.extend(tier)
@@ -207,26 +211,29 @@ def make_torrentfile(
             with open(file_in_torrent, "wb") as f:
                 f.write(hash_data)
             kwargs["files"] = [{"path": "default.bin", "size": kwargs["total_size"]}]
+
+            t = torrent_(tmp_path=tmp_path, path=file_in_torrent)
         else:
             file_in_torrent = tmp_path
             each_file = np.floor(kwargs["total_size"] / n_files)
             sizes = [each_file] * n_files
             # make last file pick up the remainder
             sizes[-1] += kwargs["total_size"] - np.sum(sizes)
-            files = []
+            paths = []  # plain paths to make torrent
+            files = []  # file objects with sizes for db
             for i, size in enumerate(sizes):
                 hash_data = generator.bytes(size)
+                paths.append(Path(f"{i}.bin"))
                 files.append({"path": f"{i}.bin", "size": size})
                 with open(file_in_torrent / f"{i}.bin", "wb") as f:
                     f.write(hash_data)
             kwargs["files"] = files
-
-        t = torrent_(tmp_path=tmp_path, path=file_in_torrent)
+            t = torrent_(tmp_path=tmp_path, path=paths)
 
     if kwargs.get("v1_infohash", None) is None:
-        kwargs["v1_infohash"] = t.v1_infohash.hex()
+        kwargs["v1_infohash"] = t.v1_infohash
     if kwargs.get("v2_infohash", None) is None:
-        kwargs["v2_infohash"] = t.v2_infohash.hex()
+        kwargs["v2_infohash"] = t.v2_infohash
     elif "v2_infohash" in kwargs and not kwargs["v2_infohash"]:
         # set to `False`, exclude v2_infohash
         del kwargs["v2_infohash"]
@@ -305,8 +312,8 @@ def random_upload(
 
     created_torrent = TorrentFileCreate(
         file_name=torrent_file.name,
-        v1_infohash=torrent.v1_infohash.hex(),
-        v2_infohash=torrent.v2_infohash.hex(),
+        v1_infohash=torrent.v1_infohash,
+        v2_infohash=torrent.v2_infohash,
         version="hybrid",
         total_size=16384 * 4,
         piece_size=16384,

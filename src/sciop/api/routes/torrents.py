@@ -117,8 +117,8 @@ async def upload_torrent(
 
     created_torrent = TorrentFileCreate(
         file_name=file.filename,
-        v1_infohash=torrent.v1_infohash.hex() if torrent.v1_infohash else None,
-        v2_infohash=torrent.v2_infohash.hex() if torrent.v2_infohash else None,
+        v1_infohash=torrent.v1_infohash if torrent.v1_infohash else None,
+        v2_infohash=torrent.v2_infohash if torrent.v2_infohash else None,
         version=torrent.torrent_version,
         total_size=torrent.total_size,
         piece_size=torrent.info.piece_length,

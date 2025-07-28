@@ -95,7 +95,7 @@ def test_upload_noscope(
         assert response.status_code == 200
 
     ul = UploadCreate(
-        infohash=torrent_.v1_infohash.hex(),
+        infohash=torrent_.v1_infohash,
     )
 
     res = client.post(
@@ -104,7 +104,7 @@ def test_upload_noscope(
         json=ul.model_dump(),
     )
     assert res.status_code == 200
-    ul = crud.get_upload_from_infohash(infohash=torrent_.v1_infohash.hex(), session=session)
+    ul = crud.get_upload_from_infohash(infohash=torrent_.v1_infohash, session=session)
     assert not ul.is_approved
     assert ul.needs_review
 
@@ -116,7 +116,7 @@ def test_replace_orphaned_upload(
     Torrent files that are uploaded but not associated with an Upload
     should be replaced by a second upload
     """
-    existing_tf: TorrentFile = torrentfile(v2_infohash=False)
+    existing_tf: TorrentFile = torrentfile()
     existing_torrent_path = existing_tf.filesystem_path
     assert existing_tf.upload is None
     assert existing_torrent_path.exists()
@@ -188,7 +188,7 @@ def test_replace_duplicate_with_force(
     torrent_1, torrent_2 = torrent_pair
     torrent_2_path = tmp_path / "default_torrent_2.torrent"
     torrent_2.write(torrent_2_path)
-    assert torrent_1.v1_infohash.hex() == torrent_2.v1_infohash.hex()
+    assert torrent_1.v1_infohash == torrent_2.v1_infohash
 
     # the first one should already exist as an upload
     acct1 = account(username="original_uploader", scopes=["upload"])
@@ -198,7 +198,7 @@ def test_replace_duplicate_with_force(
     existing_tf = ul.torrent
     existing_torrent_path = existing_tf.filesystem_path
     assert existing_torrent_path.exists()
-    assert len(ul.torrent.flat_trackers) == 1
+    assert len(ul.torrent.trackers) == 1
 
     # try and upload a new one
     if has_permission:
@@ -223,8 +223,8 @@ def test_replace_duplicate_with_force(
     # reload the whole upload object
     ul_reload = session.exec(select(Upload).where(Upload.upload_id == ul.upload_id)).first()
     # added the new trackers (and thus are the new torrent file)
-    assert ul.torrent.v1_infohash.hex() == ul_reload.torrent.v1_infohash.hex()
-    assert len(ul_reload.torrent.flat_trackers) == 2
+    assert ul.torrent.v1_infohash == ul_reload.torrent.v1_infohash
+    assert len(ul_reload.torrent.trackers) == 2
     # kept the old account associated with the upload
     assert ul_reload.account == acct1
     # and the API response is correct
@@ -246,30 +246,28 @@ def test_files_ragged_pagination(client, upload, torrentfile):
     """
     tf = torrentfile(n_files=2000, total_size=2000 * (16 * 2**10))
     ul = upload(torrentfile_=tf)
-    res = client.get(get_config().api_prefix + f"/uploads/{ul.v2_infohash.hex()}/files")
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/files")
     assert res.status_code == 200
     page_1 = res.json()
     assert len(page_1["items"]) == 100
     assert page_1["items"][0]["path"] == "0.bin"
     assert page_1["items"][-1]["path"] == "99.bin"
 
-    res = client.get(get_config().api_prefix + f"/uploads/{ul.v2_infohash.hex()}/files/?page=2")
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/files/?page=2")
     assert res.status_code == 200
     page_2 = res.json()
     assert len(page_2["items"]) == 1000
     assert page_2["items"][0]["path"] == "100.bin"
     assert page_2["items"][-1]["path"] == "1099.bin"
 
-    res = client.get(get_config().api_prefix + f"/uploads/{ul.v2_infohash.hex()}/files/?size=500")
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/files/?size=500")
     assert res.status_code == 200
     page_1_sized = res.json()
     assert len(page_1_sized["items"]) == 500
     assert page_1_sized["items"][0]["path"] == "0.bin"
     assert page_1_sized["items"][-1]["path"] == "499.bin"
 
-    res = client.get(
-        get_config().api_prefix + f"/uploads/{ul.v2_infohash.hex()}/files/?size=500&page=2"
-    )
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/files/?size=500&page=2")
     assert res.status_code == 200
     page_2_sized = res.json()
     assert len(page_2_sized["items"]) == 500

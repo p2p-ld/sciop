@@ -21,7 +21,7 @@ async def test_upload_from_download(page_as_admin: "Page", torrent, dataset, ses
     expected = {
         "method": "downloaded",
         "description": "it was downloaded",
-        "infohash": t.v1_infohash.hex(),
+        "infohash": t.v2_infohash,
     }
 
     await page.goto("http://127.0.0.1:8080/datasets/default")
@@ -35,7 +35,7 @@ async def test_upload_from_download(page_as_admin: "Page", torrent, dataset, ses
     await page.locator("#upload-form-description").fill(expected["description"])
     await page.locator("#submit-upload-button").click()
     # wait for upload to finalize
-    await expect(page.locator(f"#upload-{t.v1_infohash.hex()}")).to_be_visible()
+    await expect(page.locator(f"#upload-{t.v2_infohash}")).to_be_visible()
 
     upload = session.exec(select(Upload)).first()
     for k, v in expected.items():

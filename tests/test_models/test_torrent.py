@@ -5,18 +5,6 @@ from sciop.models import TorrentFile, TorrentFileCreate
 from ..conftest import DATA_DIR
 
 
-def test_torrent_max_size_from_config():
-    """
-    Torrent class shouldn't have its own independent max size.
-
-    Remove this once we replace torf
-    """
-    from sciop.config import get_config
-    from sciop.models import Torrent
-
-    assert get_config().upload_limit == Torrent.MAX_TORRENT_FILE_SIZE
-
-
 def test_strip_query_params():
     """
     We strip query params from trackers when creating them
@@ -36,12 +24,12 @@ def test_strip_query_params():
 
 
 def test_torrent_exclude_padfiles():
-    from sciop.models import Torrent
+    from torrent_models import Torrent
 
     torrent = Torrent.read(DATA_DIR / "test_hybrid_w_pad.torrent")
     files = torrent.files
     assert not any([".pad" in f.path for f in files])
-    assert torrent.size == 9085750369
+    assert torrent.total_size == 9085750369
 
 
 def test_torrentcreate_exclude_padfiles():
