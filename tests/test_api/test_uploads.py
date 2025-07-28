@@ -3,9 +3,10 @@ from typing import Callable as C
 
 import pytest
 from sqlmodel import Session
+from torrent_models import Torrent
 
 from sciop.config import get_config
-from sciop.models import Account, Dataset, DatasetPart, Torrent
+from sciop.models import Account, Dataset, DatasetPart
 
 
 @pytest.mark.parametrize("infohash_type", ["v1_infohash", "v2_infohash"])

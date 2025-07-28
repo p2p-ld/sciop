@@ -268,6 +268,7 @@ def create_torrent(
         session.add(tracker)
         new_trackers.append(tracker)
 
+    # FIXME: this takes an extremely long time for no reason.
     files = [FileInTorrent(path=file.path, size=file.size) for file in created_torrent.files]
     db_obj = TorrentFile.model_validate(
         created_torrent, update={"files": files, "account": account}

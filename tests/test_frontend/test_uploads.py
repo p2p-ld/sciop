@@ -96,14 +96,15 @@ async def test_upload_edit_replace_torrent(
     torrent_1, torrent_2 = torrent_pair
     page = page_as_admin
 
-    assert torrent_1.infohash == torrent_2.infohash
+    assert torrent_1.v1_infohash == torrent_2.v1_infohash
+    assert torrent_1.v2_infohash == torrent_2.v2_infohash
 
     torrent_2_path = tmp_path / "torrent_2.torrent"
     torrent_2.write(torrent_2_path)
 
     acct1 = account(username="original_uploader", scopes=["upload"])
     ds = dataset(slug="duplicate-dataset", account_=acct1)
-    tf1 = torrentfile(torrent=torrent_1, account_=acct1, v2_infohash=False)
+    tf1 = torrentfile(torrent=torrent_1, account_=acct1)
     ul = upload(torrentfile_=tf1, account_=acct1, dataset_=ds)
 
     await page.goto(f"http://127.0.0.1:8080/uploads/{ul.infohash}")

@@ -43,16 +43,13 @@ def test_upload_torrent_infohash(
             get_config().api_prefix + "/torrents", headers=header, files={"file": f}
         )
 
-    if version in (TorrentVersion.v1, TorrentVersion.hybrid):
-        assert response.status_code == 200
-        created = response.json()
-        if "v1_infohash" in hashes:
-            assert created["v1_infohash"] == hashes["v1_infohash"]
-        if "v2_infohash" in hashes:
-            assert created["v2_infohash"] == hashes["v2_infohash"]
-        assert created["version"] == version
-    else:
-        assert response.status_code == 415
+    assert response.status_code == 200
+    created = response.json()
+    if "v1_infohash" in hashes:
+        assert created["v1_infohash"] == hashes["v1_infohash"]
+    if "v2_infohash" in hashes:
+        assert created["v2_infohash"] == hashes["v2_infohash"]
+    assert created["version"] == version
 
 
 @pytest.mark.parametrize("hx_request", [True, False])
@@ -98,7 +95,7 @@ def test_upload_noscope(
         assert response.status_code == 200
 
     ul = UploadCreate(
-        infohash=torrent_.infohash,
+        infohash=torrent_.v1_infohash,
     )
 
     res = client.post(
@@ -107,7 +104,7 @@ def test_upload_noscope(
         json=ul.model_dump(),
     )
     assert res.status_code == 200
-    ul = crud.get_upload_from_infohash(infohash=torrent_.infohash, session=session)
+    ul = crud.get_upload_from_infohash(infohash=torrent_.v1_infohash, session=session)
     assert not ul.is_approved
     assert ul.needs_review
 
@@ -119,7 +116,7 @@ def test_replace_orphaned_upload(
     Torrent files that are uploaded but not associated with an Upload
     should be replaced by a second upload
     """
-    existing_tf: TorrentFile = torrentfile(v2_infohash=False)
+    existing_tf: TorrentFile = torrentfile()
     existing_torrent_path = existing_tf.filesystem_path
     assert existing_tf.upload is None
     assert existing_torrent_path.exists()
@@ -191,7 +188,7 @@ def test_replace_duplicate_with_force(
     torrent_1, torrent_2 = torrent_pair
     torrent_2_path = tmp_path / "default_torrent_2.torrent"
     torrent_2.write(torrent_2_path)
-    assert torrent_1.infohash == torrent_2.infohash
+    assert torrent_1.v1_infohash == torrent_2.v1_infohash
 
     # the first one should already exist as an upload
     acct1 = account(username="original_uploader", scopes=["upload"])
@@ -226,7 +223,7 @@ def test_replace_duplicate_with_force(
     # reload the whole upload object
     ul_reload = session.exec(select(Upload).where(Upload.upload_id == ul.upload_id)).first()
     # added the new trackers (and thus are the new torrent file)
-    assert ul.torrent.infohash == ul_reload.torrent.infohash
+    assert ul.torrent.v1_infohash == ul_reload.torrent.v1_infohash
     assert len(ul_reload.torrent.trackers) == 2
     # kept the old account associated with the upload
     assert ul_reload.account == acct1

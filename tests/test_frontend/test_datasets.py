@@ -3,38 +3,39 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from playwright.async_api import Page, expect
 from sqlmodel import select
+from torrent_models import Torrent
 
-from sciop.models import Torrent, Upload
+from sciop.models import Upload
 
 
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.playwright
-async def test_upload_from_download(page_as_admin: "Page", torrent, dataset, session):
+async def test_upload_from_download(page_as_admin: "Page", torrent, dataset, session, tmp_path):
     """We can upload a torrent"""
     page = page_as_admin
     ds = dataset(session_=session)
     session.expire(ds)
     t: Torrent = torrent()
-    t.path.parent.mkdir(exist_ok=True, parents=True)
-    t.write(t.path, overwrite=True)
+    tpath = tmp_path / "tmp.torrent"
+    t.write(tpath)
     expected = {
         "method": "downloaded",
         "description": "it was downloaded",
-        "infohash": t.infohash,
+        "infohash": t.v2_infohash,
     }
 
     await page.goto("http://127.0.0.1:8080/datasets/default")
     # initiate upload partial
     await page.locator("#upload-button").click()
     # upload file
-    await page.locator('input[type="file"]').set_input_files(str(t.path))
+    await page.locator('input[type="file"]').set_input_files(str(tpath))
     await page.locator(".upload-form button[type=submit]").click()
     # input model fields
     await page.locator("#upload-form-method").fill(expected["method"])
     await page.locator("#upload-form-description").fill(expected["description"])
     await page.locator("#submit-upload-button").click()
     # wait for upload to finalize
-    await expect(page.locator(f"#upload-{t.infohash}")).to_be_visible()
+    await expect(page.locator(f"#upload-{t.v2_infohash}")).to_be_visible()
 
     upload = session.exec(select(Upload)).first()
     for k, v in expected.items():

@@ -1,13 +1,9 @@
-import hashlib
-import os
 import re
-import sys
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generator, Optional, Self
+from typing import TYPE_CHECKING, Any, Optional, Self
 from urllib.parse import ParseResult, quote, urlparse, urlunparse
 
-import bencodepy
 import humanize
 from pydantic import ModelWrapValidatorHandler, field_validator, model_validator
 from sqlalchemy import ColumnElement, Connection, SQLColumnExpression, event
@@ -16,8 +12,6 @@ from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, select
-from torf import Torrent as Torrent_
-from torf import _errors, _torrent, _utils
 
 from sciop.config import get_config
 from sciop.models.base import SQLModel
@@ -25,14 +19,6 @@ from sciop.models.magnet import MagnetLink
 from sciop.models.mixins import EditableMixin, SortableCol, SortMixin, TableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
-
-if sys.version_info < (3, 12):
-    if os.name == "nt":
-        from pathlib import _windows_flavour as _flavour
-    else:
-        from pathlib import _posix_flavour as _flavour
-else:
-    _flavour = None
 
 if TYPE_CHECKING:
     from sciop.models import Upload
@@ -45,213 +31,6 @@ class TorrentVersion(StrEnum):
     v1 = "v1"
     v2 = "v2"
     hybrid = "hybrid"
-
-
-class _File(Path):
-    if sys.version_info < (3, 12):
-        # apparently pathlib.Path didn't have __init__ before 3.12
-        # https://discuss.python.org/t/subclass-pureposixpath-typeerror-object-init-takes-exactly-one-argument-the-instance-to-initialize/51555/3
-
-        _flavour: ClassVar = _flavour
-        # https://codereview.stackexchange.com/q/162426
-
-        def __new__(cls, path: str | Path, size: int, *args: Any, **kwargs: Any):
-            self = Path.__new__(cls, path, *args, **kwargs)
-            self.size = size
-            return self
-
-    else:
-
-        def __init__(self, path: str | Path, size: int) -> None:
-            super().__init__(path)
-            self.size = size
-
-    @property
-    def path(self) -> str:
-        return self.as_posix()
-
-
-def _to_str(val: str | bytes) -> str:
-    if isinstance(val, bytes):
-        return val.decode("utf-8", errors="replace")
-    elif isinstance(val, str):
-        return val
-    else:
-        return str(val)
-
-
-class Torrent(Torrent_):
-    """
-    Subclass of :class:`torf.Torrent` that can compute v2 infohashes
-    and not spend literally eons processing torrent files
-    """
-
-    MAX_TORRENT_FILE_SIZE = get_config().upload_limit
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        # use these goofy names since `_infohash` is already used
-        self._internal_infohash = None
-        self._internal_infohash_v2 = None
-
-    @property
-    def v2_infohash(self) -> Optional[str]:
-        """SHA256 hash of info dict, if `file tree` is present"""
-        if self._internal_infohash_v2 is None:
-            if "file tree" not in self.metainfo["info"]:
-                return None
-
-            self._internal_infohash_v2 = hashlib.sha256(
-                bencodepy.encode(self.metainfo["info"])
-            ).hexdigest()
-        return self._internal_infohash_v2
-
-    @property
-    def infohash(self) -> Optional[str]:
-        """Override parent impl to not validate when accessing an infohash..."""
-        if self._internal_infohash is None:
-            try:
-                try:
-                    info = _utils.encode_dict(self.metainfo["info"])
-                except ValueError as e:
-                    raise _errors.MetainfoError(e) from e
-                else:
-                    self._internal_infohash = hashlib.sha1(bencodepy.encode(info)).hexdigest()
-            except _errors.MetainfoError as e:
-                # If we can't calculate infohash, see if it was explicitly specifed.
-                # This is necessary to create a Torrent from a Magnet URI.
-                try:
-                    return self._infohash
-                except AttributeError:
-                    raise e from None
-        return self._internal_infohash
-
-    @property
-    def torrent_version(self) -> TorrentVersion:
-        if "pieces" in self.metainfo["info"] and "file tree" in self.metainfo["info"]:
-            return TorrentVersion.hybrid
-        elif "pieces" in self.metainfo["info"]:
-            return TorrentVersion.v1
-        elif "file tree" in self.metainfo["info"]:
-            return TorrentVersion.v2
-        else:
-            raise ValueError("Unsure what version this torrent is, likely invalid")
-
-    @property
-    def files(self) -> Generator[_File, None, None]:
-        """
-        Override of the ridiculously inefficient file listing method in torf
-        """
-        info = self.metainfo["info"]
-        if self.mode == "singlefile":
-            yield _File(_to_str(info.get("name", b"")), size=self.size)
-        elif self.mode == "multifile":
-
-            basedir = _to_str(info.get("name", b""))
-
-            for fileinfo in info["files"]:
-                path = os.path.join(
-                    basedir, *(_to_str(file_part) for file_part in fileinfo["path"])
-                )
-                if PADFILE_PATTERN.match(path):
-                    continue
-                yield _File(
-                    path,
-                    size=fileinfo["length"],
-                )
-
-    @files.setter
-    def files(self, files: Any) -> None:
-        super(Torrent, self.__class__).files.fset(self, files)
-
-    @property
-    def n_files(self) -> int:
-        if self.mode == "singlefile":
-            return 1
-        else:
-            return len(self.metainfo["info"]["files"])
-
-    @property
-    def size(self) -> int:
-        """Total size of content in bytes"""
-        if self.mode == "singlefile":
-            return self.metainfo["info"]["length"]
-        elif self.mode == "multifile":
-            return sum(file.size for file in self.files)
-        else:
-            return 0
-
-    def _filters_changed(self, _: Any) -> None:
-        """Make this a no-op because it's wildly expensive"""
-        pass
-
-
-def _assert_type(
-    obj: list | dict,
-    keys: tuple[str | int],
-    exp_types: tuple[type],
-    must_exist: bool = True,
-    check: Optional[Callable] = None,
-) -> None:
-    """
-    Override torf's ridiculously inefficient validation function
-
-    Raise MetainfoError if value is not of a particular type
-
-    :param obj: The object to check
-    :type obj: sequence or mapping
-    :param keys: Sequence of keys so that ``obj[key[0]][key[1]]...`` resolves to
-        a value
-    :type obj: sequence
-    :param exp_types: Sequence of allowed types that the value specified by
-        `keys` must be an instance of
-    :type obj: sequence
-    :param bool must_exist: Whether to raise MetainfoError if `keys` does not
-         resolve to a value
-    :param callable check: Callable that gets the value specified by `keys` and
-        returns True if it is OK, False otherwise
-    """
-    keys = list(keys)
-    i = -1
-    for j, key in enumerate(keys[:-1]):
-        try:
-            obj = obj[key]
-        except (KeyError, IndexError):
-            i = j + 1
-            break
-
-    key = keys[i]
-
-    if not _utils.key_exists_in_list_or_dict(key, obj):
-        if must_exist:
-            raise _errors.MetainfoError(f"Missing {key!r} in {keys}")
-
-    elif not isinstance(obj[key], exp_types):
-        if len(exp_types) > 2:
-            exp_types_str = ", ".join(t.__name__ for t in exp_types[:-1])
-            exp_types_str += " or " + exp_types[-1].__name__
-        else:
-            exp_types_str = " or ".join(t.__name__ for t in exp_types)
-        type_str = type(obj[key]).__name__
-        raise _errors.MetainfoError(
-            f"{keys}[{key!r}] must be {exp_types_str}, " f"not {type_str}: {obj[key]!r}"
-        )
-
-    elif check is not None and not check(obj[key]):
-        raise _errors.MetainfoError(f"{keys}[{key!r}] is invalid: {obj[key]!r}")
-
-
-def _key_exists_in_list_or_dict(key: str | int, lst_or_dct: list | dict) -> bool:
-    """True if `lst_or_dct[key]` does not raise an Exception"""
-    try:
-        _ = lst_or_dct[key]
-        return True
-    except (KeyError, IndexError):
-        return False
-
-
-_torrent.utils.key_exists_in_list_or_dict = _key_exists_in_list_or_dict
-_torrent.utils.assert_type = _assert_type
 
 
 class FileInTorrent(TableMixin, SortMixin, table=True):
@@ -290,8 +69,13 @@ class FileInTorrentRead(FileInTorrentCreate):
 
 class TorrentFileBase(SQLModel):
     file_name: FileName = Field(max_length=1024)
-    v1_infohash: str = Field(
-        max_length=40, min_length=40, unique=True, index=True, description="SHA1 hash of infodict"
+    v1_infohash: Optional[str] = Field(
+        None,
+        max_length=40,
+        min_length=40,
+        unique=True,
+        index=True,
+        description="SHA1 hash of infodict",
     )
     v2_infohash: Optional[str] = Field(
         None,
@@ -503,6 +287,14 @@ class TorrentFileCreate(TorrentFileBase):
                 )
             )
         return stripped
+
+    @model_validator(mode="after")
+    def any_infohash(self) -> Self:
+        """Need either a v1 or a v2 infohash"""
+        assert (
+            self.v1_infohash or self.v2_infohash
+        ), "Need to have either a v1 or v2 infohash, or both"
+        return self
 
     @field_validator("files", mode="after")
     def remove_padfiles(cls, val: list[FileInTorrentCreate]) -> list[FileInTorrentCreate]:

@@ -3,7 +3,7 @@ import random
 from datetime import UTC, datetime, timedelta
 from math import ceil, floor
 
-import flatbencode
+import bencode_rs
 import pytest
 from pytest_httpx import HTTPXMock
 from sqlmodel import select
@@ -268,7 +268,7 @@ async def test_empty_responses_are_errors(httpx_mock: HTTPXMock, infohashes):
     Empty responses should be treated as errors,
     this causes us to exponentially back off making requests to them
     """
-    httpx_mock.add_response(content=flatbencode.encode({b"files": {}}), is_reusable=True)
+    httpx_mock.add_response(content=bencode_rs.bencode({b"files": {}}), is_reusable=True)
     res = await scrape_http_tracker("http://example.com/announce", infohashes)
 
     assert len(res.errors) == 1
