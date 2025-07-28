@@ -292,13 +292,13 @@ def random_upload(
 
     tmp_parent = Path("__tmp__")
     tmp_parent.mkdir(exist_ok=True)
-    torrent_file = tmp_parent / (name + str(fake.file_name(extension="bin")))
-    with open(torrent_file, "wb") as tfile:
+    torrent_file = name + str(fake.file_name(extension="bin"))
+    with open(tmp_parent / torrent_file, "wb") as tfile:
         hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
         hash_data = hash_data.encode("utf-8")
         tfile.write(hash_data)
 
-    file_size = torrent_file.stat().st_size
+    file_size = (tmp_parent / torrent_file).stat().st_size
 
     torrent = TorrentCreate(
         paths=[torrent_file],
@@ -311,18 +311,18 @@ def random_upload(
     torrent = torrent.generate(version="hybrid")
 
     created_torrent = TorrentFileCreate(
-        file_name=torrent_file.name,
+        file_name=torrent_file,
         v1_infohash=torrent.v1_infohash,
         v2_infohash=torrent.v2_infohash,
         version="hybrid",
         total_size=16384 * 4,
         piece_size=16384,
         torrent_size=64,
-        files=[FileInTorrentCreate(path=str(torrent_file.name), size=file_size)],
+        files=[FileInTorrentCreate(path=torrent_file, size=file_size)],
         announce_urls=["udp://opentracker.io:6969/announce"],
     )
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
-    torrent.write(created_torrent.filesystem_path, overwrite=True)
+    torrent.write(created_torrent.filesystem_path)
     created_torrent = crud.create_torrent(
         session=session, created_torrent=created_torrent, account=account
     )

@@ -58,6 +58,13 @@ class FileInTorrentCreate(SQLModel):
     path: str = Field(max_length=4096)
     size: int
 
+    @field_validator("path", mode="after")
+    def no_padfile(cls, val: str) -> str:
+        assert not PADFILE_PATTERN.fullmatch(
+            val
+        ), "Padfiles should not be added to the database representation of a torrent"
+        return val
+
     @property
     def human_size(self) -> str:
         return humanize.naturalsize(self.size, binary=True)
@@ -287,11 +294,6 @@ class TorrentFileCreate(TorrentFileBase):
                 )
             )
         return stripped
-
-    @field_validator("files", mode="after")
-    def remove_padfiles(cls, val: list[FileInTorrentCreate]) -> list[FileInTorrentCreate]:
-        """Remove .pad/d+ files"""
-        return [v for v in val if not PADFILE_PATTERN.match(v.path)]
 
     @model_validator(mode="after")
     def any_infohash(self) -> Self:

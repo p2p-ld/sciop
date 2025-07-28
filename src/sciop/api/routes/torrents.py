@@ -14,6 +14,7 @@ from sciop.frontend.templates import jinja
 from sciop.logging import init_logger
 from sciop.middleware import limiter
 from sciop.models import FileInTorrentCreate, TorrentFileCreate, TorrentFileRead
+from sciop.models.torrent import PADFILE_PATTERN
 
 torrents_router = APIRouter(prefix="/torrents")
 torrents_logger = init_logger("api.torrents")
@@ -48,6 +49,7 @@ async def upload_torrent(
     torrents_logger.debug("Processing torrent file")
     try:
         torrent = Torrent.read_stream(file.file)
+        torrents_logger.debug("Processed torrent file")
     except ValidationError:
         torrents_logger.exception("Error decoding upload")
         raise HTTPException(
@@ -122,7 +124,11 @@ async def upload_torrent(
         version=torrent.torrent_version,
         total_size=torrent.total_size,
         piece_size=torrent.info.piece_length,
-        files=[FileInTorrentCreate(path=_file.path, size=_file.length) for _file in torrent.files],
+        files=[
+            FileInTorrentCreate.model_construct(path=_file.path, size=_file.length)
+            for _file in torrent.files
+            if not PADFILE_PATTERN.fullmatch(_file.path)
+        ],
         announce_urls=trackers,
     )
 
@@ -143,4 +149,5 @@ async def upload_torrent(
         session.add(existing_upload)
         session.commit()
 
+    torrents_logger.debug("Completed torrent upload")
     return TorrentFileRead.model_validate(created_torrent)

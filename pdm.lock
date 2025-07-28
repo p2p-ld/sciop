@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:0bbf96b1b029c0b61710c447a37d068537f2f8fb07b1747dcda6caecfd6ebb70"
+content_hash = "sha256:1bc47c500770f523521f39fcddfc005d4a8770cad35509b6c4a433796ed1afb5"
 
 [[metadata.targets]]
 requires_python = ">=3.11"
@@ -2399,7 +2399,7 @@ files = [
 
 [[package]]
 name = "torrent-models"
-version = "0.2.0"
+version = "0.2.1"
 requires_python = ">=3.11"
 summary = ".torrent file parsing and creation with pydantic"
 groups = ["default"]
@@ -2411,8 +2411,8 @@ dependencies = [
     "typing-extensions>=4.13.0; python_version < \"3.12\"",
 ]
 files = [
-    {file = "torrent_models-0.2.0-py3-none-any.whl", hash = "sha256:19fb91d59530ecb0afd96f4ce20fbbaae0f2e0fb385ff05df5c424e127566b15"},
-    {file = "torrent_models-0.2.0.tar.gz", hash = "sha256:5eda31a1b362b2c5b8b1e70d3bea45786eac39c1ebe9d3df8f8db2ae1a0f449e"},
+    {file = "torrent_models-0.2.1-py3-none-any.whl", hash = "sha256:c7c4bb0783d12f2716211cdda716a71b3f5bf3473d2c5b0f2b936a13677fe44a"},
+    {file = "torrent_models-0.2.1.tar.gz", hash = "sha256:a5070f199a1abeaed684c7ca4dba8d8a49d3a255b1d10b7b0325026e4b102cf5"},
 ]
 
 [[package]]
