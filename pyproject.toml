@@ -20,7 +20,7 @@ dependencies = [
     "python-multipart>=0.0.20",
     "bcrypt>=4.2.1",
     "fastapi-pagination>=0.12.34",
-    "torrent-models>=0.2.1",
+    "torrent-models>=0.3.0",
     "humanize>=4.11.0",
     "slowapi>=0.1.9",
     "fasthx>=2.1.1",
@@ -106,8 +106,8 @@ alembic = "alembic -c ./src/sciop/migrations/alembic.ini"
 migrate = "alembic -c ./src/sciop/migrations/alembic.ini upgrade head"
 migration.composite = [
     "rm -f db.dev.sqlite",
-    "alembic -c ./src/sciop/migrations/alembic.ini upgrade head",
-    "alembic -c ./src/sciop/migrations/alembic.ini revision --autogenerate -m {args}"
+    "alembic upgrade head",
+    "alembic revision --autogenerate -m {args}"
 ]
 
 

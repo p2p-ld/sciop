@@ -2,10 +2,12 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from pydantic import field_validator
-from sqlmodel import Relationship
+from sqlalchemy.schema import UniqueConstraint
+from sqlmodel import Field, Relationship
 
 from sciop.models.base import SQLModel
-from sciop.types import MaxLenURL, UsernameStr, UTCDateTime
+from sciop.models.mixins import TableMixin
+from sciop.types import IDField, MaxLenURL, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import Account, TorrentFile
@@ -37,8 +39,17 @@ class WebseedBase(SQLModel):
     """Message to display in the case of error, etc."""
 
 
-class Webseed(WebseedBase, table=True):
+class Webseed(WebseedBase, TableMixin, table=True):
+    __tablename__ = "webseeds"
+    __table_args__ = (UniqueConstraint("url", "torrent_id"),)
+
+    webseed_id: IDField = Field(default=None, primary_key=True)
+
+    account_id: int | None = Field(default=None, foreign_key="accounts.account_id")
     account: "Account" = Relationship(back_populates="webseeds")
+    torrent_id: int | None = Field(
+        default=None, foreign_key="torrent_files.torrent_file_id", ondelete="CASCADE"
+    )
     torrent: "TorrentFile" = Relationship(back_populates="webseeds")
 
 

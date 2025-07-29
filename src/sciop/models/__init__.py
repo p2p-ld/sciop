@@ -74,6 +74,7 @@ DatasetPart.model_rebuild()
 DatasetPartRead.model_rebuild()
 Scope.model_rebuild()
 TorrentFile.model_rebuild()
+Webseed.model_rebuild()
 EditableMixin.rebuild_history_models(namespace=locals())
 
 __all__ = [
