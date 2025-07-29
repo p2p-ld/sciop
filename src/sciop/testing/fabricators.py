@@ -95,6 +95,7 @@ def default_torrent() -> dict:
         "path": "default.bin",
         "name": "Default Torrent",
         "trackers": [["udp://example.com/announce"]],
+        "url_list": ["http://example.com/data", "http://subdomain.example.com/root/data"],
         "comment": "My comment",
         "piece_size": 16384,
     }

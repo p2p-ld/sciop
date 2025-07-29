@@ -18,7 +18,7 @@ from sciop.models.base import SQLModel
 from sciop.models.magnet import MagnetLink
 from sciop.models.mixins import EditableMixin, SortableCol, SortMixin, TableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
-from sciop.models.webseed import Webseed
+from sciop.models.webseed import Webseed, WebseedRead
 from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
 
 if TYPE_CHECKING:
@@ -256,6 +256,7 @@ def _rename_torrent_file(
 class TorrentFileCreate(TorrentFileBase):
     files: list[FileInTorrentCreate]
     announce_urls: list[MaxLenURL]
+    webseeds: list[MaxLenURL]
 
     @model_validator(mode="after")
     def get_short_hash(self) -> Self:
@@ -303,6 +304,11 @@ class TorrentFileCreate(TorrentFileBase):
         """Remove .pad/d+ files"""
         return [v for v in val if not PADFILE_PATTERN.match(v.path)]
 
+    @field_validator("webseeds", mode="after")
+    def deduplicate_webseeds(cls, val: list[MaxLenURL]) -> list[MaxLenURL]:
+        """Remove duplicate webseed urls"""
+        return list(dict.fromkeys(val))
+
 
 class TorrentFileRead(TorrentFileBase):
     short_hash: str = Field(
@@ -315,6 +321,7 @@ class TorrentFileRead(TorrentFileBase):
     announce_urls: list[MaxLenURL] = Field(default_factory=list)
     seeders: Optional[int] = None
     leechers: Optional[int] = None
+    webseeds: Optional[list[WebseedRead]] = None
 
     @model_validator(mode="wrap")
     @classmethod

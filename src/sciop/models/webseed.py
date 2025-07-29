@@ -56,8 +56,6 @@ class Webseed(WebseedBase, TableMixin, table=True):
 class WebseedCreate(SQLModel):
     url: MaxLenURL
     """URL of webseed"""
-    torrent: str
-    """Infohash of torrent to add webseed to"""
 
 
 class WebseedRead(WebseedBase):

@@ -29,6 +29,9 @@ from sciop.models import (
     UploadCreate,
     UploadRead,
     UploadUpdate,
+    Webseed,
+    WebseedCreate,
+    WebseedRead,
 )
 
 uploads_router = APIRouter(prefix="/uploads")
@@ -139,3 +142,31 @@ async def upload_files(
     request.state.upload = upload
     stmt = search.apply_sort(stmt, FileInTorrent)
     return paginate(conn=session, query=stmt)
+
+
+@uploads_router.get("/{infohash}/webseeds")
+@jinja.hx("partials/webseeds.html")
+async def webseeds(
+    infohash: str, upload: RequireVisibleUpload, session: SessionDep
+) -> list[WebseedRead]:
+    """Show webseeds in a torrent"""
+    return session.exec(select(Webseed).where(Webseed.torrent == upload.torrent)).all()
+
+
+@uploads_router.post("/{infohash}/webseeds")
+async def create_webseed(
+    infohash: str,
+    webseed: WebseedCreate,
+    upload: RequireVisibleUpload,
+    current_account: RequireCurrentAccount,
+) -> WebseedRead:
+    """Create a new webseed"""
+    raise NotImplementedError()
+
+
+@uploads_router.delete("/{infohash}/webseeds")
+async def delete_webseed(
+    infohash: str, url: str, upload: RequireVisibleUpload, current_account: RequireCurrentAccount
+):
+    """Delete a webseed"""
+    raise NotImplementedError()

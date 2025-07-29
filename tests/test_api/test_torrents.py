@@ -1,6 +1,9 @@
+from typing import Callable as C
+
 import pytest
 from sqlmodel import select
 from starlette.testclient import TestClient
+from torrent_models import Torrent
 
 from sciop import crud
 from sciop.config import get_config
@@ -273,3 +276,46 @@ def test_files_ragged_pagination(client, upload, torrentfile):
     assert len(page_2_sized["items"]) == 500
     assert page_2_sized["items"][0]["path"] == "500.bin"
     assert page_2_sized["items"][-1]["path"] == "999.bin"
+
+
+def test_webseeds_on_creation(
+    client, dataset, torrent: C[[], Torrent], tmp_path, uploader, get_auth_header
+):
+    """
+    Webseeds are created from an uploaded torrent file, and we can get them from the API
+    """
+    tf = torrent()
+    header = get_auth_header()
+    ds = dataset(slug="test-upload-webseeds", is_approved=True)
+    webseeds = ["https://example.com/files/data", "https://backup.example.com/files/data"]
+    torrent_path = tmp_path / "my_torrent.torrent"
+
+    tf.url_list = webseeds
+    tf.write(torrent_path)
+    with open(torrent_path, "rb") as f:
+        response = client.post(
+            get_config().api_prefix + "/torrents", headers=header, files={"file": f}
+        )
+
+    assert response.status_code == 200
+    assert [ws["url"] for ws in response.json()["webseeds"]] == webseeds
+
+    # associate with an upload and get from upload api
+    response = client.post(
+        get_config().api_prefix + "/uploads",
+        headers=header,
+        json={
+            "infohash": tf.v2_infohash,
+            "dataset_slug": ds.slug,
+        },
+    )
+    response.raise_for_status()
+
+    ws_response = client.get(get_config().api_prefix + f"/uploads/{tf.v2_infohash}/webseeds")
+    ws_response.raise_for_status()
+    get_ws = ws_response.json()
+    get_urls = [ws["url"] for ws in get_ws]
+    assert get_urls == webseeds
+    assert all(ws["status"] == "in_original" for ws in get_ws)
+    assert all(ws["torrent"] == tf.v2_infohash for ws in get_ws)
+    assert all(ws["account"] == uploader.username for ws in get_ws)

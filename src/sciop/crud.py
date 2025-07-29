@@ -26,6 +26,7 @@ from sciop.models import (
     TrackerCreate,
     Upload,
     UploadCreate,
+    Webseed,
 )
 
 
@@ -270,8 +271,11 @@ def create_torrent(
 
     # FIXME: this takes an extremely long time for no reason.
     files = [FileInTorrent(path=file.path, size=file.size) for file in created_torrent.files]
+    webseeds = [
+        Webseed(url=ws, status="in_original", account=account) for ws in created_torrent.webseeds
+    ]
     db_obj = TorrentFile.model_validate(
-        created_torrent, update={"files": files, "account": account}
+        created_torrent, update={"files": files, "account": account, "webseeds": webseeds}
     )
     session.add(db_obj)
 
