@@ -18,6 +18,7 @@ from sciop.models.base import SQLModel
 from sciop.models.magnet import MagnetLink
 from sciop.models.mixins import EditableMixin, SortableCol, SortMixin, TableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
+from sciop.models.webseed import Webseed
 from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
 
 if TYPE_CHECKING:
@@ -171,6 +172,7 @@ class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
     tracker_links: list[TorrentTrackerLink] = Relationship(
         back_populates="torrent", cascade_delete=True
     )
+    webseeds: list[Webseed] = Relationship(back_populates="torrent", cascade_delete=True)
     short_hash: str = Field(
         min_length=8,
         max_length=8,

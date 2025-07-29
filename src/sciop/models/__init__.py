@@ -65,6 +65,7 @@ from sciop.models.torrent import (
 )
 from sciop.models.tracker import TorrentTrackerLink, Tracker, TrackerCreate
 from sciop.models.upload import Upload, UploadCreate, UploadRead, UploadUpdate
+from sciop.models.webseed import Webseed, WebseedCreate, WebseedRead, WebseedStatus
 
 Account.model_rebuild()
 Dataset.model_rebuild()
@@ -130,5 +131,9 @@ __all__ = [
     "UploadCreate",
     "UploadRead",
     "UploadUpdate",
+    "Webseed",
+    "WebseedCreate",
+    "WebseedRead",
+    "WebseedStatus",
     "_Friedolin",
 ]

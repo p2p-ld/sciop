@@ -23,6 +23,7 @@ if TYPE_CHECKING:
         ExternalSource,
         TorrentFile,
         Upload,
+        Webseed,
     )
 
 
@@ -136,6 +137,7 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
     submissions: list["Upload"] = Relationship(back_populates="account")
     external_submissions: list["ExternalSource"] = Relationship(back_populates="account")
     torrents: list["TorrentFile"] = Relationship(back_populates="account")
+    webseeds: list["Webseed"] = Relationship(back_populates="account")
     moderation_actions: list["AuditLog"] = Relationship(
         back_populates="actor",
         sa_relationship=relationship(
