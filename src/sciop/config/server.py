@@ -1,6 +1,12 @@
+from importlib.metadata import version
 from typing import Literal
 
 from pydantic import BaseModel, Field
+
+try:
+    sciop_version = version("sciop")
+except Exception:
+    sciop_version = "0.0.0"
 
 
 class CSPConfig(BaseModel):
@@ -69,3 +75,5 @@ class ServerConfig(BaseModel):
     """Port where local service should serve from"""
     csp: CSPConfig = CSPConfig()
     """Submodel containing CSP config"""
+    user_agent: str = f"sciop ({sciop_version})"
+    """User agent to use for outgoing http requests"""

@@ -256,7 +256,7 @@ def _rename_torrent_file(
 class TorrentFileCreate(TorrentFileBase):
     files: list[FileInTorrentCreate]
     announce_urls: list[MaxLenURL]
-    webseeds: list[MaxLenURL]
+    webseeds: list[MaxLenURL] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def get_short_hash(self) -> Self:
