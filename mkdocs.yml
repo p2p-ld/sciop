@@ -105,6 +105,7 @@ theme:
     - navigation.tabs
     - navigation.path
     - toc.integrate
+    - content.tabs.link
 
 extra_css:
   - css/fonts.css
@@ -138,6 +139,8 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+  - pymdownx.tabbed:
+      alternate_style: true
 
 plugins:
   - autorefs
