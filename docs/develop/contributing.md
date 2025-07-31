@@ -1,8 +1,8 @@
 # Contributing
 
 We welcome contributions of all kinds to Sciop including code 
-contributions, typo fixes and documentation updates. This page will 
-help you get started contributing to Sciop. 
+contributions, typo fixes and documentation updates. This page outlines  
+the development setups that will allow you to contribute.
 
 <!-- is there a coc? what types of contributions are invited? -->
 
@@ -18,11 +18,11 @@ help you get started contributing to Sciop.
 
 ### Fork the repository
 
-We prefer that pull requests come from a branch on a fork of the repo. To begin, follow the steps below:
+If you plan to submit a pull request. Please follow the steps below:
 
 - Fork the Sciop repository: https://codeberg.org/Safeguarding/sciop/fork
 - Clone your forked repository so you can work locally
-- Make a new branch to work on
+- Make a new branch in your fork for each pull request that you submit.
 
 ```shell
 git clone https://codeberg.org/my-user-name/sciop
@@ -32,27 +32,33 @@ git switch -c new-branch
 
 ### Optional: Install Python
 
-Most operating systems come with Python installed,
-however Sciop requires `python>=3.11`.
-If you have an older version of Python, you'll need to install an updated version of Python.
+Most operating systems come with Python installed.
+Sciop requires `python>=3.11`.
+If you have an older version of Python, you'll need to install 3.11 or higher. 
 
-Check your version of Python:
+In case you use an environment manager like conda, you may want to first check where your default Python lives:
+
+```shell
+which python
+```
+
+Then, check the default version of Python:
 
 ```shell
 python --version
 ```
 
-If you need a newer version of python, use `pyenv` : https://github.com/pyenv/pyenv
+If you need a newer version of Python, use `pyenv` : https://github.com/pyenv/pyenv
 
-See the docs for platform-specific instructions, but generally...
+See the [pyenv docs](https://github.com/pyenv/pyenv?tab=readme-ov-file#a-getting-pyenv) for platform-specific instructions, but generally:
 
-- Install pyenv
+- [Install pyenv](https://github.com/pyenv/pyenv?tab=readme-ov-file#a-getting-pyenv)
 
 ```shell
 curl -fsSL https://pyenv.run | bash
 ```
 
-- Add pyenv config to shell
+- Add pyenv config to your favorite shell
 
 <details>
 <summary>Expand/collapse Bash instructions</summary>
@@ -85,16 +91,16 @@ echo 'eval "$(pyenv init - zsh)"' >> ~/.zshrc
 </details>
 
 - Restart your shell
-- Install python
+- Install Python >= 3.11
 
 ```shell
-# list python versions
+# List python versions
 pyenv install --list
 
-# install a specific version
+# Install a specific version
 pyenv install 3.13.1
 
-# activate that version globally
+# Activate that version globally
 pyenv global 3.13.1
 ```
 
@@ -143,13 +149,14 @@ Instructions for installing Sciop using both tools are below.
 
 ## Running `sciop` in development mode
 
-<!-- How would a user know what pdm alias' are available? This is a bit confusing -->
+<!-- How would a user know what pdm alias' are available? This note below is a bit confusing -->
 
 !!! note
     
     For `sciop` cli commands that don't have a pdm alias when using pdm,
     just prepend `pdm run` like `pdm run sciop start` 
 
+<!-- what is this configuring? -->
 Create a configuration:
 
 ```shell
@@ -160,18 +167,18 @@ sciop config copy
 
     See all available options and syntax in the full [config](../python/config.md) documentation
 
-Two fields *must* be set:
+In the Sciop config, two fields are required and must be set for the application to run:
 
-- `SCIOP_ENV`: one of `dev`, `test` or `prod`. 
-  One should *only* make a sciop instance publicly available in `prod` mode.
-  `dev` mode is for local development purposes, as is `test`.
-  You must ensure that you do not re-use the same db between a `dev`/`test` and `prod`
-  instance, e.g. if the `SCIOP_DB` location is explicitly set to something other than the defaults.
-- `SCIOP_SECRET_KEY`: must be a securely-generated random hex value.
+1. `SCIOP_ENV`: one of `dev`, `test` or `prod`. 
+    * If you plan to make a Sciop instance publicly available, you must use `prod` mode.
+    * If you plan to work locally, use `dev` mode as is for development and testing `test`.
+    * IMPORTANT: Do not re-use the same database between a `dev`/`test` and `prod` instance, e.g. if the `SCIOP_DB` location is explicitly set to something other than the defaults.
+
+2. `SCIOP_SECRET_KEY`: must be a securely-generated random hex value.
   A key can be generated with `openssl rand -hex 32`.
 
-Then run the dev mode instance - 
-this will create seed data and automatically reload the site when your code changes
+Once you have setup the required config, run a dev mode instance. 
+This will create seed data and automatically reload the site when your code changes. Instructions for doing this using both PDM and pip are below:
 
 === "Use PDM (preferred)"
 
@@ -196,10 +203,11 @@ You can then login with the default root credentials:
 <!-- You could also use the ruff formater and remove black / keep it simpler?  -->
 
 `sciop` uses `ruff` and `black` for linting and formatting.
+Please run the code formatters before every commit. We will require them to be run before a Pull Request is merged.
 
 === "Use PDM (preferred)"
 
-    The PDM format command runs both Black and Ruff for you on the project.
+    The `pdm run format` command runs both Black and Ruff for you.
 
     ```bash
     pdm run format
@@ -221,8 +229,6 @@ You can then login with the default root credentials:
     python -m ruff check --fix
     ```
 
-Please run the code formatters before every commit. We will require them to be run before a Pull Request is merged.
-
 If you run `pdm run format` or `ruff check --fix`, it will  auto-fix most errors. The formatter will prompt you to fix 
 any remaining errors that it can't fix.
 
@@ -240,9 +246,9 @@ To run the tests:
     ```
 === "Use pip"
 
-  ```angular2html
-  python -m pytest
-  ```
+    ```angular2html
+    python -m pytest
+    ```
 
 ### Writing Tests
 
