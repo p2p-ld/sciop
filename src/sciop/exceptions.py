@@ -54,6 +54,18 @@ class ScrapeErrorType(StrEnum):
     """Unhandled or unknown exception type"""
 
 
+class WebseedException(SciOpException):
+    """Base class for webseed-related exceptions"""
+
+
+class WebseedValidationError(WebseedException, ValueError):
+    """The data returned by the webseed while checking was not valid for the given hash"""
+
+
+class WebseedHTTPError(WebseedException, HTTPException):
+    """An HTTP error was raised while trying to validate a webseed"""
+
+
 async def http_handler(request: Request, exc: HTTPException) -> Response:
     """
     Small wrapping of FastAPI's error handling to
