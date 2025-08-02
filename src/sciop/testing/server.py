@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import time
 from threading import Thread
+from typing import Callable
 
 from starlette.applications import Starlette
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -80,7 +81,7 @@ class RequestHoarderMiddleware(BaseHTTPMiddleware):
         self.requests = []
         self.responses = []
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         self.requests.append(request)
         response = await call_next(request)
         self.responses.append(response)

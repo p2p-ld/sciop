@@ -256,7 +256,7 @@ def _rename_torrent_file(
 class TorrentFileCreate(TorrentFileBase):
     files: list[FileInTorrentCreate]
     announce_urls: list[MaxLenURL]
-    webseeds: list[MaxLenURL] = Field(default_factory=list)
+    webseeds: list[MaxLenURL] | None = None
 
     @model_validator(mode="after")
     def get_short_hash(self) -> Self:
@@ -305,9 +305,9 @@ class TorrentFileCreate(TorrentFileBase):
         return [v for v in val if not PADFILE_PATTERN.match(v.path)]
 
     @field_validator("webseeds", mode="after")
-    def deduplicate_webseeds(cls, val: list[MaxLenURL]) -> list[MaxLenURL]:
+    def deduplicate_webseeds(cls, val: list[MaxLenURL] | None) -> list[MaxLenURL] | None:
         """Remove duplicate webseed urls"""
-        return list(dict.fromkeys(val))
+        return list(dict.fromkeys(val)) if val else val
 
 
 class TorrentFileRead(TorrentFileBase):
