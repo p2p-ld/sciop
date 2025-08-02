@@ -1,17 +1,20 @@
 import random
 import string
 from pathlib import Path
+from typing import cast
 
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from torrent_models import KiB, TorrentCreate
+from torrent_models.types.v1 import V1PieceRange
+from torrent_models.types.v2 import V2PieceRange
 from uvicorn.config import Config as UvicornConfig
 
 from sciop.models import TorrentFile
 from sciop.services.webseeds import validate_webseed
-from sciop.testing.server import UvicornTestServer
+from sciop.testing.server import RequestHoarderMiddleware, UvicornTestServer
 
 SIZES = [10 * KiB, 20 * KiB, 32 * KiB, 40 * KiB, 100 * KiB]
 
@@ -24,15 +27,17 @@ def tmp_data_path(tmp_path: Path) -> Path:
 
 
 @pytest_asyncio.fixture(loop_scope="session")
-async def file_server(tmp_data_path: Path) -> FastAPI:
+async def file_server(tmp_data_path: Path, session) -> FastAPI:
     app = FastAPI()
     app.mount("/data", StaticFiles(directory=tmp_data_path), name="data")
+    app.add_middleware(RequestHoarderMiddleware)
 
     config = UvicornConfig(
         app=app,
         port=9998,
         workers=1,
         reload=False,
+        access_log=True,
     )
     server = UvicornTestServer(config=config)
     await server.up()
@@ -54,21 +59,45 @@ def torrent_version(request) -> str:
     return request.param
 
 
-@pytest.mark.skip("run manually first to not potentially have ci freeze forever")
+@pytest.mark.asyncio(loop_scope="session")
 async def test_webseed_validation(
-    tmp_data_path, file_server, file_size, torrent_version, torrentfile
+    tmp_data_path,
+    file_server: UvicornTestServer,
+    file_size,
+    torrent_version,
+    torrentfile,
+    session,
 ) -> None:
     """
     We should validate correct webseeds
     """
+    webseed_url = "http://localhost:9998/data/"
     create = TorrentCreate(
         paths=[p for p in tmp_data_path.iterdir()], path_root=tmp_data_path, piece_length=32 * KiB
     )
     torrent = create.generate(version=torrent_version)
     tf: TorrentFile = torrentfile(torrent=torrent)
+    res = await validate_webseed(tf.infohash, webseed_url, session)
 
-    validate_webseed(tf.infohash, "http://localhost:9998/data/")
-    raise NotImplementedError("Finish this test")
+    assert res.valid
+
+    # check that we actually requested all the urls we were supposed to.
+    hoarder: RequestHoarderMiddleware = file_server.config.app.middleware_stack.app
+    if torrent_version == "v1":
+        expected_urls = []
+        res.ranges = cast(list[V1PieceRange], res.ranges)
+        for piece_range in res.ranges:
+            for file_range in piece_range.ranges:
+                if file_range.is_padfile:
+                    continue
+                expected_urls.append(webseed_url + file_range.path[0])
+    else:
+        res.ranges = cast(list[V2PieceRange], res.ranges)
+        expected_urls = [webseed_url + r.path for r in res.ranges]
+
+    requested = set(str(r.url) for r in hoarder.requests)
+    expected = set(expected_urls)
+    assert requested == expected
 
 
 @pytest.mark.skip

@@ -281,3 +281,18 @@ suffix_to_ctype = {
     "json": "application/ld+json",
 }
 ctype_to_suffix = {v: k for k, v in suffix_to_ctype.items()}
+
+
+class Scopes(StrEnum):
+    """Account Permissions"""
+
+    submit = "submit"
+    """Create new items without review"""
+    upload = "upload"
+    """Upload new torrents without review"""
+    review = "review"
+    """Review submissions"""
+    admin = "admin"
+    """Modify other account scopes, except for demoting/suspending other admins"""
+    root = "root"
+    """All permissions"""

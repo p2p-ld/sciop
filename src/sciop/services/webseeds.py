@@ -11,16 +11,16 @@ from collections.abc import Coroutine
 from typing import Any, Callable, Literal
 from urllib.parse import quote
 
-from httpx import AsyncClient, Limits, TimeoutException
+from httpx import AsyncClient, Limits, ReadTimeout, TimeoutException
 from pydantic import BaseModel
+from sqlmodel import Session
 from torrent_models import Torrent, TorrentVersion
 from torrent_models.const import BLOCK_SIZE
-from torrent_models.types.v1 import V1PieceRange
+from torrent_models.types.v1 import FileItemRange, V1PieceRange
 from torrent_models.types.v2 import V2PieceRange
 
 from sciop import crud
 from sciop.config import get_config
-from sciop.db import get_session
 from sciop.exceptions import WebseedHTTPError, WebseedValidationError
 from sciop.logging import init_logger
 
@@ -31,9 +31,10 @@ class WebseedValidationResult(BaseModel):
     valid: bool
     error_type: Literal["http", "validation", "timeout"] | None = None
     message: str | None = None
+    ranges: list[V1PieceRange] | list[V2PieceRange] | None = None
 
 
-def validate_webseed(infohash: str, url: str) -> WebseedValidationResult:
+async def validate_webseed(infohash: str, url: str, session: Session) -> WebseedValidationResult:
     cfg = get_config()
     ws_config = cfg.services.webseed_validation
     if not ws_config.enabled:
@@ -42,22 +43,23 @@ def validate_webseed(infohash: str, url: str) -> WebseedValidationResult:
         else:
             return WebseedValidationResult(infohash=infohash, url=url, valid=False)
 
-    with next(get_session()) as session:
-        torrent_file = crud.get_torrent_from_infohash(session=session, infohash=infohash)
-        if not torrent_file:
-            raise ValueError(f"Torrent with infohash {infohash} not found")
+    torrent_file = crud.get_torrent_from_infohash(session=session, infohash=infohash)
+    if not torrent_file:
+        raise ValueError(f"Torrent with infohash {infohash} not found")
 
     torrent = Torrent.read(torrent_file.filesystem_path)
-    n_pieces = ws_config.get_n_pieces(torrent.info.piece_length)
+    n_pieces = ws_config.get_max_n_pieces(torrent.info.piece_length)
     loop = asyncio.get_event_loop()
     if torrent.torrent_version == TorrentVersion.v1:
-        return loop.run_until_complete(_validate_v1(torrent, url, n_pieces))
+        return await loop.create_task(_validate_v1(torrent, url, n_pieces))
     else:
-        return loop.run_until_complete(_validate_v2(torrent, url, n_pieces))
+        return await loop.create_task(_validate_v2(torrent, url, n_pieces))
 
 
 async def _validate_v1(torrent: Torrent, url: str, n_pieces: int) -> WebseedValidationResult:
-    piece_indices = random.sample(range(len(torrent.info.pieces)), n_pieces)
+    piece_indices = random.sample(
+        range(len(torrent.info.pieces)), min(n_pieces, len(torrent.info.pieces))
+    )
     ranges = [torrent.v1_piece_range(idx) for idx in piece_indices]
     async with _get_client() as client:
         return await _validate_ranges(_validate_range_v1, ranges, url, torrent.v1_infohash, client)
@@ -97,11 +99,16 @@ async def _validate_ranges(
     except WebseedHTTPError as e:
         error_type = "http"
         message = f"{e.status_code} - {e.detail}"
-    except TimeoutException:
+    except (TimeoutException, ReadTimeout):
         error_type = "timeout"
 
     return WebseedValidationResult(
-        infohash=infohash, url=url, valid=valid, error_type=error_type, message=message
+        infohash=infohash,
+        url=url,
+        valid=valid,
+        error_type=error_type,
+        message=message,
+        ranges=ranges,
     )
 
 
@@ -111,17 +118,17 @@ async def _validate_range_v1(piece_range: V1PieceRange, url: str, client: AsyncC
         if subrange.is_padfile:
             chunks.append(bytes(subrange.range_end - subrange.range_start))
         else:
-            chunks.append(await _request_range(piece_range, url, client))
+            chunks.append(
+                await _request_range(subrange, _get_url(url, "/".join(subrange.path)), client)
+            )
 
     valid = piece_range.validate_data(chunks)
     if not valid:
         raise WebseedValidationError(f"webseed url {url} is invalid for range {piece_range}")
 
-    raise NotImplementedError()
-
 
 async def _validate_range_v2(piece_range: V2PieceRange, url: str, client: AsyncClient) -> None:
-    data = await _request_range(piece_range, url, client)
+    data = await _request_range(piece_range, _get_url(url, piece_range.path), client)
     blocks = [data[i : i + BLOCK_SIZE] for i in range(0, len(data), BLOCK_SIZE)]
     valid = piece_range.validate_data(blocks)
     if not valid:
@@ -129,8 +136,8 @@ async def _validate_range_v2(piece_range: V2PieceRange, url: str, client: AsyncC
 
 
 async def _request_range(
-    range: V1PieceRange | V2PieceRange,
-    url: str,
+    piece_range: FileItemRange | V2PieceRange,
+    get_url: str,
     client: AsyncClient,
     retries: dict[int, int] | None = None,
 ) -> bytes:
@@ -139,28 +146,19 @@ async def _request_range(
     logger = init_logger("services.webseed_validation")
     if retries is None:
         retries = cfg.services.webseed_validation.retries.copy()
-    # if we were given a url that ends with the path of the range,
-    # the webseed url is a file url for a single-file torrent
-    if url.endswith(range.path) or url.endswith(quote(range.path)):
-        get_url = url
-    else:
-        # webseed url must be a directory, so we quote the path segments and append
-        url_base = url.rstrip("/")
-        path_parts = [quote(part) for part in range.path.split("/")]
-        get_url = "/".join([url_base, *path_parts])
 
     headers = {
-        "Range": f"bytes={range.range_start}-{range.range_end}",
+        "Range": f"bytes={piece_range.range_start}-{piece_range.range_end}",
     }
 
     body = b""
 
     # iterate through the stream and quit early if we transfer more bytes than expected
-    expected_size = range.range_end - range.range_start
+    expected_size = piece_range.range_end - piece_range.range_start
     async with client.stream(
         "GET", get_url, headers=headers, timeout=cfg.services.webseed_validation.get_timeout
     ) as res:
-        async for chunk in res.iter_bytes():
+        async for chunk in res.aiter_bytes():
             body += chunk
             if res.num_bytes_downloaded >= expected_size * 1.1:
                 # just break, this is only expected in the case
@@ -169,6 +167,12 @@ async def _request_range(
                 break
 
     logger.debug("Downloaded %s bytes from %s", len(body), get_url)
+
+    if len(body) > expected_size:
+        logger.debug(
+            "Expected %s bytes from %s, got %s - trimming", expected_size, get_url, len(body)
+        )
+        body = body[:expected_size]
 
     if retries.get(res.status_code, 0) > 0:
         retries[res.status_code] -= 1
@@ -181,7 +185,7 @@ async def _request_range(
             retries[res.status_code],
         )
         await asyncio.sleep(delay)
-        return await _request_range(range, url, client, retries)
+        return await _request_range(piece_range, get_url, client, retries)
 
     if res.status_code != 206:
         if res.status_code == 200:
@@ -199,10 +203,11 @@ def _pick_v2_ranges(torrent: Torrent, n_pieces: int) -> list[V2PieceRange]:
     total_pieces = len(
         [
             path
-            for path, file_item in torrent.flat_files
+            for path, file_item in torrent.flat_files.items()
             if file_item["length"] < torrent.info.piece_length
         ]
     ) + len(torrent.piece_layers)
+    # FIXME: this has the potential to be wildly inefficient. make a generator to draw from
     while len(ranges) < n_pieces and len(ranges) < total_pieces:
         path = random.choice(list(torrent.flat_files.keys()))
         file_item = torrent.flat_files[path]
@@ -213,10 +218,23 @@ def _pick_v2_ranges(torrent: Torrent, n_pieces: int) -> list[V2PieceRange]:
     return ranges
 
 
+def _get_url(base_url: str, path: str) -> str:
+    # if we were given a url that ends with the path of the range,
+    # the webseed url is a file url for a single-file torrent
+    if base_url.endswith(path) or base_url.endswith(quote(path)):
+        url = base_url
+    else:
+        # webseed url must be a directory, so we quote the path segments and append
+        url_base = base_url.rstrip("/")
+        path_parts = [quote(part) for part in path.split("/")]
+        url = "/".join([url_base, *path_parts])
+    return url
+
+
 def _get_client() -> AsyncClient:
     cfg = get_config()
     return AsyncClient(
         limits=Limits(max_connections=cfg.services.webseed_validation.max_connections),
-        headers={"User Agent": cfg.server.user_agent},
+        headers={"User-Agent": cfg.server.user_agent},
         follow_redirects=True,
     )

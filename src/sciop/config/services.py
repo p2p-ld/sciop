@@ -1,10 +1,8 @@
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
-if TYPE_CHECKING:
-
-    from sciop.models import Scopes
+from sciop.types import Scopes
 
 
 class JobConfig(BaseModel):
@@ -174,7 +172,13 @@ class WebseedValidationConfig(JobConfig):
     timeout for get requests when validating
     """
 
-    def get_n_pieces(self, piece_length: int) -> int:
+    def get_max_n_pieces(self, piece_length: int) -> int:
+        """
+        Maximum pieces that should be validated.
+
+        Actual pieces validated may be lower than this, e.g. in the case the torrent has
+        fewer pieces than we want to validate.
+        """
         return min(self.n_pieces, self.max_validation_data // piece_length)
 
 
@@ -191,4 +195,6 @@ class ServicesConfig(BaseModel):
     """Service config: Site stats computation"""
     docs: DocsConfig = DocsConfig()
     """Live-building docs in dev mode"""
-    webseed_validation: WebseedValidationConfig = WebseedValidationConfig()
+    webseed_validation: WebseedValidationConfig = Field(
+        default_factory=lambda: WebseedValidationConfig()
+    )

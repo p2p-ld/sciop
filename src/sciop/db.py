@@ -251,7 +251,8 @@ def create_seed_data(n: int = 100) -> None:
 
 def ensure_root(session: Session) -> Optional["Account"]:
     from sciop import crud
-    from sciop.models import AccountCreate, Scope, Scopes
+    from sciop.models import AccountCreate, Scope
+    from sciop.types import Scopes
 
     cfg = get_config()
     if not (cfg.root_user and cfg.root_password):

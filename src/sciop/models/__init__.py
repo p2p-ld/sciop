@@ -21,7 +21,6 @@ from sciop.models.account import (
     AccountRead,
     AccountScopeLink,
     Scope,
-    Scopes,
     Token,
     TokenPayload,
 )
@@ -110,7 +109,6 @@ __all__ = [
     "RaggedSearchPage",
     "RaggedSearchParams",
     "Scope",
-    "Scopes",
     "SearchPage",
     "SearchParams",
     "SiteStats",

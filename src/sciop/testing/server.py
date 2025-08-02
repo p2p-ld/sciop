@@ -3,6 +3,10 @@ import contextlib
 import time
 from threading import Thread
 
+from starlette.applications import Starlette
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 from uvicorn import Config, Server
 
 
@@ -58,3 +62,26 @@ class UvicornSyncServer(Server):
         finally:
             self.should_exit = True
             thread.join()
+
+
+class RequestHoarderMiddleware(BaseHTTPMiddleware):
+    """
+    Just keep holding on to the requests what could go wrong
+
+    Look i don't know of any better way to access the attrs than this
+    ```
+    uvicorn_server.config.app.middleware_stack.app
+    ```
+    if you have no other middleware.
+    """
+
+    def __init__(self, app: Starlette):
+        super().__init__(app)
+        self.requests = []
+        self.responses = []
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        self.requests.append(request)
+        response = await call_next(request)
+        self.responses.append(response)
+        return response

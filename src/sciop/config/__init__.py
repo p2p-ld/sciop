@@ -11,6 +11,7 @@ from sciop.config.services import (
     ScrapeErrorBackoffs,
     ServicesConfig,
     StatsConfig,
+    WebseedValidationConfig,
 )
 
 from sciop.config.main import (
@@ -37,4 +38,5 @@ __all__ = [
     "StatsConfig",
     "ScrapeConfig",
     "ScrapeErrorBackoffs",
+    "WebseedValidationConfig",
 ]

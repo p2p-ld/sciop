@@ -22,12 +22,12 @@ from sciop.models import (
     DatasetCreate,
     FileInTorrentCreate,
     Scope,
-    Scopes,
     TorrentFile,
     TorrentFileCreate,
     Upload,
     UploadCreate,
 )
+from sciop.types import Scopes
 
 fake = Faker()
 P = ParamSpec("P")
@@ -200,6 +200,8 @@ def make_torrentfile(
     if "torrent" in kwargs:
         t: Torrent = kwargs.pop("torrent")
         announce_urls_nested = t.announce_list
+        if announce_urls_nested is None:
+            announce_urls_nested = [[]]
         announce_urls = []
         for tier in announce_urls_nested:
             announce_urls.extend(tier)

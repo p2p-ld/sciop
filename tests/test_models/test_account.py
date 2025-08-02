@@ -3,7 +3,8 @@ import sqlalchemy
 from pydantic import ValidationError
 from sqlmodel import select
 
-from sciop.models import Account, AccountCreate, Scopes
+from sciop.models import Account, AccountCreate
+from sciop.types import Scopes
 
 
 @pytest.mark.parametrize(

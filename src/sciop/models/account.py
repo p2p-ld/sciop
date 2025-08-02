@@ -1,6 +1,5 @@
 import re
 import unicodedata
-from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sqla
@@ -12,7 +11,7 @@ from sqlmodel import Field, Relationship
 
 from sciop.models.base import SQLModel
 from sciop.models.mixins import EnumTableMixin, SearchableMixin, TableMixin
-from sciop.types import IDField, UsernameStr, UTCDateTime
+from sciop.types import IDField, Scopes, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import (
@@ -25,21 +24,6 @@ if TYPE_CHECKING:
         Upload,
         Webseed,
     )
-
-
-class Scopes(StrEnum):
-    """Account Permissions"""
-
-    submit = "submit"
-    """Create new items without review"""
-    upload = "upload"
-    """Upload new torrents without review"""
-    review = "review"
-    """Review submissions"""
-    admin = "admin"
-    """Modify other account scopes, except for demoting/suspending other admins"""
-    root = "root"
-    """All permissions"""
 
 
 class AccountScopeLink(TableMixin, table=True):
