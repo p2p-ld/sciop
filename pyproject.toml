@@ -192,6 +192,9 @@ markers = """
   markdown: tests that render markdown within HTML
   slow: slow tests!
   docs: tests that require the docs dependencies/test the docs
+  v1: tests specific to v1 torrents
+  v2: tests specific to v2 torrents
+  hybrid: tests specific to hybrid torrents
 """
 filterwarnings = [
     'ignore:Python 3.14 will, by default, filter extracted tar archives',

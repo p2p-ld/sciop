@@ -94,13 +94,18 @@ async def _validate_ranges(
             _ = [group.create_task(fn(r, url, client)) for r in ranges]
         # after all of them complete...
         valid = True
-    except WebseedValidationError:
-        error_type = "validation"
-    except WebseedHTTPError as e:
-        error_type = "http"
-        message = f"{e.status_code} - {e.detail}"
-    except (TimeoutException, ReadTimeout):
-        error_type = "timeout"
+    except ExceptionGroup as eg:
+        # only react to the first exception, they are typically all the same
+        e = eg.exceptions[0]
+        if isinstance(e, WebseedValidationError):
+            error_type = "validation"
+        elif isinstance(e, WebseedHTTPError):
+            error_type = "http"
+            message = f"{e.status_code} - {e.detail}"
+        elif isinstance(e, TimeoutException | ReadTimeout):
+            error_type = "timeout"
+        else:
+            raise
 
     return WebseedValidationResult(
         infohash=infohash,
@@ -191,7 +196,7 @@ async def _request_range(
         if res.status_code == 200:
             message = "Server does not support HTTP range requests"
         else:
-            message = res.text
+            message = body.decode("utf-8")
         raise WebseedHTTPError(status_code=res.status_code, detail=message)
 
     return body

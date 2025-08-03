@@ -167,7 +167,7 @@ class WebseedValidationConfig(JobConfig):
     Regex patterns to ban webseed urls.
     URLs matching a pattern will not be added or validated.
     """
-    get_timeout: int = 10
+    get_timeout: float = 10
     """
     timeout for get requests when validating
     """

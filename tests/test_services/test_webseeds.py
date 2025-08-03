@@ -1,3 +1,4 @@
+import asyncio
 import random
 import string
 from pathlib import Path
@@ -5,9 +6,11 @@ from typing import cast
 
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from torrent_models import KiB, TorrentCreate
+from torrent_models import KiB, Torrent, TorrentCreate
+from torrent_models.const import EXCLUDE_FILES
 from torrent_models.types.v1 import V1PieceRange
 from torrent_models.types.v2 import V2PieceRange
 from uvicorn.config import Config as UvicornConfig
@@ -26,11 +29,46 @@ def tmp_data_path(tmp_path: Path) -> Path:
     return data_path
 
 
+@pytest.fixture
+def rand_dir(tmp_path: Path) -> Path:
+    data_path = tmp_path / "random"
+    data_path.mkdir(exist_ok=True)
+    return data_path
+
+
 @pytest_asyncio.fixture(loop_scope="session")
-async def file_server(tmp_data_path: Path, session) -> FastAPI:
+async def file_server(tmp_data_path: Path, rand_dir: Path, session) -> FastAPI:
     app = FastAPI()
     app.mount("/data", StaticFiles(directory=tmp_data_path), name="data")
     app.add_middleware(RequestHoarderMiddleware)
+    retries = 0
+
+    @app.get("/404/{path}")
+    async def e404(request: Request, path: str) -> None:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    @app.get("/429/{path}")
+    async def e429(request: Request, path: str) -> FileResponse:
+        nonlocal retries
+        retries += 1
+        if retries % 3 == 0:
+            return FileResponse(tmp_data_path / path, headers=request.headers.mutablecopy())
+        else:
+            raise HTTPException(status_code=429)
+
+    @app.get("/random/{path}")
+    async def rand_response(request: Request, path: str) -> FileResponse:
+        rand_path = rand_dir / path
+        if not rand_path.exists():
+            with open(rand_path, "wb") as f:
+                f.write(random.randbytes((tmp_data_path / path).stat().st_size))
+
+        return FileResponse(rand_path, headers=request.headers.mutablecopy())
+
+    @app.get("/timeout/{path}")
+    async def timeout(request: Request, path: str) -> FileResponse:
+        await asyncio.sleep(1)
+        return FileResponse(tmp_data_path / path, headers=request.headers.mutablecopy())
 
     config = UvicornConfig(
         app=app,
@@ -54,7 +92,33 @@ def file_size(request, tmp_data_path) -> int:
     return size
 
 
-@pytest.fixture(params=["v1", "v2", "hybrid"])
+@pytest.fixture(
+    params=[pytest.param("v1", marks=pytest.mark.v1), pytest.param("v2", marks=pytest.mark.v2)]
+)
+def data_torrent(request, tmp_data_path, torrentfile) -> tuple[Torrent, TorrentFile]:
+    # files smaller than, same size as, and larger than piece size
+    sizes = []
+    for _ in range(10):
+        sizes.extend(list(random.sample(SIZES, k=len(SIZES))))
+    for i, size in enumerate(sizes):
+        with open(tmp_data_path / string.ascii_letters[i], "wb") as f:
+            f.write(random.randbytes(size))
+
+    create = TorrentCreate(
+        paths=[p for p in tmp_data_path.iterdir()], path_root=tmp_data_path, piece_length=32 * KiB
+    )
+    torrent = create.generate(version=request.param)
+    tf: TorrentFile = torrentfile(torrent=torrent)
+    return torrent, tf
+
+
+@pytest.fixture(
+    params=[
+        pytest.param("v1", marks=pytest.mark.v1),
+        pytest.param("v2", marks=pytest.mark.v2),
+        pytest.param("hybrid", marks=pytest.mark.hybrid),
+    ]
+)
 def torrent_version(request) -> str:
     return request.param
 
@@ -100,27 +164,74 @@ async def test_webseed_validation(
     assert requested == expected
 
 
-@pytest.mark.skip
-async def test_reject_invalid_data():
+@pytest.mark.asyncio(loop_scope="session")
+async def test_reject_invalid_data(
+    data_torrent: tuple[Torrent, TorrentFile],
+    rand_dir: Path,
+    file_server,
+    session,
+    set_config,
+    tmp_data_path,
+):
     """
     Quit early, correctly invalidate server with incorrect data
+
+    We test early-quitting here, so we don't do it in the rest of the tests
     """
+    set_config({"services.webseed_validation.max_connections": 5})
+    torrent, tf = data_torrent
+    webseed_url = "http://localhost:9998/random/"
+
+    hoarder: RequestHoarderMiddleware = file_server.config.app.middleware_stack.app
+    assert set(str(r.url) for r in hoarder.requests) == set()
+    res = await validate_webseed(tf.infohash, webseed_url, session)
+    assert not res.valid
+    assert res.error_type == "validation"
+
+    # we should have quit after the first validation failure and not requested all the files
+    # we iterate over tmp_data_path here because rand_dir only creates files on-demand,
+    # so the set of files in rand dir will always, trivially, equal the set of requested urls
+    all_files = set(
+        [webseed_url + p.name for p in tmp_data_path.iterdir() if p.name not in EXCLUDE_FILES]
+    )
+
+    requested = set(str(r.url) for r in hoarder.requests)
+    assert requested < all_files
+    assert requested > set()
 
 
-@pytest.mark.skip
-async def test_reject_404():
+@pytest.mark.asyncio(loop_scope="session")
+async def test_reject_404(data_torrent, file_server, session):
     """
-    Test that http errors like 404 quit early, invalidate webseed
+    404's invalidate a webseed.
+
+    This is the same mechanism for handling other non-206 responses,
+    so also tests http error handling in general
     """
+    torrent, tf = data_torrent
+    webseed_url = "http://localhost:9998/404/"
+
+    res = await validate_webseed(tf.infohash, webseed_url, session)
+    assert not res.valid
+    assert res.error_type == "http"
+    assert "404" in res.message
 
 
-@pytest.mark.skip
-async def test_reject_timeout():
+@pytest.mark.asyncio(loop_scope="session")
+async def test_reject_timeout(set_config, data_torrent, file_server, session):
     """
     Timeouts abort validation
     """
+    set_config({"services.webseed_validation.get_timeout": 0.1})
+    torrent, tf = data_torrent
+    webseed_url = "http://localhost:9998/timeout/"
+
+    res = await validate_webseed(tf.infohash, webseed_url, session)
+    assert not res.valid
+    assert res.error_type == "timeout"
 
 
+@pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.skip
 async def test_validation_retries():
     """
