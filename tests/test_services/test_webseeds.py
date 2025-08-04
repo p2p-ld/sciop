@@ -272,7 +272,7 @@ async def test_validation_retries_success(set_config, data_torrent, file_server,
 @pytest.mark.asyncio(loop_scope="session")
 async def test_validation_retries_failure(set_config, data_torrent, file_server, session):
     """
-    Retry on 429, succeed if the server eventually gives us the data
+    Retry on 429, fail if we run out of retries
     """
     set_config(
         {
