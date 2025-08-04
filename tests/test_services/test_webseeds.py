@@ -7,7 +7,7 @@ from typing import cast
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from torrent_models import KiB, Torrent, TorrentCreate
 from torrent_models.const import EXCLUDE_FILES
@@ -41,17 +41,32 @@ async def file_server(tmp_data_path: Path, rand_dir: Path, session) -> FastAPI:
     app = FastAPI()
     app.mount("/data", StaticFiles(directory=tmp_data_path), name="data")
     app.add_middleware(RequestHoarderMiddleware)
-    retries = 0
+    retries = {}
 
     @app.get("/404/{path}")
     async def e404(request: Request, path: str) -> None:
         raise HTTPException(status_code=404, detail="Not Found")
 
-    @app.get("/429/{path}")
-    async def e429(request: Request, path: str) -> FileResponse:
+    @app.get("/429/reasonable/{path}")
+    async def e429_reasonable(request: Request, path: str) -> FileResponse:
         nonlocal retries
-        retries += 1
-        if retries % 3 == 0:
+        if path not in retries:
+            retries[path] = 0
+
+        retries[path] += 1
+        if retries[path] % 2 == 0:
+            return FileResponse(tmp_data_path / path, headers=request.headers.mutablecopy())
+        else:
+            raise HTTPException(status_code=429)
+
+    @app.get("/429/unreasonable/{path}")
+    async def e429_unreasonable(request: Request, path: str) -> FileResponse:
+        nonlocal retries
+        if path not in retries:
+            retries[path] = 0
+
+        retries[path] += 1
+        if retries[path] % 20 == 0:
             return FileResponse(tmp_data_path / path, headers=request.headers.mutablecopy())
         else:
             raise HTTPException(status_code=429)
@@ -69,6 +84,11 @@ async def file_server(tmp_data_path: Path, rand_dir: Path, session) -> FastAPI:
     async def timeout(request: Request, path: str) -> FileResponse:
         await asyncio.sleep(1)
         return FileResponse(tmp_data_path / path, headers=request.headers.mutablecopy())
+
+    @app.get("/norange/{path}")
+    async def no_range(request: Request, path: str) -> Response:
+        """Pretend like we don't understand range requests"""
+        return Response(content=(tmp_data_path / path).read_bytes(), status_code=200, headers={})
 
     config = UvicornConfig(
         app=app,
@@ -232,18 +252,55 @@ async def test_reject_timeout(set_config, data_torrent, file_server, session):
 
 
 @pytest.mark.asyncio(loop_scope="session")
-@pytest.mark.skip
-async def test_validation_retries():
+async def test_validation_retries_success(set_config, data_torrent, file_server, session):
     """
-    Retry on 429
+    Retry on 429, succeed if the server eventually gives us the data
     """
+    set_config(
+        {
+            "services.webseed_validation.retry_delay": 0.01,
+            "services.webseed_validation.retries": {429: 6},
+        }
+    )
+    torrent, tf = data_torrent
+    webseed_url = "http://localhost:9998/429/reasonable/"
+
+    res = await validate_webseed(tf.infohash, webseed_url, session)
+    assert res.valid
 
 
-@pytest.mark.skip
-def test_quit_early_without_range_requests():
+@pytest.mark.asyncio(loop_scope="session")
+async def test_validation_retries_failure(set_config, data_torrent, file_server, session):
+    """
+    Retry on 429, succeed if the server eventually gives us the data
+    """
+    set_config(
+        {
+            "services.webseed_validation.retry_delay": 0.01,
+            "services.webseed_validation.retries": {429: 5},
+        }
+    )
+    torrent, tf = data_torrent
+    webseed_url = "http://localhost:9998/429/unreasonable/"
+
+    res = await validate_webseed(tf.infohash, webseed_url, session)
+    assert not res.valid
+    assert res.error_type == "http"
+    assert "429" in res.message
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_quit_early_without_range_requests(data_torrent, file_server, session):
     """
     If a server doesn't understand range requests,
     rather than downloading a potentially unbounded amount of data,
     quit early since it couldn't be used as a webseed anyway
     """
-    raise NotImplementedError()
+    torrent, tf = data_torrent
+    webseed_url = "http://localhost:9998/norange/"
+
+    res = await validate_webseed(tf.infohash, webseed_url, session)
+    assert not res.valid
+    assert res.error_type == "http"
+    assert "200" in res.message
+    assert "does not support HTTP range requests" in res.message
