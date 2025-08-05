@@ -12,7 +12,7 @@ from sqlmodel import Field, Relationship, select
 from sqlmodel.main import FieldInfo
 
 from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PREFIX_LEN
-from sciop.models.account import Account
+from sciop.models.account import Account, AccountDatasetScopeLink
 from sciop.models.base import SQLModel
 from sciop.models.mixins import (
     EditableMixin,
@@ -250,6 +250,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
     )
     account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id", index=True)
     account: Optional["Account"] = Relationship(back_populates="datasets")
+    account_scopes: list["AccountDatasetScopeLink"] = Relationship(back_populates="dataset")
     scrape_status: ScrapeStatus = "unknown"
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
     reports: list["Report"] = Relationship(back_populates="target_dataset")
@@ -512,7 +513,6 @@ class ExternalIdentifier(
 
 
 class ExternalIdentifierCreate(ExternalIdentifierBase):
-
     @field_validator("identifier", mode="before")
     def strip_whitespace(cls, val: str) -> str:
         return val.strip()
