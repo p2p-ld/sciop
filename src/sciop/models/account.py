@@ -1,17 +1,16 @@
 import re
 import unicodedata
-from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sqla
 from pydantic import ConfigDict, SecretStr, field_validator
 from sqlalchemy.ext.hybrid import hybrid_method
 from sqlalchemy.orm import relationship
-from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship
 
 from sciop.models.base import SQLModel
-from sciop.models.mixins import EnumTableMixin, SearchableMixin, TableMixin
+from sciop.models.mixins import SearchableMixin, TableMixin
+from sciop.models.scope import AccountDatasetScopeLink, AccountScopeLink, Scope, Scopes
 from sciop.types import IDField, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
@@ -26,40 +25,13 @@ if TYPE_CHECKING:
     )
 
 
-class Scopes(StrEnum):
-    """Account Permissions"""
-
-    submit = "submit"
-    """Create new items without review"""
-    upload = "upload"
-    """Upload new torrents without review"""
-    review = "review"
-    """Review submissions"""
-    admin = "admin"
-    """Modify other account scopes, except for demoting/suspending other admins"""
-    root = "root"
-    """All permissions"""
-
-
-class AccountScopeLink(TableMixin, table=True):
-    __tablename__ = "account_scope_links"
-    __table_args__ = (UniqueConstraint("account_id", "scope_id", name="_account_scope_uc"),)
-
-    account_id: Optional[int] = Field(
-        default=None, foreign_key="accounts.account_id", primary_key=True, index=True
-    )
-    scope_id: Optional[int] = Field(
-        default=None, foreign_key="scopes.scope_id", primary_key=True, index=True
-    )
-
-
 class AccountBase(SQLModel):
     username: UsernameStr
 
     model_config = ConfigDict(ignored_types=(hybrid_method,))
 
     @hybrid_method
-    def has_scope(self, *args: str | Scopes) -> bool:
+    def has_scope(self, *args: str | Scopes, dataset_id: Optional[int] = None) -> bool:
         """
         Check if an account has a given scope.
 
@@ -84,8 +56,6 @@ class AccountBase(SQLModel):
             a_scope.scope.value if hasattr(a_scope, "scope") else a_scope for a_scope in self.scopes
         ]
 
-        has_scopes = [scope.scope for scope in self.scopes]
-
         if "root" in str_scopes:
             # root has all scopes implicitly
             return True
@@ -93,11 +63,18 @@ class AccountBase(SQLModel):
             # admin has all scopes except root implicitly
             return True
 
+        if dataset_id:
+            has_scopes = [
+                scope.scope for scope in self.dataset_scopes if scope.dataset_id == dataset_id
+            ]
+        else:
+            has_scopes = [scope.scope for scope in self.scopes]
+
         return any([scope in has_scopes for scope in str_args])
 
     @has_scope.inplace.expression
     @classmethod
-    def _has_scope(cls, *args: str) -> sqla.ColumnElement[bool]:
+    def _has_scope(cls, *args: str, dataset_id: Optional[int] = None) -> sqla.ColumnElement[bool]:
         if len(args) > 1 and ("root" in args or "admin" in args):
             raise ValueError(
                 "root and admin in has_scope checks can only be used by themselves. "
@@ -107,13 +84,26 @@ class AccountBase(SQLModel):
             return cls.scopes.any(scope="root")
         elif "admin" in args:
             return sqla.or_(cls.scopes.any(scope="admin"), cls.scopes.any(scope="root"))
+
+        if dataset_id:
+            return sqla.or_(
+                *[cls.scopes.any(scope=s) for s in ("root", "admin")],
+                *[cls.dataset_scopes.any(scope=s, dataset_id=dataset_id) for s in args],
+            )
         else:
             args = ("root", "admin", *args)
             return sqla.or_(*[cls.scopes.any(scope=s) for s in args])
 
-    def get_scope(self, scope: str) -> Optional["Scope"]:
-        """Get the scope object from its name, returning None if not present"""
-        scope = [a_scope for a_scope in self.scopes if a_scope.scope.value == scope]
+    def get_scope(self, scope: str, dataset_id: Optional[int] = None) -> Optional["Scope"]:
+        """Get the scope object from its name and optional dataset_id, returning None if not present"""
+        if dataset_id:
+            scope = [
+                a_scope
+                for a_scope in self.dataset_scopes
+                if a_scope.scope.value == scope and a_scope.dataset_id == dataset_id
+            ]
+        else:
+            scope = [a_scope for a_scope in self.scopes if a_scope.scope.value == scope]
         return None if not scope else scope[0]
 
 
@@ -132,6 +122,7 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
     )
     """Permission scopes for this account"""
     datasets: list["Dataset"] = Relationship(back_populates="account")
+    dataset_scopes: list["AccountDatasetScopeLink"] = Relationship(back_populates="account")
     dataset_parts: list["DatasetPart"] = Relationship(back_populates="account")
     submissions: list["Upload"] = Relationship(back_populates="account")
     external_submissions: list["ExternalSource"] = Relationship(back_populates="account")
@@ -196,15 +187,6 @@ class AccountRead(AccountBase):
 
     scopes: list["Scope"]
     created_at: UTCDateTime
-
-
-class Scope(TableMixin, EnumTableMixin, table=True):
-    __tablename__ = "scopes"
-    __enum_column_name__ = "scope"
-
-    scope_id: IDField = Field(None, primary_key=True)
-    accounts: list[Account] = Relationship(back_populates="scopes", link_model=AccountScopeLink)
-    scope: Scopes = Field(unique=True)
 
 
 # JSON payload containing access token

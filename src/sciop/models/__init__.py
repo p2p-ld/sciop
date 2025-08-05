@@ -19,9 +19,6 @@ from sciop.models.account import (
     Account,
     AccountCreate,
     AccountRead,
-    AccountScopeLink,
-    Scope,
-    Scopes,
     Token,
     TokenPayload,
 )
@@ -53,6 +50,14 @@ from sciop.models.mixins import EditableMixin
 from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
 from sciop.models.mystery import _Friedolin
 from sciop.models.rss import TorrentFeed, TorrentItem
+from sciop.models.scope import (
+    AccountDatasetScopeLink,
+    AccountScopeLink,
+    AccountScopes,
+    ItemScopes,
+    Scope,
+    Scopes,
+)
 from sciop.models.stats import SiteStats, SiteStatsRead
 from sciop.models.tag import DatasetTagLink, Tag, TagSummary
 from sciop.models.torrent import (
@@ -78,7 +83,9 @@ EditableMixin.rebuild_history_models(namespace=locals())
 __all__ = [
     "Account",
     "AccountCreate",
+    "AccountDatasetScopeLink",
     "AccountRead",
+    "AccountScopes",
     "AccountScopeLink",
     "AuditLog",
     "AuditLogRead",
@@ -103,6 +110,7 @@ __all__ = [
     "FileInTorrentCreate",
     "FileInTorrentRead",
     "HitCount",
+    "ItemScopes",
     "MagnetLink",
     "ModerationAction",
     "RaggedSearchPage",
