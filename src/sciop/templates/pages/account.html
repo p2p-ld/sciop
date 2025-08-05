@@ -2,7 +2,7 @@
 {% extends "layouts/default.html" %}
 {% block head %}
 {% with title = account.username + " - Account" %}
-    {% include "includes/head.html" %}
+{% include "includes/head.html" %}
 {% endwith %}
 {% endblock %}
 {% block content %}
@@ -15,37 +15,29 @@
 {% endif %}
 
 <h2>Scopes</h2>
-{% for scope in account.scopes %}
+{% for scope in account.scopes if scope.scope.value in models.AccountScopes %}
 <span class="token">{{ scope.scope.value }}</span>
 {% endfor %}
 
 <h2>Datasets</h2>
 
 <div id="dataset-account-container" class="dataset-container">
-    <div
-        hx-get="/accounts/{{ account.username }}/datasets"
-        hx-trigger="load"
-        hx-swap="outerHTML"
-    >
-        <span class="htmx-indicator search-indicator" id="account-datasets-indicator">
-            <span>Loading datasets...</span>
-            <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
-        </span>
-    </div>
+  <div hx-get="/accounts/{{ account.username }}/datasets" hx-trigger="load" hx-swap="outerHTML">
+    <span class="htmx-indicator search-indicator" id="account-datasets-indicator">
+      <span>Loading datasets...</span>
+      <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring" />
+    </span>
+  </div>
 </div>
 
 <h2>Uploads</h2>
 
 <div id="upload-account-container" class="upload-container">
-    <div
-        hx-get="/accounts/{{ account.username }}/uploads"
-        hx-trigger="load"
-        hx-swap="outerHTML"
-    >
-        <span class="htmx-indicator search-indicator" id="account-uploads-indicator">
-            <span>Loading uploads...</span>
-            <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
-        </span>
-    </div>
+  <div hx-get="/accounts/{{ account.username }}/uploads" hx-trigger="load" hx-swap="outerHTML">
+    <span class="htmx-indicator search-indicator" id="account-uploads-indicator">
+      <span>Loading uploads...</span>
+      <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring" />
+    </span>
+  </div>
 </div>
 {% endblock %}

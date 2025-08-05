@@ -17,6 +17,7 @@ from sciop.models.mixins import (
     SearchableMixin,
     TableMixin,
 )
+from sciop.models.scope import AccountDatasetScopeLink, AccountScopeLink, Scope
 from sciop.types import IDField, ModerationAction, Scopes, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
@@ -53,7 +54,7 @@ class AccountBase(SQLModel, FrontendMixin):
     model_config = ConfigDict(ignored_types=(hybrid_method, hybrid_property))
 
     @hybrid_method
-    def has_scope(self, *args: str | Scopes) -> bool:
+    def has_scope(self, *args: str | Scopes, dataset_id: Optional[int] = None) -> bool:
         """
         Check if an account has a given scope.
 
@@ -78,8 +79,6 @@ class AccountBase(SQLModel, FrontendMixin):
             a_scope.scope.value if hasattr(a_scope, "scope") else a_scope for a_scope in self.scopes
         ]
 
-        has_scopes = [scope.scope for scope in self.scopes]
-
         if "root" in str_scopes:
             # root has all scopes implicitly
             return True
@@ -87,11 +86,18 @@ class AccountBase(SQLModel, FrontendMixin):
             # admin has all scopes except root implicitly
             return True
 
+        if dataset_id:
+            has_scopes = [
+                scope.scope for scope in self.dataset_scopes if scope.dataset_id == dataset_id
+            ]
+        else:
+            has_scopes = [scope.scope for scope in self.scopes]
+
         return any([scope in has_scopes for scope in str_args])
 
     @has_scope.inplace.expression
     @classmethod
-    def _has_scope(cls, *args: str) -> sqla.ColumnElement[bool]:
+    def _has_scope(cls, *args: str, dataset_id: Optional[int] = None) -> sqla.ColumnElement[bool]:
         if len(args) > 1 and ("root" in args or "admin" in args):
             raise ValueError(
                 "root and admin in has_scope checks can only be used by themselves. "
@@ -101,13 +107,26 @@ class AccountBase(SQLModel, FrontendMixin):
             return cls.scopes.any(scope="root")
         elif "admin" in args:
             return sqla.or_(cls.scopes.any(scope="admin"), cls.scopes.any(scope="root"))
+
+        if dataset_id:
+            return sqla.or_(
+                *[cls.scopes.any(scope=s) for s in ("root", "admin")],
+                *[cls.dataset_scopes.any(scope=s, dataset_id=dataset_id) for s in args],
+            )
         else:
             args = ("root", "admin", *args)
             return sqla.or_(*[cls.scopes.any(scope=s) for s in args])
 
-    def get_scope(self, scope: str) -> Optional["Scope"]:
-        """Get the scope object from its name, returning None if not present"""
-        scope = [a_scope for a_scope in self.scopes if a_scope.scope.value == scope]
+    def get_scope(self, scope: str, dataset_id: Optional[int] = None) -> Optional["Scope"]:
+        """Get the scope object from its name and optional dataset_id, returning None if not present"""
+        if dataset_id:
+            scope = [
+                a_scope
+                for a_scope in self.dataset_scopes
+                if a_scope.scope.value == scope and a_scope.dataset_id == dataset_id
+            ]
+        else:
+            scope = [a_scope for a_scope in self.scopes if a_scope.scope.value == scope]
         return None if not scope else scope[0]
 
     @property
@@ -138,6 +157,7 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
     )
     """Permission scopes for this account"""
     datasets: list["Dataset"] = Relationship(back_populates="account")
+    dataset_scopes: list["AccountDatasetScopeLink"] = Relationship(back_populates="account")
     dataset_parts: list["DatasetPart"] = Relationship(back_populates="account")
     submissions: list["Upload"] = Relationship(back_populates="account")
     external_submissions: list["ExternalSource"] = Relationship(back_populates="account")
@@ -298,15 +318,6 @@ class AccountRead(AccountBase):
 
     scopes: list["Scope"]
     created_at: UTCDateTime
-
-
-class Scope(TableMixin, EnumTableMixin, table=True):
-    __tablename__ = "scopes"
-    __enum_column_name__ = "scope"
-
-    scope_id: IDField = Field(None, primary_key=True)
-    accounts: list[Account] = Relationship(back_populates="scopes", link_model=AccountScopeLink)
-    scope: Scopes = Field(unique=True)
 
 
 # JSON payload containing access token

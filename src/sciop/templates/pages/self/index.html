@@ -1,7 +1,7 @@
 {% extends "layouts/default.html" %}
 {% block head %}
 {% with title = "Profile" %}
-    {% include "includes/head.html" %}
+{% include "includes/head.html" %}
 {% endwith %}
 {% endblock %}
 {% block content %}
@@ -9,44 +9,34 @@
 <h1 class="self-greeting">Hello {{ current_account.username }}</h1>
 
 <p>
-<button class="button" id="logout-button" hx-post="{{ config.api_prefix }}/logout">Logout</button>
+  <button class="button" id="logout-button" hx-post="{{ config.api_prefix }}/logout">Logout</button>
 </p>
 
 Scopes:
-{% for scope in current_account.scopes %}
+{% for scope in current_account.scopes if scope.scope.value in models.AccountScopes %}
 <span class="token">{{ scope.scope.value }}</span>
 {% endfor %}
 
 <h2>Datasets:</h2>
 
 <div id="datasets-container" class="datasets-container container">
-    <div
-        hx-get="/self/datasets"
-        hx-trigger="load"
-        hx-swap="outerHTML"
-        hx-indicator="#datasets-indicator"
-    >
-        <span class="htmx-indicator search-indicator" id="datasets-indicator">
-            <span>Loading datasets...</span>
-            <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
-        </span>
-    </div>
+  <div hx-get="/self/datasets" hx-trigger="load" hx-swap="outerHTML" hx-indicator="#datasets-indicator">
+    <span class="htmx-indicator search-indicator" id="datasets-indicator">
+      <span>Loading datasets...</span>
+      <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring" />
+    </span>
+  </div>
 </div>
 
 <h2>Uploads:</h2>
 
 <div id="uploads-container" class="uploads-container container">
-    <div
-        hx-get="/self/uploads"
-        hx-trigger="load"
-        hx-swap="outerHTML"
-        hx-indicator="#uploads-indicator"
-    >
-        <span class="htmx-indicator search-indicator" id="uploads-indicator">
-            <span>Loading uploads...</span>
-            <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
-        </span>
-    </div>
+  <div hx-get="/self/uploads" hx-trigger="load" hx-swap="outerHTML" hx-indicator="#uploads-indicator">
+    <span class="htmx-indicator search-indicator" id="uploads-indicator">
+      <span>Loading uploads...</span>
+      <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring" />
+    </span>
+  </div>
 </div>
 
 <h2>Reports:</h2>
