@@ -9,7 +9,6 @@ import asyncio
 import random
 from collections.abc import Coroutine
 from typing import Any, Callable, Literal
-from urllib.parse import quote
 
 from httpx import AsyncClient, Limits, ReadTimeout, TimeoutException
 from pydantic import BaseModel
@@ -123,9 +122,7 @@ async def _validate_range_v1(piece_range: V1PieceRange, url: str, client: AsyncC
         if subrange.is_padfile:
             chunks.append(bytes(subrange.range_end - subrange.range_start))
         else:
-            chunks.append(
-                await _request_range(subrange, _get_url(url, "/".join(subrange.path)), client)
-            )
+            chunks.append(await _request_range(subrange, subrange.webseed_url(url), client))
 
     valid = piece_range.validate_data(chunks)
     if not valid:
@@ -133,7 +130,7 @@ async def _validate_range_v1(piece_range: V1PieceRange, url: str, client: AsyncC
 
 
 async def _validate_range_v2(piece_range: V2PieceRange, url: str, client: AsyncClient) -> None:
-    data = await _request_range(piece_range, _get_url(url, piece_range.path), client)
+    data = await _request_range(piece_range, piece_range.webseed_url(url), client)
     blocks = [data[i : i + BLOCK_SIZE] for i in range(0, len(data), BLOCK_SIZE)]
     valid = piece_range.validate_data(blocks)
     if not valid:
@@ -203,37 +200,21 @@ async def _request_range(
 
 
 def _pick_v2_ranges(torrent: Torrent, n_pieces: int) -> list[V2PieceRange]:
-    ranges: list[V2PieceRange] = []
+    piece_tuples = []
+    for path, file_item in torrent.flat_files.items():
+        if file_item["pieces root"] not in torrent.piece_layers:
+            piece_tuples.append((path, 0))
+        else:
+            piece_tuples.extend(
+                [(path, idx) for idx in range(len(torrent.piece_layers[file_item["pieces root"]]))]
+            )
 
-    total_pieces = len(
-        [
-            path
-            for path, file_item in torrent.flat_files.items()
-            if file_item["length"] < torrent.info.piece_length
-        ]
-    ) + len(torrent.piece_layers)
-    # FIXME: this has the potential to be wildly inefficient. make a generator to draw from
-    while len(ranges) < n_pieces and len(ranges) < total_pieces:
-        path = random.choice(list(torrent.flat_files.keys()))
-        file_item = torrent.flat_files[path]
-        piece_idx = random.randint(0, file_item["length"] // torrent.info.piece_length)
-        if any([r.path == path and r.piece_idx == piece_idx for r in ranges]):
-            continue
-        ranges.append(torrent.v2_piece_range(path, piece_idx))
+    piece_indices: list[tuple[str, int]] = random.sample(
+        piece_tuples, min(n_pieces, len(piece_tuples))
+    )
+    ranges = [torrent.v2_piece_range(idx[0], idx[1]) for idx in piece_indices]
+
     return ranges
-
-
-def _get_url(base_url: str, path: str) -> str:
-    # if we were given a url that ends with the path of the range,
-    # the webseed url is a file url for a single-file torrent
-    if base_url.endswith(path) or base_url.endswith(quote(path)):
-        url = base_url
-    else:
-        # webseed url must be a directory, so we quote the path segments and append
-        url_base = base_url.rstrip("/")
-        path_parts = [quote(part) for part in path.split("/")]
-        url = "/".join([url_base, *path_parts])
-    return url
 
 
 def _get_client() -> AsyncClient:

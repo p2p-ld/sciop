@@ -37,17 +37,17 @@ def rand_dir(tmp_path: Path) -> Path:
 
 
 @pytest_asyncio.fixture(loop_scope="session")
-async def file_server(tmp_data_path: Path, rand_dir: Path, session) -> FastAPI:
+async def file_server(tmp_path: Path, tmp_data_path: Path, rand_dir: Path, session) -> FastAPI:
     app = FastAPI()
     app.mount("/data", StaticFiles(directory=tmp_data_path), name="data")
     app.add_middleware(RequestHoarderMiddleware)
     retries = {}
 
-    @app.get("/404/{path}")
+    @app.get("/404/{path:path}")
     async def e404(request: Request, path: str) -> None:
         raise HTTPException(status_code=404, detail="Not Found")
 
-    @app.get("/429/reasonable/{path}")
+    @app.get("/429/reasonable/{path:path}")
     async def e429_reasonable(request: Request, path: str) -> FileResponse:
         nonlocal retries
         if path not in retries:
@@ -55,11 +55,11 @@ async def file_server(tmp_data_path: Path, rand_dir: Path, session) -> FastAPI:
 
         retries[path] += 1
         if retries[path] % 2 == 0:
-            return FileResponse(tmp_data_path / path, headers=request.headers.mutablecopy())
+            return FileResponse(tmp_path / path, headers=request.headers.mutablecopy())
         else:
             raise HTTPException(status_code=429)
 
-    @app.get("/429/unreasonable/{path}")
+    @app.get("/429/unreasonable/{path:path}")
     async def e429_unreasonable(request: Request, path: str) -> FileResponse:
         nonlocal retries
         if path not in retries:
@@ -67,28 +67,29 @@ async def file_server(tmp_data_path: Path, rand_dir: Path, session) -> FastAPI:
 
         retries[path] += 1
         if retries[path] % 20 == 0:
-            return FileResponse(tmp_data_path / path, headers=request.headers.mutablecopy())
+            return FileResponse(tmp_path / path, headers=request.headers.mutablecopy())
         else:
             raise HTTPException(status_code=429)
 
-    @app.get("/random/{path}")
+    @app.get("/random/{path:path}")
     async def rand_response(request: Request, path: str) -> FileResponse:
         rand_path = rand_dir / path
         if not rand_path.exists():
+            rand_path.parent.mkdir(exist_ok=True, parents=True)
             with open(rand_path, "wb") as f:
-                f.write(random.randbytes((tmp_data_path / path).stat().st_size))
+                f.write(random.randbytes((tmp_path / path).stat().st_size))
 
         return FileResponse(rand_path, headers=request.headers.mutablecopy())
 
-    @app.get("/timeout/{path}")
+    @app.get("/timeout/{path:path}")
     async def timeout(request: Request, path: str) -> FileResponse:
         await asyncio.sleep(1)
-        return FileResponse(tmp_data_path / path, headers=request.headers.mutablecopy())
+        return FileResponse(tmp_path / path, headers=request.headers.mutablecopy())
 
-    @app.get("/norange/{path}")
+    @app.get("/norange/{path:path}")
     async def no_range(request: Request, path: str) -> Response:
         """Pretend like we don't understand range requests"""
-        return Response(content=(tmp_data_path / path).read_bytes(), status_code=200, headers={})
+        return Response(content=(tmp_path / path).read_bytes(), status_code=200, headers={})
 
     config = UvicornConfig(
         app=app,
@@ -155,7 +156,7 @@ async def test_webseed_validation(
     """
     We should validate correct webseeds
     """
-    webseed_url = "http://localhost:9998/data/"
+    webseed_url = "http://localhost:9998/"
     create = TorrentCreate(
         paths=[p for p in tmp_data_path.iterdir()], path_root=tmp_data_path, piece_length=32 * KiB
     )
@@ -174,10 +175,10 @@ async def test_webseed_validation(
             for file_range in piece_range.ranges:
                 if file_range.is_padfile:
                     continue
-                expected_urls.append(webseed_url + file_range.path[0])
+                expected_urls.append(webseed_url + file_range.full_path)
     else:
         res.ranges = cast(list[V2PieceRange], res.ranges)
-        expected_urls = [webseed_url + r.path for r in res.ranges]
+        expected_urls = [webseed_url + r.full_path for r in res.ranges]
 
     requested = set(str(r.url) for r in hoarder.requests)
     expected = set(expected_urls)
@@ -212,7 +213,11 @@ async def test_reject_invalid_data(
     # we iterate over tmp_data_path here because rand_dir only creates files on-demand,
     # so the set of files in rand dir will always, trivially, equal the set of requested urls
     all_files = set(
-        [webseed_url + p.name for p in tmp_data_path.iterdir() if p.name not in EXCLUDE_FILES]
+        [
+            webseed_url + "data/" + p.name
+            for p in tmp_data_path.iterdir()
+            if p.name not in EXCLUDE_FILES
+        ]
     )
 
     requested = set(str(r.url) for r in hoarder.requests)
