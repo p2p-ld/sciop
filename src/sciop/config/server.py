@@ -77,3 +77,17 @@ class ServerConfig(BaseModel):
     """Submodel containing CSP config"""
     user_agent: str = f"sciop ({sciop_version})"
     """User agent to use for outgoing http requests"""
+    scheduler_mode: Literal["local", "rpc"] = "rpc"
+    """
+    Scheduler can be run either...
+    
+    - `local`: as a module-level instance within one worker,
+      jobs cannot be queued after sciop has started up (e.g. with add_queue_job)
+    - `rpc`: as a separate process with an xmlrpc proxy.
+      all workers have access to exposed scheduler methods, and thus can queue jobs after startup
+      
+    in both cases, the public functions in the scheduler module should be used rather than
+    directly interacting with the scheduler object.
+    """
+    scheduler_rpc_port: int = 8011
+    """Port to expose (locally) when running """

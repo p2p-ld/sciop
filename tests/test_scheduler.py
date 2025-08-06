@@ -1,15 +1,33 @@
 import asyncio
+import sys
 from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from sciop import scheduler
-from sciop.scheduler import add_date, add_interval, add_job, date, interval
+from sciop.scheduler import (
+    add_date,
+    add_interval,
+    add_job,
+    date,
+    interval,
+    queue_job,
+)
+
+_EVENTS = 0
 
 
 def do_a_print():
     """https://www.youtube.com/shorts/qG1LG1gADog"""
     print(f"EVENT: {datetime.now().isoformat()}")
+
+
+async def sleep_for_a_bit(arg: str = "sup"):
+    global _EVENTS
+    _EVENTS += 1
+    print(f"EVENT: {arg}")
+    sys.stdout.flush()
+    await asyncio.sleep(0.25)
 
 
 def _loglines(capsys) -> list[str]:
@@ -88,7 +106,7 @@ async def test_interval_decorator(capsys, clean_scheduler):
     assert len(events) == 2
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_date_decorator(capsys, clean_scheduler):
     """
     Date decorators should let one declare a job before the scheduler exists,
@@ -131,3 +149,26 @@ async def test_disabled_decorator(capsys, clean_scheduler):
 
     events = _eventlines(capsys)
     assert len(events) == 0
+
+
+@pytest.mark.asyncio(loop_scope="function")
+async def test_queue_job(capsys, clean_scheduler):
+    """
+    Queueing jobs should run them one at a time
+    """
+    print("starting scheduler")
+    scheduler.start_scheduler()
+    # queue 3 of the same job, we should only run one at a time
+    messages = ["a", "b", "c"]
+    jobs = [queue_job("sleepytime", func=sleep_for_a_bit, args=[msg]) for msg in messages]
+    await asyncio.sleep(0.1)
+
+    events = _eventlines(capsys)
+    queued_jobs = scheduler.get_queued_jobs("sleepytime")
+    assert len(events) == 1
+    assert len(queued_jobs) == 2
+    await asyncio.sleep(0.25)
+    events2 = _eventlines(capsys)
+    queued_jobs = scheduler.get_queued_jobs("sleepytime")
+    assert len(queued_jobs) == 1
+    assert len(events2) == 1
