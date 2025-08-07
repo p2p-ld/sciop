@@ -170,6 +170,7 @@
     hx-get="/autocomplete/{{ field_name }}"
     hx-target="#{{ parent_id }}-{{ field_name }}-autocomplete"
     hx-trigger="input changed delay:250ms"
+    hx-include="#{{ parent_id }}-{{ field_name }}-tokens"
     hx-params="*"
     data-tokens-container="#{{ parent_id }}-{{ field_name }}-tokens"
 >

@@ -38,6 +38,11 @@ class ItemScopes(StrEnum):
 
     edit = "edit"
     """Edit an item"""
+    grant_permissions = "grant permissions"
+    """
+    Modify other account scopes for an item
+    Users can only grant or revoke scopes that they also have
+    """
     delete = "delete"
     """Delete an item"""
 
@@ -57,6 +62,11 @@ class Scopes(StrEnum):
     """All permissions"""
     edit = "edit"
     """Edit an item"""
+    grant_permissions = "grant permissions"
+    """
+    Modify other account scopes for an item
+    Users can only grant or revoke scopes that they also have
+    """
     delete = "delete"
     """Delete an item"""
 

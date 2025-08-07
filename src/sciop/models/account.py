@@ -118,7 +118,7 @@ class AccountBase(SQLModel, FrontendMixin):
             return sqla.or_(*[cls.scopes.any(scope=s) for s in args])
 
     def get_scope(self, scope: str, dataset_id: Optional[int] = None) -> Optional["Scope"]:
-        """Get the scope object from its name and optional dataset_id, returning None if not present"""
+        """Get the scope object from its name and optional item ID, returning None if not present"""
         if dataset_id:
             scope = [
                 a_scope
