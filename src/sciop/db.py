@@ -14,7 +14,6 @@ from sqlmodel import Session, SQLModel, create_engine, func, select
 from sciop.config import get_config
 
 if TYPE_CHECKING:
-
     from sciop.models import Account
 
 _engine: Engine | None = None
@@ -251,7 +250,7 @@ def create_seed_data(n: int = 100) -> None:
 
 def ensure_root(session: Session) -> Optional["Account"]:
     from sciop import crud
-    from sciop.models import AccountCreate, Scope, Scopes
+    from sciop.models import AccountCreate, AccountScopes, Scope
 
     cfg = get_config()
     if not (cfg.root_user and cfg.root_password):
@@ -265,7 +264,9 @@ def ensure_root(session: Session) -> Optional["Account"]:
             ),
             session=session,
         )
-        scopes = [Scope.get_item(a_scope, session) for a_scope in Scopes.__members__.values()]
+        scopes = [
+            Scope.get_item(a_scope, session) for a_scope in AccountScopes.__members__.values()
+        ]
         root.scopes = scopes
         session.add(root)
         session.commit()
