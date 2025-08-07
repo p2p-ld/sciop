@@ -2,20 +2,19 @@ import pytest
 from sqlmodel import select
 
 from sciop.config import get_config
-from sciop.models import AuditLog, DatasetPart
-from sciop.types import Scopes
+from sciop.models import AccountScopes, AuditLog, DatasetPart
 
 
-@pytest.mark.parametrize("scope", Scopes.__members__.values())
+@pytest.mark.parametrize("scope", AccountScopes.__members__.values())
 @pytest.mark.parametrize("header_type", ["admin_auth_header", "root_auth_header"])
-def test_account_scope_grant(scope: Scopes, client, account, session, header_type, request):
+def test_account_scope_grant(scope: AccountScopes, client, account, session, header_type, request):
     auth_header = request.getfixturevalue(header_type)
     account_ = account(username="scoped")
     response = client.put(
         get_config().api_prefix + f"/accounts/{account_.username}/scopes/{scope.value}",
         headers=auth_header,
     )
-    if scope not in (Scopes.admin, Scopes.root) or header_type == "root_auth_header":
+    if scope not in (AccountScopes.admin, AccountScopes.root) or header_type == "root_auth_header":
         assert response.status_code == 200
         session.refresh(account_)
         assert account_.has_scope(scope.value)
@@ -50,7 +49,7 @@ def test_self_revoke_root(client, root_auth_header):
 
 
 @pytest.mark.parametrize("method", ["put", "delete"])
-@pytest.mark.parametrize("granting_scope", Scopes.__members__.values())
+@pytest.mark.parametrize("granting_scope", AccountScopes.__members__.values())
 @pytest.mark.parametrize("privileged_scope", ["admin", "root"])
 def test_only_root_can_privilege(
     method, granting_scope, privileged_scope, client, account, get_auth_header, session
@@ -81,7 +80,7 @@ def test_only_root_can_privilege(
         raise ValueError("Unhandled method")
 
     session.refresh(receiving_account_)
-    if granting_scope == Scopes.root:
+    if granting_scope == AccountScopes.root:
         assert response.status_code == 200
         if method == "put":
             assert receiving_account_.has_scope(privileged_scope)

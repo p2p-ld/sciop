@@ -200,3 +200,8 @@ filterwarnings = [
     'ignore:Python 3.14 will, by default, filter extracted tar archives',
     "ignore:Accessing the 'model_computed_fields'::fasthx",
 ]
+
+[tool.pyright]
+venvPath='.'
+venv=".venv"
+exclude=['.venv']
