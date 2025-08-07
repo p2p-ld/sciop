@@ -1,39 +1,77 @@
-import asyncio
+"""
+Background job structure.
+
+Defines the decorators and backend runners for scheduled and queued jobs,
+see {mod}`.jobs` for the instantiation of specific jobs & services.
+
+## Overview
+
+The scheduler is started in a separate process by the first worker process that reaches
+a semaphore. On startup, it reads the configuration from any decorated job functions
+and schedules them for execution.
+
+In most cases, jobs are fire and forget, but in the case that one needs to interact with the
+scheduler during runtime, we run an XML-RPC server accessible from {func}`.get_scheduler`
+
+## Queued Jobs
+
+APScheduler doesn't support queueing several of the same kind of job with different parameters
+out of the box, so we use apscheduler in a slightly nonstandard way
+
+- Rather than using `max_instances` , (which, as above, doesn't allow scheduling multiple jobs
+  with the same id), we spawn a process pool executor per job queue, and the pool size
+  controls concurrent execution. This may be changed in the future to accomodate
+  shared queues for distinct but related jobs.
+- ... in progress rn ...
+
+"""
+
+from __future__ import annotations
+
 import atexit
 import base64
+import contextlib
+import hashlib
 import multiprocessing as mp
 import secrets
 import signal
 import sys
 import threading
-from collections import deque
 from datetime import UTC, datetime, timedelta, tzinfo
 from functools import wraps
 from multiprocessing import Semaphore
 from types import FrameType, FunctionType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Coroutine,
     Literal,
+    NotRequired,
     Optional,
     ParamSpec,
     Sequence,
+    TypedDict,
     TypeVar,
     cast,
 )
-from xmlrpc.client import ServerProxy
+from xmlrpc.client import Fault, ServerProxy
 from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
-from apscheduler.executors.asyncio import AsyncIOExecutor
-from apscheduler.executors.base import run_coroutine_job, run_job
+from apscheduler.events import (
+    EVENT_JOB_EXECUTED,
+    JobEvent,
+    JobExecutionEvent,
+    JobSubmissionEvent,
+)
+from apscheduler.executors.pool import ProcessPoolExecutor
 from apscheduler.job import Job
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.schedulers import SchedulerNotRunningError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
-from apscheduler.util import iscoroutinefunction_partial
 from pydantic import BaseModel, Field
 from sqlalchemy.engine.base import Engine
 
@@ -45,10 +83,11 @@ from sciop.logging import init_logger
 
 logger = init_logger("scheduling")
 scheduler: AsyncIOScheduler = None
-_TO_SCHEDULE: dict[str, "_ScheduledJob"] = {}
+_TO_SCHEDULE: dict[str, _ScheduledJob] = {}
 """Jobs declared before the scheduler is run"""
-_JOB_PARAMS: dict[str, "_ScheduledJob"] = {}
+_JOB_PARAMS: dict[str, _ScheduledJob] = {}
 """All job parameterizations"""
+_QUEUE_PARAMS: dict[str, _QueuedJob] = {}
 _REGISTRY: dict[str, Job] = {}
 """All registered jobs"""
 _SCHEDULER_CREATED = Semaphore(1)
@@ -62,89 +101,25 @@ the security model is basically the same as the secret key used to generate auth
 where if an attacker has access to the python interpreter or can access program memory,
 we're probably already pwned.
 """
+
 _RPC_PROCESS: mp.Process | None = None
 
 
 P = ParamSpec("P")
 T = TypeVar("T")
 
+if TYPE_CHECKING:
 
-class AuthenticatingXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
-    """
-    Request handler that checks for basic HTTP auth when serving requests
+    class _BackgroundSchedulerProxy(BackgroundScheduler):
+        """Typing-only subclass that represents the methods available to the xml-rpc client"""
 
-    References:
-        copied from:
-        https://idle.nprescott.com/2023/basic-auth-with-pythons-xmlrpc-server.html
-    """
+        def queue_job(self, job_name: str, *args: Any, **kwargs: Any) -> _QueueResult: ...
 
-    def do_POST(self) -> None:  # noqa: N802
-        if not (cred := self.headers.get("Authorization")):
-            self._reject_auth()
-            self.wfile.write(b"no auth header received")
-        elif cred == "Basic " + base64.b64encode(f"sciop:{_RPC_PASS}".encode()).decode():
-            super().do_POST()
-        else:
-            self._reject_auth()
+        def get_queued_jobs(self, queue_name: str) -> dict[str, MarshallableJob]: ...
 
-    def _reject_auth(self) -> None:
-        self.send_response(401)
-        self.send_header("WWW-Authenticate", "Basic")
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-
-
-def _scheduler_rpc_server(start_event: mp.Event):
-    config = get_config()
-    logger = init_logger("scheduling.rpc")
-    scheduler = create_scheduler()
-    if get_config().services.clear_jobs:
-        remove_all_jobs()
-
-    loop = asyncio.get_event_loop()
-    scheduler._eventloop = loop
-    try:
-        with SimpleXMLRPCServer(
-            ("localhost", config.server.scheduler_rpc_port),
-            requestHandler=SimpleXMLRPCRequestHandler,
-        ) as server:
-
-            scheduler.start()
-            _start_pending_jobs()
-            server.register_instance(scheduler)
-
-            def _shutdown(sig: int, frame: FrameType | None) -> None:
-                scheduler.shutdown()
-                server.shutdown()
-
-            signal.signal(signal.SIGTERM, _shutdown)
-            atexit.register(_shutdown)
-            start_event.set()
-            logger.debug("Starting RPC Server")
-            loop.run_in_executor(None, server.serve_forever)
-            loop.run_forever()
-            logger.debug("Quitting RPC Server")
-            _shutdown(signal.SIGTERM, None)
-            sys.exit(0)
-    finally:
-        loop.close()
-
-
-def _start_scheduler_rpc_server() -> mp.Process:
-    global _RPC_PROCESS
-    start_event = mp.Event()
-    start_event.clear()
-    process = mp.Process(target=_scheduler_rpc_server, args=(start_event,))
-    process.start()
-    start_event.wait()
-    _RPC_PROCESS = process
-    return process
-
-
-def _start_rpc_client() -> ServerProxy:
-    config = get_config()
-    proxy = ServerProxy(f"http://sciop:{_RPC_PASS}@localhost:{config.server.scheduler_rpc_port}")
-    return proxy
+        def await_event(
+            self, event: int, timeout: int | None = None
+        ) -> JobEvent | JobSubmissionEvent | JobExecutionEvent: ...
 
 
 class _ScheduledJob(BaseModel):
@@ -160,23 +135,86 @@ class _ScheduledJob(BaseModel):
     enabled: bool = True
 
 
-def create_scheduler(engine: Optional[Engine] = None) -> AsyncIOScheduler:
+class _QueuedJob(BaseModel):
+    """
+    Container for queued job parameterization,
+    mapping strings to functions for calling over rpc with {func}`.queue_job`
+    """
+
+    func: Callable | str
+    job_name: str
+    """
+    ID to use for job within apscheduler,
+    and also when queueing the job.
+    """
+    queue_name: str
+    """
+    Name of the queue to run the job in.
+    Currently always the same as job_name,
+    but left as a point of future expansion.
+    """
+    max_concurrent: int = 1
+    """Maximum number of concurrent instances of this job"""
+    enabled: bool = True
+
+
+def create_scheduler(engine: Optional[Engine] = None) -> AsyncIOScheduler | BackgroundScheduler:
+    global _QUEUE_PARAMS
     if engine is None:
         engine = get_engine()
+    config = get_config()
     logger.debug(f"Using SQL engine for scheduler: {engine}")
     jobstores = {"default": SQLAlchemyJobStore(engine=engine)}
-    logger.debug(f"Initializing AsyncIOScheduler w/ jobstores: {jobstores}")
-    scheduler = AsyncIOScheduler(jobstores=jobstores)
+
+    mode = config.server.scheduler_mode
+    scheduler_cls = BackgroundScheduler if mode == "rpc" else AsyncIOScheduler
+
+    logger.debug(f"Initializing Scheduler in {mode} mode w/ jobstores: {jobstores}")
+    scheduler = scheduler_cls(jobstores=jobstores)
     return scheduler
 
 
-def get_scheduler() -> AsyncIOScheduler:
+def _add_queue_executors(
+    scheduler: AsyncIOScheduler | BackgroundScheduler,
+    queue_params: dict[str, _QueuedJob],
+) -> AsyncIOScheduler | BackgroundScheduler:
+    for exec_name, exec_params in queue_params.items():
+        if not exec_params.enabled:
+            continue
+        scheduler.add_executor(
+            ProcessPoolExecutor(max_workers=exec_params.max_concurrent), alias=exec_name
+        )
+        logger.debug("Added executor %s", exec_name)
+    return scheduler
+
+
+def get_scheduler() -> AsyncIOScheduler | _BackgroundSchedulerProxy | None:
     global scheduler
     config = get_config()
     if config.server.scheduler_mode == "rpc":
-        return _start_rpc_client()
+        try:
+            client = _start_rpc_client()
+            client = cast("_BackgroundSchedulerProxy", client)
+            return client
+        except Fault:
+            return None
     else:
         return scheduler
+
+
+def start_scheduler(**kwargs: Any) -> None:
+    global scheduler
+    # prevent multiple schedulers from being spawned in multiple workers.
+    # Use the --preload flag in gunicorn (see deployment docs)
+    logger.debug("Starting scheduler")
+    config = get_config()
+    should_create = _SCHEDULER_CREATED.acquire(False)
+    if not should_create:
+        return
+    elif config.server.scheduler_mode == "rpc":
+        _start_rpc_server(**kwargs)
+    else:
+        _start_local_scheduler()
 
 
 def _start_local_scheduler() -> None:
@@ -195,21 +233,6 @@ def _start_local_scheduler() -> None:
     logger.debug("Pending jobs started")
 
 
-def start_scheduler() -> None:
-    global scheduler
-    # prevent multiple schedulers from being spawned in multiple workers.
-    # Use the --preload flag in gunicorn (see deployment docs)
-    logger.debug("Starting scheduler")
-    config = get_config()
-    should_create = _SCHEDULER_CREATED.acquire(False)
-    if not should_create:
-        return
-    elif config.server.scheduler_mode == "rpc":
-        _start_scheduler_rpc_server()
-    else:
-        _start_local_scheduler()
-
-
 def started() -> bool:
     global scheduler
     return scheduler is not None
@@ -222,6 +245,8 @@ def shutdown() -> None:
         scheduler.shutdown()
     scheduler = None
     if _RPC_PROCESS is not None:
+        scheduler = get_scheduler()
+        scheduler.shutdown()
         _RPC_PROCESS.terminate()
         _RPC_PROCESS.join(timeout=5)
         if _RPC_PROCESS.is_alive():
@@ -232,11 +257,13 @@ def shutdown() -> None:
 
 
 def remove_all_jobs() -> None:
-    global scheduler
+    scheduler = get_scheduler()
     if scheduler is not None:
         logger.debug("Clearing jobs")
         try:
             scheduler.remove_all_jobs("default")
+        except (Fault, ConnectionRefusedError):
+            logger.debug("RPC Connection refused - could not clear jobs")
         except Exception as e:
             logger.exception(f"Could not clear jobs: {e}")
     else:
@@ -508,117 +535,61 @@ def add_cron(func: FunctionType, *args: Any, **kwargs: Any) -> Job:
 # --------------------------------------------------
 
 
-class AsyncIOQueueExecutor(AsyncIOExecutor):
+def queue(
+    enabled: bool = True, max_concurrent: int = 1, job_name: str | None = None
+) -> Callable[P, Callable]:
     """
-    Runs a limited number of jobs in a named queue.
-    APScheduler can't seem to do this out of the box,
-    where the `max_instances` keyword doesn't really work
-    to control a group of the same kind of job with different arguments,
-    as we need here.
+    Registers a function as being a queueable job.
 
-    When a job is submitted, if there are no slots remaining
-    (determined by a semaphore), then hold the job in a queue.
-    When a job completes, if there are any jobs in the queue, start them.
+    Queue a job by calling {func}`.queue_job` like
+
+    ```
+    queue_job(job_id, **kwargs)
+    ```
+
+    Args:
+        max_concurrent (int): Max number of instances of this job that may run concurrently
+        enabled (bool): Enable this job queue!
+        job_id (str): ID to use when queueing jobs and within apscheduler.
+            If ``None`` , use name of function
+
     """
+    global _QUEUE_PARAMS
 
-    def __init__(self, max_jobs: int = 1):
-        super().__init__()
-        self.max_jobs = max_jobs
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        nonlocal job_name
+        if job_name is None:
+            job_name = func.__name__
+        _QUEUE_PARAMS[job_name] = _QueuedJob(
+            job_name=job_name,
+            queue_name=job_name,
+            func=f"{func.__module__}:{func.__name__}",
+            max_concurrent=max_concurrent,
+            enabled=enabled,
+        )
+        logger.debug("added queue description for %s: %s", job_name, _QUEUE_PARAMS[job_name])
+        return func
 
-    def start(self, scheduler: AsyncIOScheduler, alias: str) -> None:
-        super().start(scheduler, alias)
-        self._init_private()
-
-    def _do_submit_job(self, job: Job, run_times: list[datetime]) -> None:
-        def callback(f: asyncio.Future) -> None:
-            self._pending_futures.discard(f)
-            try:
-                events = f.result()
-            except BaseException:
-                self._run_job_error(job.id, *sys.exc_info()[1:])
-            else:
-                self._run_job_success(job.id, events)
-            finally:
-                next_job = None
-                with self._lock:
-                    self._semaphore.release()
-                    if len(self._job_queue) > 0:
-                        next_job = self._job_queue.popleft()
-                        self._logger.debug("Running job from queue: %s", next_job[0])
-                if next_job is not None:
-                    self._do_submit_job(*next_job)
-
-        # try to acquire semaphore. if we can't queue the job.
-        self._logger.info("acquiring lock in submission")
-        with self._lock:
-            can_run = self._semaphore.acquire(blocking=False)
-            if not can_run:
-                self._job_queue.append((job, run_times))
-                self._logger.debug("No slots remaining, queueing job to run later: %s", job)
-                return
-        self._logger.info("running queued job on submission")
-
-        if iscoroutinefunction_partial(job.func):
-            coro = run_coroutine_job(job, job._jobstore_alias, run_times, self._logger.name)
-            f = self._eventloop.create_task(coro)
-        else:
-            f = self._eventloop.run_in_executor(
-                None, run_job, job, job._jobstore_alias, run_times, self._logger.name
-            )
-
-        f.add_done_callback(callback)
-        self._pending_futures.add(f)
-
-    def _init_private(self) -> None:
-        # Use threading sync objects rather than asyncio since all the queueing happens in sync land
-        # Shouldn't need to use multiprocessing either, since calls from other processes
-        # are proxied through the manager
-        self._job_queue: deque[tuple[Job, list[datetime]]] = deque()
-        self._lock = threading.RLock()
-        self._semaphore = threading.BoundedSemaphore(self.max_jobs)
-
-    def get_queued_jobs(self) -> list[tuple[Job, list[datetime]]]:
-        with self._lock:
-            queue = list(self._job_queue.copy())
-        return queue
-
-    def cancel_queued_job(self, job: str | Job) -> bool:
-        """
-        Cancel a queued job, either by the job's ID or by passing the job object
-
-        Returns:
-            ``True`` if successful, ``False`` otherwise.
-        """
-        with self._lock:
-            found_job = None
-            for queued_job in self._job_queue:
-                if isinstance(job, Job) and queued_job[0] is job:
-                    found_job = queued_job
-                elif isinstance(job, str) and queued_job[0].id == job:
-                    found_job = queued_job
-
-                if found_job is not None:
-                    self._job_queue.remove(queued_job)
-                    return True
-
-        return False
+    return decorator
 
 
 def queue_job(
-    queue_name: str,
-    func: FunctionType | Callable[[...], Coroutine],
-    max_jobs: int = 1,
+    job_name: str,
     args: Sequence[Any] | None = None,
     kwargs: dict[str, Any] | None = None,
-) -> Job:
+) -> _QueueResult:
     """
     Queue a job to be executed.
 
-    Only `max_jobs` of jobs with matching `queue_name` are able to run at once,
-    all others after that are queued to run as each job finishes.
+    Can only be run in RPC mode,
+    (otherwise the other gunicorn/uvicorn workers would not be able to communicate with
+    the scheduler, since it must only be spawned in one worker)
 
-    `max_jobs` is only used the *first* time that a job is queued in a given queue.
-    `max_jobs` cannot be modified once a queue is created.
+    The service must already be registered with :func:`.queue` ,
+    since functions generally can't be serialized over xml-rpc.
+
+    All args/kwargs must be serializable with xml-rpc,
+    typically this means they must be base python types.
 
     Note that queued jobs exit apscheduler's jobstore immediately and are only stored in memory,
     as job queues are not intended for persistence between runs.
@@ -626,70 +597,230 @@ def queue_job(
     Queued jobs can be accessed with :func:`.get_queued_jobs`
     and cancelled with :func:`.cancel_queued_job`.
     """
+    global _QUEUE_PARAMS, logger
 
+    cfg = get_config()
+    if cfg.server.scheduler_mode != "rpc":
+        return _QueueResult(success=False, message="Queued jobs only work in RPC mode")
     if args is None:
         args = []
     if kwargs is None:
         kwargs = {}
-    scheduler = get_scheduler()
-    if scheduler is None:
-        raise RuntimeError("Scheduler has not been started!")
-    try:
-        logger.debug("Adding executor to scheduler: %s", queue_name)
-        scheduler.add_executor(AsyncIOQueueExecutor(max_jobs=max_jobs), queue_name)
-    except ValueError:
-        logger.debug("Executor %s already exists", queue_name)
 
-    job = scheduler.add_job(
-        func,
-        args=args,
-        kwargs=kwargs,
-        misfire_grace_time=None,
-        executor=queue_name,
+    scheduler = get_scheduler()
+
+    return scheduler.queue_job(job_name, *args, **kwargs)
+
+
+class AuthenticatingXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
+    """
+    Request handler that checks for basic HTTP auth when serving requests
+
+    References:
+        copied from:
+        https://idle.nprescott.com/2023/basic-auth-with-pythons-xmlrpc-server.html
+    """
+
+    def do_POST(self) -> None:  # noqa: N802
+        if not (cred := self.headers.get("Authorization")):
+            self._reject_auth()
+            self.wfile.write(b"no auth header received")
+        elif cred == "Basic " + base64.b64encode(f"sciop:{_RPC_PASS}".encode()).decode():
+            super().do_POST()
+        else:
+            self._reject_auth()
+
+    def _reject_auth(self) -> None:
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", "Basic")
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+
+
+class MarshallableJob(TypedDict):
+    id: str
+    func: str
+    executor: str
+    args: list
+    kwargs: dict
+    name: str | None
+    next_run_time: datetime
+
+
+class _QueueResult(TypedDict):
+    success: bool
+    message: NotRequired[str]
+    job: NotRequired[MarshallableJob]
+
+
+def _marshall_job(job: Job) -> MarshallableJob:
+    state = job.__getstate__()
+    return MarshallableJob(
+        id=state["id"],
+        func=state["func"],
+        executor=state["executor"],
+        args=state["args"],
+        kwargs=state["kwargs"],
+        name=state["name"],
+        next_run_time=state["next_run_time"],
     )
-    logger.debug("Queued job: job: %s, args: %s, kwargs: %s", func, args, kwargs)
-    return job
 
 
-def _get_queue_executor(queue_name: str) -> AsyncIOQueueExecutor:
-    scheduler = get_scheduler()
-    if scheduler is None:
-        raise RuntimeError("Scheduler has not been started!")
+def _create_rpc_server(start_event: mp.Event, queue_params: dict[str, _QueuedJob]) -> None:
+    global logger
+    # replace the global logger in this process, in case it is used by any other functions
+    config = get_config()
+    logger = init_logger("scheduling.rpc")
+    logger.debug("got queue params: %s", queue_params)
+    scheduler: BackgroundScheduler = create_scheduler()
+    scheduler = _add_queue_executors(scheduler, queue_params)
+    queued_jobs: dict[str, dict] = {}
+    if get_config().services.clear_jobs:
+        remove_all_jobs()
 
-    # raises KeyError if none found
-    executor = scheduler._lookup_executor(queue_name)
-    if not isinstance(executor, AsyncIOQueueExecutor):
-        raise ValueError(f"Executor {queue_name} is not a queue executor")
-    return executor
+    def _job_complete_callback(event: JobExecutionEvent) -> None:
+        """remove job from queued jobs map when completed"""
+        nonlocal queued_jobs
+        global logger
+        logger.debug("Completed queued job %s", event.job_id)
+        with contextlib.suppress(KeyError):
+            del queued_jobs[event.job_id]
+
+    def _await_event(
+        event: int, timeout: int | None = None
+    ) -> JobEvent | JobSubmissionEvent | JobExecutionEvent:
+        evt = threading.Event()
+        evt.clear()
+        result = None
+
+        def _cb(event: Any) -> None:
+            nonlocal result
+            result = event
+            evt.set()
+
+        scheduler.add_listener(_cb, event)
+        evt.wait(timeout)
+        return result
+
+    def _get_queued_jobs(queue_name: str) -> dict[str, dict]:
+        nonlocal queued_jobs
+        return {
+            job_name: job
+            for job_name, job in queued_jobs.items()
+            if job.get("executor") == queue_name
+        }
+
+    # define local in-process versions of functions
+    def _queue_job(job_name: str, *args: Any, **kwargs: Any) -> _QueueResult:
+        global logger
+        nonlocal scheduler, queued_jobs
+        logger.debug("Received request to queue %s; args: %s; kwargs: %s", job_name, args, kwargs)
+        if job_name not in queue_params:
+            logger.warning(
+                "Queue not parameterized before starting rpc server with @queue decorator"
+            )
+            return _QueueResult(success=False, message=f"job name {job_name} not found")
+        params = queue_params[job_name]
+        if not params.enabled:
+            logger.debug("Queue %s not enabled", job_name)
+            return _QueueResult(success=False, message=f"job {job_name} disabled")
+
+        job_id = hashlib.blake2b(
+            str({"job_name": job_name, "args": args, "kwargs": kwargs}).encode()
+        ).hexdigest()
+
+        job = scheduler.add_job(
+            func=params.func,
+            id=job_id,
+            args=args,
+            kwargs=kwargs,
+            misfire_grace_time=None,
+            executor=params.queue_name,
+        )
+        marshallable = _marshall_job(job)
+        queued_jobs[job_id] = marshallable
+        logger.debug("Queued job: job: %s, args: %s, kwargs: %s", params.func, args, kwargs)
+        return _QueueResult(success=True, job=marshallable)
+
+    try:
+        with SimpleXMLRPCServer(
+            ("localhost", config.server.scheduler_rpc_port),
+            requestHandler=SimpleXMLRPCRequestHandler,
+            allow_none=True,
+            use_builtin_types=True,
+            logRequests=False,
+        ) as server:
+
+            def _shutdown(sig: int | None = None, frame: FrameType | None = None) -> None:
+                logger.debug("Trying to shut down RPC server")
+                with contextlib.suppress(SchedulerNotRunningError):
+                    scheduler.shutdown()
+                server.shutdown()
+
+            scheduler.start()
+            scheduler.add_listener(_job_complete_callback, EVENT_JOB_EXECUTED)
+            # _start_pending_jobs()
+            server.register_instance(scheduler)
+            server.register_function(_queue_job, "queue_job")
+            server.register_function(_get_queued_jobs, "get_queued_jobs")
+            server.register_function(_shutdown, "shutdown_rpc")
+            server.register_function(_await_event, "await_event")
+
+            signal.signal(signal.SIGTERM, _shutdown)
+            atexit.register(_shutdown)
+
+            start_event.set()
+            logger.debug("Starting RPC Server")
+            server.serve_forever()
+            logger.debug("Quitting RPC Server")
+            sys.exit(0)
+    finally:
+        start_event.set()
+        _shutdown(signal.SIGTERM, None)
+
+
+def _start_rpc_server(ctx: mp.context.BaseContext | None = None) -> mp.Process:
+    global _RPC_PROCESS, _QUEUE_PARAMS
+    if ctx is None:
+        ctx = mp
+    start_event = ctx.Event()
+    start_event.clear()
+    process = ctx.Process(target=_create_rpc_server, args=(start_event, _QUEUE_PARAMS))
+    process.start()
+    was_started = start_event.wait(10)
+    if not was_started:
+        logger.exception(
+            "RPC server was not finished starting by the time the timeout was reached!"
+        )
+        process.kill()
+    _RPC_PROCESS = process
+    return process
+
+
+def _start_rpc_client() -> ServerProxy:
+    config = get_config()
+    proxy = ServerProxy(f"http://sciop:{_RPC_PASS}@localhost:{config.server.scheduler_rpc_port}")
+    return proxy
 
 
 def list_queue_names() -> list[str]:
     """
     List the names of any job queues that exist
     """
-    scheduler = get_scheduler()
-    if scheduler is None:
-        raise RuntimeError("Scheduler has not been started!")
-    queue_names = [
-        name for name, q in scheduler._executors.items() if isinstance(q, AsyncIOQueueExecutor)
-    ]
-    return queue_names
+    global _QUEUE_PARAMS
+    return sorted(list(_QUEUE_PARAMS.keys()))
 
 
-def get_queued_jobs(queue_name: str) -> list[tuple[Job, list[datetime]]]:
+def get_queued_jobs(queue_name: str) -> dict[str, MarshallableJob]:
     """
     Get all jobs in a given queue.
-    """
-    executor = _get_queue_executor(queue_name)
-    return executor.get_queued_jobs()
 
+    .. todo::
 
-def cancel_queued_job(queue_name: str, job: Job | str) -> bool:
+        Track job execution events to distinguish queued vs. in-progress jobs.
     """
-    Cancel a queued job, either by passing the job object or its id.
-
-    Returns:
-        ``True`` if successfully removed, ``False`` if not found.
-    """
-    executor = _get_queue_executor(queue_name)
-    return executor.cancel_queued_job(job)
+    cfg = get_config()
+    if cfg.server.scheduler_mode != "rpc":
+        raise RuntimeError("Queued jobs are only available in rpc mode")
+    scheduler = get_scheduler()
+    return scheduler.get_queued_jobs(queue_name)

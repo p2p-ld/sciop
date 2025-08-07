@@ -16,3 +16,14 @@ async def scrape_torrent_stats() -> None:
 )
 async def update_site_stats() -> None:
     await services.update_site_stats()
+
+
+@scheduler.queue(
+    enabled=get_config().services.webseed_validation.enabled,
+    max_concurrent=get_config().services.webseed_validation.max_concurrent,
+)
+async def validate_webseed(infohash: str, url: str) -> None:
+    from sciop.db import get_session
+
+    with next(get_session()) as session:
+        await services.validate_webseed(infohash, url, session)

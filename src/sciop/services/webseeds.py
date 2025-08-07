@@ -18,7 +18,6 @@ from torrent_models.const import BLOCK_SIZE
 from torrent_models.types.v1 import FileItemRange, V1PieceRange
 from torrent_models.types.v2 import V2PieceRange
 
-from sciop import crud
 from sciop.config import get_config
 from sciop.exceptions import WebseedHTTPError, WebseedValidationError
 from sciop.logging import init_logger
@@ -34,6 +33,8 @@ class WebseedValidationResult(BaseModel):
 
 
 async def validate_webseed(infohash: str, url: str, session: Session) -> WebseedValidationResult:
+    from sciop import crud
+
     cfg = get_config()
     ws_config = cfg.services.webseed_validation
     if not ws_config.enabled:

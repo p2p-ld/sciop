@@ -1,18 +1,13 @@
 import asyncio
-import sys
+import time
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from apscheduler.events import EVENT_JOB_EXECUTED
 
 from sciop import scheduler
-from sciop.scheduler import (
-    add_date,
-    add_interval,
-    add_job,
-    date,
-    interval,
-    queue_job,
-)
+from sciop.logging import init_logger
+from sciop.scheduler import add_date, add_interval, add_job, date, interval, queue, queue_job
 
 _EVENTS = 0
 
@@ -22,12 +17,10 @@ def do_a_print():
     print(f"EVENT: {datetime.now().isoformat()}")
 
 
-async def sleep_for_a_bit(arg: str = "sup"):
-    global _EVENTS
-    _EVENTS += 1
-    print(f"EVENT: {arg}")
-    sys.stdout.flush()
-    await asyncio.sleep(0.25)
+def sleep_for_a_bit(arg: str = "sup"):
+    logger = init_logger("sleep")
+    logger.warning(arg)
+    time.sleep(1)
 
 
 def _loglines(capsys) -> list[str]:
@@ -151,24 +144,49 @@ async def test_disabled_decorator(capsys, clean_scheduler):
     assert len(events) == 0
 
 
-@pytest.mark.asyncio(loop_scope="function")
-async def test_queue_job(capsys, clean_scheduler):
+def test_queue_job(capsys, clean_scheduler, set_config):
     """
     Queueing jobs should run them one at a time
     """
+
+    set_config({"server.scheduler_mode": "rpc"})
     print("starting scheduler")
+    queue(enabled=True, max_concurrent=1, job_name="sleepytime")(sleep_for_a_bit)
+    # need to fork to share an event
     scheduler.start_scheduler()
+    time.sleep(0.1)
     # queue 3 of the same job, we should only run one at a time
     messages = ["a", "b", "c"]
-    jobs = [queue_job("sleepytime", func=sleep_for_a_bit, args=[msg]) for msg in messages]
-    await asyncio.sleep(0.1)
-
-    events = _eventlines(capsys)
+    results = [queue_job("sleepytime", msg) for msg in messages]
+    assert all([result["success"] for result in results])
     queued_jobs = scheduler.get_queued_jobs("sleepytime")
-    assert len(events) == 1
+    assert len(queued_jobs) == 3
+
+    # Wait until at least 1 has finished.
+    # multiple jobs *could* start here if the pool was larger, but they shouldn't
+    # that's what we're testing lol
+    client = scheduler.get_scheduler()
+    evt1 = client.await_event(EVENT_JOB_EXECUTED, 10)
+
+    queued_jobs = scheduler.get_queued_jobs("sleepytime")
     assert len(queued_jobs) == 2
-    await asyncio.sleep(0.25)
-    events2 = _eventlines(capsys)
+
+    evt2 = client.await_event(EVENT_JOB_EXECUTED, 1)
+
     queued_jobs = scheduler.get_queued_jobs("sleepytime")
     assert len(queued_jobs) == 1
-    assert len(events2) == 1
+
+    evt3 = client.await_event(EVENT_JOB_EXECUTED, 1)
+
+    # since they ran in sequence, theoretically, even though pools are unordered,
+    # the results should be ordered
+    ordered_ids = [evt["job_id"] for evt in [evt1, evt2, evt3]]
+    expected_order = [
+        res["job"]["id"] for res in sorted(results, key=lambda x: x["job"]["args"][0])
+    ]
+    assert ordered_ids == expected_order
+
+
+@pytest.mark.xfail(reason="write me plz")
+def test_no_unauthed_rpc_access():
+    raise NotImplementedError()

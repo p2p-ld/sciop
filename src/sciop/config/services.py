@@ -1,5 +1,3 @@
-from typing import Literal
-
 from pydantic import BaseModel, Field
 
 from sciop.types import Scopes
@@ -9,6 +7,21 @@ class JobConfig(BaseModel):
     """Abstract shared class for job configs"""
 
     enabled: bool = True
+
+
+class QueueJobConfig(JobConfig):
+    """Abstract shared class for queued job configs"""
+
+    queue_name: str
+    """
+    Name of the queue (and thus pool executor) this job runs in
+    For now, spawn pools for each kind of job,
+    but in the future, allow shared pools for related tasks.
+    """
+    max_concurrent: int = 1
+    """
+    Maximum instances of this job that can run in parallel
+    """
 
 
 class ScrapeErrorBackoffs(BaseModel):
@@ -102,13 +115,19 @@ class DocsConfig(JobConfig):
     """
 
 
-class WebseedValidationConfig(JobConfig):
+class WebseedValidationConfig(QueueJobConfig):
     """
     Configuration of adding and validatation of webseeds from the web UI.
 
     If enabled, when webseeds are added, sciop will request `n_pieces` from the torrent
     (or, in the case of large piece sizes, the number of pieces that kees us
     below `max_validation_data` bytes worth of bandwidth)
+    """
+
+    queue_name: str = "webseeds"
+    max_concurrent: int = 2
+    """
+    This is a potentially memory-intensive job, so keep default count low.
     """
 
     enable_adding_webseeds: bool = True
@@ -121,7 +140,7 @@ class WebseedValidationConfig(JobConfig):
     If `enable_adding_webseeds` is `False` but `enable` is `True`,
     webseeds cannot be added and will not be validated.
     """
-    enable_for_scopes: list["Scopes"] | None = ("upload",)
+    enable_for_scopes: list["Scopes"] | None = Field(default_factory=lambda: ["upload"])
     """
     Set of scopes for which to enable adding webseeds.
     
@@ -139,12 +158,6 @@ class WebseedValidationConfig(JobConfig):
     max_validation_data: int = 1 * (2**30)  # 1 GB
     """
     Maximum amount of data per validation to download, in bytes
-    """
-    n_jobs: Literal[1] = 1
-    """
-    Number of validation jobs to run concurrently.
-    
-    Currently not implemented, value must be 1.
     """
     max_connections: int = 20
     """

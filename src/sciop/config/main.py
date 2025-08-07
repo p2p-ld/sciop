@@ -66,6 +66,7 @@ class Config(BaseSettings):
         extra="ignore",
         nested_model_default_partial_update=True,
         yaml_file="sciop.yaml",
+        use_enum_values=True,
     )
     env: Literal["dev", "prod", "test"] = "dev"
     """
