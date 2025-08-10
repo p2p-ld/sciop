@@ -42,6 +42,26 @@ it's about making too many copies to allow easy censorship or control.
 
 [FAIR principles]: https://www.go-fair.org/fair-principles/
 
+#### Implementation notes
+
+Identities are `did:key` with a proof like
+https://codeberg.org/fediverse/fep/src/branch/main/fep/c390/fep-c390.md
+and not tied to a single instance,
+but are associated with one or more traditional fedi identities via an instance.
+Datasets and other metadata are similarly
+signed objects that are federated under a namespace, instance or actor,
+with `alsoKnownAs` links between them.
+Torrents are just distributed as json-ld objects,
+with infohashes like
+https://codeberg.org/fediverse/fep/src/branch/main/fep/ef61/fep-ef61.md#media.
+
+So the goal is self-contained metadata objects
+wrapping torrents
+tied to a (set of) key-based identities who have custody over it.
+I figure we may as well use git-like versioning
+with a hash tree of canonicalized graph diffs
+but that's TBD like much of the fine details.
+
 ## Full database diagram
 
 !!! note
