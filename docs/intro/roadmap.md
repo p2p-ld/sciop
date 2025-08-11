@@ -9,9 +9,29 @@ See also [the issue tracker on Codeberg](https://codeberg.org/Safeguarding/sciop
 
 </div>
 
-## Architecture decisions
+## Versioning
 
-### Federation
+Sciop is currently versioned with a modified form of calendar versioning - 
+
+`{year}{month}.{day}.{n_commit}+{short_hash}`
+
+where year is the 4 digit year, day and month are padded to length 2, 
+`n_commit` is the number of the commit during that day counted on the `main` branch,
+and the short hash is unconditionally added (rather than only being present on commits between versions).
+
+The version does not contain information about version incompatibility or breaking changes,
+though a running sciop instance will be capable of upgrading through all versions 
+with migrations and adjustments to the `config` file, when needed.
+
+This versioning system was adopted to facilitate rapid development during the initial stages of the project,
+as we are not anticipating any other deployments or downstream uses during this time.
+When federation is deployed, versioning will switch to semantic versioning,
+as then we *will* expect downstream uses and other deployments,
+and will use the software version to indicate breaking changes and version incompatibility.
+
+## Federation
+
+A primary goal of sciop is to become a *federated bittorrent tracker*.
 
 We use Bittorrent as a distributed storage medium,
 not because it's necessarily the best thing
