@@ -101,11 +101,11 @@ theme:
 
   features:
     - content.code.copy
+    - content.tabs.link
     - navigation.indexes
     - navigation.tabs
     - navigation.path
     - toc.integrate
-    - content.tabs.link
 
 extra_css:
   - css/fonts.css
@@ -135,12 +135,12 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.tilde
   - tables
   - toc:
       permalink: true
-  - pymdownx.tabbed:
-      alternate_style: true
 
 plugins:
   - autorefs
