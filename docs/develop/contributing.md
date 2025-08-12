@@ -180,11 +180,13 @@ In the Sciop config, two fields are required and must be set for the application
 
 1. `SCIOP_ENV`: one of `dev`, `test` or `prod`. 
     * If you plan to make a Sciop instance publicly available, you must use `prod` mode.
-    * If you plan to work locally, use `dev` mode as is for development and testing `test`.
-    * IMPORTANT: Do not re-use the same database between a `dev`/`test` and `prod` instance, e.g. if the `SCIOP_DB` location is explicitly set to something other than the defaults.
+    * If you plan to work locally, use `dev` mode,`test` mode is automatically used during tests.
+    * IMPORTANT: Do not re-use the same database between a `dev`/`test` and `prod` instance, 
+      e.g. if the `SCIOP_DB` location is explicitly set to something other than the defaults.
 
 2. `SCIOP_SECRET_KEY`: must be a securely-generated random hex value.
-  A key can be generated with `openssl rand -hex 32`.
+  A key can be generated with `openssl rand -hex 32`,
+  and a random key is generated for you by using `sciop config copy`
 
 Once you have setup the required config, run a dev mode instance. 
 This will create seed data and automatically reload the site when your code changes. Instructions for doing this using both PDM and pip are below:
