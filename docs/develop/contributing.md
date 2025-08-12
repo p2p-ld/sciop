@@ -252,12 +252,12 @@ To run the tests:
 
 === "Use PDM (preferred)"
 
-    ```angular2html
+    ```shell
     pdm run test
     ```
 === "Use pip"
 
-    ```angular2html
+    ```shell
     python -m pytest
     ```
 
