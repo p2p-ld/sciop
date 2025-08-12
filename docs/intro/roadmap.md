@@ -36,6 +36,9 @@ A primary goal of sciop is to become a *federated bittorrent tracker*.
 ### Motivation
 
 We intend to implement federation for **metadata resilience** and **distributed social governance.**
+Information organisation is a contentious and fundamentally political activity.
+The discussion through which history is discovered and the emergence and evolution of consensus about our the nature of our societies is strongly influenced by how information is organised.
+We implement federation to facilitate this discussion and draw upon experience with other distributed information systems where forking, commentary, repackaging, mutation, reuse and reframing are the basic operations.
 
 We use Bittorrent as a distributed storage medium,
 not because it's necessarily the best thing
