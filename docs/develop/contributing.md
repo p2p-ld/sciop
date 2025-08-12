@@ -149,15 +149,24 @@ Instructions for installing Sciop using both tools are below.
 
 ## Running `sciop` in development mode
 
-<!-- How would a user know what pdm alias' are available? This note below is a bit confusing -->
-
 !!! note
     
-    For `sciop` cli commands that don't have a pdm alias when using pdm,
-    just prepend `pdm run` like `pdm run sciop start` 
+    When using PDM, to run commands in the virtual environment, use `pdm run`.
+    A collection of scripts has been created for sciop development,
+    see all that are available with `pdm run --list` .
 
-<!-- what is this configuring? -->
-Create a configuration:
+    Some of the `pdm` commands just wrap sciop cli commands,
+    like `pdm run start` is just running `sciop start` within the pdm venv.
+    For all other sciop cli commands, just prepend them with `pdm run`,
+    so e.g. to run `sciop config copy` you would run `pdm run sciop config copy`.
+
+    See the available sciop cli commands with `sciop --help` (or `pdm run sciop --help`).
+
+
+Create a configuration from the defaults. 
+This configuration controls how sciop runs, so for your development environment
+default values should be filled in
+like the host being `localhost` and the database being `db.dev.sqlite`.
 
 ```shell
 sciop config copy
