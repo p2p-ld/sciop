@@ -244,9 +244,11 @@ def shutdown() -> None:
     if scheduler is not None:
         scheduler.shutdown()
     scheduler = None
-    if _RPC_PROCESS is not None:
+    if _RPC_PROCESS is not None and _RPC_PROCESS.is_alive():
         scheduler = get_scheduler()
-        scheduler.shutdown()
+        with contextlib.suppress(ConnectionRefusedError):
+            # scheduler would already be shut down if we refused connection
+            scheduler.shutdown()
         _RPC_PROCESS.terminate()
         _RPC_PROCESS.join(timeout=5)
         if _RPC_PROCESS.is_alive():
