@@ -1,16 +1,19 @@
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
+import sqlalchemy as sqla
 from pydantic import field_validator
+from sqlalchemy import ColumnElement
+from sqlalchemy.ext.hybrid import hybrid_method
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship
 
 from sciop.models.base import SQLModel
-from sciop.models.mixins import TableMixin
+from sciop.models.mixins import ModerableMixin, TableMixin
 from sciop.types import IDField, MaxLenURL, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
-    from sciop.models import Account, TorrentFile
+    from sciop.models import Account, AuditLog, TorrentFile
 
 
 class WebseedStatus(StrEnum):
@@ -19,6 +22,11 @@ class WebseedStatus(StrEnum):
     Webseed was present in the original upload.
     We don't validate these by default until we know how expensive this is, 
     the uploader can correct them later if needed. 
+    """
+    pending_review = "pending_review"
+    """
+    The webseed needs to be reviewed, 
+    since it was added by an account without permissions to do so.
     """
     queued = "queued"
     """
@@ -39,7 +47,7 @@ class WebseedBase(SQLModel):
     """Message to display in the case of error, etc."""
 
 
-class Webseed(WebseedBase, TableMixin, table=True):
+class Webseed(WebseedBase, TableMixin, ModerableMixin, table=True):
     __tablename__ = "webseeds"
     __table_args__ = (UniqueConstraint("url", "torrent_id"),)
 
@@ -51,6 +59,31 @@ class Webseed(WebseedBase, TableMixin, table=True):
         default=None, foreign_key="torrent_files.torrent_file_id", ondelete="CASCADE"
     )
     torrent: "TorrentFile" = Relationship(back_populates="webseeds")
+    audit_log_target: list["AuditLog"] = Relationship(back_populates="target_webseed")
+
+    @hybrid_method
+    def removable_by(self, account: Optional["Account"] = None) -> bool:
+        """
+        Make removable by the creating account, torrent uploader, or reviewers
+        """
+        if account is None:
+            return False
+        return (
+            self.account == account
+            or self.torrent.account == account
+            or account.has_scope("review")
+        )
+
+    @removable_by.inplace.expression
+    @classmethod
+    def _removable_by(cls, account: Optional["Account"] = None) -> ColumnElement[bool]:
+        if account is None:
+            return sqla.false()
+        return sqla.or_(
+            cls.account == account,
+            cls.torrent.account == account,
+            account.has_scope("review") == True,
+        )
 
 
 class WebseedCreate(SQLModel):
@@ -63,6 +96,8 @@ class WebseedRead(WebseedBase):
     torrent: str
     created_at: UTCDateTime
     updated_at: UTCDateTime
+    is_approved: bool
+    is_removed: bool
 
     @field_validator("account", mode="before")
     @classmethod

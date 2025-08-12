@@ -17,6 +17,7 @@ from sciop.api.deps import (
     RequireVisibleUpload,
     SessionDep,
 )
+from sciop.config import get_config
 from sciop.frontend.templates import jinja
 from sciop.models import (
     FileInTorrent,
@@ -33,6 +34,7 @@ from sciop.models import (
     WebseedCreate,
     WebseedRead,
 )
+from sciop.scheduler import queue_job
 
 uploads_router = APIRouter(prefix="/uploads")
 
@@ -147,10 +149,16 @@ async def upload_files(
 @uploads_router.get("/{infohash}/webseeds")
 @jinja.hx("partials/webseeds.html")
 async def webseeds(
-    infohash: str, upload: RequireVisibleUpload, session: SessionDep
+    infohash: str,
+    upload: RequireVisibleUpload,
+    current_account: CurrentAccount,
+    session: SessionDep,
 ) -> list[WebseedRead]:
     """Show webseeds in a torrent"""
-    return session.exec(select(Webseed).where(Webseed.torrent == upload.torrent)).all()
+    return session.exec(
+        select(Webseed).where(Webseed.torrent == upload.torrent),
+        Webseed.visible_to(current_account) == True,
+    ).all()
 
 
 @uploads_router.post("/{infohash}/webseeds")
@@ -159,14 +167,47 @@ async def create_webseed(
     webseed: WebseedCreate,
     upload: RequireVisibleUpload,
     current_account: RequireCurrentAccount,
+    session: SessionDep,
 ) -> WebseedRead:
     """Create a new webseed"""
-    raise NotImplementedError()
+    cfg = get_config()
+    if not cfg.services.webseed_validation.enable_adding_webseeds:
+        raise HTTPException(403, "Adding webseeds is disabled")
+    ws = crud.create_webseed(
+        session=session, account=current_account, torrent=upload.torrent, webseed_create=webseed
+    )
+    if not ws.needs_review:
+        queue_job("validate_webseed", kwargs={"infohash": upload.torrent.infohash, "url": ws.url})
+    return ws
 
 
 @uploads_router.delete("/{infohash}/webseeds")
 async def delete_webseed(
-    infohash: str, url: str, upload: RequireVisibleUpload, current_account: RequireCurrentAccount
+    infohash: str,
+    webseed: WebseedCreate,
+    upload: RequireVisibleUpload,
+    current_account: RequireCurrentAccount,
+    session: SessionDep,
 ):
-    """Delete a webseed"""
-    raise NotImplementedError()
+    """
+    Delete a webseed
+
+    Webseeds can be deleted by
+
+    - the account that created them
+    - the uploader of the torrent
+    - a account with review permissions
+    """
+    ws = crud.get_webseed(session=session, infohash=infohash, url=webseed.url)
+    if not ws:
+        raise HTTPException(404, f"No webseed {webseed.url} for torrent {infohash}")
+    elif not ws.removable_by(current_account):
+        raise HTTPException(
+            403, f"Not permitted to remove webseed {webseed.url} for torrent {infohash}"
+        )
+    ws.is_removed = True
+    session.add(ws)
+    session.commit()
+    crud.log_moderation_action(
+        session=session, actor=current_account, target=ws, action=ModerationAction.remove
+    )

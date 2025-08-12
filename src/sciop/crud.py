@@ -27,6 +27,8 @@ from sciop.models import (
     Upload,
     UploadCreate,
     Webseed,
+    WebseedCreate,
+    WebseedStatus,
 )
 
 
@@ -413,7 +415,7 @@ def log_moderation_action(
     session: Session,
     actor: Account,
     action: ModerationAction,
-    target: Dataset | Account | Upload,
+    target: Dataset | DatasetPart | Account | Upload | Webseed,
     value: Optional[str] = None,
 ) -> AuditLog:
     audit_kwargs = {"actor": actor, "action": action, "value": value}
@@ -426,6 +428,8 @@ def log_moderation_action(
         audit_kwargs["target_upload"] = target
     elif isinstance(target, Account):
         audit_kwargs["target_account"] = target
+    elif isinstance(target, Webseed):
+        audit_kwargs["target_webseed"] = target
     else:
         raise ValueError(f"No moderation actions for target type {target}")
 
@@ -555,3 +559,35 @@ def clear_claims(
             session.delete(claim)
     if commit:
         session.commit()
+
+
+def create_webseed(
+    *, session: Session, account: Account, torrent: TorrentFile, webseed_create: WebseedCreate
+) -> Webseed:
+    """
+    Create a new webseed, setting the moderation state
+    such that webseeds from the torrent owner or an account with upload/review perms
+    are pre-approved
+    """
+    is_approved = torrent.account == account or account.has_scope("review", "upload")
+    status = WebseedStatus.queued if is_approved else WebseedStatus.pending_review
+    ws = Webseed.model_validate(
+        webseed_create, update={"is_approved": is_approved, "status": status}
+    )
+    torrent.webseeds.append(ws)
+    session.add(torrent)
+    session.add(ws)
+    session.commit()
+    session.refresh(ws)
+    return ws
+
+
+def get_webseed(*, session: Session, infohash: str, url: str) -> Webseed | None:
+    return session.exec(
+        select(Webseed)
+        .join(Webseed.torrent)
+        .where(
+            TorrentFile.infohash == infohash,
+            Webseed.url == url,
+        )
+    ).first()

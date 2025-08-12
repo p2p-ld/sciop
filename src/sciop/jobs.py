@@ -26,4 +26,4 @@ async def validate_webseed(infohash: str, url: str) -> None:
     from sciop.db import get_session
 
     with next(get_session()) as session:
-        await services.validate_webseed(infohash, url, session)
+        await services.validate_webseed_service(infohash, url, session)

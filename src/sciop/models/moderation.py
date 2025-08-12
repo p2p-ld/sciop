@@ -10,7 +10,7 @@ from sciop.models.mixins import TableMixin
 from sciop.types import IDField, UTCDateTime
 
 if TYPE_CHECKING:
-    from sciop.models import Account, AccountRead, Dataset, DatasetPart, Upload
+    from sciop.models import Account, AccountRead, Dataset, DatasetPart, Upload, Webseed
 
 
 class ModerationAction(StrEnum):
@@ -96,6 +96,12 @@ class AuditLog(TableMixin, table=True):
             lazy="selectin",
             back_populates="audit_log_target",
         ),
+    )
+    target_webseed_id: Optional[int] = Field(
+        default=None, foreign_key="webseeds.webseed_id", ondelete="SET NULL", index=True
+    )
+    target_webseed: Optional["Webseed"] = Relationship(
+        back_populates="audit_log_target", sa_relationship_kwargs={"lazy": "selectin"}
     )
     value: Optional[str] = Field(
         None,

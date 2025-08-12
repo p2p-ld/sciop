@@ -32,16 +32,65 @@ class WebseedValidationResult(BaseModel):
     ranges: list[V1PieceRange] | list[V2PieceRange] | None = None
 
 
+async def validate_webseed_service(infohash: str, url: str, session: Session) -> None:
+    """
+    Service wrapper for validating webseeds.
+    Handles updating the database objects with the results of the validation.
+    """
+    from sciop import crud
+    from sciop.models import WebseedStatus
+
+    cfg = get_config()
+    logger = init_logger("jobs.validate_webseed")
+    logger.info("Validating webseed %s for torrent %s", url, infohash)
+    webseed = crud.get_webseed(session=session, infohash=infohash, url=url)
+    if not webseed:
+        msg = f"No webseed with url {url} found for torrent {infohash}"
+        logger.exception(msg)
+        raise RuntimeError(msg)
+    if webseed.status == "in_progress":
+        logger.debug("Webseed is being validated by another process")
+        return
+
+    ws_config = cfg.services.webseed_validation
+    if not ws_config.enabled:
+        logger.debug("Validation disabled. Marking valid without validating")
+        webseed.status = WebseedStatus.validated
+        webseed.message = "Not validated - validation was disabled"
+        session.add(webseed)
+        session.commit()
+        return
+
+    try:
+        webseed.status = WebseedStatus.in_progress
+        session.add(webseed)
+        session.commit()
+        res = await validate_webseed(infohash=infohash, url=url, session=session)
+    except Exception as e:
+        logger.exception(f"Exception while validating webseed {url} for {infohash}: {e}")
+        webseed.status = WebseedStatus.error
+        webseed.message = str(e)
+        session.add(webseed)
+        session.commit()
+        raise
+
+    if res.valid:
+        webseed.status = WebseedStatus.validated
+        logger.info("Webseed validation successful for %s for torrent %s", url, infohash)
+    else:
+        msg = f"{res.error_type} - {res.message}"
+        logger.info("Webseed validation failed for %s for torrent %s\n%s", url, infohash, msg)
+        webseed.status = WebseedStatus.error
+        webseed.message = f"{res.error_type} - {res.message}"
+    session.add(webseed)
+    session.commit()
+
+
 async def validate_webseed(infohash: str, url: str, session: Session) -> WebseedValidationResult:
     from sciop import crud
 
     cfg = get_config()
     ws_config = cfg.services.webseed_validation
-    if not ws_config.enabled:
-        if ws_config.enable_adding_webseeds:
-            return WebseedValidationResult(infohash=infohash, url=url, valid=True)
-        else:
-            return WebseedValidationResult(infohash=infohash, url=url, valid=False)
 
     torrent_file = crud.get_torrent_from_infohash(session=session, infohash=infohash)
     if not torrent_file:
