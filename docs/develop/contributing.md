@@ -379,8 +379,6 @@ Then generate the migration with the command above.
 
 Migrations can be tested with pytest
 
-
-
 === "Use PDM (preferred)"
 
     ```bash
