@@ -156,8 +156,10 @@ async def webseeds(
 ) -> list[WebseedRead]:
     """Show webseeds in a torrent"""
     return session.exec(
-        select(Webseed).where(Webseed.torrent == upload.torrent),
-        Webseed.visible_to(current_account) == True,
+        select(Webseed).where(
+            Webseed.torrent == upload.torrent,
+            Webseed.visible_to(current_account) == True,
+        )
     ).all()
 
 
