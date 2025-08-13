@@ -289,9 +289,15 @@ def random_upload(
     is_approved: bool | None = None,
     is_removed: bool | None = None,
     commit: bool = True,
+    torrent_kwargs: dict | None = None,
+    torrentfile_kwargs: dict | None = None,
 ) -> "Upload":
     if not fake:
         fake = Faker()
+    if torrent_kwargs is None:
+        torrent_kwargs = {}
+    if torrentfile_kwargs is None:
+        torrentfile_kwargs = {}
 
     tmp_parent = Path("__tmp__")
     tmp_parent.mkdir(exist_ok=True)
@@ -310,6 +316,7 @@ def random_upload(
         comment="My comment",
         piece_length=16384,
         info={"name": f"test_{name}"},
+        **torrent_kwargs,
     )
     torrent = torrent.generate(version="hybrid")
 
@@ -323,6 +330,7 @@ def random_upload(
         torrent_size=64,
         files=[FileInTorrentCreate(path=torrent_file, size=file_size)],
         announce_urls=["udp://opentracker.io:6969/announce"],
+        **torrentfile_kwargs,
     )
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
     torrent.write(created_torrent.filesystem_path)

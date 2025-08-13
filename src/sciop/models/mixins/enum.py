@@ -2,6 +2,7 @@ import sys
 from enum import StrEnum
 from typing import ClassVar, Self
 
+from pydantic import ConfigDict
 from sqlalchemy import select
 from sqlmodel import Session
 
@@ -13,6 +14,7 @@ class EnumTableMixin(SQLModel):
 
     __enum_column_name__: ClassVar[str] = None
     """Column that has the enum values for which rows should be created"""
+    model_config = ConfigDict(use_enum_values=True)
 
     @classmethod
     def enum_class(cls) -> StrEnum:
