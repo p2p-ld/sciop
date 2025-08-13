@@ -5,9 +5,21 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from apscheduler.events import EVENT_JOB_EXECUTED
 
-from sciop import scheduler
+import sciop.scheduler.main
+import sciop.scheduler.rpc
 from sciop.logging import init_logger
-from sciop.scheduler import add_date, add_interval, add_job, date, interval, queue, queue_job
+from sciop.scheduler import (
+    add_date,
+    add_interval,
+    add_job,
+    date,
+    get_queued_jobs,
+    get_scheduler,
+    interval,
+    queue,
+    queue_job,
+    start_scheduler,
+)
 
 _EVENTS = 0
 
@@ -83,16 +95,16 @@ async def test_interval_decorator(capsys, clean_scheduler):
     Interval decorators should let one declare a job before the scheduler exists,
     and then run it afterwards
     """
-    assert scheduler.scheduler is None
+    assert get_scheduler() is None
     # can't use as a decorator because apscheduler needs to be able to serialize the function
     interval(seconds=0.1)(do_a_print)
 
     await asyncio.sleep(0.2)
-    assert "do_a_print" in scheduler._TO_SCHEDULE
+    assert "do_a_print" in sciop.scheduler.main._TO_SCHEDULE
     assert len(_eventlines(capsys)) == 0
 
     # starting the scheduler should pick up the task
-    scheduler.start_scheduler()
+    start_scheduler()
     await asyncio.sleep(0.25)
 
     events = _eventlines(capsys)
@@ -105,17 +117,17 @@ async def test_date_decorator(capsys, clean_scheduler):
     Date decorators should let one declare a job before the scheduler exists,
     and then run it afterwards
     """
-    assert scheduler.scheduler is None
+    assert get_scheduler() is None
 
     # can't use as a decorator because apscheduler needs to be able to serialize the function
     date(datetime.now(UTC) + timedelta(seconds=0.2))(do_a_print)
 
     await asyncio.sleep(0.1)
-    assert "do_a_print" in scheduler._TO_SCHEDULE
+    assert "do_a_print" in sciop.scheduler.main._TO_SCHEDULE
     assert len(_eventlines(capsys)) == 0
 
     # starting the scheduler should pick up the task
-    scheduler.start_scheduler()
+    start_scheduler()
     await asyncio.sleep(0.2)
 
     events = _eventlines(capsys)
@@ -128,16 +140,16 @@ async def test_disabled_decorator(capsys, clean_scheduler):
     Decorators should be able to be toggled by their enabled parameter
     so they can be configured :)
     """
-    assert scheduler.scheduler is None
+    assert get_scheduler() is None
     # can't use as a decorator because apscheduler needs to be able to serialize the function
     interval(seconds=0.01, enabled=False)(do_a_print)
 
     await asyncio.sleep(0.1)
-    assert "do_a_print" not in scheduler._TO_SCHEDULE
+    assert "do_a_print" not in sciop.scheduler.main._TO_SCHEDULE
     assert len(_eventlines(capsys)) == 0
 
     # starting the scheduler should NOT pick up the task
-    scheduler.start_scheduler()
+    start_scheduler()
     await asyncio.sleep(0.1)
 
     events = _eventlines(capsys)
@@ -153,27 +165,27 @@ def test_queue_job(capsys, clean_scheduler, set_config):
     print("starting scheduler")
     queue(enabled=True, max_concurrent=1, job_name="sleepytime")(sleep_for_a_bit)
     # need to fork to share an event
-    scheduler.start_scheduler()
+    start_scheduler()
     time.sleep(0.1)
     # queue 3 of the same job, we should only run one at a time
     messages = ["a", "b", "c"]
     results = [queue_job("sleepytime", msg) for msg in messages]
     assert all([result["success"] for result in results])
-    queued_jobs = scheduler.get_queued_jobs("sleepytime")
+    queued_jobs = get_queued_jobs("sleepytime")
     assert len(queued_jobs) == 3
 
     # Wait until at least 1 has finished.
     # multiple jobs *could* start here if the pool was larger, but they shouldn't
     # that's what we're testing lol
-    client = scheduler.get_scheduler()
+    client = get_scheduler()
     evt1 = client.await_event(EVENT_JOB_EXECUTED, 10)
 
-    queued_jobs = scheduler.get_queued_jobs("sleepytime")
+    queued_jobs = get_queued_jobs("sleepytime")
     assert len(queued_jobs) == 2
 
     evt2 = client.await_event(EVENT_JOB_EXECUTED, 1)
 
-    queued_jobs = scheduler.get_queued_jobs("sleepytime")
+    queued_jobs = get_queued_jobs("sleepytime")
     assert len(queued_jobs) == 1
 
     evt3 = client.await_event(EVENT_JOB_EXECUTED, 1)
