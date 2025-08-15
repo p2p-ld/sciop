@@ -156,7 +156,7 @@ async def test_webseed_validation(
     """
     We should validate correct webseeds
     """
-    webseed_url = "http://localhost:9998/"
+    webseed_url = "http://127.0.0.1:9998/"
     create = TorrentCreate(
         paths=[p for p in tmp_data_path.iterdir()], path_root=tmp_data_path, piece_length=32 * KiB
     )
@@ -201,7 +201,7 @@ async def test_reject_invalid_data(
     """
     set_config({"services.webseed_validation.max_connections": 5})
     torrent, tf = data_torrent
-    webseed_url = "http://localhost:9998/random/"
+    webseed_url = "http://127.0.0.1:9998/random/"
 
     hoarder: RequestHoarderMiddleware = file_server.config.app.middleware_stack.app
     assert set(str(r.url) for r in hoarder.requests) == set()
@@ -234,7 +234,7 @@ async def test_reject_404(data_torrent, file_server, session):
     so also tests http error handling in general
     """
     torrent, tf = data_torrent
-    webseed_url = "http://localhost:9998/404/"
+    webseed_url = "http://127.0.0.1:9998/404/"
 
     res = await validate_webseed(tf.infohash, webseed_url, session)
     assert not res.valid
@@ -249,7 +249,7 @@ async def test_reject_timeout(set_config, data_torrent, file_server, session):
     """
     set_config({"services.webseed_validation.get_timeout": 0.1})
     torrent, tf = data_torrent
-    webseed_url = "http://localhost:9998/timeout/"
+    webseed_url = "http://127.0.0.1:9998/timeout/"
 
     res = await validate_webseed(tf.infohash, webseed_url, session)
     assert not res.valid
@@ -268,7 +268,7 @@ async def test_validation_retries_success(set_config, data_torrent, file_server,
         }
     )
     torrent, tf = data_torrent
-    webseed_url = "http://localhost:9998/429/reasonable/"
+    webseed_url = "http://127.0.0.1:9998/429/reasonable/"
 
     res = await validate_webseed(tf.infohash, webseed_url, session)
     assert res.valid
@@ -286,7 +286,7 @@ async def test_validation_retries_failure(set_config, data_torrent, file_server,
         }
     )
     torrent, tf = data_torrent
-    webseed_url = "http://localhost:9998/429/unreasonable/"
+    webseed_url = "http://127.0.0.1:9998/429/unreasonable/"
 
     res = await validate_webseed(tf.infohash, webseed_url, session)
     assert not res.valid
@@ -302,7 +302,7 @@ async def test_quit_early_without_range_requests(data_torrent, file_server, sess
     quit early since it couldn't be used as a webseed anyway
     """
     torrent, tf = data_torrent
-    webseed_url = "http://localhost:9998/norange/"
+    webseed_url = "http://127.0.0.1:9998/norange/"
 
     res = await validate_webseed(tf.infohash, webseed_url, session)
     assert not res.valid
