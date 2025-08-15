@@ -98,11 +98,10 @@ async def validate_webseed(infohash: str, url: str, session: Session) -> Webseed
 
     torrent = Torrent.read(torrent_file.filesystem_path)
     n_pieces = ws_config.get_max_n_pieces(torrent.info.piece_length)
-    loop = asyncio.get_event_loop()
     if torrent.torrent_version == TorrentVersion.v1:
-        return await loop.create_task(_validate_v1(torrent, url, n_pieces))
+        return await _validate_v1(torrent, url, n_pieces)
     else:
-        return await loop.create_task(_validate_v2(torrent, url, n_pieces))
+        return await _validate_v2(torrent, url, n_pieces)
 
 
 async def _validate_v1(torrent: Torrent, url: str, n_pieces: int) -> WebseedValidationResult:

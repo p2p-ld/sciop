@@ -158,6 +158,7 @@ def _file_handler(
     # See init_logger for arg docs
 
     filename = Path(log_dir) / ".".join([name, "log"])
+    filename.parent.mkdir(parents=True, exist_ok=True)
     file_handler = RotatingFileHandler(
         str(filename), mode="a", maxBytes=log_file_size, backupCount=log_file_n
     )
