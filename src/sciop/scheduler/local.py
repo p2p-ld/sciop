@@ -8,16 +8,16 @@ class LocalSchedulerManager(BaseSchedulerManager):
     scheduler: AsyncIOScheduler | None = None
 
     @classmethod
-    def start_scheduler(cls) -> AsyncIOScheduler:
+    def start_scheduler(cls) -> None:
         logger = init_logger("scheduler.manager.local")
         if cls.scheduler is not None and cls.scheduler.running:
             logger.warning("Scheduler is already running!")
-            return cls.scheduler
+            return
 
         cls.scheduler = AsyncIOScheduler(jobstores=cls.make_jobstores())
         cls.scheduler.start()
         logger.debug("Local scheduler started")
-        return cls.scheduler
+        cls.scheduler = cls.add_registered_jobs(cls.scheduler)
 
     @classmethod
     def shutdown_scheduler(cls) -> None:

@@ -28,14 +28,9 @@ out of the box, so we use apscheduler in a slightly nonstandard way
 
 from sciop.scheduler.decorator import cron, date, interval, queue
 from sciop.scheduler.main import (
-    add_cron,
-    add_date,
-    add_interval,
     add_job,
     get_manager,
-    get_queued_jobs,
     get_scheduler,
-    list_queue_names,
     queue_job,
     remove_all_jobs,
     shutdown,
@@ -44,14 +39,9 @@ from sciop.scheduler.main import (
 )
 
 __all__ = [
-    "add_cron",
-    "add_date",
-    "add_interval",
     "add_job",
     "get_manager",
     "get_scheduler",
-    "get_queued_jobs",
-    "list_queue_names",
     "queue_job",
     "remove_all_jobs",
     "shutdown",

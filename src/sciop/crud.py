@@ -275,7 +275,7 @@ def create_torrent(
     files = [FileInTorrent(path=file.path, size=file.size) for file in created_torrent.files]
     if created_torrent.webseeds:
         webseeds = [
-            Webseed(url=ws, status="in_original", account=account)
+            Webseed(url=ws, status="in_original", account=account, is_approved=True)
             for ws in created_torrent.webseeds
         ]
     else:

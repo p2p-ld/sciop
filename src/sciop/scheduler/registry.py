@@ -4,10 +4,9 @@ Module that is treated as a class
 
 from __future__ import annotations
 
-from functools import wraps
 from threading import Lock
 from types import FunctionType
-from typing import Any, Callable, Literal, Optional, ParamSpec, TypeVar
+from typing import Any, Callable, Literal, ParamSpec, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -23,10 +22,10 @@ class ScheduledJob(BaseModel):
     Container for job parameterization before scheduler started
     """
 
-    func: Callable
-    wrapped: Optional[Callable] = None
+    func: Callable | str
     job_id: str
     trigger: Literal["cron", "date", "interval"]
+    job_kwargs: dict[str, Any] = Field(default_factory=dict)
     kwargs: dict[str, Any] = Field(default_factory=dict)
     enabled: bool = True
 
@@ -81,18 +80,24 @@ class Registry:
         func: Callable,
         trigger: Literal["cron", "date", "interval"],
         enabled: bool = True,
-        **kwargs,
+        job_kwargs: dict | None = None,
+        **kwargs: Any,
     ) -> ScheduledJob:
         job_id = func.__name__
         job_params = ScheduledJob(
-            func=func, job_id=job_id, trigger=trigger, kwargs=kwargs, enabled=enabled
+            func=func,
+            job_id=job_id,
+            trigger=trigger,
+            job_kwargs=job_kwargs,
+            kwargs=kwargs,
+            enabled=enabled,
         )
-        job_params.wrapped = _wrap_job(func, job_params)
         with cls._lock:
             if job_id in cls._scheduled_jobs and cls._scheduled_jobs[job_id] != job_params:
                 logger = init_logger("scheduler.registry")
                 logger.info(
-                    "Existing job parameterization found for job_id %s and was not equal, replacing",
+                    "Existing job parameterization found for job_id %s and was not equal, "
+                    "replacing",
                     job_id,
                 )
                 logger.debug(
@@ -143,7 +148,8 @@ class Registry:
         with cls._lock:
             if job_name in cls._scheduled_jobs and cls._scheduled_jobs[job_name] != job_params:
                 logger.info(
-                    "Existing job parameterization found for job_id %s and was not equal, replacing",
+                    "Existing job parameterization found for job_id %s and was not equal, "
+                    "replacing",
                     job_name,
                 )
                 logger.debug(
@@ -167,15 +173,3 @@ class Registry:
     def get_queued_jobs(cls) -> dict[str, QueuedJob]:
         with cls._lock:
             return cls._queued_jobs.copy()
-
-
-def _wrap_job(func: Callable[P, T], params: ScheduledJob) -> Callable[P, T]:
-    @wraps(func)
-    async def _wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
-        logger = init_logger(f"scheduling.{params.job_id}")
-        logger.info("Running job: %s", params.job_id)
-        val = await func(*args, **kwargs)
-        logger.info("Completed job: %s", params.job_id)
-        return val
-
-    return _wrapped

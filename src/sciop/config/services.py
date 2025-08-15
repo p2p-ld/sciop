@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from sciop.types import Scopes
 
@@ -184,6 +184,8 @@ class WebseedValidationConfig(QueueJobConfig):
     """
     timeout for get requests when validating
     """
+
+    model_config = ConfigDict(use_enum_values=True)
 
     def get_max_n_pieces(self, piece_length: int) -> int:
         """

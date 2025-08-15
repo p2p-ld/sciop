@@ -12,14 +12,22 @@ P = ParamSpec("P")
 
 
 def date(
-    run_date: datetime, timezone: tzinfo = UTC, enabled: bool = True, **kwargs: Any
+    run_date: datetime,
+    timezone: tzinfo = UTC,
+    enabled: bool = True,
+    job_kwargs: dict | None = None,
+    **kwargs: Any,
 ) -> Callable[P, Callable]:
+    if job_kwargs is None:
+        job_kwargs = {}
     kwargs["run_date"] = run_date
     kwargs["timezone"] = timezone
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
-        job_params = Registry.register_scheduled_job(func, "date", enabled=enabled, **kwargs)
-        return job_params.wrapped
+        Registry.register_scheduled_job(
+            func, "date", enabled=enabled, job_kwargs=job_kwargs, **kwargs
+        )
+        return func
 
     return decorator
 
@@ -37,17 +45,24 @@ def cron(
     timezone: tzinfo = UTC,
     jitter: int | None = None,
     enabled: bool = True,
+    job_kwargs: dict | None = None,
     **kwargs: Any,
 ) -> Callable[P, T]:
     outer_kwargs = {**locals()}
     outer_kwargs = {
-        k: v for k, v in outer_kwargs.items() if v is not None and k not in ("kwargs", "enabled")
+        k: v
+        for k, v in outer_kwargs.items()
+        if v is not None and k not in ("kwargs", "job_kwargs", "enabled")
     }
     kwargs.update(outer_kwargs)
+    if job_kwargs is None:
+        job_kwargs = {}
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
-        job_params = Registry.register_scheduled_job(func, "cron", enabled=enabled, **kwargs)
-        return job_params.wrapped
+        Registry.register_scheduled_job(
+            func, "cron", enabled=enabled, job_kwargs=job_kwargs, **kwargs
+        )
+        return func
 
     return decorator
 
@@ -63,6 +78,7 @@ def interval(
     timezone: tzinfo = UTC,
     jitter: int | None = None,
     enabled: bool = True,
+    job_kwargs: dict | None = None,
     **kwargs: Any,
 ) -> Callable[P, T]:
     """
@@ -76,13 +92,17 @@ def interval(
     outer_kwargs = {
         k: v
         for k, v in outer_kwargs.items()
-        if v is not None and v != 0 and k not in ("kwargs", "enabled")
+        if v is not None and v != 0 and k not in ("kwargs", "job_kwargs", "enabled")
     }
     kwargs.update(outer_kwargs)
+    if job_kwargs is None:
+        job_kwargs = {}
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
-        job_params = Registry.register_scheduled_job(func, "date", enabled=enabled, **kwargs)
-        return job_params.wrapped
+        Registry.register_scheduled_job(
+            func, "interval", enabled=enabled, job_kwargs=job_kwargs, **kwargs
+        )
+        return func
 
     return decorator
 

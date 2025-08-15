@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import multiprocessing as mp
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol, TypeVar
 
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.base import BaseScheduler
 
 from sciop.logging import init_logger
-from sciop.scheduler.registry import Registry
+from sciop.scheduler.registry import Registry, ScheduledJob
 
 if TYPE_CHECKING:
     from apscheduler.jobstores.base import BaseJobStore
+
+_TScheduler = TypeVar("_TScheduler", bound=BaseScheduler)
 
 
 class SchedulerProtocol(Protocol):
@@ -44,8 +46,7 @@ class BaseSchedulerManager(ABC):
         should_start = cls.scheduler_created.acquire(False)
         if not should_start:
             return
-        scheduler = cls.start_scheduler()
-        cls.add_registered_jobs(scheduler)
+        cls.start_scheduler()
 
     @classmethod
     def shutdown(cls) -> None:
@@ -54,18 +55,24 @@ class BaseSchedulerManager(ABC):
             cls.scheduler_created.release()
 
     @classmethod
-    def add_registered_jobs(cls, scheduler: SchedulerProtocol) -> SchedulerProtocol:
+    def add_registered_jobs(
+        cls, scheduler: _TScheduler, scheduled_jobs: dict[str, ScheduledJob] | None = None
+    ) -> _TScheduler:
         logger = init_logger("scheduler.manager")
-        for job_params in Registry.get_scheduled_jobs().values():
+        if scheduled_jobs is None:
+            scheduled_jobs = {}
+        for job_params in {**Registry.get_scheduled_jobs(), **scheduled_jobs}.values():
             if job_params.enabled:
+                logger.debug("Adding registered job: %s", job_params)
                 scheduler.add_job(
-                    job_params.wrapped,
+                    job_params.func,
                     job_params.trigger,
                     id=job_params.job_id,
                     replace_existing=True,
+                    kwargs=job_params.job_kwargs,
                     **job_params.kwargs,
                 )
-                logger.debug("Added registered job: %s", job_params)
+                logger.debug("Added registered job: %s", job_params.job_id)
             elif (
                 not job_params.enabled and (job := scheduler.get_job(job_params.job_id)) is not None
             ):
@@ -86,7 +93,7 @@ class BaseSchedulerManager(ABC):
 
     @classmethod
     @abstractmethod
-    def start_scheduler(cls) -> SchedulerProtocol:
+    def start_scheduler(cls) -> None:
         """
         Start the scheduler.
 
