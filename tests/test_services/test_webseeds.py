@@ -36,7 +36,7 @@ def rand_dir(tmp_path: Path) -> Path:
     return data_path
 
 
-@pytest_asyncio.fixture(loop_scope="session")
+@pytest_asyncio.fixture(loop_scope="module")
 async def file_server(tmp_path: Path, tmp_data_path: Path, rand_dir: Path, session) -> FastAPI:
     app = FastAPI()
     app.mount("/data", StaticFiles(directory=tmp_data_path), name="data")
@@ -144,7 +144,7 @@ def torrent_version(request) -> str:
     return request.param
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio(loop_scope="module")
 async def test_webseed_validation(
     tmp_data_path,
     file_server: UvicornTestServer,
@@ -185,7 +185,7 @@ async def test_webseed_validation(
     assert requested == expected
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio(loop_scope="module")
 async def test_reject_invalid_data(
     data_torrent: tuple[Torrent, TorrentFile],
     rand_dir: Path,
@@ -225,7 +225,7 @@ async def test_reject_invalid_data(
     assert requested > set()
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio(loop_scope="module")
 async def test_reject_404(data_torrent, file_server, session):
     """
     404's invalidate a webseed.
@@ -242,7 +242,7 @@ async def test_reject_404(data_torrent, file_server, session):
     assert "404" in res.message
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio(loop_scope="module")
 async def test_reject_timeout(set_config, data_torrent, file_server, session):
     """
     Timeouts abort validation
@@ -256,14 +256,14 @@ async def test_reject_timeout(set_config, data_torrent, file_server, session):
     assert res.error_type == "timeout"
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio(loop_scope="module")
 async def test_validation_retries_success(set_config, data_torrent, file_server, session):
     """
     Retry on 429, succeed if the server eventually gives us the data
     """
     set_config(
         {
-            "services.webseed_validation.retry_delay": 0.01,
+            "services.webseed_validation.retry_delay": 0.1,
             "services.webseed_validation.retries": {429: 6},
         }
     )
@@ -274,7 +274,7 @@ async def test_validation_retries_success(set_config, data_torrent, file_server,
     assert res.valid
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio(loop_scope="module")
 async def test_validation_retries_failure(set_config, data_torrent, file_server, session):
     """
     Retry on 429, fail if we run out of retries
@@ -294,7 +294,7 @@ async def test_validation_retries_failure(set_config, data_torrent, file_server,
     assert "429" in res.message
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio(loop_scope="module")
 async def test_quit_early_without_range_requests(data_torrent, file_server, session):
     """
     If a server doesn't understand range requests,
