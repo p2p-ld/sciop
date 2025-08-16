@@ -147,6 +147,7 @@ async def _validate_ranges(
         e = eg.exceptions[0]
         if isinstance(e, WebseedValidationError):
             error_type = "validation"
+            message = str(e)
         elif isinstance(e, WebseedHTTPError):
             error_type = "http"
             message = f"{e.status_code} - {e.detail}"
@@ -195,11 +196,16 @@ async def _request_range(
     cfg = get_config()
 
     logger = init_logger("services.webseed_validation")
+    logger.debug("%s - retries: %s", get_url, retries)
     if retries is None:
         retries = cfg.services.webseed_validation.retries.copy()
 
+    # range requests are end-inclusive, unlike python
+    # so to request the first 1024 bytes, one would request 0-1023,
+    # where in python we would index that as [0:1024]
+    # see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Range_requests#single_part_ranges
     headers = {
-        "Range": f"bytes={piece_range.range_start}-{piece_range.range_end}",
+        "Range": f"bytes={piece_range.range_start}-{piece_range.range_end-1}",
     }
 
     body = b""

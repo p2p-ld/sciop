@@ -42,6 +42,7 @@ async def file_server(tmp_path: Path, tmp_data_path: Path, rand_dir: Path, sessi
     app.mount("/data", StaticFiles(directory=tmp_data_path), name="data")
     app.add_middleware(RequestHoarderMiddleware)
     retries = {}
+    lock = asyncio.Lock()
 
     @app.get("/404/{path:path}")
     async def e404(request: Request, path: str) -> None:
@@ -50,26 +51,19 @@ async def file_server(tmp_path: Path, tmp_data_path: Path, rand_dir: Path, sessi
     @app.get("/429/reasonable/{path:path}")
     async def e429_reasonable(request: Request, path: str) -> FileResponse:
         nonlocal retries
-        if path not in retries:
-            retries[path] = 0
+        async with lock:
+            if path not in retries:
+                retries[path] = 0
 
-        retries[path] += 1
-        if retries[path] % 2 == 0:
-            return FileResponse(tmp_path / path, headers=request.headers.mutablecopy())
-        else:
-            raise HTTPException(status_code=429)
+            retries[path] += 1
+            if retries[path] % 3 == 0:
+                return FileResponse(tmp_path / path, headers=request.headers.mutablecopy())
+            else:
+                raise HTTPException(status_code=429)
 
     @app.get("/429/unreasonable/{path:path}")
     async def e429_unreasonable(request: Request, path: str) -> FileResponse:
-        nonlocal retries
-        if path not in retries:
-            retries[path] = 0
-
-        retries[path] += 1
-        if retries[path] % 20 == 0:
-            return FileResponse(tmp_path / path, headers=request.headers.mutablecopy())
-        else:
-            raise HTTPException(status_code=429)
+        raise HTTPException(status_code=429)
 
     @app.get("/random/{path:path}")
     async def rand_response(request: Request, path: str) -> FileResponse:
@@ -263,7 +257,7 @@ async def test_validation_retries_success(set_config, data_torrent, file_server,
     """
     set_config(
         {
-            "services.webseed_validation.retry_delay": 0.1,
+            "services.webseed_validation.retry_delay": 0.01,
             "services.webseed_validation.retries": {429: 6},
         }
     )
@@ -274,6 +268,7 @@ async def test_validation_retries_success(set_config, data_torrent, file_server,
     assert res.valid
 
 
+@pytest.mark.timeout(10)
 @pytest.mark.asyncio(loop_scope="module")
 async def test_validation_retries_failure(set_config, data_torrent, file_server, session):
     """

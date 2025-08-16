@@ -202,8 +202,6 @@ class ServicesConfig(BaseModel):
     Top-level config for all background services
     """
 
-    clear_jobs: bool = False
-    """Clear any remaining scheduler jobs on startup"""
     tracker_scraping: ScrapeConfig = ScrapeConfig()
     """Service config: Tracker scraping"""
     site_stats: StatsConfig = StatsConfig()

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import multiprocessing as mp
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Coroutine, Protocol, TypeVar
 
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.base import BaseScheduler
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
     from apscheduler.jobstores.base import BaseJobStore
 
 _TScheduler = TypeVar("_TScheduler", bound=BaseScheduler)
+_TReturn = TypeVar("_TReturn")
 
 
 class SchedulerProtocol(Protocol):
@@ -42,11 +44,11 @@ class BaseSchedulerManager(ABC):
     scheduler_created = mp.Semaphore(1)
 
     @classmethod
-    def start(cls) -> None:
+    def start(cls, block: bool = False) -> None:
         should_start = cls.scheduler_created.acquire(False)
         if not should_start:
             return
-        cls.start_scheduler()
+        cls.start_scheduler(block)
 
     @classmethod
     def shutdown(cls) -> None:
@@ -93,7 +95,7 @@ class BaseSchedulerManager(ABC):
 
     @classmethod
     @abstractmethod
-    def start_scheduler(cls) -> None:
+    def start_scheduler(cls, block: bool = False) -> None:
         """
         Start the scheduler.
 
@@ -128,3 +130,26 @@ class BaseSchedulerManager(ABC):
         Should be idempotent over the shutdown process -
         if the scheduler is already stopped/stopping, do nothing.
         """
+
+
+def run_in_event_loop(coro: Coroutine[Any, Any, _TReturn]) -> _TReturn:
+    """
+    Run a coroutine with `asyncio.run` inside a pool executor.
+    Rather than `EventLoop.run_in_executor` where the event loop is on the "outside" of the pool,
+    we want the event loop *inside* of the pool's threads/processes.
+
+    See: https://github.com/agronholm/apscheduler/pull/1074
+    """
+
+    try:
+        # event loop already running, use it without closing
+        loop = asyncio.get_running_loop()
+        return loop.run_until_complete(coro)
+    except RuntimeError:
+        # no running event loop - create, use, and close one.
+        loop = asyncio.new_event_loop()
+        try:
+            res = loop.run_until_complete(coro)
+            return res
+        finally:
+            loop.close()

@@ -65,25 +65,26 @@ class RPCSchedulerManager(BaseSchedulerManager):
     """
 
     rpc_process: mp.Process | None = None
+    start_event = mp.Event()
 
     @classmethod
-    def start_scheduler(cls) -> None:
+    def start_scheduler(cls, block: bool = False) -> None:
         logger = init_logger("scheduler.manager.rpc")
         logger.debug("Starting RPC scheduler")
-        start_event = mp.Event()
-        start_event.clear()
+        cls.start_event.clear()
         cls.rpc_process = mp.Process(
             target=RPCSchedulerServer.start,
-            args=(start_event, Registry.get_scheduled_jobs(), Registry.get_queued_jobs()),
+            args=(cls.start_event, Registry.get_scheduled_jobs(), Registry.get_queued_jobs()),
         )
         cls.rpc_process.start()
-        was_started = start_event.wait(10)
-        if not was_started:
-            logger.exception(
-                "RPC server was not finished starting by the time the startup timer expired, "
-                "Scheduler is not running!"
-            )
-            cls.rpc_process.kill()
+        if block:
+            was_started = cls.start_event.wait(10)
+            if not was_started:
+                logger.exception(
+                    "RPC server was not finished starting by the time the startup timer expired, "
+                    "Scheduler is not running!"
+                )
+                cls.rpc_process.kill()
 
     @classmethod
     def get_scheduler(cls) -> RPCClientProtocol | None:
@@ -219,7 +220,10 @@ class RPCSchedulerServer:
         """
         Create and start the scheduler, adding job stores and executors
         """
-        scheduler = BackgroundScheduler(jobstores=RPCSchedulerManager.make_jobstores())
+        scheduler = BackgroundScheduler(
+            jobstores=RPCSchedulerManager.make_jobstores(),
+            logger=init_logger("scheduler.background"),
+        )
         for queue_name, queue_params in {
             **Registry.get_queued_jobs(),
             **self.queued_jobs,
