@@ -172,6 +172,7 @@
             </span>
         </div>
     </div>
+    {{ webseeds(upload.torrent.webseeds, upload, current_account, header_start + 1) }}
     <h{{ header_start + 1}}>
         Trackers
     </h{{ header_start + 1}}>
@@ -290,4 +291,53 @@
 </span>
 {% endif %}
 </{{ elt }}>
+{% endmacro %}
+
+{% macro webseeds(webseeds, upload, current_account, header_level=3) %}
+{% if webseeds or (current_account and current_account.has_scope("upload")) %}
+<h{{ header_level }}>
+    Webseeds
+</h{{ header_level }}>
+{% endif %}
+{% if webseeds %}
+<div class="webseeds-container container scrollable bordered">
+<table class="webseeds-table full-width">
+    <thead>
+    <tr>
+        <th class="webseed-url">URL</th>
+        <th class="account">Added By</th>
+        <th class="status">Status</th>
+        <th class="updated">Updated</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for webseed in webseeds %}
+    {% if webseed.visible_to(current_account) %}
+    <tr class="tracker-row tracker">
+        <td class="webseed-url font-mono">{{ webseed.url }}</td>
+        <td class="account">
+            <a href="/accounts/{{ webseed.account.username }}">@{{ webseed.account.username }}</a>
+        </td>
+        <td class="status">{{ webseed.status }}</td>
+        <td class="updated-at">
+        <time class="scraped-at-timestamp timestamp"
+              datetime="{{ webseed.updated_at.strftime('%y-%m-%d %H:%M') }}Z">
+            {{ webseed.updated_at.strftime("%y-%m-%d %H:%M") }} UTC
+        </time>
+        </td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endif %}
+{% if current_account %}
+<button class="add-webseed-button full-width add-button"
+        hx-get="/uploads/{{ upload.torrent.infohash }}/add_webseed"
+        hx-swap="outerHTML"
+>
+    <span class="plus"></span><span> Add Webseed</span>
+</button>
+{% endif %}
 {% endmacro %}

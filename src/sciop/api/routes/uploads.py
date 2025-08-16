@@ -170,6 +170,8 @@ async def create_webseed(
     upload: RequireVisibleUpload,
     current_account: RequireCurrentAccount,
     session: SessionDep,
+    request: Request,
+    response: Response,
 ) -> WebseedRead:
     """Create a new webseed"""
     cfg = get_config()
@@ -180,7 +182,9 @@ async def create_webseed(
     )
     if not ws.needs_review:
         queue_job("validate_webseed", kwargs={"infohash": upload.torrent.infohash, "url": ws.url})
-    return ws
+    if "HX-Request" in request.headers and "review" not in request.headers.get("HX-Current-URL"):
+        response.headers["HX-Refresh"] = "true"
+    return WebseedRead.model_validate(ws, update={"account": current_account})
 
 
 @uploads_router.delete("/{infohash}/webseeds")

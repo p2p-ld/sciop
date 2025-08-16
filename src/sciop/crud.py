@@ -572,7 +572,7 @@ def create_webseed(
     is_approved = torrent.account == account or account.has_scope("review", "upload")
     status = WebseedStatus.queued if is_approved else WebseedStatus.pending_review
     ws = Webseed.model_validate(
-        webseed_create, update={"is_approved": is_approved, "status": status}
+        webseed_create, update={"is_approved": is_approved, "status": status, "account": account}
     )
     torrent.webseeds.append(ws)
     session.add(torrent)

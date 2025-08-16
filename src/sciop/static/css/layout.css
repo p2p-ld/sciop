@@ -62,6 +62,10 @@ table {
   }
 }
 
+.full-width {
+  width: 100%;
+}
+
 .flex-container {
   display: flex;
   gap: 1em;
@@ -303,7 +307,7 @@ table {
       vertical-align: bottom;
       box-shadow: 0px 5px 7px var(--color-background);
 
-      .sort-link {
+      .table-link {
         width: 100%;
       }
     }

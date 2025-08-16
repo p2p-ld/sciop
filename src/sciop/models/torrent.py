@@ -172,7 +172,9 @@ class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
     tracker_links: list[TorrentTrackerLink] = Relationship(
         back_populates="torrent", cascade_delete=True
     )
-    webseeds: list[Webseed] = Relationship(back_populates="torrent", cascade_delete=True)
+    webseeds: list[Webseed] = Relationship(
+        back_populates="torrent", cascade_delete=True, sa_relationship_kwargs={"lazy": "selectin"}
+    )
     short_hash: str = Field(
         min_length=8,
         max_length=8,

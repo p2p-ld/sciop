@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import base64
 import contextlib
 import hashlib
@@ -259,7 +260,10 @@ class RPCSchedulerServer:
             server.register_function(self.queue_job, "queue_job")
             server.register_function(self.await_event, "await_event")
             server.register_function(self.shutdown, "shutdown")
+            atexit.register(self.shutdown)
             signal.signal(signal.SIGTERM, lambda sig, frame: self.shutdown)
+            # signal.signal(signal.SIGKILL, lambda sig, frame: self.shutdown)
+            signal.signal(signal.SIGHUP, lambda sig, frame: self.shutdown)
             yield server
 
     def shutdown(self, signum: int = None, frame: Any = None) -> None:
