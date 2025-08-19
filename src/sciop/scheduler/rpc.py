@@ -24,17 +24,6 @@ from sciop.logging import init_logger
 from sciop.scheduler.base import BaseSchedulerManager, SchedulerProtocol
 from sciop.scheduler.registry import QueuedJob, Registry, ScheduledJob
 
-_RPC_PASS = secrets.token_urlsafe(32)
-"""
-single-use password created at module level so forked processes have it.
-use to authenticate localhost-only rpc even if the port is exposed publicly.
-assuming we don't accidentally print this in an API response,
-the security model is basically the same as the secret key used to generate auth tokens,
-where if an attacker has access to the python interpreter or can access program memory,
-we're probably already pwned.
-"""
-_RPC_PROCESS: mp.Process | None = None
-
 
 class RPCClientProtocol(SchedulerProtocol):
     def queue_job(self, job_name: str, *args: Any, **kwargs: Any) -> QueueResult: ...
@@ -67,6 +56,15 @@ class RPCSchedulerManager(BaseSchedulerManager):
 
     rpc_process: mp.Process | None = None
     start_event = mp.Event()
+    rpc_pass = secrets.token_urlsafe(32)
+    """
+    single-use password created at module level so forked processes have it.
+    use to authenticate localhost-only rpc even if the port is exposed publicly.
+    assuming we don't accidentally print this in an API response,
+    the security model is basically the same as the secret key used to generate auth tokens,
+    where if an attacker has access to the python interpreter or can access program memory,
+    we're probably already pwned.
+    """
 
     @classmethod
     def start_scheduler(cls, block: bool = False) -> None:
@@ -75,7 +73,12 @@ class RPCSchedulerManager(BaseSchedulerManager):
         cls.start_event.clear()
         cls.rpc_process = mp.Process(
             target=RPCSchedulerServer.start,
-            args=(cls.start_event, Registry.get_scheduled_jobs(), Registry.get_queued_jobs()),
+            args=(
+                cls.start_event,
+                cls.rpc_pass,
+                Registry.get_scheduled_jobs(),
+                Registry.get_queued_jobs(),
+            ),
         )
         cls.rpc_process.start()
         if block:
@@ -92,9 +95,10 @@ class RPCSchedulerManager(BaseSchedulerManager):
         if not cls.is_running():
             return
         try:
+            cls.start_event.wait(5)
             config = get_config()
             client = ServerProxy(
-                f"http://sciop:{_RPC_PASS}@localhost:{config.server.scheduler_rpc_port}",
+                f"http://sciop:{cls.rpc_pass}@127.0.0.1:{config.server.scheduler_rpc_port}",
                 allow_none=True,
             )
             client = cast(RPCClientProtocol, client)
@@ -142,11 +146,13 @@ class AuthenticatingXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
         https://idle.nprescott.com/2023/basic-auth-with-pythons-xmlrpc-server.html
     """
 
+    rpc_pass: str = None
+
     def do_POST(self) -> None:  # noqa: N802
         if not (cred := self.headers.get("Authorization")):
             self._reject_auth()
             self.wfile.write(b"no auth header received")
-        elif cred == "Basic " + base64.b64encode(f"sciop:{_RPC_PASS}".encode()).decode():
+        elif cred == "Basic " + base64.b64encode(f"sciop:{self.rpc_pass}".encode()).decode():
             super().do_POST()
         else:
             self._reject_auth()
@@ -156,6 +162,8 @@ class AuthenticatingXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
         self.send_header("WWW-Authenticate", "Basic")
         self.send_header("Content-type", "text/html")
         self.end_headers()
+        logger = init_logger("scheduler.rpc.server")
+        logger.info("Rejected connection with invalid auth")
 
 
 class RPCSchedulerServer:
@@ -170,10 +178,12 @@ class RPCSchedulerServer:
     def __init__(
         self,
         start_event: mp.Event,
+        rpc_pass: str,
         scheduled_jobs: dict[str, ScheduledJob],
         queued_jobs: dict[str, QueuedJob],
     ):
         self.start_event = start_event
+        self.rpc_pass = rpc_pass
         self.scheduled_jobs = scheduled_jobs
         self.queued_jobs = queued_jobs
         self.logger = init_logger("scheduler.rpc.server")
@@ -184,6 +194,7 @@ class RPCSchedulerServer:
     def start(
         cls,
         start_event: mp.Event,
+        rpc_pass: str,
         scheduled_jobs: dict[str, ScheduledJob],
         queued_jobs: dict[str, QueuedJob],
     ) -> None:
@@ -192,7 +203,7 @@ class RPCSchedulerServer:
 
         Intended to be the target of a multiprocessing.Process
         """
-        instance = cls(start_event, scheduled_jobs, queued_jobs)
+        instance = cls(start_event, rpc_pass, scheduled_jobs, queued_jobs)
         instance.run()
 
     def run(self) -> None:
@@ -248,9 +259,10 @@ class RPCSchedulerServer:
     def create_server(self, scheduler: BackgroundScheduler) -> SimpleXMLRPCServer:
         config = get_config()
         self.logger.debug("Starting RPC Server")
+        AuthenticatingXMLRPCRequestHandler.rpc_pass = self.rpc_pass
         with SimpleXMLRPCServer(
-            ("localhost", config.server.scheduler_rpc_port),
-            requestHandler=SimpleXMLRPCRequestHandler,
+            ("127.0.0.1", config.server.scheduler_rpc_port),
+            requestHandler=AuthenticatingXMLRPCRequestHandler,
             allow_none=True,
             use_builtin_types=True,
             logRequests=False,

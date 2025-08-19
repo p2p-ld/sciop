@@ -56,10 +56,11 @@ def scheduler_type(request, set_config) -> str:
     return request.param
 
 
-async def test_add_job(scheduler_type, client_lifespan, capsys, tmp_path):
+async def test_add_job(scheduler_type, clean_scheduler, tmp_path):
     """
     do a single job
     """
+    start_scheduler(block=True)
     add_job(
         "sciop.testing.scheduler:write_a_file",
         None,

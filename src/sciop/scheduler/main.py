@@ -29,9 +29,9 @@ def get_scheduler() -> SchedulerProtocol | None:
     return manager.get_scheduler()
 
 
-def start_scheduler(**kwargs: Any) -> None:
+def start_scheduler(block: bool = False) -> None:
     manager = get_manager()
-    return manager.start()
+    return manager.start(block)
 
 
 def started() -> bool:

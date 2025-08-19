@@ -293,6 +293,9 @@ def _sync_webseeds(
     remove: list[str] | None = None,
 ) -> None:
     path = TorrentFile.get_filesystem_path(target.infohash, target.file_name)
+    if not path.exists():
+        # assume we're correct on creation
+        return
     t = Torrent.read(path)
     if value is None:
         value = []
