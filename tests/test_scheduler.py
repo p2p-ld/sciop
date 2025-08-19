@@ -2,10 +2,12 @@ import asyncio
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from xmlrpc.client import ProtocolError, ServerProxy
 
 import pytest
 from apscheduler.events import EVENT_JOB_EXECUTED
 
+from sciop.config import get_config
 from sciop.logging import init_logger
 from sciop.scheduler import (
     add_job,
@@ -146,7 +148,6 @@ def test_queue_job(capsys, clean_scheduler, set_config, tmp_path):
     sleep_dir = tmp_path / "sleepy"
     sleep_dir.mkdir(exist_ok=True)
     queue(enabled=True, max_concurrent=1, job_name="sleepytime")(write_a_file_sleepy)
-    # need to fork to share an event
     start_scheduler()
     time.sleep(0.1)
     # queue 3 of the same job, we should only run one at a time
@@ -178,6 +179,12 @@ def test_queue_job(capsys, clean_scheduler, set_config, tmp_path):
     assert ordered_ids == expected_order
 
 
-@pytest.mark.xfail(reason="write me plz")
-def test_no_unauthed_rpc_access():
-    raise NotImplementedError()
+def test_no_unauthed_rpc_access(clean_scheduler, set_config):
+    set_config({"server.scheduler_mode": "rpc"})
+    start_scheduler(block=True)
+    config = get_config()
+    client = ServerProxy(f"http://127.0.0.1:{config.server.scheduler_rpc_port}")
+    # calling incorrectly doesn't matter, we should fail
+    with pytest.raises(ProtocolError) as e:
+        client.add_job()
+    assert e.value.errcode == 401

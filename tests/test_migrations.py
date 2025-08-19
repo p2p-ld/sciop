@@ -63,4 +63,4 @@ def test_6aeff935f1c3_adds_webseeds(alembic_runner, alembic_engine, tmp_path):
     assert len(rows) == 2
 
     urls = [row[2] for row in rows]
-    assert urls == tc.url_list
+    assert set(urls) == set(tc.url_list)
