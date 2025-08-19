@@ -8,10 +8,11 @@ import humanize
 from pydantic import ModelWrapValidatorHandler, field_validator, model_validator
 from sqlalchemy import ColumnElement, Connection, SQLColumnExpression, event
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm.attributes import AttributeEventToken
+from sqlalchemy.orm.attributes import OP_BULK_REPLACE, AttributeEventToken
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, select
+from torrent_models import Torrent
 
 from sciop.config import get_config
 from sciop.models.base import SQLModel
@@ -253,6 +254,58 @@ def _rename_torrent_file(
         filesystem_path.rename(
             TorrentFile.get_filesystem_path(infohash=target.infohash, file_name=str(value))
         )
+
+
+@event.listens_for(TorrentFile.webseeds, "bulk_replace")
+def _sync_webseeds_replace(
+    target: TorrentFile,
+    value: list[Webseed],
+    initiator: AttributeEventToken,
+) -> None:
+    _sync_webseeds(target, value)
+
+
+@event.listens_for(TorrentFile.webseeds, "append")
+def _sync_webseeds_append(
+    target: TorrentFile,
+    value: Webseed,
+    initiator: AttributeEventToken,
+) -> None:
+    if initiator is None or initiator.op is not OP_BULK_REPLACE:
+        if target.webseeds:
+            _sync_webseeds(target, [*target.webseeds, value])
+        else:
+            _sync_webseeds(target, [value])
+
+
+@event.listens_for(TorrentFile.webseeds, "remove")
+def _sync_webseeds_remove(
+    target: TorrentFile, value: Webseed, initiator: AttributeEventToken
+) -> None:
+    if initiator is None or initiator.op is not OP_BULK_REPLACE:
+        _sync_webseeds(target, [t for t in target.webseeds if t is not value])
+
+
+def _sync_webseeds(
+    target: TorrentFile,
+    value: list[Webseed] | None,
+    add: list[str] | None = None,
+    remove: list[str] | None = None,
+) -> None:
+    path = TorrentFile.get_filesystem_path(target.infohash, target.file_name)
+    t = Torrent.read(path)
+    if value is None:
+        value = []
+    to_set = [v.url for v in value if v.status in ("validated", "in_original") and v.is_visible]
+    if add:
+        to_set.extend(add)
+    if remove:
+        to_set = [url for url in to_set if url not in remove]
+
+    to_set = list(dict.fromkeys(to_set))
+
+    t.url_list = to_set if to_set else None
+    t.write(path)
 
 
 class TorrentFileCreate(TorrentFileBase):

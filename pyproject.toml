@@ -152,7 +152,7 @@ select = [
     "S608", "S701",
 ]
 ignore = [
-    "ANN101", "ANN102", "ANN401", "ANN204",
+    "ANN401", "ANN204",
     # explicit strict arg for zip
     "B905",
     # builtin type annotations

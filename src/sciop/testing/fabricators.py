@@ -215,7 +215,11 @@ def make_torrentfile(
                 f.write(hash_data)
             kwargs["files"] = [{"path": "default.bin", "size": kwargs["total_size"]}]
 
-            t = torrent_(tmp_path=tmp_path, path=file_in_torrent)
+            t = torrent_(
+                tmp_path=tmp_path,
+                path=file_in_torrent,
+                url_list=kwargs.get("webseeds", default_torrent()["url_list"]),
+            )
         else:
             file_in_torrent = tmp_path
             each_file = np.floor(kwargs["total_size"] / n_files)
@@ -231,7 +235,11 @@ def make_torrentfile(
                 with open(file_in_torrent / f"{i}.bin", "wb") as f:
                     f.write(hash_data)
             kwargs["files"] = files
-            t = torrent_(tmp_path=tmp_path, path=paths)
+            t = torrent_(
+                tmp_path=tmp_path,
+                path=paths,
+                url_list=kwargs.get("webseeds", default_torrent()["url_list"]),
+            )
 
     if kwargs.get("v1_infohash", None) is None:
         kwargs["v1_infohash"] = t.v1_infohash

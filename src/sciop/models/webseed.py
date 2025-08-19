@@ -3,8 +3,9 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import sqlalchemy as sqla
 from pydantic import field_validator
-from sqlalchemy import ColumnElement
+from sqlalchemy import ColumnElement, event
 from sqlalchemy.ext.hybrid import hybrid_method
+from sqlalchemy.orm.attributes import NEVER_SET, AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship
 
@@ -119,3 +120,18 @@ class WebseedRead(WebseedBase):
         if isinstance(data, TorrentFile | TorrentFileRead):
             data = data.infohash
         return data
+
+
+@event.listens_for(Webseed.is_approved, "set")
+def _sync_webseeds_set(
+    target: Webseed, value: bool, old_value: bool, initiator: AttributeEventToken
+) -> None:
+    if old_value == NEVER_SET:
+        return
+
+    from sciop.models.torrent import _sync_webseeds
+
+    if value:
+        _sync_webseeds(target.torrent, target.torrent.webseeds, add=[target.url])
+    else:
+        _sync_webseeds(target.torrent, target.torrent.webseeds, remove=[target.url])
