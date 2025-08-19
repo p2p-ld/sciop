@@ -507,6 +507,7 @@ def get_claims(
         maybe_claim = session.exec(
             select(DatasetClaim)
             .join(DatasetClaim.account)
+            .join(DatasetClaim.dataset)
             .where(
                 Account.username == username,
                 Dataset.slug == dataset_slug,
@@ -521,6 +522,7 @@ def get_claims(
         return session.exec(
             select(DatasetClaim)
             .join(DatasetClaim.account)
+            .join(DatasetClaim.dataset)
             .where(Account.username == username, Dataset.slug == dataset_slug)
         ).all()
     else:
@@ -529,6 +531,7 @@ def get_claims(
         return session.exec(
             select(DatasetClaim)
             .join(DatasetClaim.account)
+            .join(DatasetClaim.dataset)
             .join(DatasetClaim.dataset_part)
             .where(
                 Account.username == username,
