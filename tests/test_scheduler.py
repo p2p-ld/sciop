@@ -88,7 +88,7 @@ async def test_interval_decorator(scheduler_type, clean_scheduler, tmp_path):
     assert _n_events(tmp_path) == 0
 
     # starting the scheduler should pick up the task
-    start_scheduler()
+    start_scheduler(block=True)
     await asyncio.sleep(0.25)
 
     assert _n_events(tmp_path) == 2
@@ -109,10 +109,9 @@ async def test_date_decorator(scheduler_type, clean_scheduler, tmp_path):
         job_kwargs={"tmp_path": str(tmp_path)},
         misfire_grace_time=None,
     )(write_a_file)
-    start_scheduler()
 
     # starting the scheduler should pick up the task
-    start_scheduler()
+    start_scheduler(block=True)
     await asyncio.sleep(0.2)
 
     assert _n_events(tmp_path) == 1
@@ -132,7 +131,7 @@ async def test_disabled_decorator(scheduler_type, tmp_path, clean_scheduler):
     assert _n_events(tmp_path) == 0
 
     # starting the scheduler should NOT pick up the task
-    start_scheduler()
+    start_scheduler(block=True)
     await asyncio.sleep(0.1)
 
     assert _n_events(tmp_path) == 0
