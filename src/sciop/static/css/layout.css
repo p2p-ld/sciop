@@ -175,6 +175,10 @@ table {
     --item-cols: 1em 6em 7fr 7em 7em;
   }
 
+  &.scopes-form {
+    --item-cols: 7em 7fr 2em;
+  }
+
   .table-head {
     padding: 0.25em 0.5em;
   }
@@ -190,6 +194,14 @@ table {
 
 .collapsible-table {
   margin-bottom: 1em;
+
+  &.scopes-form {
+    margin-bottom: 0em;
+
+    &.has-entries {
+      margin-top: 1em;
+    }
+  }
 }
 
 .table-head,
@@ -201,6 +213,25 @@ table {
 
   .dataset-slug,
   .dataset-slug a,
+  .table-head,
+  .account-row,
+  .dataset-collapsible > .collapsible-summary,
+  .dataset-part-collapsible > .collapsible-summary,
+  .upload-collapsible > .collapsible-summary,
+  .account-collapsible > .collapsible-summary
+  {
+    display: grid;
+    grid-template-columns: var(--item-cols);
+    grid-column-gap: 0.5em;
+  }
+
+  .table-head {
+    padding: 0.25em 0.5em;
+    /*margin-bottom: 0.5em;*/
+  }
+
+  & .collapsible-summary > .dataset-slug,
+  & .collapsible-summary > .dataset-slug a,
   .upload-hash,
   .instance-hash a,
   .account-username,

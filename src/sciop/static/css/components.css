@@ -6,7 +6,7 @@ select {
   background-color: var(--color-background-shade);
   padding: 1em;
   color: var(--color-text);
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--color-primary) !important;
   border-radius: 5px;
   box-sizing: border-box;
 }
@@ -255,6 +255,35 @@ a.button:hover {
     object-fit: contain;
     height: 100%;
     max-height: 30px;
+  }
+}
+
+.account-row {
+  border: 1px solid var(--color-border-deemphasized);
+  border-bottom: none;
+  align-items: center;
+  padding: 0.25em 0.5em;
+
+  &:last-of-type {
+	  border-bottom: 1px solid var(--color-border-deemphasized);
+	  border-radius: 0 0 5px 5px;
+  }
+
+  &:first-of-type {
+	  border-radius: 5px 5px 0 0;
+  }
+
+  &:only-of-type {
+	  border-radius: 5px 5px 5px 5px;
+  }
+
+  &:hover {
+    border-left: 1px solid var(--color-link);
+  }
+
+  & a {
+    width: fit-content;
+    display: inline-block
   }
 }
 

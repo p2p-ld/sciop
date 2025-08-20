@@ -102,7 +102,7 @@ htmx.on("htmx:afterSwap", (evt) => {
 
 // Token input field
 function addToken(e){
-  if (e.key !== "Enter"){ return }
+  if (e.key !== "Enter" || e.target.value.length < 2){ return }
   e.preventDefault()
   let container = document.querySelector(e.target.getAttribute("data-tokens-container"));
 
@@ -160,6 +160,28 @@ function init_token_input(){
   })
 }
 init_token_input();
+
+// account scopes form input
+function init_account_scopes_input() {
+  let inputs = document.querySelectorAll(".form-account-scopes");
+  inputs.forEach(e => {
+    // trigger htmx event for parent and clear input
+    e.addEventListener("keyup", e => {
+      if (e.key !== "Enter"){ return }
+      e.preventDefault();
+
+      let parent = htmx.closest(document.activeElement, ".account-scopes-input-container");
+      let elt = parent.querySelector(".account-scopes-container")
+      if (elt !== null && e.target.value != ""){
+        htmx.trigger(elt, "accountSelected");
+      }
+
+      e.target.value = "";
+      e.target.focus();
+    })
+  })
+}
+init_account_scopes_input();
 
 function init_upload_progress(target) {
   let upload_form = target.querySelector(".upload-form");

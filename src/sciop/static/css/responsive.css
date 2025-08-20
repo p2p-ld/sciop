@@ -65,25 +65,28 @@
 		max-width: 100%;
 		min-width: 100%;
 	}
-	.collapsible-summary {
-			display: flex;
-			flex-wrap: wrap;
-			grid-column-gap: 0.5em;
-			align-items: center;
-			max-width: 100%;
-			box-sizing: border-box;
 
-			& > span {
-				line-height: 28px;
-			}
+	.account-row,
+  .dataset-collapsible > .collapsible-summary,
+  .account-collapsible > .collapsible-summary {
+		display: flex;
+		flex-wrap: wrap;
+		grid-column-gap: 0.5em;
+		align-items: center;
+		max-width: 100%;
+		box-sizing: border-box;
 
-			& > *:last-child:not(.success-button) {
-			 margin-left: auto;
-			}
-			& button:first-of-type {
-				margin-left: auto;
-			}
-	  }
+		& > span {
+			line-height: 28px;
+		}
+
+		& > *:last-child:not(.success-button) {
+		 margin-left: auto;
+		}
+		& button:first-of-type {
+			margin-left: auto;
+		}
+  }
 
 	& .collapsible-summary > .dataset-slug {
     max-width: 85%;
