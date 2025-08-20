@@ -219,6 +219,7 @@ class InputType(StrEnum):
     select = "select"
     textarea = "textarea"
     tokens = "tokens"
+    account_scopes = "account_scopes"
     model_list = "model_list"
     none = "none"
 

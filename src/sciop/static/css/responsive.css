@@ -58,6 +58,7 @@
 			}
 		}
 
+		.account-row,
     .dataset-collapsible > .collapsible-summary,
     .account-collapsible > .collapsible-summary {
 			display: flex;

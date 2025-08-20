@@ -122,10 +122,22 @@ table {
   &.review {
     --item-cols: 1em 6em 7fr 7em 7em;
   }
+
+  &.scopes-form {
+    --item-cols: 7em 7fr 2em;
+  }
 }
 
 .collapsible-table {
   margin-bottom: 1em;
+
+  &.scopes-form {
+    margin-bottom: 0em;
+
+    &.has-entries {
+      margin-top: 1em;
+    }
+  }
 }
 
 .datasets-table,
@@ -134,6 +146,7 @@ table {
 .accounts-table{
 
   .table-head,
+  .account-row,
   .dataset-collapsible > .collapsible-summary,
   .dataset-part-collapsible > .collapsible-summary,
   .upload-collapsible > .collapsible-summary,

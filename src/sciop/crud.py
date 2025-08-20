@@ -6,6 +6,7 @@ from sciop.api.auth import get_password_hash, verify_password
 from sciop.models import (
     Account,
     AccountCreate,
+    AccountDatasetScopeLink,
     AuditLog,
     Dataset,
     DatasetClaim,
@@ -16,7 +17,10 @@ from sciop.models import (
     DatasetURL,
     ExternalIdentifier,
     FileInTorrent,
+    FormAccountScope,
+    ItemScopes,
     ModerationAction,
+    Scope,
     SiteStats,
     Tag,
     TorrentFile,
@@ -76,6 +80,10 @@ def create_dataset(
 
     tags = get_tags(session=session, tags=dataset_create.tags)
 
+    account_scopes = get_account_item_scopes(
+        session=session, account_scopes=dataset_create.account_scopes
+    )
+
     params = {
         "is_approved": is_approved,
         "account": current_account,
@@ -83,6 +91,7 @@ def create_dataset(
         "tags": tags,
         "external_identifiers": external_identifiers,
         "parts": parts,
+        "account_scopes": account_scopes,
     }
     # update from kwargs - kwargs are overrides that should mostly be used in tests
     params.update(kwargs)
@@ -473,6 +482,39 @@ def get_tags(*, session: Session, tags: list[str], commit: bool = False) -> list
 
     all_tags = [*existing_tags, *new_tags]
     return all_tags
+
+
+def get_account_item_scopes(
+    *,
+    session: Session,
+    account_scopes: list[FormAccountScope],
+    existing_scopes: Optional[list[AccountDatasetScopeLink]] = None,
+) -> list[AccountDatasetScopeLink]:
+    """
+    Given a list of FormAccountScope objects,
+    create and return a list of AccountDatasetScopeLink objects
+    """
+    scope_links: list[AccountDatasetScopeLink] = []
+    usernames = [s.username for s in account_scopes]
+    accounts = session.exec(select(Account).filter(Account.username.in_(usernames))).all()
+
+    # recreating any unchanged scopes to avoid primary key dependency rule error
+    if existing_scopes:
+        for e in existing_scopes:
+            session.delete(e)
+
+    for scopes in account_scopes:
+        account = next((a for a in accounts if a.username == scopes.username), None)
+        if not account:
+            raise ValueError("Account not found: " + scopes.username)
+
+        scope_links = scope_links + [
+            AccountDatasetScopeLink(account=account, _scope=Scope.get_item(scope, session))
+            for scope in scopes.scopes
+            if scope in ItemScopes.__members__.values()
+        ]
+
+    return scope_links
 
 
 def get_latest_site_stats(*, session: Session) -> SiteStats:

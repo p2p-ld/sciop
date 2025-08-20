@@ -52,8 +52,10 @@ from sciop.models.mystery import _Friedolin
 from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.scope import (
     AccountDatasetScopeLink,
+    FormAccountScopeAction,
     AccountScopeLink,
     AccountScopes,
+    FormAccountScope,
     ItemScopes,
     Scope,
     Scopes,
@@ -85,6 +87,7 @@ __all__ = [
     "AccountCreate",
     "AccountDatasetScopeLink",
     "AccountRead",
+    "FormAccountScopeAction",
     "AccountScopes",
     "AccountScopeLink",
     "AuditLog",
@@ -109,6 +112,7 @@ __all__ = [
     "FileInTorrent",
     "FileInTorrentCreate",
     "FileInTorrentRead",
+    "FormAccountScope",
     "HitCount",
     "ItemScopes",
     "MagnetLink",
