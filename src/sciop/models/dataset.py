@@ -27,6 +27,7 @@ from sciop.models.mixins import (
     all_optional,
     exclude_fields,
 )
+from sciop.models.scope import FormAccountScope
 from sciop.models.tag import DatasetTagLink
 from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import (
@@ -269,6 +270,16 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
             updated["external_identifiers"] = ExternalIdentifier.get_items(
                 self.external_identifiers, updated["external_identifiers"]
             )
+        if "account_scopes" in updated:
+            updated["account_scopes"] = crud.get_account_item_scopes(
+                session=session,
+                account_scopes=[
+                    FormAccountScope(username=s["username"], scopes=s["scopes"])
+                    for s in updated["account_scopes"]
+                ],
+                existing_scopes=self.account_scopes,
+            )
+
         for field_name, new_value in updated.items():
             setattr(self, field_name, new_value)
 
@@ -326,6 +337,17 @@ class DatasetCreate(DatasetBase):
         min_length=1,
         max_length=512,
     )
+    account_scopes: Optional[list["FormAccountScope"]] = Field(
+        title="Collaborators",
+        description="""
+        Additional users who should be able to make changes to this dataset.
+        Supply a username and press enter to start granting them permissions.
+        Hover over permissions buttons to see their descriptions.
+        """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.account_scopes}},
+        max_length=512,
+        default=[],
+    )
     external_identifiers: list["ExternalIdentifierCreate"] = Field(
         title="External Identifiers",
         default_factory=list,
@@ -354,6 +376,19 @@ class DatasetCreate(DatasetBase):
                 "external_identifiers": [
                     ExternalIdentifierCreate.model_validate(ex)
                     for ex in dataset.external_identifiers
+                ],
+                "account_scopes": [
+                    FormAccountScope(
+                        username=username,
+                        scopes=[
+                            s.scope.value
+                            for s in dataset.account_scopes
+                            if s.account.username == username
+                        ],
+                    )
+                    for username in list(
+                        dict.fromkeys([s.account.username for s in dataset.account_scopes])
+                    )
                 ],
                 "parts": [DatasetPartCreate.model_validate(part) for part in dataset.parts],
             },

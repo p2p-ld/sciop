@@ -1,8 +1,51 @@
-{% macro account_row(dataset, current_account, config) %}
-
+{% macro account_row(account, models=None, current_account=None, idx=None) %}
+<div class="account-row" id="account-row-{{ account.username }}">
+    <span class="account-username item-link">
+        <a href="/accounts/{{ account.username }}">
+            {{ account.username }}
+        </a>
+    </span>
+    <span class="account-scopes tokens">
+        {% for scope_name in models.ItemScopes.__members__.values() %}
+            {% set disabled=(current_account and False)%}
+            {% if scope_name in account.scopes %}
+                <a class="toggle-button button checked"
+                        id="{{ account.username }}-scope-{{scope_name}}"
+                        hx-target="closest .account-scopes-container"
+                        hx-post="/partials/account-scopes"
+                        hx-params="*"
+                        hx-vals='{ "action": { "action": "remove scope", "username": "{{ account.username }}", "scope": "{{ scope_name }}" } }'
+                        {% if disabled %}disabled{% endif %}
+                >
+                    {{scope_name}}
+                </a>
+                <input class="hidden" name="account_scopes[{{ idx }}].scopes[]" value="{{ scope_name }}" readonly="readonly">
+            {% else %}
+                <a class="toggle-button button"
+                        id="{{ account.username }}-scope-{{scope_name}}"
+                        hx-target="closest .account-scopes-container"
+                        hx-post="/partials/account-scopes"
+                        hx-params="*"
+                        hx-vals='{ "action": { "action": "add scope", "username": "{{ account.username }}", "scope": "{{ scope_name }}" } }'
+                        {% if disabled %}disabled{% endif %}
+                >
+                    {{scope_name}}
+                </a>
+            {% endif %}
+        {% endfor %}
+    </span>
+    <a class="button caution"
+            hx-target="closest .account-scopes-container"
+            hx-post="/partials/account-scopes"
+            hx-params="*"
+            hx-vals='{ "action": { "action": "remove account", "username": "{{ account.username }}" } }'
+    >
+        x
+    </a>
+</div>
 {% endmacro %}
 
-{% macro account_collapsible(account, review=False, config = None, models=None, current_account=None) %}
+{% macro account_collapsible(account, review=False, config=None, models=None, current_account=None) %}
 <details class="collapsible account-collapsible" id="account-collapsible-{{ account.account_id }}">
     <summary class="collapsible-summary"
              hx-get="/accounts/{{ account.username }}/partial"
@@ -42,6 +85,34 @@
         {{scope_name}}</button>
       {% endif %}
 
+        <span class="account-scopes tokens">
+        {% if review %}
+            {% for scope_name in models.AccountScopes.__members__.values() %}
+                {% set disabled=(current_account and
+                    (current_account.has_scope("root") and (scope_name == "root" or scope_name == "admin") and (current_account.username == account.username)) or
+                    (((not current_account.has_scope("root")) and (current_account.has_scope("admin")) and (scope_name == "root" or scope_name == "admin"))))
+                %}
+                {% if account.has_scope(scope_name) %}
+                    <button class="toggle-button checked"
+                            id="{{ account.username }}-scope-{{scope_name}}"
+                            hx-delete="{{ config.api_prefix }}/accounts/{{ account.username }}/scopes/{{ scope_name }}"
+                            hx-target="this"
+                            hx-swap="outerHTML"
+                            {% if disabled %}disabled{% endif %}
+                    >
+                        {{scope_name}}
+                    </button>
+                {% else %}
+                    <button class="toggle-button"
+                            id="{{ account.username }}-scope-{{scope_name}}"
+                            hx-put="{{ config.api_prefix }}/accounts/{{ account.username }}/scopes/{{ scope_name }}"
+                            hx-target="this"
+                            hx-swap="outerHTML"
+                            {% if disabled %}disabled{% endif %}
+                    >
+                        {{scope_name}}
+                    </button>
+                {% endif %}
             {% endfor %}
         {% else %}
               {% for scope in account.scopes %}
@@ -57,7 +128,8 @@
         <button class="button suspend-button success-button caution"
                 hx-post="{{ config.api_prefix }}/accounts/{{ account.username }}/suspend"
                 {% if suspend_disabled %}disabled{% endif %}
-        >Suspend
+        >
+            Suspend
         </button>
         {% endif %}
     </summary>

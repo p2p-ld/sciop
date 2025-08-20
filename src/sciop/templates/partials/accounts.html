@@ -1,30 +1,50 @@
-{% from 'macros/account.html' import account_collapsible %}
+{% from 'macros/account.html' import account_collapsible, account_row %}
 <div id="account-page" class="account-page">
   {% with swap_target="#account-page" %}
+    {% if pages %}
     {% include 'includes/pagination-buttons.html' %}
+    {% endif %}
   {% endwith %}
   <div id="accounts-table-inner"
-       class="collapsible-table accounts-table {% if review %}review{% endif %}">
+       class="collapsible-table
+              accounts-table
+              {% if review %}review{% endif %}
+              {% if scopes_form %}
+                scopes-form
+                {% if items | length > 0 %}has-entries{% endif %}
+              {% endif %}">
+    {% if not scopes_form %}
     <div id="accounts-table-head" class="table-head">
       <span class="marker"></span>
       <span class="col-slug">
-          slug
+          name
       </span>
       <span class="col-title">
-          title
+          scopes
       </span>
       <span class="col-created">
           created
       </span>
       {% if review %}<span></span><span></span>{% endif %}
     </div>
+    {% endif %}
     <div class="account-items">
       {% for account in items %}
-      {{ account_collapsible(account, review=review, config=config, models=models, current_account=current_account) }}
+      {% if scopes_form %}
+        <input class="hidden" name="account_scopes[{{ loop.index }}].username" value="{{ account.username }}" readonly="readonly">
+        {% if account.scopes | length == 0 %}
+        <input class="hidden" name="account_scopes[{{ loop.index }}].scopes[]" readonly="readonly">
+        {% endif %}
+        {{ account_row(account, models=models, current_account=current_account, idx=loop.index) }}
+      {% else %}
+        {{ account_collapsible(account, review=review, config=config, models=models, current_account=current_account) }}
+      {% endif %}
       {% endfor %}
     </div>
   {% with swap_target="#account-page" %}
+    {% if pages %}
     {% include 'includes/pagination-buttons.html' %}
+    {% endif %}
   {% endwith %}
   </div>
 </div>

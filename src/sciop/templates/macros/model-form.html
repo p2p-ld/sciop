@@ -51,6 +51,8 @@
     </div>
 {%- if field.json_schema_extra.input_type == "tokens" %}
     {{ token_input(field, field_name, parent_id, value) }}
+{%- elif field.json_schema_extra.input_type == "account_scopes" %}
+    {{ account_scopes_input(field, field_name, parent_id, value) }}
 {%- elif field.json_schema_extra.input_type == "model_list" %}
     <div class="model-list-input" name="{{ field_name }}">
     {% if value %}
@@ -175,6 +177,46 @@
     data-tokens-container="#{{ parent_id }}-{{ field_name }}-tokens"
 >
 <datalist id="{{ parent_id }}-{{ field_name }}-autocomplete"></datalist>
+{% endmacro %}
+
+{% macro account_scopes_input(field, field_name, parent_id, value=None) %}
+<div class="account-scopes-input-container">
+    <input
+        class="form-input form-account-scopes"
+        id="{{ parent_id }}-{{ field_name }}"
+        name="account_query"
+        list="{{ parent_id }}-{{ field_name }}-autocomplete"
+        hx-post="/autocomplete/{{ field_name }}"
+        hx-target="#{{ parent_id }}-{{ field_name }}-autocomplete"
+        hx-trigger="input changed delay:250ms"
+        hx-params="*"
+    >
+    <datalist id="{{ parent_id }}-{{ field_name }}-autocomplete"></datalist>
+    <div
+        id="{{ parent_id }}-{{ field_name }}-account-scopes"
+        class="account-scopes-container"
+        hx-trigger="accountSelected"
+        hx-target="this"
+        hx-post="/partials/account-scopes"
+        hx-params="*"
+        hx-vals='{ "action": { "action": "add account" } }'
+    >
+        {% if value %}
+        {% from 'macros/account.html' import account_row %}
+        <div id="accounts-table-inner" class="collapsible-table accounts-table scopes-form has-entries">
+            <div class="account-items">
+                {% for account in value %}
+                <input class="hidden" name="account_scopes[{{ loop.index }}].username" value="{{ account.username }}" readonly="readonly">
+                {% if account.scopes | length == 0 %}
+                <input class="hidden" name="account_scopes[{{ loop.index }}].scopes[]" readonly="readonly">
+                {% endif %}
+                {{ account_row(account, models=models, current_account=current_account, idx=loop.index) }}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
 {% endmacro %}
 
 {% macro model_list_item(model, field_name, idx) %}

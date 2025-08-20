@@ -144,7 +144,7 @@
     </div>
 
     <div class="dataset-description">
-    {{ dataset.description_html | safe }}
+    {{ (dataset.description_html if dataset.description_html else "No description provided") | safe }}
     </div>
 
     {% if dataset.urls | length > 0 %}

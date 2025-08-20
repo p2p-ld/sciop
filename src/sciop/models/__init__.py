@@ -64,8 +64,10 @@ from sciop.models.report import (
 from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.scope import (
     AccountDatasetScopeLink,
+    FormAccountScopeAction,
     AccountScopeLink,
     AccountScopes,
+    FormAccountScope,
     ItemScopes,
     Scope,
     Scopes,
@@ -101,6 +103,7 @@ __all__ = [
     "AccountCreate",
     "AccountDatasetScopeLink",
     "AccountRead",
+    "FormAccountScopeAction",
     "AccountScopes",
     "AccountScopeLink",
     "AtomFeed",
@@ -127,6 +130,7 @@ __all__ = [
     "FileInTorrent",
     "FileInTorrentCreate",
     "FileInTorrentRead",
+    "FormAccountScope",
     "HitCount",
     "ItemScopes",
     "MagnetLink",

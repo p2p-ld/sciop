@@ -1,8 +1,8 @@
 from enum import StrEnum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Literal, Optional
 
 import sqlalchemy as sqla
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, select
@@ -38,7 +38,7 @@ class ItemScopes(StrEnum):
 
     edit = "edit"
     """Edit an item"""
-    grant_permissions = "grant permissions"
+    permissions = "permissions"
     """
     Modify other account scopes for an item
     Users can only grant or revoke scopes that they also have
@@ -62,7 +62,7 @@ class Scopes(StrEnum):
     """All permissions"""
     edit = "edit"
     """Edit an item"""
-    grant_permissions = "grant permissions"
+    permissions = "permissions"
     """
     Modify other account scopes for an item
     Users can only grant or revoke scopes that they also have
@@ -119,3 +119,18 @@ class Scope(TableMixin, EnumTableMixin, table=True):
     accounts: list["Account"] = Relationship(back_populates="scopes", link_model=AccountScopeLink)
     account_dataset_links: list["AccountDatasetScopeLink"] = Relationship(back_populates="_scope")
     scope: Scopes = Field(unique=True)
+
+
+class FormAccountScope(BaseModel):
+    """Account scope object for use in forms"""
+
+    username: str
+    scopes: list[str]
+
+
+class FormAccountScopeAction(BaseModel):
+    """Action object for handling account scope form events"""
+
+    action: Literal["load", "add account", "add scope", "remove account", "remove scope"]
+    username: Optional[str] = None
+    scope: Optional[str] = None

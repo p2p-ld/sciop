@@ -1,11 +1,11 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Body, Query, Request
 from sqlmodel import select
 
-from sciop.api.deps import SessionDep
+from sciop.api.deps import RequireCurrentAccount, SessionDep
 from sciop.frontend.templates import jinja
-from sciop.models import Account, Dataset, Tag
+from sciop.models import Account, Dataset, FormAccountScope, Tag
 
 autocomplete_router = APIRouter(prefix="/autocomplete", include_in_schema=False)
 
@@ -19,10 +19,13 @@ async def publisher(publisher: str, session: SessionDep) -> list[str]:
 
 @autocomplete_router.get("/tags")
 @jinja.hx("partials/autocomplete-options.html")
-async def tags(session: SessionDep, tags: Annotated[list[str], Query()]) -> list[str]:
-    # first is the current query, the rest are existing tokens
-    query = tags[0] if tags else ""
+async def tags(
+    session: SessionDep,
+    tags: Annotated[list[str], Query()],
+) -> list[str]:
     tag_items = []
+    # first is the current query, the rest are existing tokens
+    query = tags[0]
 
     # allow tags to be queried both as a comma separated list and as a single token
     if "," in query:
@@ -33,8 +36,16 @@ async def tags(session: SessionDep, tags: Annotated[list[str], Query()]) -> list
         tag_base = False
         tag_query = query.strip()
 
+    tokens = []
+
+    for tag in tags[1:]:
+        if "," in tag:
+            tokens.extend([t.strip() for t in tag.split(",")])
+        else:
+            tokens.append(tag)
+
     stmt = select(Tag.tag).filter(
-        Tag.tag.like(f"%{tag_query}%"), Tag.tag.not_in(tags[1:] + tag_items[:-1])
+        Tag.tag.like(f"%{tag_query}%"), Tag.tag.not_in(tokens + tag_items[:-1])
     )
     results = session.exec(stmt).all()
     if tag_base:
@@ -42,14 +53,23 @@ async def tags(session: SessionDep, tags: Annotated[list[str], Query()]) -> list
     return results
 
 
-@autocomplete_router.get("/usernames")
+@autocomplete_router.post("/account_scopes")
 @jinja.hx("partials/autocomplete-options.html")
-async def usernames(session: SessionDep, usernames: Annotated[list[str], Query()]) -> list[str]:
-    # first is the current query, the rest are existing tokens
-    query = (usernames[0] if usernames else "").strip()
+async def collaborators(
+    session: SessionDep,
+    request: Request,
+    current_account: RequireCurrentAccount,
+    account_query: Annotated[str, Body()],
+    account_scopes: Optional[list[FormAccountScope]] = None,
+):
+    if not account_scopes:
+        account_scopes = []
 
     stmt = select(Account.username).filter(
-        Account.username.like(f"%{query}%"), Account.username.not_in(usernames[1:])
+        Account.username.like(f"%{account_query.strip()}%"),
+        Account.username.not_in(
+            [account_query, *[s.username for s in account_scopes], current_account.username]
+        ),
     )
     results = session.exec(stmt).all()
     return results
