@@ -192,11 +192,10 @@ async def create_webseed(
 @uploads_router.delete("/{infohash}/webseeds")
 async def delete_webseed(
     infohash: str,
+    url: MaxLenURL,
     upload: RequireVisibleUpload,
     current_account: RequireCurrentAccount,
     session: SessionDep,
-    webseed: WebseedCreate | None = None,
-    url: MaxLenURL | None = None,
 ) -> Response:
     """
     Delete a webseed
@@ -207,12 +206,7 @@ async def delete_webseed(
     - the uploader of the torrent
     - a account with review permissions
     """
-    if webseed is None:
-        if url:
-            webseed = WebseedCreate(url=url)
-        else:
-            raise HTTPException(422, "Must pass URL in either the request body or query param")
-
+    webseed = WebseedCreate(url=url)
     logger = init_logger("api.uploads.webseeds")
     logger.debug("Deleting webseed %s for %s", webseed.url, upload.infohash)
     ws = crud.get_webseed(session=session, infohash=infohash, url=webseed.url)

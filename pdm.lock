@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "dev", "docs", "test"]
+groups = ["default", "dev", "docs", "test", "tests"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:25c81ad5d9196cf3aacb9088cd01251f34efc031f8714aaa9682ca87f82d3bbd"
+content_hash = "sha256:0602fe18be1ebde21de99b74c0c17ae09c7e0fc3b8c3f36905ecd20bfb561881"
 
 [[metadata.targets]]
 requires_python = ">=3.11"
@@ -391,7 +391,7 @@ name = "colorama"
 version = "0.4.6"
 requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
 summary = "Cross-platform colored terminal text."
-groups = ["default", "dev", "docs", "test"]
+groups = ["default", "dev", "docs", "test", "tests"]
 files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
@@ -773,7 +773,7 @@ name = "iniconfig"
 version = "2.1.0"
 requires_python = ">=3.8"
 summary = "brain-dead simple config-ini parsing"
-groups = ["dev", "test"]
+groups = ["dev", "test", "tests"]
 files = [
     {file = "iniconfig-2.1.0-py3-none-any.whl", hash = "sha256:9deba5723312380e77435581c6bf4935c94cbfab9b1ed33ef8d238ea168eb760"},
     {file = "iniconfig-2.1.0.tar.gz", hash = "sha256:3abbd2e30b36733fee78f9c7f7308f2d0050e88f0087fd25c2645f63c773e1c7"},
@@ -1494,7 +1494,7 @@ name = "packaging"
 version = "25.0"
 requires_python = ">=3.8"
 summary = "Core utilities for Python packages"
-groups = ["default", "dev", "docs", "test"]
+groups = ["default", "dev", "docs", "test", "tests"]
 files = [
     {file = "packaging-25.0-py3-none-any.whl", hash = "sha256:29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484"},
     {file = "packaging-25.0.tar.gz", hash = "sha256:d443872c98d677bf60f6a1f2f8c1cb748e8fe762d2bf9d3148b5599295b0fc4f"},
@@ -1558,7 +1558,7 @@ name = "pluggy"
 version = "1.6.0"
 requires_python = ">=3.9"
 summary = "plugin and hook calling mechanisms for python"
-groups = ["dev", "test"]
+groups = ["dev", "test", "tests"]
 files = [
     {file = "pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"},
     {file = "pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3"},
@@ -1768,7 +1768,7 @@ name = "pygments"
 version = "2.19.2"
 requires_python = ">=3.8"
 summary = "Pygments is a syntax highlighting package written in Python."
-groups = ["default", "dev", "docs", "test"]
+groups = ["default", "dev", "docs", "test", "tests"]
 files = [
     {file = "pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b"},
     {file = "pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887"},
@@ -1816,7 +1816,7 @@ name = "pytest"
 version = "8.4.1"
 requires_python = ">=3.9"
 summary = "pytest: simple powerful testing with Python"
-groups = ["dev", "test"]
+groups = ["dev", "test", "tests"]
 dependencies = [
     "colorama>=0.4; sys_platform == \"win32\"",
     "exceptiongroup>=1; python_version < \"3.11\"",
@@ -1891,6 +1891,20 @@ dependencies = [
 files = [
     {file = "pytest_httpx-0.35.0-py3-none-any.whl", hash = "sha256:ee11a00ffcea94a5cbff47af2114d34c5b231c326902458deed73f9c459fd744"},
     {file = "pytest_httpx-0.35.0.tar.gz", hash = "sha256:d619ad5d2e67734abfbb224c3d9025d64795d4b8711116b1a13f72a251ae511f"},
+]
+
+[[package]]
+name = "pytest-mock"
+version = "3.14.1"
+requires_python = ">=3.8"
+summary = "Thin-wrapper around the mock package for easier use with pytest"
+groups = ["tests"]
+dependencies = [
+    "pytest>=6.2.5",
+]
+files = [
+    {file = "pytest_mock-3.14.1-py3-none-any.whl", hash = "sha256:178aefcd11307d874b4cd3100344e7e2d888d9791a6a1d9bfe90fbc1b74fd1d0"},
+    {file = "pytest_mock-3.14.1.tar.gz", hash = "sha256:159e9edac4c451ce77a5cdb9fc5d1100708d2dd4ba3c3df572f14097351af80e"},
 ]
 
 [[package]]
@@ -2389,7 +2403,7 @@ files = [
 
 [[package]]
 name = "torrent-models"
-version = "0.2.1"
+version = "0.3.1"
 requires_python = ">=3.11"
 summary = ".torrent file parsing and creation with pydantic"
 groups = ["default"]
@@ -2401,8 +2415,8 @@ dependencies = [
     "typing-extensions>=4.13.0; python_version < \"3.12\"",
 ]
 files = [
-    {file = "torrent_models-0.2.1-py3-none-any.whl", hash = "sha256:c7c4bb0783d12f2716211cdda716a71b3f5bf3473d2c5b0f2b936a13677fe44a"},
-    {file = "torrent_models-0.2.1.tar.gz", hash = "sha256:a5070f199a1abeaed684c7ca4dba8d8a49d3a255b1d10b7b0325026e4b102cf5"},
+    {file = "torrent_models-0.3.1-py3-none-any.whl", hash = "sha256:82b0985e7396fb5d9259fc5297b931d63951dc9496b8a0a1d16de47cf9b2daf9"},
+    {file = "torrent_models-0.3.1.tar.gz", hash = "sha256:b72002c307b48661755c2c671953ba63aa115d9df16abcf871b2648443c2cdd2"},
 ]
 
 [[package]]

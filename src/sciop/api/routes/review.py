@@ -217,12 +217,14 @@ async def approve_webseed(
         raise HTTPException(
             404, f"No webseed {webseed.url} found for torrent {upload.torrent.infohash}"
         )
+
     ws.is_approved = True
-    session.add(ws)
     queue_validation = False
     if ws.status == "pending_review":
         ws.status = "queued"
         queue_validation = True
+
+    session.add(ws)
     session.commit()
     crud.log_moderation_action(
         session=session, actor=account, action=ModerationAction.approve, target=ws

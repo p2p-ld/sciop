@@ -76,6 +76,9 @@ dev = [
     "black>=25.1.0",
     "watchfiles>=1.0.4",
 ]
+tests = [
+    "pytest-mock>=3.14.1",
+]
 
 
 [build-system]

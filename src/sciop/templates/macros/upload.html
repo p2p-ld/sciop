@@ -173,7 +173,7 @@
         </div>
     </div>
 
-    {% if webseeds_ or (current_account and current_account.has_scope("upload")) %}
+    {% if upload.torrent.webseeds or current_account %}
     <h{{ header_start + 1 }}>
         Webseeds
     </h{{ header_start + 1 }}>
@@ -270,18 +270,23 @@
 {% endmacro %}
 
 {% macro torrent_stats(upload, elt="span") %}
-{{ seeders(upload.seeders, elt=elt) }}
+{% if upload.torrent.webseeds %}
+{% set n_webseeds=upload.torrent.webseeds | length %}
+{% else %}
+{% set n_webseeds=0%}
+{% endif %}
+{{ seeders(upload.seeders, n_webseeds, elt=elt) }}
 {{ downloaders(upload.leechers, elt=elt) }}
 {% endmacro %}
 
-{% macro seeders(seeders, elt="span") %}
+{% macro seeders(seeders, n_webseeds=0, elt="span") %}
 <{{ elt }} class="upload-seeders seeders" title="{{ seeders }} seeders">
   {% if seeders is none %}
     <span class="deemphasized">—</span>
   {% else %}
     <span class="seeders-icon" aria-label="up arrow">⇧</span>
     <span class="seeders-number">
-  {{ seeders }}
+  {{ seeders + n_webseeds }}
     </span>
   {% endif %}
 </{{ elt }}>
