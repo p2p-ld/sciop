@@ -58,9 +58,10 @@ def test_6aeff935f1c3_adds_webseeds(alembic_runner, alembic_engine, tmp_path):
     )
     alembic_runner.migrate_up_one()
     with alembic_engine.connect() as conn:
-        rows = conn.execute(text("SELECT * from webseeds")).fetchall()
+        rows = conn.execute(text("SELECT url, is_approved from webseeds")).fetchall()
 
     assert len(rows) == 2
 
-    urls = [row[2] for row in rows]
+    urls = [row[0] for row in rows]
     assert set(urls) == set(tc.url_list)
+    assert all([row[1] for row in rows])
