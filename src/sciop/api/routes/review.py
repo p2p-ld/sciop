@@ -239,30 +239,6 @@ async def approve_webseed(
     return SuccessResponse(success=True)
 
 
-@review_router.post("/uploads/{infohash}/webseeds/deny")
-async def deny_webseed(
-    infohash: str,
-    account: RequireReviewer,
-    session: SessionDep,
-    upload: RequireUpload,
-    webseed: WebseedCreate,
-) -> SuccessResponse:
-    ws = session.exec(
-        select(Webseed).where(Webseed.torrent == upload.torrent, Webseed.url == webseed.url)
-    ).first()
-    if not ws:
-        raise HTTPException(
-            404, f"No webseed {webseed.url} found for torrent {upload.torrent.infohash}"
-        )
-    ws.is_removed = True
-    session.add(ws)
-    session.commit()
-    crud.log_moderation_action(
-        session=session, actor=account, action=ModerationAction.deny, target=ws
-    )
-    return SuccessResponse(success=True)
-
-
 @review_router.post("/accounts/{username}/suspend")
 async def suspend_account(
     username: str, account: RequireAccount, session: SessionDep, current_account: RequireAdmin

@@ -1,8 +1,34 @@
 """
-Implementation notes:
+Validate webseeds by requesting a small number of pieces from the webseed url.
 
-- On using https concurrently: https://github.com/encode/httpx/discussions/2662
-- https://www.python-httpx.org/advanced/resource-limits/
+See [WebseedValidationConfig][sciop.config.services.WebseedValidationConfig] for config.
+
+Requests pseudo-concurrently with asyncio httpx,
+quitting early on any errors.
+
+Requests the number of pieces that are requested in the config,
+or the number of pieces that would keep us under the max download size,
+whichever is lower.
+
+Run as a queued service s.t. only a maximum number of webseeds can be validated at once.
+Do not call these methods directly,
+instead call with [queue_job][sciop.scheduler.main.queue_job] like
+
+```python
+queue_job("validate_webseed", kwargs={"infohash": "...", "url": "..."})
+```
+
+Webseeds must support HTTP range requests,
+and webseed urls are specified like
+
+```
+{webseed_url}/{torrent.info.name}/{path}
+```
+
+Such that one would add `http://example.com/data/` as the webseed url
+if the file was hosted at `http://example.com/data/a/b.exe`
+and the torrent's `name` (in the infodict, not the filename) was `a`
+and it contained a file `b.exe`
 """
 
 import asyncio

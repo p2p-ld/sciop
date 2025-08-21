@@ -1,7 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-from sciop.types import Scopes
-
 
 class JobConfig(BaseModel):
     """Abstract shared class for job configs"""
@@ -140,14 +138,6 @@ class WebseedValidationConfig(QueueJobConfig):
     If `enable_adding_webseeds` is `False` but `enable` is `True`,
     webseeds cannot be added and will not be validated.
     """
-    enable_for_scopes: list["Scopes"] | None = Field(default_factory=lambda: ["upload"])
-    """
-    Set of scopes for which to enable adding webseeds.
-    
-    Default is to allow only accounts with `upload` permissions to add webseeds to
-    any torrent.
-    Set as empty list or `None` to allow any logged in account to add webseeds.
-    """
     n_pieces: int = 25
     """
     The number of pieces to validate.
@@ -174,11 +164,6 @@ class WebseedValidationConfig(QueueJobConfig):
     retry_delay: int = 15
     """
     Delay between retries, in seconds.
-    """
-    ban_patterns: list[str] = Field(default_factory=list)
-    """
-    Regex patterns to ban webseed urls.
-    URLs matching a pattern will not be added or validated.
     """
     get_timeout: float = 10
     """
