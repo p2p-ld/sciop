@@ -105,11 +105,22 @@ class EditableMixin(SQLModel):
     def editable_by(self, account: Optional["Account"] = None) -> bool:
         if account is None:
             return False
-        return self.account == account or account.has_scope("review")
+        return (
+            self.account == account
+            or account.has_scope("review")
+            or (self.dataset_id and account.has_scope("edit", dataset_id=self.dataset_id))
+        )
 
     @editable_by.inplace.expression
     @classmethod
     def _editable_by(cls, account: Optional["Account"] = None) -> ColumnElement[bool]:
+        if hasattr(cls, "dataset_id"):
+            return sqla.or_(
+                cls.account == account,
+                account.has_scope("review") == True,
+                cls.account_scopes.any(scope="edit", account=account),
+            )
+
         if account is None:
             return sqla.false()
         return sqla.or_(cls.account == account, account.has_scope("review") == True)
@@ -483,7 +494,6 @@ def _check_if_changed(
         obj_changed = True
 
     for om, hm in zip(obj_mapper.iterate_to_root(), history_mapper.iterate_to_root()):
-
         if hm.single:
             continue
 
