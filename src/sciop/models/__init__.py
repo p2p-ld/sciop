@@ -64,10 +64,10 @@ from sciop.models.report import (
 from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.scope import (
     AccountDatasetScopeLink,
-    FormAccountScopeAction,
     AccountScopeLink,
     AccountScopes,
     FormAccountScope,
+    FormAccountScopeAction,
     ItemScopes,
     Scope,
     Scopes,

@@ -94,13 +94,25 @@ class ModerableMixin(SQLModel):
     def removable_by(self, account: Optional["Account"] = None) -> bool:
         if account is None:
             return False
-        return self.account == account or account.has_scope("review")
+        return (
+            self.account == account
+            or account.has_scope("review")
+            or (self.dataset_id and account.has_scope("delete", dataset_id=self.dataset_id))
+        )
 
     @removable_by.inplace.expression
     @classmethod
     def _removable_by(cls, account: Optional["Account"] = None) -> ColumnElement[bool]:
         if account is None:
             return sqla.false()
+
+        if hasattr(cls, "dataset_id"):
+            return sqla.or_(
+                cls.account == account,
+                account.has_scope("review") == True,
+                cls.account_scopes.any(scope="delete", account=account),
+            )
+
         return sqla.or_(cls.account == account, account.has_scope("review") == True)
 
     def hide(self, account: "Account", session: Session, commit: bool = True) -> None:
