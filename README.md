@@ -15,7 +15,9 @@ As software: An experimental (soon to be) federated bittorrent tracker.
 
 ## Installing
 
-Clone the repository:
+First, make sure that you have Python installed. Sciop requires Python version >= 3.11.
+
+Then, clone the repository. If you plan to work on sciop, please consider creating a fork and cloning your fork:
 
 ```shell
 git clone https://codeberg.org/Safeguarding/sciop
@@ -24,18 +26,20 @@ cd sciop
 
 ### With pip
 
-Make a python virtual environment and activate it:
+Make a Python virtual environment and activate it:
 
     python -m venv ~/.envs/sciop
     . ~/.envs/sciop/bin/activate
 
-Install dependencies and then sciop itself in-place as an editable requirement:
+*The example above created a venv in your home directory.* 
+
+Install sciop in editable mode and it's dependencies into your virtual environment:
 
     pip install -e .
 
-`sciop` is also available on [PyPI](https://pypi.org/project/sciop/),
-though while we are in beta we do not regularly deploy versions there,
-so installing from the repository is *strongly recommended.*
+Note:
+`sciop` is available on [PyPI](https://pypi.org/project/sciop/).
+However, while we are in beta development, we do not regularly deploy versions there. Installing from this repository is *strongly recommended.*
 
 ```shell
 python -m pip install sciop

@@ -1,5 +1,11 @@
 # Contributing
 
+We welcome contributions of all kinds to Sciop including code 
+contributions, typo fixes and documentation updates. This page outlines  
+the development setups that will allow you to contribute.
+
+<!-- is there a coc? what types of contributions are invited? -->
+
 <div class="big-emphasis" markdown="1">
 
 * The code is here: <https://codeberg.org/Safeguarding/sciop>
@@ -8,13 +14,15 @@
 
 </div>
 
-## Setting up a Development Environment
+## Set up a Development Environment
 
 ### Fork the repository
 
-- Fork the repository: https://codeberg.org/Safeguarding/sciop/fork
-- Clone your forked repository
-- Make a new branch to work on
+If you plan to submit a pull request. Please follow the steps below:
+
+- Fork the Sciop repository: https://codeberg.org/Safeguarding/sciop/fork
+- Clone your forked repository so you can work locally
+- Make a new branch in your fork for each pull request that you submit.
 
 ```shell
 git clone https://codeberg.org/my-user-name/sciop
@@ -24,27 +32,33 @@ git switch -c new-branch
 
 ### Optional: Install Python
 
-Most operating systems come with Python installed,
-however Sciop requires `python>=3.11`.
-If you have an older version, you'll need to install an updated version of python.
+Most operating systems come with Python installed.
+Sciop requires `python>=3.11`.
+If you have an older version of Python, you'll need to install 3.11 or higher. 
 
-Check your version of python
+In case you use an environment manager like conda, you may want to first check where your default Python lives:
+
+```shell
+which python
+```
+
+Then, check the default version of Python:
 
 ```shell
 python --version
 ```
 
-If you need a newer version of python, use `pyenv` : https://github.com/pyenv/pyenv
+If you need a newer version of Python, use `pyenv` : https://github.com/pyenv/pyenv
 
-See the docs for platform-specific instructions, but generally...
+See the [pyenv docs](https://github.com/pyenv/pyenv?tab=readme-ov-file#a-getting-pyenv) for platform-specific instructions, but generally:
 
-- Install pyenv
+- [Install pyenv](https://github.com/pyenv/pyenv?tab=readme-ov-file#a-getting-pyenv)
 
 ```shell
 curl -fsSL https://pyenv.run | bash
 ```
 
-- Add pyenv config to shell
+- Add pyenv config to your favorite shell
 
 <details>
 <summary>Expand/collapse Bash instructions</summary>
@@ -77,63 +91,82 @@ echo 'eval "$(pyenv init - zsh)"' >> ~/.zshrc
 </details>
 
 - Restart your shell
-- Install python
+- Install Python >= 3.11
 
 ```shell
-# list python versions
+# List python versions
 pyenv install --list
 
-# install a specific version
+# Install a specific version
 pyenv install 3.13.1
 
-# activate that version globally
+# Activate that version globally
 pyenv global 3.13.1
 ```
 
 ### Install `sciop`
 
-#### With `pdm`
+sciop uses [`pdm`](https://pdm-project.org/en/latest/) for packaging and dependency management.
+We recommend that you use PDM too; however, Sciop can be installed with pip as well (see below).
 
-sciop uses [`pdm`](https://pdm-project.org/en/latest/) for packaging and dependency management,
-we recommend you use it too, it's a wonderful tool, but sciop can be installed with pip as well (see below)
+Instructions for installing Sciop using both tools are below. 
 
-If you don't already have pip you can install it (globally) like
+=== "Use PDM (preferred)"
 
-```shell
-python -m pip install pdm
-```
+    If you don't already have PDM installed, you can install it into your current working environment like this:
 
-and then from the `sciop` root directory,
-use pdm to install all dependencies into a venv (by default in `./.venv`)
+    ```shell
+    python -m pip install pdm
+    ```
 
-```shell
-pdm install --with dev
-```
+    Once PDM is installed:
 
-#### With `pip`
+    * open your favorite shell 
+    * cd into the `sciop` root directory,
+    * use pdm to install all dependencies into a venv (by default in `./.venv`) using the command below
 
-Make a virtual environment and activate it
+    ```shell
+    pdm install --with dev
+    ```
 
-```shell
-python -m venv ./.venv
-./.venv/bin/activate
-```
+    The `--with dev` flag tells PDM to install both the project and all 
+    project dependencies listed in the `pyproject.toml` file. PDM will also create environments setup in our pyproject.toml file that allow you to build documentation, run tests and build and run sciop locally. 
 
-Install sciop using an *editable install*
+=== "Use pip"
 
-```shell
-pip install -e .
-```
+    1. To setup your development environment using pip, first, make a virtual environment and activate it.
 
-## Running `sciop` in dev mode
+    ```shell
+    python -m venv ./.venv
+    ./.venv/bin/activate
+    ```
+
+    2. Install sciop in *editable* mode
+
+    ```shell
+    pip install -e .
+    ```
+
+## Running `sciop` in development mode
 
 !!! note
     
-    For `sciop` cli commands that don't have a pdm alias when using pdm,
-    just prepend `pdm run` like `pdm run sciop start` 
+    When using PDM, to run commands in the virtual environment, use `pdm run`.
+    A collection of scripts has been created for sciop development,
+    see all that are available with `pdm run --list` .
+
+    Some of the `pdm` commands just wrap sciop cli commands,
+    like `pdm run start` is just running `sciop start` within the pdm venv.
+    For all other sciop cli commands, just prepend them with `pdm run`,
+    so e.g. to run `sciop config copy` you would run `pdm run sciop config copy`.
+
+    See the available sciop cli commands with `sciop --help` (or `pdm run sciop --help`).
 
 
-Create a configuration:
+Create a configuration from the defaults. 
+This configuration controls how sciop runs, so for your development environment
+default values should be filled in
+like the host being `localhost` and the database being `db.dev.sqlite`.
 
 ```shell
 sciop config copy
@@ -143,30 +176,32 @@ sciop config copy
 
     See all available options and syntax in the full [config](../python/config.md) documentation
 
-Two fields *must* be set:
+In the Sciop config, two fields are required and must be set for the application to run:
 
-- `SCIOP_ENV`: one of `dev`, `test` or `prod`. 
-  One should *only* make a sciop instance publicly available in `prod` mode.
-  `dev` mode is for local development purposes, as is `test`.
-  You must ensure that you do not re-use the same db between a `dev`/`test` and `prod`
-  instance, e.g. if the `SCIOP_DB` location is explicitly set to something other than the defaults.
-- `SCIOP_SECRET_KEY`: must be a securely-generated random hex value.
-  A key can be generated with `openssl rand -hex 32`.
+1. `SCIOP_ENV`: one of `dev`, `test` or `prod`. 
+    * If you plan to make a Sciop instance publicly available, you must use `prod` mode.
+    * If you plan to work locally, use `dev` mode,`test` mode is automatically used during tests.
+    * IMPORTANT: Do not re-use the same database between a `dev`/`test` and `prod` instance, 
+      e.g. if the `SCIOP_DB` location is explicitly set to something other than the defaults.
 
-Then run the dev mode instance - 
-this will create seed data and automatically reload the site when your code changes
+2. `SCIOP_SECRET_KEY`: must be a securely-generated random hex value.
+  A key can be generated with `openssl rand -hex 32`,
+  and a random key is generated for you by using `sciop config copy`
 
-**with `pdm`**
+Once you have setup the required config, run a dev mode instance. 
+This will create seed data and automatically reload the site when your code changes. Instructions for doing this using both PDM and pip are below:
 
-```shell
-pdm run start
-```
+=== "Use PDM (preferred)"
 
-**with `pip`**
+    ```shell
+    pdm run start
+    ```
 
-```shell
-sciop start
-```
+=== "Use pip"
+
+    ```shell
+    sciop start
+    ```
 
 You can then login with the default root credentials:
 (sciop will not allow you to run the prod instance with these)
@@ -176,35 +211,59 @@ You can then login with the default root credentials:
 
 ## Linting/Formatting
 
+<!-- You could also use the ruff formater and remove black / keep it simpler?  -->
+
 `sciop` uses `ruff` and `black` for linting and formatting.
+Please run the code formatters before every commit. We will require them to be run before a Pull Request is merged.
 
-```shell
-pdm run format
-# or
-black .
-ruff check --fix
-```
+=== "Use PDM (preferred)"
 
-This should typically be run before every commit, but must be done before a PR is merged.
-The `ruff check --fix` call should auto-fix most errors and prompt you to fix the remaining errors.
+    The `pdm run format` command runs both Black and Ruff for you.
+
+    ```bash
+    pdm run format
+    ❯ pdm run format
+    All done! ✨ 🍰 ✨
+    197 files left unchanged.
+    warning: The following rules have been removed and ignoring them has no effect:
+        - ANN101
+        - ANN102
+
+    All checks passed!
+    ```
+
+=== "Use pip"
+    If you don't use PDM, you'll have to install and run each tool separately from your Python virtual environment.
+
+    ```shell
+    python -m black .
+    python -m ruff check --fix
+    ```
+
+If you run `pdm run format` or `ruff check --fix`, it will  auto-fix most errors. The formatter will prompt you to fix 
+any remaining errors that it can't fix.
 
 ## Testing
 
-We use `pytest` for unit tests, 
-and all contributions should have unit tests that cover any added or changed functionality
+We use `pytest` for unit tests. All contributions should have 
+unit tests that cover any added or changed functionality
 
 To run the tests:
 
-```angular2html
-pdm run test
-# or
-python -m pytest
-```
+=== "Use PDM (preferred)"
+
+    ```shell
+    pdm run test
+    ```
+=== "Use pip"
+
+    ```shell
+    python -m pytest
+    ```
 
 ### Writing Tests
 
-Look for existing tests to see how tests are commonly written,
-and see the `tests/fixtures` directory for utility fixtures to help you write tests.
+Before you write tests, check out our existing tests to see how they are written. Also check out the `tests/fixtures` directory for utility fixtures to help you write tests with reusable parts.
 
 !!! danger "Always use the db fixtures!"
 
@@ -296,12 +355,11 @@ but the code generator can handle some of the boilerplate.
 
 ## DB Migrations
 
-
 Any changes to the database must have corresponding migrations.
 
 Migrations can be [autogenerated with alembic](https://alembic.sqlalchemy.org/en/latest/autogenerate.html)
 
-```
+```bash
 alembic -c ./src/sciop/migrations/alembic.ini revision -m "{migration-slug}" --autogenerate
 ```
 
@@ -313,7 +371,7 @@ so the database must be equal to the state at the last migration.
 To get a clean database, before you generate the migration,
 remove your development database and create a new one using alembic
 
-```
+```bash
 alembic -c ./src/sciop/migrations/alembic.ini upgrade head
 ```
 
@@ -321,11 +379,17 @@ Then generate the migration with the command above.
 
 Migrations can be tested with pytest
 
-```
-python -m pytest tests/test_migrations.py
-# or
-pdm run pytest tests/test_migrations.py
-```
+=== "Use PDM (preferred)"
+
+    ```bash
+    pdm run pytest tests/test_migrations.py
+    ```
+
+=== "Use pip"
+
+    ```bash
+    python -m pytest tests/test_migrations.py
+    ```
 
 To test trickier migrations, you might want to create a version of the db in the previous state
 to compare what happens after the migration.
@@ -346,7 +410,13 @@ pdm run migrate
 The docs are written with [mkdocs](https://www.mkdocs.org/) and 
 [mkdocs-material](https://squidfunk.github.io/mkdocs-material/).
 
-### Adding a new page
+You can use PDM to build and serve the docs locally for interactive development, like this:
+
+```bash
+pdm run docs
+```
+
+### Add a new docs page
 
 To add a new page, create a new `.md` file in the relevant folder and add it to the 
 `nav` section in the `mkdocs.yml` configuration.
@@ -364,7 +434,7 @@ e.g. for my new page:
 Hello this is a new page
 ```
 
-Add this 
+Add this: 
 
 ```yaml
 nav:
@@ -375,12 +445,11 @@ nav:
     - intro/new.md
 ```
 
-
-### Moving a page
+### Move a page
 
 If you need to move/rename a page, make a redirect from the old page.
 
-So e.g. if i am moving `docs/intro/old.md` to `docs/intro/new.md`, add
+For example to move `docs/intro/old.md` to `docs/intro/new.md`, add:
 
 ```yaml
 plugins:
@@ -389,8 +458,4 @@ plugins:
         "intro/old.md": "intro/new.md"
 ```
 
-
-
-
-
-
+to the mkdocs.yml file.
