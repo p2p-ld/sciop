@@ -52,10 +52,10 @@ from sciop.models.mystery import _Friedolin
 from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.scope import (
     AccountDatasetScopeLink,
-    FormAccountScopeAction,
     AccountScopeLink,
     AccountScopes,
     FormAccountScope,
+    FormAccountScopeAction,
     ItemScopes,
     Scope,
     Scopes,
