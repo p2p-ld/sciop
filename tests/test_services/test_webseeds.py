@@ -51,12 +51,13 @@ async def file_server(tmp_path: Path, tmp_data_path: Path, rand_dir: Path, sessi
     @app.get("/429/reasonable/{path:path}")
     async def e429_reasonable(request: Request, path: str) -> FileResponse:
         nonlocal retries
+        key = (path, request.headers["range"])
         async with lock:
-            if path not in retries:
-                retries[path] = 0
+            if key not in retries:
+                retries[key] = 0
 
-            retries[path] += 1
-            if retries[path] % 3 == 0:
+            retries[key] += 1
+            if retries[key] % 3 == 0:
                 return FileResponse(tmp_path / path, headers=request.headers.mutablecopy())
             else:
                 raise HTTPException(status_code=429)
@@ -98,27 +99,22 @@ async def file_server(tmp_path: Path, tmp_data_path: Path, rand_dir: Path, sessi
     await server.down()
 
 
-@pytest.fixture(params=SIZES)
-def file_size(request, tmp_data_path) -> int:
-    size = request.param
-    for name in string.ascii_letters[0:10]:
-        with open(tmp_data_path / name, "wb") as f:
-            f.write(random.randbytes(size))
-    return size
-
-
-@pytest.fixture(
-    params=[pytest.param("v1", marks=pytest.mark.v1), pytest.param("v2", marks=pytest.mark.v2)]
-)
-def data_torrent(request, tmp_data_path, torrentfile) -> tuple[Torrent, TorrentFile]:
+@pytest.fixture()
+def random_data(tmp_data_path) -> list[int]:
     # files smaller than, same size as, and larger than piece size
     sizes = []
     for _ in range(10):
         sizes.extend(list(random.sample(SIZES, k=len(SIZES))))
     for i, size in enumerate(sizes):
-        with open(tmp_data_path / string.ascii_letters[i], "wb") as f:
+        with open(tmp_data_path / (string.ascii_letters[i] + str(i)), "wb") as f:
             f.write(random.randbytes(size))
+    return sizes
 
+
+@pytest.fixture(
+    params=[pytest.param("v1", marks=pytest.mark.v1), pytest.param("v2", marks=pytest.mark.v2)]
+)
+def data_torrent(request, random_data, tmp_data_path, torrentfile) -> tuple[Torrent, TorrentFile]:
     create = TorrentCreate(
         paths=[p for p in tmp_data_path.iterdir()], path_root=tmp_data_path, piece_length=32 * KiB
     )
@@ -142,8 +138,8 @@ def torrent_version(request) -> str:
 async def test_webseed_validation(
     tmp_data_path,
     file_server: UvicornTestServer,
-    file_size,
     torrent_version,
+    random_data,
     torrentfile,
     session,
 ) -> None:
@@ -151,14 +147,17 @@ async def test_webseed_validation(
     We should validate correct webseeds
     """
     webseed_url = "http://127.0.0.1:9998/"
+
     create = TorrentCreate(
         paths=[p for p in tmp_data_path.iterdir()], path_root=tmp_data_path, piece_length=32 * KiB
     )
+
     torrent = create.generate(version=torrent_version)
+    assert len(torrent.files) == len(random_data)
     tf: TorrentFile = torrentfile(torrent=torrent)
     res = await validate_webseed(tf.infohash, webseed_url, session)
 
-    assert res.valid
+    assert res.valid, res.message
 
     # check that we actually requested all the urls we were supposed to.
     hoarder: RequestHoarderMiddleware = file_server.config.app.middleware_stack.app
@@ -265,7 +264,7 @@ async def test_validation_retries_success(set_config, data_torrent, file_server,
     webseed_url = "http://127.0.0.1:9998/429/reasonable/"
 
     res = await validate_webseed(tf.infohash, webseed_url, session)
-    assert res.valid
+    assert res.valid, res.message
 
 
 @pytest.mark.timeout(10)
