@@ -69,6 +69,7 @@ test = [
     "pytest-httpx>=0.35.0",
     "numpy>=2.2.4",
     "faker>=35.2.0",
+    "pytest-mock>=3.14.1",
 ]
 dev = [
     "sciop[docs,test]",
@@ -76,15 +77,10 @@ dev = [
     "black>=25.1.0",
     "watchfiles>=1.0.4",
 ]
-tests = [
-    "pytest-mock>=3.14.1",
-]
-
 
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
-
 
 [tool.pdm]
 distribution = true
