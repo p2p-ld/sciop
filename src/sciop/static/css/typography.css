@@ -537,10 +537,11 @@ div.status-strip {
  }
 }
 
-.plus {
+.plus-icon, .x-icon {
   /* https://css-tip.com/css-plus-symbol/ */
+  --icon-color: var(--color-primary);
   --b: 0.25em;   /* the thickness*/
-  --c: #0000 90deg,var(--color-primary) 0; /* the coloration */
+  --c: #0000 90deg, var(--icon-color) 0; /* the coloration */
   width: 1em; /* the size */
   aspect-ratio: 1;
   background:
@@ -550,6 +551,13 @@ div.status-strip {
   display: inline-block;
 }
 
-button:hover > .plus {
+.x-icon {
+  --icon-color: var(--color-caution);
+  transform: rotate(45deg);
+}
+
+button:hover > .plus-icon,
+button:hover > .x-icon
+{
   --c: #0000 90deg, var(--color-primary-contrast) 0;
 }

@@ -19,6 +19,7 @@ from sciop.api.deps import (
 )
 from sciop.config import get_config
 from sciop.frontend.templates import jinja
+from sciop.logging import init_logger
 from sciop.models import (
     FileInTorrent,
     FileInTorrentRead,
@@ -35,6 +36,7 @@ from sciop.models import (
     WebseedRead,
 )
 from sciop.scheduler import queue_job
+from sciop.types import MaxLenURL
 
 uploads_router = APIRouter(prefix="/uploads")
 
@@ -190,11 +192,12 @@ async def create_webseed(
 @uploads_router.delete("/{infohash}/webseeds")
 async def delete_webseed(
     infohash: str,
-    webseed: WebseedCreate,
     upload: RequireVisibleUpload,
     current_account: RequireCurrentAccount,
     session: SessionDep,
-):
+    webseed: WebseedCreate | None = None,
+    url: MaxLenURL | None = None,
+) -> Response:
     """
     Delete a webseed
 
@@ -204,6 +207,14 @@ async def delete_webseed(
     - the uploader of the torrent
     - a account with review permissions
     """
+    if webseed is None:
+        if url:
+            webseed = WebseedCreate(url=url)
+        else:
+            raise HTTPException(422, "Must pass URL in either the request body or query param")
+
+    logger = init_logger("api.uploads.webseeds")
+    logger.debug("Deleting webseed %s for %s", webseed.url, upload.infohash)
     ws = crud.get_webseed(session=session, infohash=infohash, url=webseed.url)
     if not ws:
         raise HTTPException(404, f"No webseed {webseed.url} for torrent {infohash}")
@@ -211,9 +222,10 @@ async def delete_webseed(
         raise HTTPException(
             403, f"Not permitted to remove webseed {webseed.url} for torrent {infohash}"
         )
-    ws.is_removed = True
-    session.add(ws)
-    session.commit()
     crud.log_moderation_action(
         session=session, actor=current_account, target=ws, action=ModerationAction.remove
     )
+    session.delete(ws)
+    session.commit()
+
+    return Response(status_code=200)

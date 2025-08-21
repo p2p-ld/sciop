@@ -1,4 +1,4 @@
-{% from "macros/actions.html" import delete_button, edit_button, unapprove_button %}
+{% from "macros/actions.html" import delete_button, edit_button, unapprove_button, approve_button %}
 {% macro upload_row(upload, current_account, config, header_start=1) %}
 <div class="upload" id="upload-{{ upload.infohash }}">
     <div class="upload-topmatter topmatter">
@@ -308,12 +308,17 @@
         <th class="account">Added By</th>
         <th class="status">Status</th>
         <th class="updated">Updated</th>
+        <th class="blank"></th>
     </tr>
     </thead>
     <tbody>
     {% for webseed in webseeds %}
     {% if webseed.visible_to(current_account) %}
-    <tr class="tracker-row tracker">
+    {% set escaped_url = re.sub("[^_a-zA-Z0-9]", "-", webseed.url) %}
+    {% set row_id = "webseed-row-" + webseed.torrent.infohash + "-" + escaped_url %}
+    {% set enabled = webseed.is_approved and webseed.status in ('validated', 'in_original') %}
+    <tr class="webseed-row tracker{% if not enabled %} unapproved-row{% endif %}"
+        id="{{ row_id }}">
         <td class="webseed-url font-mono">{{ webseed.url }}</td>
         <td class="account">
             <a href="/accounts/{{ webseed.account.username }}">@{{ webseed.account.username }}</a>
@@ -324,6 +329,23 @@
               datetime="{{ webseed.updated_at.strftime('%y-%m-%d %H:%M') }}Z">
             {{ webseed.updated_at.strftime("%y-%m-%d %H:%M") }} UTC
         </time>
+        </td>
+
+        <td class="actions actions-box flex row">
+        {% if webseed.removable_by(current_account) %}
+            <button
+              class="remove-button button caution"
+              hx-delete="{{ config.api_prefix }}/uploads/{{ webseed.torrent.infohash }}/webseeds"
+              hx-vals='{"url": {{ json.dumps(webseed.url) }} }'
+              hx-target="#{{ row_id }}"
+            >
+                <span class="x-icon"></span>
+            </button>
+        {% endif %}
+        {% if not webseed.is_approved and current_account and current_account.has_scope("review") %}
+            {% set approve_url = config.api_prefix + "/uploads/" + webseed.torrent.infohash + "/webseeds/approve" %}
+            {{ approve_button(url=approve_url, vals = dict(url=webseed.url), item_type="Webseed", name=webseed.url) }}
+        {% endif %}
         </td>
     </tr>
     {% endif %}
@@ -337,7 +359,7 @@
         hx-get="/uploads/{{ upload.torrent.infohash }}/add_webseed"
         hx-swap="outerHTML"
 >
-    <span class="plus"></span><span> Add Webseed</span>
+    <span class="plus-icon"></span><span> Add Webseed</span>
 </button>
 {% endif %}
 {% endmacro %}

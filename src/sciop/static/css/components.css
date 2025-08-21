@@ -166,6 +166,13 @@ button,
       font-size: 0.9em;
     }
   }
+
+  &.remove-button {
+    padding: 0.1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 a.button:hover {
@@ -264,8 +271,10 @@ a.button:hover {
   &:last-of-type {
 	  border-bottom: 1px solid var(--color-border-deemphasized);
   }
+}
 
-  &.unapproved > summary {
+.unapproved > summary,
+.unapproved-row {
     background: repeating-linear-gradient(
       -45deg,
       var(--color-background),
@@ -284,7 +293,6 @@ a.button:hover {
         2px -2px 2px var(--color-background);
     }
   }
-}
 
 .collapsible:not([open])  {
   & > summary .collapsible-marker::before {

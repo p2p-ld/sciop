@@ -221,7 +221,7 @@ async def _request_range(
                 # just break, this is only expected in the case
                 # the server doesn't support range requests
                 logger.debug("Breaking download, got more bytes than expected from range")
-                break
+                await res.aclose()
 
     logger.debug("Downloaded %s bytes from %s", len(body), get_url)
 
@@ -248,7 +248,7 @@ async def _request_range(
         if res.status_code == 200:
             message = "Server does not support HTTP range requests"
         else:
-            message = body.decode("utf-8")
+            message = str(res.status_code)
         raise WebseedHTTPError(status_code=res.status_code, detail=message)
 
     return body

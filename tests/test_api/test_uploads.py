@@ -94,3 +94,25 @@ def test_upload_dataset_parts(
     assert created["torrent"]["v1_infohash"] == upload_create["infohash"]
     assert created["dataset"] == ds.slug
     assert created["dataset_parts"] == part_slugs
+
+
+@pytest.mark.skip()
+def test_webseed_add():
+    """
+    Adding webseed with upload privs should add the webseed to the db and the torrent
+    """
+
+
+@pytest.mark.skip()
+def test_webseed_add_unauthed():
+    """
+    Adding webseed without upload privs adds it, marks it pending approval,
+    and doesn't trigger validation
+    """
+
+
+@pytest.mark.skip()
+def test_webseed_approve_validates():
+    """
+    Approving a webseed causes it to be validated.
+    """

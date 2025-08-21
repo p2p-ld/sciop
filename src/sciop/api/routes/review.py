@@ -17,6 +17,7 @@ from sciop.frontend.templates import jinja
 from sciop.middleware import limiter
 from sciop.models import ModerationAction, Scope, SuccessResponse, Webseed, WebseedCreate
 from sciop.models.mystery import _Friedolin
+from sciop.scheduler import queue_job
 
 review_router = APIRouter()
 
@@ -218,10 +219,18 @@ async def approve_webseed(
         )
     ws.is_approved = True
     session.add(ws)
+    queue_validation = False
+    if ws.status == "pending_review":
+        ws.status = "queued"
+        queue_validation = True
     session.commit()
     crud.log_moderation_action(
         session=session, actor=account, action=ModerationAction.approve, target=ws
     )
+
+    if queue_validation:
+        queue_job("validate_webseed", kwargs={"infohash": ws.torrent.infohash, "url": ws.url})
+
     if "HX-Request" in request.headers and "review" not in request.headers.get("HX-Current-URL"):
         response.headers["HX-Refresh"] = "true"
 

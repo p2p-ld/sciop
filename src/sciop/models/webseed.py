@@ -126,12 +126,27 @@ class WebseedRead(WebseedBase):
 def _sync_webseeds_set(
     target: Webseed, value: bool, old_value: bool, initiator: AttributeEventToken
 ) -> None:
-    if old_value == NEVER_SET:
+    if old_value == NEVER_SET or target.torrent is None:
         return
 
     from sciop.models.torrent import _sync_webseeds
 
-    if value:
+    if value and target.status in ("validated", "in_original"):
+        _sync_webseeds(target.torrent, target.torrent.webseeds, add=[target.url])
+    else:
+        _sync_webseeds(target.torrent, target.torrent.webseeds, remove=[target.url])
+
+
+@event.listens_for(Webseed.status, "set")
+def _sync_webseeds_set(
+    target: Webseed, value: bool, old_value: bool, initiator: AttributeEventToken
+) -> None:
+    if old_value == NEVER_SET or target.torrent is None:
+        return
+
+    from sciop.models.torrent import _sync_webseeds
+
+    if value in ("validated", "in_original") and target.is_approved:
         _sync_webseeds(target.torrent, target.torrent.webseeds, add=[target.url])
     else:
         _sync_webseeds(target.torrent, target.torrent.webseeds, remove=[target.url])

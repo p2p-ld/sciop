@@ -1,5 +1,6 @@
 from typing import Callable as C
 
+import pytest
 from sqlmodel import select
 from torrent_models import Torrent
 
@@ -123,7 +124,38 @@ def test_webseeds_file_sync(torrentfile: C[[...], TorrentFile], session):
     ], "Torrent file not updated from delete"
 
 
-def test_webseeds_file_sync_moderation(torrentfile: C[[...], TorrentFile], session):
+@pytest.mark.parametrize("status", ("queued", "in_progress", "error"))
+def test_webseeds_file_sync_status(torrentfile: C[[...], TorrentFile], session, status: str):
+    """
+    Webseeds added that haven't been validated shouldn't be added to the file until they are.
+
+    Validating should then add them to the file.
+    """
+    tf = torrentfile(webseeds=None)
+    session.add(tf)
+    session.commit()
+    session.refresh(tf)
+    assert Torrent.read(tf.filesystem_path).url_list is None
+
+    # add one with append
+    tf.webseeds.append(Webseed(url="https://example.com/data", status=status, is_approved=True))
+    session.add(tf)
+    session.commit()
+    session.refresh(tf)
+    assert Torrent.read(tf.filesystem_path).url_list is None
+
+    # mark it validated
+    tf.webseeds[0].status = "validated"
+    session.add(tf)
+    session.commit()
+    session.refresh(tf)
+    assert Torrent.read(tf.filesystem_path).url_list == ["https://example.com/data"]
+
+
+@pytest.mark.parametrize("validated", [True, False])
+def test_webseeds_file_sync_moderation(
+    torrentfile: C[[...], TorrentFile], validated: bool, session
+):
     """
     Webseeds stay in sync in the torrent file when moderation events happen for the webseed.
 
@@ -131,10 +163,11 @@ def test_webseeds_file_sync_moderation(torrentfile: C[[...], TorrentFile], sessi
     so we don't need to test that behavior here.
     """
     tf = torrentfile(webseeds=None)
+
+    status = "validated" if validated else "queued"
+
     # add one with append
-    tf.webseeds.append(
-        Webseed(url="https://example.com/data", status="in_progress", is_approved=False)
-    )
+    tf.webseeds.append(Webseed(url="https://example.com/data", status=status, is_approved=False))
     session.add(tf)
     session.commit()
     session.refresh(tf)
@@ -145,7 +178,10 @@ def test_webseeds_file_sync_moderation(torrentfile: C[[...], TorrentFile], sessi
     session.add(tf.webseeds[0])
     session.commit()
     session.refresh(tf.webseeds[0])
-    assert Torrent.read(tf.filesystem_path).url_list == ["https://example.com/data"]
+    if validated:
+        assert Torrent.read(tf.filesystem_path).url_list == ["https://example.com/data"]
+    else:
+        assert Torrent.read(tf.filesystem_path).url_list is None
 
     tf.webseeds[0].is_approved = False
     session.add(tf.webseeds[0])

@@ -13,6 +13,19 @@
 </a>
 {% endmacro %}
 
+{% macro approve_button(url, vals=None, item_type="item", name="") %}
+<a class="button unapprove-button success-button neutral"
+   role="button"
+   aria-roledescription="Approves the {{ item_type }} {{ name | e }}"
+   hx-post="{{ url }}"
+   {% if vals %}
+   hx-vals='{{ json.dumps(vals) }}'
+   hx-ext='json-enc'
+   {% endif %}
+>Approve
+</a>
+{% endmacro %}
+
 {% macro unapprove_button(url, item_type="item", name="") %}
 <a class="button unapprove-button success-button warning"
    role="button"
