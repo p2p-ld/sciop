@@ -1,0 +1,13 @@
+<div id="webseed-review-panel" class="review-panel"
+     hx-get="/self/review/webseeds"
+     hx-trigger="response from:.success-button"
+     aria-live="polite" aria-relevant="removals"
+>
+{% if items | length == 0 %}
+    <span>No webseeds to review :)</span>
+{% else %}
+    {% with review=True %}
+      {% include "partials/webseeds.html" %}
+    {% endwith %}
+{% endif %}
+</div>

@@ -172,7 +172,14 @@
             </span>
         </div>
     </div>
-    {{ webseeds(upload.torrent.webseeds, upload, current_account, header_start + 1) }}
+
+    {% if webseeds_ or (current_account and current_account.has_scope("upload")) %}
+    <h{{ header_start + 1 }}>
+        Webseeds
+    </h{{ header_start + 1 }}>
+    {{ webseeds(upload.torrent.webseeds, upload, current_account, review=False) }}
+    {% endif %}
+
     <h{{ header_start + 1}}>
         Trackers
     </h{{ header_start + 1}}>
@@ -293,17 +300,15 @@
 </{{ elt }}>
 {% endmacro %}
 
-{% macro webseeds(webseeds, upload, current_account, header_level=3) %}
-{% if webseeds or (current_account and current_account.has_scope("upload")) %}
-<h{{ header_level }}>
-    Webseeds
-</h{{ header_level }}>
-{% endif %}
-{% if webseeds %}
+{% macro webseeds(webseeds_, upload, current_account, review=False) %}
+{% if webseeds_ %}
 <div class="webseeds-container container scrollable bordered">
 <table class="webseeds-table full-width">
     <thead>
     <tr>
+        {% if review %}
+        <th class="upload">Upload</th>
+        {% endif %}
         <th class="webseed-url">URL</th>
         <th class="account">Added By</th>
         <th class="status">Status</th>
@@ -312,54 +317,65 @@
     </tr>
     </thead>
     <tbody>
-    {% for webseed in webseeds %}
-    {% if webseed.visible_to(current_account) %}
-    {% set escaped_url = re.sub("[^_a-zA-Z0-9]", "-", webseed.url) %}
-    {% set row_id = "webseed-row-" + webseed.torrent.infohash + "-" + escaped_url %}
-    {% set enabled = webseed.is_approved and webseed.status in ('validated', 'in_original') %}
-    <tr class="webseed-row tracker{% if not enabled %} unapproved-row{% endif %}"
-        id="{{ row_id }}">
-        <td class="webseed-url font-mono">{{ webseed.url }}</td>
-        <td class="account">
-            <a href="/accounts/{{ webseed.account.username }}">@{{ webseed.account.username }}</a>
-        </td>
-        <td class="status">{{ webseed.status }}</td>
-        <td class="updated-at">
-        <time class="scraped-at-timestamp timestamp"
-              datetime="{{ webseed.updated_at.strftime('%y-%m-%d %H:%M') }}Z">
-            {{ webseed.updated_at.strftime("%y-%m-%d %H:%M") }} UTC
-        </time>
-        </td>
-
-        <td class="actions actions-box flex row">
-        {% if webseed.removable_by(current_account) %}
-            <button
-              class="remove-button button caution"
-              hx-delete="{{ config.api_prefix }}/uploads/{{ webseed.torrent.infohash }}/webseeds"
-              hx-vals='{"url": {{ json.dumps(webseed.url) }} }'
-              hx-target="#{{ row_id }}"
-            >
-                <span class="x-icon"></span>
-            </button>
-        {% endif %}
-        {% if not webseed.is_approved and current_account and current_account.has_scope("review") %}
-            {% set approve_url = config.api_prefix + "/uploads/" + webseed.torrent.infohash + "/webseeds/approve" %}
-            {{ approve_button(url=approve_url, vals = dict(url=webseed.url), item_type="Webseed", name=webseed.url) }}
-        {% endif %}
-        </td>
-    </tr>
-    {% endif %}
+    {% for a_webseed in webseeds_ %}
+    {{ webseed(a_webseed, current_account, review=review) }}
     {% endfor %}
     </tbody>
 </table>
 </div>
 {% endif %}
-{% if current_account %}
+{% if current_account and not review %}
 <button class="add-webseed-button full-width add-button"
         hx-get="/uploads/{{ upload.torrent.infohash }}/add_webseed"
         hx-swap="outerHTML"
 >
     <span class="plus-icon"></span><span> Add Webseed</span>
 </button>
+{% endif %}
+{% endmacro %}
+
+{% macro webseed(webseed, current_account, review=False) %}
+{% if review or webseed.visible_to(current_account) %}
+{% set escaped_url = re.sub("[^_a-zA-Z0-9]", "-", webseed.url) %}
+{% set row_id = "webseed-row-" + webseed.torrent.infohash + "-" + escaped_url %}
+{% set enabled = webseed.is_approved and webseed.status in ('validated', 'in_original') %}
+<tr class="webseed-row tracker{% if not enabled %} unapproved-row{% endif %}"
+    id="{{ row_id }}">
+    {% if review %}
+    <td class="upload">
+        <a href="/uploads/{{ webseed.torrent.infohash }}">
+            {{ webseed.torrent.short_hash }}
+        </a>
+    </td>
+    {% endif %}
+    <td class="webseed-url font-mono">{{ webseed.url }}</td>
+    <td class="account">
+        <a href="/accounts/{{ webseed.account.username }}">@{{ webseed.account.username }}</a>
+    </td>
+    <td class="status">{{ webseed.status }}</td>
+    <td class="updated-at">
+    <time class="scraped-at-timestamp timestamp"
+          datetime="{{ webseed.updated_at.strftime('%y-%m-%d %H:%M') }}Z">
+        {{ webseed.updated_at.strftime("%y-%m-%d %H:%M") }} UTC
+    </time>
+    </td>
+
+    <td class="actions actions-box flex row">
+    {% if webseed.removable_by(current_account) %}
+        <button
+          class="remove-button button caution"
+          hx-delete="{{ config.api_prefix }}/uploads/{{ webseed.torrent.infohash }}/webseeds"
+          hx-vals='{"url": {{ json.dumps(webseed.url) }} }'
+          hx-target="#{{ row_id }}"
+        >
+            <span class="x-icon"></span>
+        </button>
+    {% endif %}
+    {% if not webseed.is_approved and current_account and current_account.has_scope("review") %}
+        {% set approve_url = config.api_prefix + "/uploads/" + webseed.torrent.infohash + "/webseeds/approve" %}
+        {{ approve_button(url=approve_url, vals = dict(url=webseed.url), item_type="Webseed", name=webseed.url) }}
+    {% endif %}
+    </td>
+</tr>
 {% endif %}
 {% endmacro %}
