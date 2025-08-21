@@ -22,12 +22,12 @@ from sciop.models import (
     DatasetCreate,
     FileInTorrentCreate,
     Scope,
-    Scopes,
     TorrentFile,
     TorrentFileCreate,
     Upload,
     UploadCreate,
 )
+from sciop.types import Scopes
 
 fake = Faker()
 P = ParamSpec("P")
@@ -95,6 +95,7 @@ def default_torrent() -> dict:
         "path": "default.bin",
         "name": "Default Torrent",
         "trackers": [["udp://example.com/announce"]],
+        "url_list": ["http://example.com/data", "http://subdomain.example.com/root/data"],
         "comment": "My comment",
         "piece_size": 16384,
     }
@@ -199,6 +200,8 @@ def make_torrentfile(
     if "torrent" in kwargs:
         t: Torrent = kwargs.pop("torrent")
         announce_urls_nested = t.announce_list
+        if announce_urls_nested is None:
+            announce_urls_nested = [[]]
         announce_urls = []
         for tier in announce_urls_nested:
             announce_urls.extend(tier)
@@ -212,7 +215,11 @@ def make_torrentfile(
                 f.write(hash_data)
             kwargs["files"] = [{"path": "default.bin", "size": kwargs["total_size"]}]
 
-            t = torrent_(tmp_path=tmp_path, path=file_in_torrent)
+            t = torrent_(
+                tmp_path=tmp_path,
+                path=file_in_torrent,
+                url_list=kwargs.get("webseeds", default_torrent()["url_list"]),
+            )
         else:
             file_in_torrent = tmp_path
             each_file = np.floor(kwargs["total_size"] / n_files)
@@ -228,7 +235,11 @@ def make_torrentfile(
                 with open(file_in_torrent / f"{i}.bin", "wb") as f:
                     f.write(hash_data)
             kwargs["files"] = files
-            t = torrent_(tmp_path=tmp_path, path=paths)
+            t = torrent_(
+                tmp_path=tmp_path,
+                path=paths,
+                url_list=kwargs.get("webseeds", default_torrent()["url_list"]),
+            )
 
     if kwargs.get("v1_infohash", None) is None:
         kwargs["v1_infohash"] = t.v1_infohash
@@ -286,9 +297,15 @@ def random_upload(
     is_approved: bool | None = None,
     is_removed: bool | None = None,
     commit: bool = True,
+    torrent_kwargs: dict | None = None,
+    torrentfile_kwargs: dict | None = None,
 ) -> "Upload":
     if not fake:
         fake = Faker()
+    if torrent_kwargs is None:
+        torrent_kwargs = {}
+    if torrentfile_kwargs is None:
+        torrentfile_kwargs = {}
 
     tmp_parent = Path("__tmp__")
     tmp_parent.mkdir(exist_ok=True)
@@ -307,6 +324,7 @@ def random_upload(
         comment="My comment",
         piece_length=16384,
         info={"name": f"test_{name}"},
+        **torrent_kwargs,
     )
     torrent = torrent.generate(version="hybrid")
 
@@ -320,6 +338,7 @@ def random_upload(
         torrent_size=64,
         files=[FileInTorrentCreate(path=torrent_file, size=file_size)],
         announce_urls=["udp://opentracker.io:6969/announce"],
+        **torrentfile_kwargs,
     )
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
     torrent.write(created_torrent.filesystem_path)

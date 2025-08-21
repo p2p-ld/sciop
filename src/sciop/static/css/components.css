@@ -117,6 +117,16 @@ button,
     border-bottom-left-radius: 0;
   }
 
+  /* Buttons at the end of some table that add another row */
+  &.add-button {
+    margin-top: 0.5em;
+    padding: 0.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    column-gap: 1em;
+  }
+
   &:disabled {
     background: repeating-linear-gradient(
       -45deg,
@@ -130,7 +140,7 @@ button,
     color: var(--color-deemphasized);
   }
 
-  &.sort-link {
+  &.table-link {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -155,6 +165,13 @@ button,
     &[data-col="threat"] span {
       font-size: 0.9em;
     }
+  }
+
+  &.remove-button {
+    padding: 0.1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -254,8 +271,10 @@ a.button:hover {
   &:last-of-type {
 	  border-bottom: 1px solid var(--color-border-deemphasized);
   }
+}
 
-  &.unapproved > summary {
+.unapproved > summary,
+.unapproved-row {
     background: repeating-linear-gradient(
       -45deg,
       var(--color-background),
@@ -274,7 +293,6 @@ a.button:hover {
         2px -2px 2px var(--color-background);
     }
   }
-}
 
 .collapsible:not([open])  {
   & > summary .collapsible-marker::before {

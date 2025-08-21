@@ -25,7 +25,7 @@ from sciop.middleware import (
     limiter,
     security_headers,
 )
-from sciop.scheduler import remove_all_jobs, shutdown, start_scheduler
+from sciop.scheduler import shutdown, start_scheduler
 from sciop.services import build_docs_service
 
 
@@ -41,7 +41,6 @@ async def lifespan(app: FastAPI) -> Generator[None, None, None]:
         build_docs_service(dirty=cfg.services.docs.dirty)
     start_scheduler()
     yield
-    remove_all_jobs()
     shutdown()
 
 

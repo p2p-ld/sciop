@@ -19,12 +19,12 @@ from sciop.models import (
     DatasetClaim,
     DatasetPart,
     RaggedSearchParams,
-    Scopes,
     SearchParams,
     Tag,
     TokenPayload,
     Upload,
 )
+from sciop.types import Scopes
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 

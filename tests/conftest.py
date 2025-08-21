@@ -120,7 +120,7 @@ def monkeypatch_config(monkeypatch_session: "MonkeyPatch", request: pytest.Fixtu
         enable_versions=True,
         paths={"torrents": TORRENT_DIR, "db": db_path, "docs": DOCS_DIR},
         logs={"request_timing": False},
-        server={"base_url": "http://localhost:8080"},
+        server={"base_url": "http://localhost:8080", "scheduler_mode": "local"},
         services={"clear_jobs": True},
     )
     new_config.paths.logs = LOGS_DIR

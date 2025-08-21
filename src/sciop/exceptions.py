@@ -13,6 +13,10 @@ class SciOpException(Exception):
     """Base SciOp Exception"""
 
 
+class ConfigException(SciOpException, ValueError):
+    """Some exception caused by a bad config value!"""
+
+
 class UploadSizeExceeded(ValueError, SciOpException):
     """An uploaded file is too large!"""
 
@@ -52,6 +56,26 @@ class ScrapeErrorType(StrEnum):
     """No responses but error wasn't thrown"""
     default = "default"
     """Unhandled or unknown exception type"""
+
+
+class SchedulerException(SciOpException):
+    """Generic class for scheduler-related exceptions"""
+
+
+class SchedulerNotRunningError(SchedulerException, RuntimeError):
+    """The scheduler is not running!"""
+
+
+class WebseedException(SciOpException):
+    """Base class for webseed-related exceptions"""
+
+
+class WebseedValidationError(WebseedException, ValueError):
+    """The data returned by the webseed while checking was not valid for the given hash"""
+
+
+class WebseedHTTPError(WebseedException, HTTPException):
+    """An HTTP error was raised while trying to validate a webseed"""
 
 
 async def http_handler(request: Request, exc: HTTPException) -> Response:

@@ -21,7 +21,6 @@ from sciop.models.account import (
     AccountRead,
     AccountScopeLink,
     Scope,
-    Scopes,
     Token,
     TokenPayload,
 )
@@ -65,6 +64,7 @@ from sciop.models.torrent import (
 )
 from sciop.models.tracker import TorrentTrackerLink, Tracker, TrackerCreate
 from sciop.models.upload import Upload, UploadCreate, UploadRead, UploadUpdate
+from sciop.models.webseed import Webseed, WebseedCreate, WebseedRead, WebseedStatus
 
 Account.model_rebuild()
 Dataset.model_rebuild()
@@ -73,6 +73,7 @@ DatasetPart.model_rebuild()
 DatasetPartRead.model_rebuild()
 Scope.model_rebuild()
 TorrentFile.model_rebuild()
+Webseed.model_rebuild()
 EditableMixin.rebuild_history_models(namespace=locals())
 
 __all__ = [
@@ -108,7 +109,6 @@ __all__ = [
     "RaggedSearchPage",
     "RaggedSearchParams",
     "Scope",
-    "Scopes",
     "SearchPage",
     "SearchParams",
     "SiteStats",
@@ -130,5 +130,9 @@ __all__ = [
     "UploadCreate",
     "UploadRead",
     "UploadUpdate",
+    "Webseed",
+    "WebseedCreate",
+    "WebseedRead",
+    "WebseedStatus",
     "_Friedolin",
 ]

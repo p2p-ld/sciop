@@ -64,13 +64,13 @@ async def test_sort_base(items, page: Page, run_server_module):
     slugs = sorted([ds.slug for ds in items[1]])
     await col.click()
 
-    await expect(col).to_have_class("sort-link active ascending")
+    await expect(col).to_have_class("table-link sort-link active ascending")
 
     await expect(first).to_have_text(slugs[0])
     await expect(last).to_have_text(slugs[49])
 
     await col.click()
-    await expect(col).to_have_class("sort-link active descending")
+    await expect(col).to_have_class("table-link sort-link active descending")
 
     await expect(first).to_have_text(slugs[-1])
     await expect(last).to_have_text(slugs[-50])
@@ -89,19 +89,19 @@ async def test_sort_paging(items, page: Page, run_server_module):
     slugs = sorted([ds.slug for ds in items[1]])
 
     await page.locator('.page-link[data-page="2"]').first.click()
-    await expect(col).to_have_class("sort-link ", timeout=10 * 1000)
+    await expect(col).to_have_class("table-link sort-link ", timeout=10 * 1000)
     await expect(col).to_have_attribute(
         name="hx-get", value="http://127.0.0.1:8080/datasets/search?page=2&sort=slug"
     )
 
     await col.click()
-    await expect(col).to_have_class("sort-link active ascending", timeout=10 * 1000)
+    await expect(col).to_have_class("table-link sort-link active ascending", timeout=10 * 1000)
 
     await expect(first).to_have_text(slugs[50])
     await expect(last).to_have_text(slugs[-1])
 
     await col.click()
-    await expect(col).to_have_class("sort-link active descending")
+    await expect(col).to_have_class("table-link sort-link active descending")
 
     await expect(first).to_have_text(slugs[-51])
     await expect(last).to_have_text(slugs[0])
@@ -129,9 +129,9 @@ async def test_sort_numbers(items, page: Page, run_server_module, session_module
     third = page.locator(".collapsible-table .collapsible:nth-child(3) .upload-title")
 
     await col.click()
-    await expect(col).to_have_class("sort-link active ascending")
+    await expect(col).to_have_class("table-link sort-link active ascending")
     await col.click()
-    await expect(col).to_have_class("sort-link active descending")
+    await expect(col).to_have_class("table-link sort-link active descending")
     await expect(first).to_have_text(b.file_name)
     await expect(second).to_have_text(c.file_name)
     await expect(third).to_have_text(a.file_name)

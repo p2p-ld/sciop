@@ -17,7 +17,9 @@ from sciop.api.deps import (
     RequireVisibleUpload,
     SessionDep,
 )
+from sciop.config import get_config
 from sciop.frontend.templates import jinja
+from sciop.logging import init_logger
 from sciop.models import (
     FileInTorrent,
     FileInTorrentRead,
@@ -29,7 +31,12 @@ from sciop.models import (
     UploadCreate,
     UploadRead,
     UploadUpdate,
+    Webseed,
+    WebseedCreate,
+    WebseedRead,
 )
+from sciop.scheduler import queue_job
+from sciop.types import MaxLenURL
 
 uploads_router = APIRouter(prefix="/uploads")
 
@@ -139,3 +146,80 @@ async def upload_files(
     request.state.upload = upload
     stmt = search.apply_sort(stmt, FileInTorrent)
     return paginate(conn=session, query=stmt)
+
+
+@uploads_router.get("/{infohash}/webseeds")
+@jinja.hx("partials/webseeds.html")
+async def webseeds(
+    infohash: str,
+    upload: RequireVisibleUpload,
+    current_account: CurrentAccount,
+    session: SessionDep,
+) -> list[WebseedRead]:
+    """Show webseeds in a torrent"""
+    return session.exec(
+        select(Webseed).where(
+            Webseed.torrent == upload.torrent,
+            Webseed.visible_to(current_account) == True,
+        )
+    ).all()
+
+
+@uploads_router.post("/{infohash}/webseeds")
+async def create_webseed(
+    infohash: str,
+    webseed: WebseedCreate,
+    upload: RequireVisibleUpload,
+    current_account: RequireCurrentAccount,
+    session: SessionDep,
+    request: Request,
+    response: Response,
+) -> WebseedRead:
+    """Create a new webseed"""
+    cfg = get_config()
+    if not cfg.services.webseed_validation.enable_adding_webseeds:
+        raise HTTPException(403, "Adding webseeds is disabled")
+    ws = crud.create_webseed(
+        session=session, account=current_account, torrent=upload.torrent, webseed_create=webseed
+    )
+    if not ws.needs_review:
+        queue_job("validate_webseed", kwargs={"infohash": upload.torrent.infohash, "url": ws.url})
+    if "HX-Request" in request.headers and "review" not in request.headers.get("HX-Current-URL"):
+        response.headers["HX-Refresh"] = "true"
+    return WebseedRead.model_validate(ws, update={"account": current_account})
+
+
+@uploads_router.delete("/{infohash}/webseeds")
+async def delete_webseed(
+    infohash: str,
+    url: MaxLenURL,
+    upload: RequireVisibleUpload,
+    current_account: RequireCurrentAccount,
+    session: SessionDep,
+) -> Response:
+    """
+    Delete a webseed
+
+    Webseeds can be deleted by
+
+    - the account that created them
+    - the uploader of the torrent
+    - a account with review permissions
+    """
+    webseed = WebseedCreate(url=url)
+    logger = init_logger("api.uploads.webseeds")
+    logger.debug("Deleting webseed %s for %s", webseed.url, upload.infohash)
+    ws = crud.get_webseed(session=session, infohash=infohash, url=webseed.url)
+    if not ws:
+        raise HTTPException(404, f"No webseed {webseed.url} for torrent {infohash}")
+    elif not ws.removable_by(current_account):
+        raise HTTPException(
+            403, f"Not permitted to remove webseed {webseed.url} for torrent {infohash}"
+        )
+    crud.log_moderation_action(
+        session=session, actor=current_account, target=ws, action=ModerationAction.remove
+    )
+    session.delete(ws)
+    session.commit()
+
+    return Response(status_code=200)

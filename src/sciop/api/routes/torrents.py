@@ -130,6 +130,7 @@ async def upload_torrent(
             if not PADFILE_PATTERN.fullmatch(_file.path)
         ],
         announce_urls=trackers,
+        webseeds=torrent.url_list,
     )
 
     torrents_logger.debug("Writing torrent file to disk")

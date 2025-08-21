@@ -1,11 +1,13 @@
 import logging
+from itertools import count
 from typing import Callable as C
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from faker import Faker
+from sqlmodel import Session
 
-from sciop.models import Account, Dataset, TorrentFile, Upload
+from sciop.models import Account, Dataset, TorrentFile, Upload, Webseed
 
 __all__ = [
     "countables",
@@ -30,17 +32,41 @@ def countables(
     upload: C[..., Upload],
     torrentfile: C[..., TorrentFile],
     uploader: Account,
+    session: Session,
 ) -> list["Dataset"]:
     fake = Faker()
     datasets = []
+    seed_count = count(1)
+    leech_count = count(5)
     for _ in range(3):
         ds: Dataset = dataset(
             slug="-".join(fake.words(3)),
         )
-        for _ in range(3):
+        for i in range(3):
             tf: TorrentFile = torrentfile(total_size=1000)
-            tf.tracker_links[0].seeders = 5
-            tf.tracker_links[0].leechers = 10
+            if i == 0:
+                tf.webseeds = [
+                    Webseed(url="https://example.com/data", status="in_original", is_approved=True),
+                    Webseed(
+                        url="https://invalid.example.com/data", status="error", is_approved=True
+                    ),
+                    Webseed(
+                        url="https://validated.example.com/data",
+                        status="validated",
+                        is_approved=True,
+                    ),
+                    Webseed(
+                        url="https://in_progress.example.com/data",
+                        status="in_progress",
+                        is_approved=True,
+                    ),
+                ]
+                session.add(tf)
+                session.commit()
+            tf.tracker_links[0].seeders = next(seed_count)
+            tf.tracker_links[0].leechers = next(leech_count)
+            tf.tracker_links[1].seeders = next(seed_count)
+            tf.tracker_links[1].leechers = next(leech_count)
             upload(dataset_=ds, torrentfile_=tf)
         datasets.append(ds)
     return datasets

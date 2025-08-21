@@ -193,6 +193,11 @@ def create_seed_data(n: int = 100) -> None:
                 "title": "averylongnamewithnobreakpoints" * 3,
                 "is_approved": True,
             },
+            {
+                "slug": "dataset-with-webseeds",
+                "title": "the uploads in here have webseeds",
+                "is_approved": True,
+            },
         ]
         uls = [
             {"name": "abcdefgh", "dataset": "approved", "is_approved": True},
@@ -202,6 +207,23 @@ def create_seed_data(n: int = 100) -> None:
                 "name": "averylongnamewithnobreakpoints" * 3,
                 "dataset": "averylongnamewithnobreakpoints" * 3,
                 "is_approved": True,
+            },
+            {
+                "name": "webseed torrent",
+                "dataset": "dataset-with-webseeds",
+                "is_approved": True,
+                "torrent_kwargs": {
+                    "url_list": [
+                        "https://example.com/data",
+                        "https://other.example.com/parent/data",
+                    ]
+                },
+                "torrentfile_kwargs": {
+                    "webseeds": [
+                        "https://example.com/data",
+                        "https://other.example.com/parent/data",
+                    ]
+                },
             },
         ]
 
@@ -251,7 +273,8 @@ def create_seed_data(n: int = 100) -> None:
 
 def ensure_root(session: Session) -> Optional["Account"]:
     from sciop import crud
-    from sciop.models import AccountCreate, Scope, Scopes
+    from sciop.models import AccountCreate, Scope
+    from sciop.types import Scopes
 
     cfg = get_config()
     if not (cfg.root_user and cfg.root_password):

@@ -536,3 +536,28 @@ div.status-strip {
    }
  }
 }
+
+.plus-icon, .x-icon {
+  /* https://css-tip.com/css-plus-symbol/ */
+  --icon-color: var(--color-primary);
+  --b: 0.25em;   /* the thickness*/
+  --c: #0000 90deg, var(--icon-color) 0; /* the coloration */
+  width: 1em; /* the size */
+  aspect-ratio: 1;
+  background:
+    conic-gradient(from 90deg at var(--b) var(--b),var(--c))
+    calc(100% + var(--b)/2) calc(100% + var(--b)/2)/
+    calc(50%  + var(--b))   calc(50%  + var(--b));
+  display: inline-block;
+}
+
+.x-icon {
+  --icon-color: var(--color-caution);
+  transform: rotate(45deg);
+}
+
+button:hover > .plus-icon,
+button:hover > .x-icon
+{
+  --c: #0000 90deg, var(--color-primary-contrast) 0;
+}

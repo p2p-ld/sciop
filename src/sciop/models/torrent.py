@@ -8,16 +8,18 @@ import humanize
 from pydantic import ModelWrapValidatorHandler, field_validator, model_validator
 from sqlalchemy import ColumnElement, Connection, SQLColumnExpression, event
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm.attributes import AttributeEventToken
+from sqlalchemy.orm.attributes import OP_BULK_REPLACE, AttributeEventToken
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, select
+from torrent_models import Torrent
 
 from sciop.config import get_config
 from sciop.models.base import SQLModel
 from sciop.models.magnet import MagnetLink
 from sciop.models.mixins import EditableMixin, SortableCol, SortMixin, TableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
+from sciop.models.webseed import Webseed, WebseedRead
 from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
 
 if TYPE_CHECKING:
@@ -171,6 +173,9 @@ class TorrentFile(TorrentFileBase, TableMixin, EditableMixin, table=True):
     tracker_links: list[TorrentTrackerLink] = Relationship(
         back_populates="torrent", cascade_delete=True
     )
+    webseeds: list[Webseed] = Relationship(
+        back_populates="torrent", cascade_delete=True, sa_relationship_kwargs={"lazy": "selectin"}
+    )
     short_hash: str = Field(
         min_length=8,
         max_length=8,
@@ -251,9 +256,65 @@ def _rename_torrent_file(
         )
 
 
+@event.listens_for(TorrentFile.webseeds, "bulk_replace")
+def _sync_webseeds_replace(
+    target: TorrentFile,
+    value: list[Webseed],
+    initiator: AttributeEventToken,
+) -> None:
+    _sync_webseeds(target, value)
+
+
+@event.listens_for(TorrentFile.webseeds, "append")
+def _sync_webseeds_append(
+    target: TorrentFile,
+    value: Webseed,
+    initiator: AttributeEventToken,
+) -> None:
+    if initiator is None or initiator.op is not OP_BULK_REPLACE:
+        if target.webseeds:
+            _sync_webseeds(target, [*target.webseeds, value])
+        else:
+            _sync_webseeds(target, [value])
+
+
+@event.listens_for(TorrentFile.webseeds, "remove")
+def _sync_webseeds_remove(
+    target: TorrentFile, value: Webseed, initiator: AttributeEventToken
+) -> None:
+    if initiator is None or initiator.op is not OP_BULK_REPLACE:
+        _sync_webseeds(target, [t for t in target.webseeds if t is not value])
+
+
+def _sync_webseeds(
+    target: TorrentFile,
+    value: list[Webseed] | None,
+    add: list[str] | None = None,
+    remove: list[str] | None = None,
+) -> None:
+    path = TorrentFile.get_filesystem_path(target.infohash, target.file_name)
+    if not path.exists():
+        # assume we're correct on creation
+        return
+    t = Torrent.read(path)
+    if value is None:
+        value = []
+    to_set = [v.url for v in value if v.status in ("validated", "in_original") and v.is_visible]
+    if add:
+        to_set.extend(add)
+    if remove:
+        to_set = [url for url in to_set if url not in remove]
+
+    to_set = list(dict.fromkeys(to_set))
+
+    t.url_list = to_set if to_set else None
+    t.write(path)
+
+
 class TorrentFileCreate(TorrentFileBase):
     files: list[FileInTorrentCreate]
     announce_urls: list[MaxLenURL]
+    webseeds: list[MaxLenURL] | None = None
 
     @model_validator(mode="after")
     def get_short_hash(self) -> Self:
@@ -301,6 +362,11 @@ class TorrentFileCreate(TorrentFileBase):
         """Remove .pad/d+ files"""
         return [v for v in val if not PADFILE_PATTERN.match(v.path)]
 
+    @field_validator("webseeds", mode="after")
+    def deduplicate_webseeds(cls, val: list[MaxLenURL] | None) -> list[MaxLenURL] | None:
+        """Remove duplicate webseed urls"""
+        return list(dict.fromkeys(val)) if val else val
+
 
 class TorrentFileRead(TorrentFileBase):
     short_hash: str = Field(
@@ -313,6 +379,7 @@ class TorrentFileRead(TorrentFileBase):
     announce_urls: list[MaxLenURL] = Field(default_factory=list)
     seeders: Optional[int] = None
     leechers: Optional[int] = None
+    webseeds: Optional[list[WebseedRead]] = None
 
     @model_validator(mode="wrap")
     @classmethod

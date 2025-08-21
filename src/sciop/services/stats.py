@@ -62,12 +62,22 @@ def get_site_stats(session: Session) -> "SiteStats":
 
 def get_peer_stats(session: Session) -> PeerStats:
     # in the inner query, get the n leechers/seeders per torrent
-    from sciop.models import TorrentFile, TorrentTrackerLink, Upload
+    from sciop.models import TorrentFile, TorrentTrackerLink, Upload, Webseed
+
+    webseed_subquery = (
+        select(func.count(Webseed.webseed_id).label("webseeds"))
+        .where(
+            Webseed.status.in_(("in_original", "validated")),
+            TorrentFile.torrent_file_id == Webseed.torrent_id,
+        )
+        .scalar_subquery()
+    )
 
     peer_count_subquery = (
         select(
             func.max(TorrentTrackerLink.leechers).label("leechers"),
             func.max(TorrentTrackerLink.seeders).label("seeders"),
+            webseed_subquery.label("webseeds"),
             TorrentFile.total_size.label("total_size"),
         )
         .join(TorrentTrackerLink.torrent)
@@ -76,11 +86,12 @@ def get_peer_stats(session: Session) -> PeerStats:
         .where(Upload.is_visible == True)
         .subquery()
     )
+
     # then take the sum of all leechers, seeders, and multiply by size to get capacity
     peer_count_stmt = select(
         func.sum(text("leechers")).label("n_downloaders"),
-        func.sum(text("seeders")).label("n_seeders"),
-        func.sum(text("seeders * total_size")).label("total_capacity"),
+        func.sum(text("seeders + webseeds")).label("n_seeders"),
+        func.sum(text("(seeders + webseeds) * total_size")).label("total_capacity"),
         func.sum(text("total_size")).label("total_size"),
     ).select_from(peer_count_subquery)
 

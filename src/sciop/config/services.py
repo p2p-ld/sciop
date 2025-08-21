@@ -1,10 +1,25 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class JobConfig(BaseModel):
     """Abstract shared class for job configs"""
 
     enabled: bool = True
+
+
+class QueueJobConfig(JobConfig):
+    """Abstract shared class for queued job configs"""
+
+    queue_name: str
+    """
+    Name of the queue (and thus pool executor) this job runs in
+    For now, spawn pools for each kind of job,
+    but in the future, allow shared pools for related tasks.
+    """
+    max_concurrent: int = 1
+    """
+    Maximum instances of this job that can run in parallel
+    """
 
 
 class ScrapeErrorBackoffs(BaseModel):
@@ -98,16 +113,86 @@ class DocsConfig(JobConfig):
     """
 
 
+class WebseedValidationConfig(QueueJobConfig):
+    """
+    Configuration of adding and validatation of webseeds from the web UI.
+
+    If enabled, when webseeds are added, sciop will request `n_pieces` from the torrent
+    (or, in the case of large piece sizes, the number of pieces that kees us
+    below `max_validation_data` bytes worth of bandwidth)
+    """
+
+    queue_name: str = "webseeds"
+    max_concurrent: int = 2
+    """
+    This is a potentially memory-intensive job, so keep default count low.
+    """
+
+    enable_adding_webseeds: bool = True
+    """
+    If ``False`` , don't allow adding webseeds from the web UI or API at all.
+    
+    If `enable_adding_webseeds` is `True` but `enable` is `False`,
+    webseeds can be added but they will not be validated.
+    
+    If `enable_adding_webseeds` is `False` but `enable` is `True`,
+    webseeds cannot be added and will not be validated.
+    """
+    n_pieces: int = 25
+    """
+    The number of pieces to validate.
+    
+    Overridden by max_validation_data - we will validate fewer pieces than `n_pieces`
+    to avoid going over our bandwidth budget.
+    """
+    max_validation_data: int = 1 * (2**30)  # 1 GB
+    """
+    Maximum amount of data per validation to download, in bytes
+    """
+    max_connections: int = 20
+    """
+    Maximum requests active per validation job.
+    
+    See: https://www.python-httpx.org/advanced/resource-limits/
+    """
+    retries: dict[int, int] = Field(default_factory=lambda: {429: 5})
+    """
+    Maximum number of retries for a given HTTP response code.
+    
+    Default is to retry 5 times for 429's
+    """
+    retry_delay: int = 15
+    """
+    Delay between retries, in seconds.
+    """
+    get_timeout: float = 10
+    """
+    timeout for get requests when validating
+    """
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    def get_max_n_pieces(self, piece_length: int) -> int:
+        """
+        Maximum pieces that should be validated.
+
+        Actual pieces validated may be lower than this, e.g. in the case the torrent has
+        fewer pieces than we want to validate.
+        """
+        return min(self.n_pieces, self.max_validation_data // piece_length)
+
+
 class ServicesConfig(BaseModel):
     """
     Top-level config for all background services
     """
 
-    clear_jobs: bool = False
-    """Clear any remaining scheduler jobs on startup"""
     tracker_scraping: ScrapeConfig = ScrapeConfig()
     """Service config: Tracker scraping"""
     site_stats: StatsConfig = StatsConfig()
     """Service config: Site stats computation"""
     docs: DocsConfig = DocsConfig()
     """Live-building docs in dev mode"""
+    webseed_validation: WebseedValidationConfig = Field(
+        default_factory=lambda: WebseedValidationConfig()
+    )

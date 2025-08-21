@@ -26,6 +26,9 @@ from sciop.models import (
     TrackerCreate,
     Upload,
     UploadCreate,
+    Webseed,
+    WebseedCreate,
+    WebseedStatus,
 )
 
 
@@ -270,8 +273,15 @@ def create_torrent(
 
     # FIXME: this takes an extremely long time for no reason.
     files = [FileInTorrent(path=file.path, size=file.size) for file in created_torrent.files]
+    if created_torrent.webseeds:
+        webseeds = [
+            Webseed(url=ws, status="in_original", account=account, is_approved=True)
+            for ws in created_torrent.webseeds
+        ]
+    else:
+        webseeds = []
     db_obj = TorrentFile.model_validate(
-        created_torrent, update={"files": files, "account": account}
+        created_torrent, update={"files": files, "account": account, "webseeds": webseeds}
     )
     session.add(db_obj)
 
@@ -405,7 +415,7 @@ def log_moderation_action(
     session: Session,
     actor: Account,
     action: ModerationAction,
-    target: Dataset | Account | Upload,
+    target: Dataset | DatasetPart | Account | Upload | Webseed,
     value: Optional[str] = None,
 ) -> AuditLog:
     audit_kwargs = {"actor": actor, "action": action, "value": value}
@@ -418,6 +428,8 @@ def log_moderation_action(
         audit_kwargs["target_upload"] = target
     elif isinstance(target, Account):
         audit_kwargs["target_account"] = target
+    elif isinstance(target, Webseed):
+        audit_kwargs["target_webseed"] = target
     else:
         raise ValueError(f"No moderation actions for target type {target}")
 
@@ -495,6 +507,7 @@ def get_claims(
         maybe_claim = session.exec(
             select(DatasetClaim)
             .join(DatasetClaim.account)
+            .join(DatasetClaim.dataset)
             .where(
                 Account.username == username,
                 Dataset.slug == dataset_slug,
@@ -509,6 +522,7 @@ def get_claims(
         return session.exec(
             select(DatasetClaim)
             .join(DatasetClaim.account)
+            .join(DatasetClaim.dataset)
             .where(Account.username == username, Dataset.slug == dataset_slug)
         ).all()
     else:
@@ -517,6 +531,7 @@ def get_claims(
         return session.exec(
             select(DatasetClaim)
             .join(DatasetClaim.account)
+            .join(DatasetClaim.dataset)
             .join(DatasetClaim.dataset_part)
             .where(
                 Account.username == username,
@@ -547,3 +562,35 @@ def clear_claims(
             session.delete(claim)
     if commit:
         session.commit()
+
+
+def create_webseed(
+    *, session: Session, account: Account, torrent: TorrentFile, webseed_create: WebseedCreate
+) -> Webseed:
+    """
+    Create a new webseed, setting the moderation state
+    such that webseeds from the torrent owner or an account with upload/review perms
+    are pre-approved
+    """
+    is_approved = torrent.account == account or account.has_scope("review", "upload")
+    status = WebseedStatus.queued if is_approved else WebseedStatus.pending_review
+    ws = Webseed.model_validate(
+        webseed_create, update={"is_approved": is_approved, "status": status, "account": account}
+    )
+    torrent.webseeds.append(ws)
+    session.add(torrent)
+    session.add(ws)
+    session.commit()
+    session.refresh(ws)
+    return ws
+
+
+def get_webseed(*, session: Session, infohash: str, url: str) -> Webseed | None:
+    return session.exec(
+        select(Webseed)
+        .join(Webseed.torrent)
+        .where(
+            TorrentFile.infohash == infohash,
+            Webseed.url == url,
+        )
+    ).first()

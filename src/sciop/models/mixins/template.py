@@ -4,6 +4,8 @@ Base classes for jinja template handling classes.
 See :mod:`.linkml.generators.pydanticgen.template` for example implementation
 """
 
+import json
+import re
 from copy import copy
 from datetime import UTC, datetime
 from typing import Any, ClassVar, Dict, List, Optional, Union, cast
@@ -54,6 +56,8 @@ def get_env_globals() -> dict:
         "unwrap_annotated": unwrap_annotated,
         "config": get_config(),
         "humanize": humanize,
+        "json": json,
+        "re": re,
     }
 
 

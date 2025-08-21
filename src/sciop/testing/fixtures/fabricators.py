@@ -16,7 +16,6 @@ from torrent_models import Torrent
 from sciop.models import (
     Account,
     Dataset,
-    Scopes,
     Token,
     TorrentFile,
     Upload,
@@ -31,6 +30,7 @@ from sciop.testing.fabricators import (
     make_torrentfile,
     make_upload,
 )
+from sciop.types import Scopes
 
 __all__ = [
     "account",

@@ -24,6 +24,7 @@ from sciop.models import (
     SearchPage,
     Upload,
     UploadRead,
+    Webseed,
 )
 
 AuditLogRead.model_rebuild()
@@ -112,6 +113,15 @@ async def review_uploads(
 ) -> Page[Upload]:
     stmt = select(Upload).join(Upload.torrent).where(Upload.needs_review == True)
     stmt = search.apply_sort(stmt, Upload)
+    return paginate(conn=session, query=stmt)
+
+
+@self_router.get("/review/webseeds")
+@jinja.hx("partials/review-webseeds.html")
+async def review_webseeds(
+    request: Request, account: RequireReviewer, session: SessionDep
+) -> Page[Webseed]:
+    stmt = select(Webseed).where(Webseed.needs_review == True).order_by(Webseed.created_at.desc())
     return paginate(conn=session, query=stmt)
 
 

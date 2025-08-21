@@ -1,0 +1,15 @@
+{% from "macros/model-form.html" import model_form %}
+{% set form_id="add-webseed-" + upload.infohash %}
+{{ model_form(id=form_id, model=webseed) }}
+
+<div class="button-row">
+    <button
+        class="add-button full-width"
+        type="submit"
+        name="webseed"
+        hx-post="{{ config.api_prefix }}/uploads/{{ upload.infohash }}/webseeds"
+        hx-include="#{{ form_id }}"
+        hx-target="#{{ form_id }}"
+        hx-ext="form-json"
+    >Submit</button>
+</div>

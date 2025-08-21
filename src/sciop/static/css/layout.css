@@ -62,6 +62,10 @@ table {
   }
 }
 
+.full-width {
+  width: 100%;
+}
+
 .flex-container {
   display: flex;
   gap: 1em;
@@ -216,10 +220,6 @@ table {
     font-family: var(--font-mono);
   }
 
-  .infobox-table .actions-box {
-    padding: 0.4em;
-    row-gap: 0.4em;
-  }
   td {
     border: 1px solid var(--color-border-deemphasized);
     padding: 0 0.5em;
@@ -258,6 +258,10 @@ table {
 
 }
 
+.actions-box {
+    padding: 0.4em;
+    row-gap: 0.4em;
+}
 
 .audit-log-page {
   width: 80%;
@@ -303,7 +307,7 @@ table {
       vertical-align: bottom;
       box-shadow: 0px 5px 7px var(--color-background);
 
-      .sort-link {
+      .table-link {
         width: 100%;
       }
     }

@@ -15,8 +15,9 @@ from sciop.api.deps import (
 )
 from sciop.frontend.templates import jinja
 from sciop.middleware import limiter
-from sciop.models import ModerationAction, Scope, SuccessResponse
+from sciop.models import ModerationAction, Scope, SuccessResponse, Webseed, WebseedCreate
 from sciop.models.mystery import _Friedolin
+from sciop.scheduler import queue_job
 
 review_router = APIRouter()
 
@@ -196,6 +197,45 @@ async def deny_upload(
     crud.log_moderation_action(
         session=session, actor=account, action=ModerationAction.deny, target=upload
     )
+    return SuccessResponse(success=True)
+
+
+@review_router.post("/uploads/{infohash}/webseeds/approve")
+async def approve_webseed(
+    infohash: str,
+    account: RequireReviewer,
+    session: SessionDep,
+    upload: RequireUpload,
+    webseed: WebseedCreate,
+    request: Request,
+    response: Response,
+) -> SuccessResponse:
+    ws = session.exec(
+        select(Webseed).where(Webseed.torrent == upload.torrent, Webseed.url == webseed.url)
+    ).first()
+    if not ws:
+        raise HTTPException(
+            404, f"No webseed {webseed.url} found for torrent {upload.torrent.infohash}"
+        )
+
+    ws.is_approved = True
+    queue_validation = False
+    if ws.status == "pending_review":
+        ws.status = "queued"
+        queue_validation = True
+
+    session.add(ws)
+    session.commit()
+    crud.log_moderation_action(
+        session=session, actor=account, action=ModerationAction.approve, target=ws
+    )
+
+    if queue_validation:
+        queue_job("validate_webseed", kwargs={"infohash": ws.torrent.infohash, "url": ws.url})
+
+    if "HX-Request" in request.headers and "review" not in request.headers.get("HX-Current-URL"):
+        response.headers["HX-Refresh"] = "true"
+
     return SuccessResponse(success=True)
 
 

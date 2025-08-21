@@ -54,4 +54,21 @@
         </span>
     </div>
 </div>
+
+<h2>Webseeds</h2>
+
+<div id="webseed-review-container"  class="review-container">
+    <div
+        hx-get="/self/review/webseeds"
+        hx-trigger="load"
+        hx-swap="outerHTML"
+        hx-indicator="#review-webseeds-indicator"
+    >
+        <span class="htmx-indicator search-indicator" id="review-webseeds-indicator">
+            <span>Loading webseeds...</span>
+            <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+        </span>
+    </div>
+</div>
+
 {% endblock %}

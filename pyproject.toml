@@ -20,14 +20,14 @@ dependencies = [
     "python-multipart>=0.0.20",
     "bcrypt>=4.2.1",
     "fastapi-pagination>=0.12.34",
-    "torrent-models>=0.2.1",
+    "torrent-models>=0.3.1",
     "humanize>=4.11.0",
     "slowapi>=0.1.9",
     "fasthx>=2.1.1",
     "python-slugify>=8.0.4",
     "rdflib>=7.1.3",
     "content-negotiation>=1.1.2",
-    "apscheduler>=3.11.0",
+    "apscheduler>=3.11.0,<4.0.0",
     "aiodns>=3.2.0",
     "mistune>=3.1.2",
     "nh3>=0.2.21",
@@ -69,6 +69,7 @@ test = [
     "pytest-httpx>=0.35.0",
     "numpy>=2.2.4",
     "faker>=35.2.0",
+    "pytest-mock>=3.14.1",
 ]
 dev = [
     "sciop[docs,test]",
@@ -77,11 +78,9 @@ dev = [
     "watchfiles>=1.0.4",
 ]
 
-
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
-
 
 [tool.pdm]
 distribution = true
@@ -106,8 +105,8 @@ alembic = "alembic -c ./src/sciop/migrations/alembic.ini"
 migrate = "alembic -c ./src/sciop/migrations/alembic.ini upgrade head"
 migration.composite = [
     "rm -f db.dev.sqlite",
-    "alembic -c ./src/sciop/migrations/alembic.ini upgrade head",
-    "alembic -c ./src/sciop/migrations/alembic.ini revision --autogenerate -m {args}"
+    "alembic upgrade head",
+    "alembic revision --autogenerate -m {args}"
 ]
 
 
@@ -152,7 +151,7 @@ select = [
     "S608", "S701",
 ]
 ignore = [
-    "ANN101", "ANN102", "ANN401", "ANN204",
+    "ANN401", "ANN204",
     # explicit strict arg for zip
     "B905",
     # builtin type annotations
@@ -192,6 +191,9 @@ markers = """
   markdown: tests that render markdown within HTML
   slow: slow tests!
   docs: tests that require the docs dependencies/test the docs
+  v1: tests specific to v1 torrents
+  v2: tests specific to v2 torrents
+  hybrid: tests specific to hybrid torrents
 """
 filterwarnings = [
     'ignore:Python 3.14 will, by default, filter extracted tar archives',

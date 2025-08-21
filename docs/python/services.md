@@ -15,3 +15,7 @@
 ::: sciop.services.tracker_scrape
     options:
       heading_level: 3
+
+::: sciop.services.webseeds
+    options:
+      heading_level: 3

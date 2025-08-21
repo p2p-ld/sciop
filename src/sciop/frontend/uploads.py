@@ -12,7 +12,7 @@ from sciop.api.deps import (
     SessionDep,
 )
 from sciop.frontend.templates import jinja, templates
-from sciop.models import SearchPage, Upload, UploadRead, UploadUpdate
+from sciop.models import SearchPage, Upload, UploadRead, UploadUpdate, WebseedCreate
 
 uploads_router = APIRouter(prefix="/uploads")
 
@@ -93,3 +93,14 @@ async def upload_partial(
     upload: RequireUpload,
 ):
     return templates.TemplateResponse(request, "partials/upload.html", {"upload": upload})
+
+
+@uploads_router.get("/{infohash}/add_webseed", response_class=HTMLResponse)
+async def add_webseed_partial(
+    infohash: str,
+    request: Request,
+    upload: RequireUpload,
+):
+    return templates.TemplateResponse(
+        request, "partials/webseeds-add.html", {"upload": upload, "webseed": WebseedCreate}
+    )

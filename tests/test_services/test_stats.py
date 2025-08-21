@@ -20,9 +20,14 @@ def test_peer_stats(countables: list["Dataset"], session):
             n_downloaders += upload.leechers
             n_seeders += upload.seeders
             total_size += upload.size
-            total_capacity += upload.size * upload.seeders
+            if upload.torrent.webseeds:
+                # 2 webseeds that should count, 4 total
+                n_seeders += 2
+                total_capacity += upload.size * (upload.seeders + 2)
+            else:
+                total_capacity += upload.size * upload.seeders
     for k, v in counts.items():
-        assert v == locals()[k]
+        assert v == locals()[k], k
 
 
 def test_get_n_files(countables: list["Dataset"], session):
