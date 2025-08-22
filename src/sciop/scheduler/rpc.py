@@ -92,8 +92,6 @@ class RPCSchedulerManager(BaseSchedulerManager):
 
     @classmethod
     def get_scheduler(cls) -> RPCClientProtocol | None:
-        if not cls.is_running():
-            return
         try:
             cls.start_event.wait(5)
             config = get_config()
@@ -108,33 +106,36 @@ class RPCSchedulerManager(BaseSchedulerManager):
 
     @classmethod
     def shutdown_scheduler(cls) -> None:
+        # only try and do this from the spawning worker
+        if cls.rpc_process is None:
+            return
         logger = init_logger("scheduler.manager.rpc")
         logger.debug("Shutting down scheduler")
-        if cls.is_running():
-            scheduler = cls.get_scheduler()
-            with contextlib.suppress(ConnectionRefusedError):
-                # scheduler would already be shut down if we refused connection
-                scheduler.shutdown()
 
-            cls.rpc_process.join(1)
-            if not cls.rpc_process.is_alive():
-                return
+        scheduler = cls.get_scheduler()
+        with contextlib.suppress(ConnectionRefusedError):
+            # scheduler would already be shut down if we refused connection
+            scheduler.shutdown()
 
-            cls.rpc_process.terminate()
-            cls.rpc_process.join(timeout=5)
-            if cls.rpc_process.is_alive():
-                logger.info(
-                    "Scheduler RPC process could not be terminated cleanly, killing process"
-                )
-                cls.rpc_process.kill()
-            cls.rpc_process.close()
-            cls.rpc_process = None
-        else:
-            logger.debug("Scheduler was not started!")
+        cls.rpc_process.join(1)
+        if not cls.rpc_process.is_alive():
+            return
+
+        cls.rpc_process.terminate()
+        cls.rpc_process.join(timeout=5)
+        if cls.rpc_process.is_alive():
+            logger.info("Scheduler RPC process could not be terminated cleanly, killing process")
+            cls.rpc_process.kill()
+        cls.rpc_process.close()
+        cls.rpc_process = None
 
     @classmethod
     def is_running(cls) -> bool:
-        return cls.rpc_process is not None and cls.rpc_process.is_alive()
+        try:
+            scheduler = cls.get_scheduler()
+            return scheduler is not None
+        except Exception:
+            return False
 
 
 class AuthenticatingXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
@@ -217,7 +218,8 @@ class RPCSchedulerServer:
                 self.logger.debug("RPC Server started")
                 while not self.quitting:
                     server.handle_request()
-
+        except KeyboardInterrupt:
+            pass
         finally:
             self.logger.debug("Shutting down RPC server")
             self.start_event.set()

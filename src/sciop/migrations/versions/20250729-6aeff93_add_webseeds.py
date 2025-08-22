@@ -8,11 +8,13 @@ Create Date: 2025-07-29 01:49:37.222468+00:00
 
 from datetime import UTC, datetime
 from itertools import count
+from logging import getLogger
 from typing import Sequence, TypedDict, Union
 
 import sqlalchemy as sa
 import sqlmodel.sql.sqltypes
 from alembic import op
+from pydantic import AnyHttpUrl, TypeAdapter, ValidationError
 from torrent_models import Torrent
 
 from sciop.config import get_config
@@ -39,6 +41,7 @@ def _move_webseeds(Webseeds: sa.Table) -> None:
     alone to find the location of the torrent on disk.
     if this fails, tests will let us know
     """
+    logger = getLogger("alembic.migration")
     cfg = get_config()
     assert cfg.paths.torrents is not None, "No configured torrent path, can't upgrade webseeds"
     conn = op.get_bind()
@@ -63,13 +66,25 @@ def _move_webseeds(Webseeds: sa.Table) -> None:
     now = datetime.now(UTC)
     ws_id = count()
     new_webseeds = []
+    url_adapter = TypeAdapter(AnyHttpUrl)
     for torrent in torrents:
         path_infohash = torrent["v2_infohash"] if torrent["v2_infohash"] else torrent["v1_infohash"]
         torrent_path = cfg.paths.torrents / path_infohash / torrent["file_name"]
         t = Torrent.read(torrent_path)
         if not t.url_list:
             continue
-        for webseed in set(t.url_list):
+        webseeds = t.url_list
+        if not isinstance(webseeds, list):
+            webseeds = [webseeds]
+
+        for webseed in list(dict.fromkeys(webseeds)):
+            try:
+                webseed = str(url_adapter.validate_python(webseed))
+            except ValidationError:
+                logger.exception(
+                    f"Not adding webseed {webseed} in torrent {t.v1_infohash} - " f"not a valid URL"
+                )
+                continue
             new_webseeds.append(
                 {
                     "webseed_id": next(ws_id),

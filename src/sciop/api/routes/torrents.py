@@ -117,6 +117,15 @@ async def upload_torrent(
             },
         )
 
+    if torrent.url_list:
+        webseeds = (
+            [torrent.url_list] if not isinstance(torrent.url_list, list) else torrent.url_list
+        )
+        webseeds = list(dict.fromkeys(webseeds))
+        torrent.url_list = webseeds
+    else:
+        webseeds = None
+
     created_torrent = TorrentFileCreate(
         file_name=file.filename,
         v1_infohash=torrent.v1_infohash if torrent.v1_infohash else None,
@@ -130,15 +139,12 @@ async def upload_torrent(
             if not PADFILE_PATTERN.fullmatch(_file.path)
         ],
         announce_urls=trackers,
-        webseeds=torrent.url_list,
+        webseeds=webseeds,
     )
 
     torrents_logger.debug("Writing torrent file to disk")
     created_torrent.filesystem_path.parent.mkdir(parents=True, exist_ok=True)
-    await file.seek(0)
-    with open(created_torrent.filesystem_path, "wb") as f:
-        data = await file.read()
-        f.write(data)
+    torrent.write(created_torrent.filesystem_path)
 
     created_torrent.torrent_size = Path(created_torrent.filesystem_path).stat().st_size
     torrents_logger.debug("Creating torrent file in db")

@@ -151,5 +151,8 @@ def run_in_event_loop(coro: Coroutine[Any, Any, _TReturn]) -> _TReturn:
         try:
             res = loop.run_until_complete(coro)
             return res
+        except Exception as e:
+            # reraise, breaking chain, because the outer exception is unrelated
+            raise e from None
         finally:
             loop.close()
