@@ -122,6 +122,7 @@ async def upload_torrent(
             [torrent.url_list] if not isinstance(torrent.url_list, list) else torrent.url_list
         )
         webseeds = list(dict.fromkeys(webseeds))
+        webseeds = [ws for ws in webseeds if ws]
         torrent.url_list = webseeds
     else:
         webseeds = None

@@ -77,6 +77,7 @@ def _move_webseeds(Webseeds: sa.Table) -> None:
         webseeds = t.url_list
         if not isinstance(webseeds, list):
             webseeds = [webseeds]
+        webseeds = [ws for ws in webseeds if ws]
 
         for webseed in list(dict.fromkeys(webseeds)):
             try:
