@@ -16,6 +16,7 @@ import sqlmodel.sql.sqltypes
 from alembic import op
 from pydantic import AnyHttpUrl, TypeAdapter, ValidationError
 from torrent_models import Torrent
+from tqdm import tqdm
 
 from sciop.config import get_config
 
@@ -67,7 +68,7 @@ def _move_webseeds(Webseeds: sa.Table) -> None:
     ws_id = count()
     new_webseeds = []
     url_adapter = TypeAdapter(AnyHttpUrl)
-    for torrent in torrents:
+    for torrent in tqdm(torrents):
         path_infohash = torrent["v2_infohash"] if torrent["v2_infohash"] else torrent["v1_infohash"]
         torrent_path = cfg.paths.torrents / path_infohash / torrent["file_name"]
         t = Torrent.read(torrent_path)
