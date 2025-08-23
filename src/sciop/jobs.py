@@ -7,15 +7,15 @@ from sciop.scheduler.base import run_in_event_loop
     minutes=get_config().services.tracker_scraping.job_interval,
     enabled=get_config().services.tracker_scraping.enabled,
 )
-async def scrape_torrent_stats() -> None:
-    await services.scrape_torrent_stats()
+def scrape_torrent_stats() -> None:
+    run_in_event_loop(services.scrape_torrent_stats())
 
 
 @scheduler.interval(
     minutes=get_config().services.site_stats.job_interval,
     enabled=get_config().services.site_stats.enabled,
 )
-async def update_site_stats() -> None:
+def update_site_stats() -> None:
     services.update_site_stats()
 
 
