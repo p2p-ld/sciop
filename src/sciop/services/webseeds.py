@@ -69,7 +69,7 @@ async def validate_webseed_service(infohash: str, url: str) -> None:
     cfg = get_config()
     logger = init_logger("jobs.validate_webseed")
     logger.info("Validating webseed %s for torrent %s", url, infohash)
-    with next(get_session()) as session:
+    with get_session() as session:
         webseed = crud.get_webseed(session=session, infohash=infohash, url=url)
         if not webseed:
             msg = f"No webseed with url {url} found for torrent {infohash}"
@@ -96,7 +96,7 @@ async def validate_webseed_service(infohash: str, url: str) -> None:
         res = await validate_webseed(infohash=infohash, url=url)
     except Exception as e:
         logger.exception(f"Exception while validating webseed {url} for {infohash}: {e}")
-        with next(get_session()) as session:
+        with get_session() as session:
             webseed = crud.get_webseed(session=session, infohash=infohash, url=url)
             webseed.status = WebseedStatus.error
             webseed.message = str(e)
@@ -104,7 +104,7 @@ async def validate_webseed_service(infohash: str, url: str) -> None:
             session.commit()
         raise
 
-    with next(get_session()) as session:
+    with get_session() as session:
         webseed = crud.get_webseed(session=session, infohash=infohash, url=url)
         if res.valid:
             webseed.status = WebseedStatus.validated
@@ -125,7 +125,7 @@ async def validate_webseed(infohash: str, url: str) -> WebseedValidationResult:
     cfg = get_config()
     ws_config = cfg.services.webseed_validation
 
-    with next(get_session()) as session:
+    with get_session() as session:
         torrent_file = crud.get_torrent_from_infohash(session=session, infohash=infohash)
         if not torrent_file:
             raise ValueError(f"Torrent with infohash {infohash} not found")

@@ -679,7 +679,7 @@ def gather_scrapable_torrents() -> dict[str, list[str]]:
             ),
         )
     )
-    with next(get_session()) as session:
+    with get_session() as session:
         results = session.exec(statement).all()
 
     # group by tracker
@@ -776,7 +776,7 @@ def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
             TorrentFile.v1_infohash.in_([res.infohash for res in results.responses.values()]),
         )
     )
-    with next(get_session()) as session:
+    with get_session() as session:
         scrape_time = datetime.now(UTC)
         links = session.exec(update_select_stmt).all()
         for link in links:
@@ -797,7 +797,7 @@ def _handle_tracker_error(results: ScrapeResult, logger: Logger) -> None:
     tracker_errors = [e for e in results.errors if e.announce_url and e.infohash is None]
     if not tracker_errors:
         return
-    with next(get_session()) as session:
+    with get_session() as session:
         for e in tracker_errors:
             tracker = session.exec(
                 select(Tracker).where(Tracker.announce_url == e.announce_url)
@@ -843,6 +843,6 @@ def _touch_tracker(url: str, results: ScrapeResult) -> None:
     if not any_errors:
         params.update({"n_errors": 0, "error_type": None, "next_scrape_after": None})
 
-    with next(get_session()) as session:
+    with get_session() as session:
         session.exec(update(Tracker).where(Tracker.announce_url == url), params=params)
         session.commit()

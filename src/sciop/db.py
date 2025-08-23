@@ -1,5 +1,6 @@
 import importlib.resources
 import random
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, Generator, Optional
 
 from alembic import command
@@ -21,14 +22,31 @@ _engine: Engine | None = None
 _maker: sessionmaker | None = None
 
 
-def get_session() -> Generator[Session, None, None]:
+def iter_session() -> Generator[Session, None, None]:
+    """
+    Generator used to create session objects.
+
+    Used for fastapi deps because fastapi does too much,
+    converts generators into contextmanagers,
+    and fails to enter actual contextmanagers.
+
+    Use `get_session` as a contextmanager everywhere in the program except for the fastapi deps.
+
+    """
     from sciop.models.mixins import EditableMixin
 
     maker = get_maker()
-
-    with maker() as session:
+    session = maker()
+    try:
         session = EditableMixin.editable_session(session)
         yield session
+    finally:
+        session.close()
+
+
+@contextmanager
+def get_session() -> Session:
+    yield from iter_session()
 
 
 def get_engine() -> Engine:
@@ -52,7 +70,9 @@ def get_maker(engine: Engine | None = None) -> sessionmaker:
     if _maker is None:
         if engine is None:
             engine = get_engine()
-        _maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
+        _maker = sessionmaker(
+            class_=Session, autocommit=False, autoflush=False, close_resets_only=False, bind=engine
+        )
     return _maker
 
 

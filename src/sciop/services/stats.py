@@ -36,7 +36,7 @@ def update_site_stats() -> None:
     global logger
     from sciop.db import get_session
 
-    with next(get_session()) as session:
+    with get_session() as session:
         stats = get_site_stats(session)
         session.add(stats)
         session.commit()

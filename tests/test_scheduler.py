@@ -81,16 +81,19 @@ async def test_interval_decorator(scheduler_type, clean_scheduler, tmp_path):
     and then run it afterwards
     """
     # can't use as a decorator because apscheduler needs to be able to serialize the function
-    interval(seconds=0.1, job_kwargs={"tmp_path": str(tmp_path)})(write_a_file)
+    interval(seconds=0.05, job_kwargs={"tmp_path": str(tmp_path)})(write_a_file)
 
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.05)
     assert _n_events(tmp_path) == 0
 
     # starting the scheduler should pick up the task
     start_scheduler(block=True)
-    await asyncio.sleep(0.25)
+    await asyncio.sleep(0.15)
 
-    assert _n_events(tmp_path) == 2
+    # delays on startup here can change the absolute number of events
+    # we care that there is an interval task running,
+    # not testing whether apscheduler has correct timing
+    assert _n_events(tmp_path) >= 2
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -146,6 +149,8 @@ def test_queue_job(capsys, clean_scheduler, set_config, tmp_path):
     queue(enabled=True, max_concurrent=1, job_name="sleepytime")(write_a_file_sleepy)
     start_scheduler(block=True)
     time.sleep(0.1)
+    client: RPCClientProtocol = get_scheduler()
+
     # queue 3 of the same job, we should only run one at a time
     messages = ["a", "b", "c"]
     results = [queue_job("sleepytime", [str(sleep_dir), msg]) for msg in messages]
@@ -155,7 +160,7 @@ def test_queue_job(capsys, clean_scheduler, set_config, tmp_path):
     # Wait until at least 1 has finished.
     # multiple jobs *could* start here if the pool was larger, but they shouldn't
     # that's what we're testing lol
-    client: RPCClientProtocol = get_scheduler()
+
     evt1 = client.await_event(EVENT_JOB_EXECUTED, 10)
 
     assert len(list(sleep_dir.iterdir())) == 1
