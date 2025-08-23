@@ -83,6 +83,8 @@ def clear_globals() -> None:
     DB objects will be recreated when using `get_*` methods
     """
     global _engine, _maker
+    if _engine is not None:
+        _engine.dispose()
     _engine = None
     _maker = None
 
