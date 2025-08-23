@@ -141,7 +141,6 @@ async def test_webseed_validation(
     torrent_version,
     random_data,
     torrentfile,
-    session,
 ) -> None:
     """
     We should validate correct webseeds
@@ -155,7 +154,7 @@ async def test_webseed_validation(
     torrent = create.generate(version=torrent_version)
     assert len(torrent.files) == len(random_data)
     tf: TorrentFile = torrentfile(torrent=torrent)
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
 
     assert res.valid, res.message
 
@@ -183,7 +182,6 @@ async def test_reject_invalid_data(
     data_torrent: tuple[Torrent, TorrentFile],
     rand_dir: Path,
     file_server,
-    session,
     set_config,
     tmp_data_path,
 ):
@@ -198,7 +196,7 @@ async def test_reject_invalid_data(
 
     hoarder: RequestHoarderMiddleware = file_server.config.app.middleware_stack.app
     assert set(str(r.url) for r in hoarder.requests) == set()
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert not res.valid
     assert res.error_type == "validation"
 
@@ -219,7 +217,7 @@ async def test_reject_invalid_data(
 
 
 @pytest.mark.asyncio(loop_scope="module")
-async def test_reject_404(data_torrent, file_server, session):
+async def test_reject_404(data_torrent, file_server):
     """
     404's invalidate a webseed.
 
@@ -229,14 +227,14 @@ async def test_reject_404(data_torrent, file_server, session):
     torrent, tf = data_torrent
     webseed_url = "http://127.0.0.1:9998/404/"
 
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert not res.valid
     assert res.error_type == "http"
     assert "404" in res.message
 
 
 @pytest.mark.asyncio(loop_scope="module")
-async def test_reject_timeout(set_config, data_torrent, file_server, session):
+async def test_reject_timeout(set_config, data_torrent, file_server):
     """
     Timeouts abort validation
     """
@@ -244,13 +242,13 @@ async def test_reject_timeout(set_config, data_torrent, file_server, session):
     torrent, tf = data_torrent
     webseed_url = "http://127.0.0.1:9998/timeout/"
 
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert not res.valid
     assert res.error_type == "timeout"
 
 
 @pytest.mark.asyncio(loop_scope="module")
-async def test_validation_retries_success(set_config, data_torrent, file_server, session):
+async def test_validation_retries_success(set_config, data_torrent, file_server):
     """
     Retry on 429, succeed if the server eventually gives us the data
     """
@@ -263,13 +261,13 @@ async def test_validation_retries_success(set_config, data_torrent, file_server,
     torrent, tf = data_torrent
     webseed_url = "http://127.0.0.1:9998/429/reasonable/"
 
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert res.valid, res.message
 
 
 @pytest.mark.timeout(10)
 @pytest.mark.asyncio(loop_scope="module")
-async def test_validation_retries_failure(set_config, data_torrent, file_server, session):
+async def test_validation_retries_failure(set_config, data_torrent, file_server):
     """
     Retry on 429, fail if we run out of retries
     """
@@ -282,14 +280,14 @@ async def test_validation_retries_failure(set_config, data_torrent, file_server,
     torrent, tf = data_torrent
     webseed_url = "http://127.0.0.1:9998/429/unreasonable/"
 
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert not res.valid
     assert res.error_type == "http"
     assert "429" in res.message
 
 
 @pytest.mark.asyncio(loop_scope="module")
-async def test_quit_early_without_range_requests(data_torrent, file_server, session):
+async def test_quit_early_without_range_requests(data_torrent, file_server):
     """
     If a server doesn't understand range requests,
     rather than downloading a potentially unbounded amount of data,
@@ -298,7 +296,7 @@ async def test_quit_early_without_range_requests(data_torrent, file_server, sess
     torrent, tf = data_torrent
     webseed_url = "http://127.0.0.1:9998/norange/"
 
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert not res.valid
     assert res.error_type == "http"
     assert "200" in res.message

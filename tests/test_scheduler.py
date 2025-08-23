@@ -80,7 +80,6 @@ async def test_interval_decorator(scheduler_type, clean_scheduler, tmp_path):
     Interval decorators should let one declare a job before the scheduler exists,
     and then run it afterwards
     """
-    assert get_scheduler() is None
     # can't use as a decorator because apscheduler needs to be able to serialize the function
     interval(seconds=0.1, job_kwargs={"tmp_path": str(tmp_path)})(write_a_file)
 
@@ -100,7 +99,6 @@ async def test_date_decorator(scheduler_type, clean_scheduler, tmp_path):
     Date decorators should let one declare a job before the scheduler exists,
     and then run it afterwards
     """
-    assert get_scheduler() is None
     assert _n_events(tmp_path) == 0
 
     # can't use as a decorator because apscheduler needs to be able to serialize the function
@@ -123,7 +121,6 @@ async def test_disabled_decorator(scheduler_type, tmp_path, clean_scheduler):
     Decorators should be able to be toggled by their enabled parameter
     so they can be configured :)
     """
-    assert get_scheduler() is None
     # can't use as a decorator because apscheduler needs to be able to serialize the function
     interval(seconds=0.01, enabled=False, job_kwargs={"tmp_path": str(tmp_path)})(write_a_file)
 

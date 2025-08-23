@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import Response
 from torrent_models import Torrent
+from bencode_rs import BencodeDecodeError
 
 from sciop import crud
 from sciop.api.deps import RequireCurrentAccount, SessionDep
@@ -50,7 +51,7 @@ async def upload_torrent(
     try:
         torrent = Torrent.read_stream(file.file)
         torrents_logger.debug("Processed torrent file")
-    except ValidationError:
+    except (ValidationError, BencodeDecodeError):
         torrents_logger.exception("Error decoding upload")
         raise HTTPException(
             status_code=415,

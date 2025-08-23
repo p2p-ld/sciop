@@ -16,7 +16,7 @@ def test_instance_stats_disabled(client, monkeypatch):
     assert res.status_code == 404
 
 
-async def test_instance_stats(client, countables, session):
+def test_instance_stats(client, countables, session):
     """
     We can get instance stats, when available.
 
@@ -25,7 +25,7 @@ async def test_instance_stats(client, countables, session):
     """
     n_periods = 5
     for _ in range(n_periods):
-        await update_site_stats()
+        update_site_stats()
     res = client.get("/api/v1/instance/stats")
     assert res.status_code == 200
     data = res.json()
@@ -39,11 +39,11 @@ async def test_instance_stats(client, countables, session):
         )
 
 
-async def test_instance_stats_latest(client, countables, session):
+def test_instance_stats_latest(client, countables, session):
     """
     We can get the latest instance stats
     """
-    await update_site_stats()
+    update_site_stats()
     res = client.get("/api/v1/instance/stats/latest")
     assert res.status_code == 200
     data = res.json()
