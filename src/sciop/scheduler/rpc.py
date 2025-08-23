@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import atexit
 import base64
 import contextlib
@@ -16,7 +17,10 @@ from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 from apscheduler.events import JobEvent, JobExecutionEvent, JobSubmissionEvent
 from apscheduler.executors.pool import ProcessPoolExecutor
 from apscheduler.job import Job
+from apscheduler.jobstores.base import BaseJobStore
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers import SchedulerNotRunningError
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from sciop import get_config
@@ -137,6 +141,14 @@ class RPCSchedulerManager(BaseSchedulerManager):
         except Exception:
             return False
 
+    @classmethod
+    def make_jobstores(cls) -> dict[str, BaseJobStore]:
+        from sciop.db import _make_engine
+
+        engine = _make_engine()
+
+        return {"default": SQLAlchemyJobStore(engine=engine)}
+
 
 class AuthenticatingXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
     """
@@ -211,6 +223,9 @@ class RPCSchedulerServer:
         """
         Main loop: create the scheduler, rpc server, and serve it until stopped
         """
+        from sciop.db import clear_globals
+
+        clear_globals()
         self.scheduler = self.create_scheduler()
         try:
             with self.create_server(self.scheduler) as server:
@@ -230,11 +245,18 @@ class RPCSchedulerServer:
                 self.logger.debug("Background scheduler shut down")
             self.logger.debug("RPC server shut down")
 
-    def create_scheduler(self) -> BackgroundScheduler:
+    def create_scheduler(self) -> AsyncIOScheduler:
         """
         Create and start the scheduler, adding job stores and executors
         """
-        scheduler = BackgroundScheduler(
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        scheduler = AsyncIOScheduler(
+            event_loop=loop,
             jobstores=RPCSchedulerManager.make_jobstores(),
             logger=init_logger("scheduler.background"),
         )
@@ -258,7 +280,7 @@ class RPCSchedulerServer:
         return scheduler
 
     @contextlib.contextmanager
-    def create_server(self, scheduler: BackgroundScheduler) -> SimpleXMLRPCServer:
+    def create_server(self, scheduler: AsyncIOScheduler) -> SimpleXMLRPCServer:
         config = get_config()
         self.logger.debug("Starting RPC Server")
         AuthenticatingXMLRPCRequestHandler.rpc_pass = self.rpc_pass

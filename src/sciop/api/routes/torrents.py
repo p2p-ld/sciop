@@ -2,12 +2,12 @@ from pathlib import Path
 from typing import Annotated, Any
 from typing import Literal as L
 
+from bencode_rs import BencodeDecodeError
 from fastapi import APIRouter, HTTPException, Query, UploadFile
 from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import Response
 from torrent_models import Torrent
-from bencode_rs import BencodeDecodeError
 
 from sciop import crud
 from sciop.api.deps import RequireCurrentAccount, SessionDep
