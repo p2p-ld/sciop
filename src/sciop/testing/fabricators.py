@@ -95,7 +95,6 @@ def default_torrent() -> dict:
         "path": "default.bin",
         "name": "Default Torrent",
         "trackers": [["udp://example.com/announce"]],
-        "url_list": ["http://example.com/data", "http://subdomain.example.com/root/data"],
         "comment": "My comment",
         "piece_size": 16384,
     }
@@ -218,7 +217,7 @@ def make_torrentfile(
             t = torrent_(
                 tmp_path=tmp_path,
                 path=file_in_torrent,
-                url_list=kwargs.get("webseeds", default_torrent()["url_list"]),
+                url_list=kwargs.get("webseeds"),
             )
         else:
             file_in_torrent = tmp_path
@@ -238,7 +237,7 @@ def make_torrentfile(
             t = torrent_(
                 tmp_path=tmp_path,
                 path=paths,
-                url_list=kwargs.get("webseeds", default_torrent()["url_list"]),
+                url_list=kwargs.get("webseeds"),
             )
 
     if kwargs.get("v1_infohash", None) is None:

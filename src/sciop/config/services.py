@@ -165,7 +165,7 @@ class WebseedValidationConfig(QueueJobConfig):
     """
     Delay between retries, in seconds.
     """
-    get_timeout: float = 10
+    get_timeout: float = 60
     """
     timeout for get requests when validating
     """

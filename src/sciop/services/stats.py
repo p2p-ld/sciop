@@ -28,7 +28,7 @@ class PeerStats(TypedDict):
     total_size: int
 
 
-async def update_site_stats() -> None:
+def update_site_stats() -> None:
     """
     Update the site stats, a summary of the current number of datasets indexed,
     their peers (if present), and size.

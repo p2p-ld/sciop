@@ -34,13 +34,17 @@ def get_session() -> Generator[Session, None, None]:
 def get_engine() -> Engine:
     global _engine
     if _engine is None:
-        _engine = create_engine(
-            str(get_config().paths.sqlite),
-            echo=get_config().db.echo,
-            pool_size=get_config().db.pool_size,
-            max_overflow=get_config().db.overflow_size,
-        )
+        _engine = _make_engine()
     return _engine
+
+
+def _make_engine() -> Engine:
+    return create_engine(
+        str(get_config().paths.sqlite),
+        echo=get_config().db.echo,
+        pool_size=get_config().db.pool_size,
+        max_overflow=get_config().db.overflow_size,
+    )
 
 
 def get_maker(engine: Engine | None = None) -> sessionmaker:
@@ -50,6 +54,17 @@ def get_maker(engine: Engine | None = None) -> sessionmaker:
             engine = get_engine()
         _maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
     return _maker
+
+
+def clear_globals() -> None:
+    """
+    Clear globals, e.g. for forked processes.
+
+    DB objects will be recreated when using `get_*` methods
+    """
+    global _engine, _maker
+    _engine = None
+    _maker = None
 
 
 def create_tables(

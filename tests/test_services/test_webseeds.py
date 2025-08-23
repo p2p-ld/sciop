@@ -22,22 +22,22 @@ from sciop.testing.server import RequestHoarderMiddleware, UvicornTestServer
 SIZES = [10 * KiB, 20 * KiB, 32 * KiB, 40 * KiB, 100 * KiB]
 
 
-@pytest.fixture
-def tmp_data_path(tmp_path: Path) -> Path:
-    data_path = tmp_path / "data"
+@pytest.fixture(scope="module")
+def tmp_data_path(tmp_path_factory) -> Path:
+    data_path = tmp_path_factory.mktemp("data") / "data"
     data_path.mkdir(exist_ok=True)
     return data_path
 
 
-@pytest.fixture
-def rand_dir(tmp_path: Path) -> Path:
-    data_path = tmp_path / "random"
+@pytest.fixture(scope="module")
+def rand_dir(tmp_path_factory) -> Path:
+    data_path = tmp_path_factory.mktemp("random") / "random"
     data_path.mkdir(exist_ok=True)
     return data_path
 
 
-@pytest_asyncio.fixture(loop_scope="module")
-async def file_server(tmp_path: Path, tmp_data_path: Path, rand_dir: Path, session) -> FastAPI:
+@pytest_asyncio.fixture(loop_scope="module", scope="module")
+async def file_server(tmp_data_path: Path, rand_dir: Path) -> FastAPI:
     app = FastAPI()
     app.mount("/data", StaticFiles(directory=tmp_data_path), name="data")
     app.add_middleware(RequestHoarderMiddleware)
@@ -58,7 +58,9 @@ async def file_server(tmp_path: Path, tmp_data_path: Path, rand_dir: Path, sessi
 
             retries[key] += 1
             if retries[key] % 3 == 0:
-                return FileResponse(tmp_path / path, headers=request.headers.mutablecopy())
+                return FileResponse(
+                    tmp_data_path.parent / path, headers=request.headers.mutablecopy()
+                )
             else:
                 raise HTTPException(status_code=429)
 
@@ -72,19 +74,21 @@ async def file_server(tmp_path: Path, tmp_data_path: Path, rand_dir: Path, sessi
         if not rand_path.exists():
             rand_path.parent.mkdir(exist_ok=True, parents=True)
             with open(rand_path, "wb") as f:
-                f.write(random.randbytes((tmp_path / path).stat().st_size))
+                f.write(random.randbytes((tmp_data_path.parent / path).stat().st_size))
 
         return FileResponse(rand_path, headers=request.headers.mutablecopy())
 
     @app.get("/timeout/{path:path}")
     async def timeout(request: Request, path: str) -> FileResponse:
         await asyncio.sleep(1)
-        return FileResponse(tmp_path / path, headers=request.headers.mutablecopy())
+        return FileResponse(tmp_data_path.parent / path, headers=request.headers.mutablecopy())
 
     @app.get("/norange/{path:path}")
     async def no_range(request: Request, path: str) -> Response:
         """Pretend like we don't understand range requests"""
-        return Response(content=(tmp_path / path).read_bytes(), status_code=200, headers={})
+        return Response(
+            content=(tmp_data_path.parent / path).read_bytes(), status_code=200, headers={}
+        )
 
     config = UvicornConfig(
         app=app,
@@ -99,7 +103,13 @@ async def file_server(tmp_path: Path, tmp_data_path: Path, rand_dir: Path, sessi
     await server.down()
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function", autouse=True)
+def clear_request_hoarder(file_server):
+    hoarder: RequestHoarderMiddleware = file_server.config.app.middleware_stack.app
+    hoarder.clear()
+
+
+@pytest.fixture(scope="module")
 def random_data(tmp_data_path) -> list[int]:
     # files smaller than, same size as, and larger than piece size
     sizes = []
@@ -112,14 +122,17 @@ def random_data(tmp_data_path) -> list[int]:
 
 
 @pytest.fixture(
-    params=[pytest.param("v1", marks=pytest.mark.v1), pytest.param("v2", marks=pytest.mark.v2)]
+    scope="module",
+    params=[pytest.param("v1", marks=pytest.mark.v1), pytest.param("v2", marks=pytest.mark.v2)],
 )
-def data_torrent(request, random_data, tmp_data_path, torrentfile) -> tuple[Torrent, TorrentFile]:
+def data_torrent(
+    request, random_data, tmp_data_path, torrentfile_module
+) -> tuple[Torrent, TorrentFile]:
     create = TorrentCreate(
         paths=[p for p in tmp_data_path.iterdir()], path_root=tmp_data_path, piece_length=32 * KiB
     )
     torrent = create.generate(version=request.param)
-    tf: TorrentFile = torrentfile(torrent=torrent)
+    tf: TorrentFile = torrentfile_module(torrent=torrent)
     return torrent, tf
 
 
@@ -141,7 +154,6 @@ async def test_webseed_validation(
     torrent_version,
     random_data,
     torrentfile,
-    session,
 ) -> None:
     """
     We should validate correct webseeds
@@ -155,7 +167,7 @@ async def test_webseed_validation(
     torrent = create.generate(version=torrent_version)
     assert len(torrent.files) == len(random_data)
     tf: TorrentFile = torrentfile(torrent=torrent)
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
 
     assert res.valid, res.message
 
@@ -183,7 +195,6 @@ async def test_reject_invalid_data(
     data_torrent: tuple[Torrent, TorrentFile],
     rand_dir: Path,
     file_server,
-    session,
     set_config,
     tmp_data_path,
 ):
@@ -198,7 +209,7 @@ async def test_reject_invalid_data(
 
     hoarder: RequestHoarderMiddleware = file_server.config.app.middleware_stack.app
     assert set(str(r.url) for r in hoarder.requests) == set()
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert not res.valid
     assert res.error_type == "validation"
 
@@ -219,7 +230,7 @@ async def test_reject_invalid_data(
 
 
 @pytest.mark.asyncio(loop_scope="module")
-async def test_reject_404(data_torrent, file_server, session):
+async def test_reject_404(data_torrent, file_server):
     """
     404's invalidate a webseed.
 
@@ -229,14 +240,14 @@ async def test_reject_404(data_torrent, file_server, session):
     torrent, tf = data_torrent
     webseed_url = "http://127.0.0.1:9998/404/"
 
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert not res.valid
     assert res.error_type == "http"
     assert "404" in res.message
 
 
 @pytest.mark.asyncio(loop_scope="module")
-async def test_reject_timeout(set_config, data_torrent, file_server, session):
+async def test_reject_timeout(set_config, data_torrent, file_server):
     """
     Timeouts abort validation
     """
@@ -244,13 +255,13 @@ async def test_reject_timeout(set_config, data_torrent, file_server, session):
     torrent, tf = data_torrent
     webseed_url = "http://127.0.0.1:9998/timeout/"
 
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert not res.valid
     assert res.error_type == "timeout"
 
 
 @pytest.mark.asyncio(loop_scope="module")
-async def test_validation_retries_success(set_config, data_torrent, file_server, session):
+async def test_validation_retries_success(set_config, data_torrent, file_server):
     """
     Retry on 429, succeed if the server eventually gives us the data
     """
@@ -263,13 +274,13 @@ async def test_validation_retries_success(set_config, data_torrent, file_server,
     torrent, tf = data_torrent
     webseed_url = "http://127.0.0.1:9998/429/reasonable/"
 
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert res.valid, res.message
 
 
 @pytest.mark.timeout(10)
 @pytest.mark.asyncio(loop_scope="module")
-async def test_validation_retries_failure(set_config, data_torrent, file_server, session):
+async def test_validation_retries_failure(set_config, data_torrent, file_server):
     """
     Retry on 429, fail if we run out of retries
     """
@@ -282,14 +293,14 @@ async def test_validation_retries_failure(set_config, data_torrent, file_server,
     torrent, tf = data_torrent
     webseed_url = "http://127.0.0.1:9998/429/unreasonable/"
 
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert not res.valid
     assert res.error_type == "http"
     assert "429" in res.message
 
 
 @pytest.mark.asyncio(loop_scope="module")
-async def test_quit_early_without_range_requests(data_torrent, file_server, session):
+async def test_quit_early_without_range_requests(data_torrent, file_server):
     """
     If a server doesn't understand range requests,
     rather than downloading a potentially unbounded amount of data,
@@ -298,7 +309,7 @@ async def test_quit_early_without_range_requests(data_torrent, file_server, sess
     torrent, tf = data_torrent
     webseed_url = "http://127.0.0.1:9998/norange/"
 
-    res = await validate_webseed(tf.infohash, webseed_url, session)
+    res = await validate_webseed(tf.infohash, webseed_url)
     assert not res.valid
     assert res.error_type == "http"
     assert "200" in res.message

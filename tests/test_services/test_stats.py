@@ -50,11 +50,11 @@ def test_stats_homepage_nostats(countables, client):
     assert not soup.select_one(".site-stats")
 
 
-async def test_stats_homepage(countables, client, session):
+def test_stats_homepage(countables, client, session):
     """
     Stats render correctly on the homepage
     """
-    await update_site_stats()
+    update_site_stats()
 
     response = client.get("/")
 

@@ -16,7 +16,7 @@ def scrape_torrent_stats() -> None:
     enabled=get_config().services.site_stats.enabled,
 )
 def update_site_stats() -> None:
-    run_in_event_loop(services.update_site_stats())
+    services.update_site_stats()
 
 
 @scheduler.queue(
@@ -24,7 +24,5 @@ def update_site_stats() -> None:
     max_concurrent=get_config().services.webseed_validation.max_concurrent,
 )
 def validate_webseed(infohash: str, url: str) -> None:
-    from sciop.db import get_session
 
-    with next(get_session()) as session:
-        run_in_event_loop(services.validate_webseed_service(infohash, url, session))
+    run_in_event_loop(services.validate_webseed_service(infohash, url))

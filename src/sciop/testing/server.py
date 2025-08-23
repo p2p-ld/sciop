@@ -86,3 +86,7 @@ class RequestHoarderMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         self.responses.append(response)
         return response
+
+    def clear(self) -> None:
+        self.requests = []
+        self.responses = []
