@@ -36,6 +36,7 @@ def engine(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> E
 
     engine = _engine(request)
     monkeypatch.setattr(db, "_engine", engine)
+    monkeypatch.setattr(db, "_make_engine", lambda: _engine(request))
     yield engine
     engine.dispose(close=True)
 
@@ -46,6 +47,7 @@ def engine_module(request: pytest.FixtureRequest, monkeypatch_module: pytest.Mon
 
     engine = _engine(request)
     monkeypatch_module.setattr(db, "_engine", engine)
+    monkeypatch_module.setattr(db, "_make_engine", lambda: _engine(request))
     yield engine
     engine.dispose(close=True)
 
