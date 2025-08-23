@@ -237,7 +237,7 @@ def make_torrentfile(
             t = torrent_(
                 tmp_path=tmp_path,
                 path=paths,
-                url_list=kwargs.get("webseeds", default_torrent()["url_list"]),
+                url_list=kwargs.get("webseeds"),
             )
 
     if kwargs.get("v1_infohash", None) is None:

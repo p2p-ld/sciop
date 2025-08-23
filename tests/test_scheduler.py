@@ -144,7 +144,7 @@ def test_queue_job(capsys, clean_scheduler, set_config, tmp_path):
     sleep_dir = tmp_path / "sleepy"
     sleep_dir.mkdir(exist_ok=True)
     queue(enabled=True, max_concurrent=1, job_name="sleepytime")(write_a_file_sleepy)
-    start_scheduler()
+    start_scheduler(block=True)
     time.sleep(0.1)
     # queue 3 of the same job, we should only run one at a time
     messages = ["a", "b", "c"]
