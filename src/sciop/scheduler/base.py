@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import multiprocessing as mp
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Coroutine, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Coroutine, Protocol, TypeVar
 
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.base import BaseScheduler
@@ -132,7 +132,7 @@ class BaseSchedulerManager(ABC):
         """
 
 
-def run_in_event_loop(coro: Coroutine) -> None:
+def run_in_event_loop(coro: Coroutine[Any, Any, _TReturn]) -> _TReturn:
     """
     Run a coroutine with `asyncio.run` inside a pool executor.
     Rather than `EventLoop.run_in_executor` where the event loop is on the "outside" of the pool,
@@ -144,13 +144,15 @@ def run_in_event_loop(coro: Coroutine) -> None:
     try:
         # event loop already running, use it without closing
         loop = asyncio.get_running_loop()
-        loop.create_task(coro)
+        return loop.run_until_complete(coro)
     except RuntimeError:
         # no running event loop - create, use, and close one.
         loop = asyncio.new_event_loop()
-
-        def _close_cb(f: asyncio.Task) -> None:
+        try:
+            res = loop.run_until_complete(coro)
+            return res
+        except Exception as e:
+            # reraise, breaking chain, because the outer exception is unrelated
+            raise e from None
+        finally:
             loop.close()
-
-        t = loop.create_task(coro)
-        t.add_done_callback(_close_cb)
