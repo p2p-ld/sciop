@@ -23,3 +23,58 @@ def reindex() -> None:
     for subcls in SearchableMixin.__subclasses__():
         click.echo(f"reindexing {subcls.__name__}")
         subcls.fts_rebuild(engine)
+
+
+@maintain.group("webseeds")
+def webseeds() -> None:
+    """
+    Maintain externally added webseeds
+    """
+
+
+@webseeds.command("validate-queued")
+def validate_queued() -> None:
+    """
+    Validate webseeds that are marked as queued but were not validated.
+
+    This is necessary due to the way that the queueing system (currently) works -
+    queued jobs are not maintained in the DB, but are instead kept in the
+    queue of the process/thread pool executor.
+
+    So if the instance crashes, the webseeds are marked as queued and never run.
+    """
+    from concurrent.futures import as_completed
+    from datetime import UTC, datetime, timedelta
+
+    from anyio import from_thread
+    from rich import print as rprint
+    from sqlalchemy.orm import joinedload
+    from sqlmodel import select
+    from tqdm import tqdm
+
+    from sciop.db import get_session
+    from sciop.models import Webseed, WebseedStatus
+    from sciop.services import validate_webseed_service
+
+    with get_session() as session:
+        queued = session.exec(
+            select(Webseed)
+            .options(joinedload(Webseed.torrent))
+            .where(
+                Webseed.status == WebseedStatus.queued,
+                Webseed.created_at <= datetime.now(UTC) - timedelta(minutes=1),
+            )
+        ).all()
+
+    results = []
+    with from_thread.start_blocking_portal() as portal, tqdm(total=len(queued)) as pbar:
+        futures = [
+            portal.start_task_soon(validate_webseed_service, ws.torrent.infohash, ws.url)
+            for ws in queued
+        ]
+        for future in as_completed(futures):
+            pbar.update()
+            results.append(future)
+
+    rprint("Webseed validation results:")
+    rprint(results)
