@@ -57,7 +57,7 @@ class WebseedValidationResult(BaseModel):
     ranges: list[V1PieceRange] | list[V2PieceRange] | None = None
 
 
-async def validate_webseed_service(infohash: str, url: str) -> None:
+async def validate_webseed_service(infohash: str, url: str) -> WebseedValidationResult | None:
     """
     Service wrapper for validating webseeds.
     Handles updating the database objects with the results of the validation.
@@ -116,6 +116,7 @@ async def validate_webseed_service(infohash: str, url: str) -> None:
             webseed.message = f"{res.error_type} - {res.message}"
         session.add(webseed)
         session.commit()
+    return res
 
 
 async def validate_webseed(infohash: str, url: str) -> WebseedValidationResult:

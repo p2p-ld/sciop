@@ -53,3 +53,7 @@ def test_validate_queued(session, torrentfile, httpx_mock, tmp_path):
     assert len(webseeds) == 3
     for ws in webseeds:
         assert ws.status == "validated"
+
+    # stdout should show the status
+    stdout = result.stdout
+    assert "WebseedValidationResult" in stdout
