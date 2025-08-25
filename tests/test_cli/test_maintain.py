@@ -5,7 +5,7 @@ from click.testing import CliRunner
 from sqlmodel import select
 from torrent_models import TorrentCreate
 
-from sciop.cli.maintain import validate_queued
+from sciop.cli.maintain import validate
 from sciop.models import Webseed
 
 
@@ -40,7 +40,7 @@ def test_validate_queued(session, torrentfile, httpx_mock, tmp_path):
     session.commit()
 
     runner = CliRunner()
-    result = runner.invoke(validate_queued)
+    result = runner.invoke(validate, ["--status", "queued"])
     assert result.exit_code == 0
 
     # all the urls should have been hit - the fixture should error if any of them aren't hit,

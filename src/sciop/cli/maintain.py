@@ -32,8 +32,18 @@ def webseeds() -> None:
     """
 
 
-@webseeds.command("validate-queued")
-def validate_queued() -> None:
+@webseeds.command("validate")
+@click.option(
+    "-s",
+    "--status",
+    type=click.Choice(["error", "queued"]),
+    default="queued",
+    show_default=True,
+    help="Which type of webseeds to validate - "
+    "queued webseeds that have not been validated, "
+    "or errored webseeds that had a previous failed attempt at validation",
+)
+def validate(status: str = "queued") -> None:
     """
     Validate webseeds that are marked as queued but were not validated.
 
@@ -53,7 +63,7 @@ def validate_queued() -> None:
     from tqdm import tqdm
 
     from sciop.db import get_session
-    from sciop.models import Webseed, WebseedStatus
+    from sciop.models import Webseed
     from sciop.services import validate_webseed_service
 
     with get_session() as session:
@@ -61,7 +71,7 @@ def validate_queued() -> None:
             select(Webseed)
             .options(joinedload(Webseed.torrent))
             .where(
-                Webseed.status == WebseedStatus.queued,
+                Webseed.status == status,
                 Webseed.created_at <= datetime.now(UTC) - timedelta(minutes=1),
             )
         ).all()
@@ -74,7 +84,7 @@ def validate_queued() -> None:
         ]
         for future in as_completed(futures):
             pbar.update()
-            results.append(future)
+            results.append(future.result())
 
     rprint("Webseed validation results:")
     rprint(results)
