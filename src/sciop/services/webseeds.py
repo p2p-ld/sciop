@@ -36,6 +36,7 @@ import random
 from collections.abc import Coroutine
 from typing import Any, Callable, Literal
 
+import httpx
 from httpx import AsyncClient, Limits, ReadTimeout, TimeoutException
 from pydantic import BaseModel
 from torrent_models import Torrent, TorrentVersion
@@ -248,16 +249,20 @@ async def _request_range(
 
     # iterate through the stream and quit early if we transfer more bytes than expected
     expected_size = piece_range.range_end - piece_range.range_start
-    async with client.stream(
-        "GET", get_url, headers=headers, timeout=cfg.services.webseed_validation.get_timeout
-    ) as res:
-        async for chunk in res.aiter_bytes():
-            body += chunk
-            if res.num_bytes_downloaded >= expected_size * 1.1:
-                # just break, this is only expected in the case
-                # the server doesn't support range requests
-                logger.debug("Breaking download, got more bytes than expected from range")
-                await res.aclose()
+    try:
+        async with client.stream(
+            "GET", get_url, headers=headers, timeout=cfg.services.webseed_validation.get_timeout
+        ) as res:
+            async for chunk in res.aiter_bytes():
+                body += chunk
+                if res.num_bytes_downloaded >= expected_size * 1.1:
+                    # just break, this is only expected in the case
+                    # the server doesn't support range requests
+                    logger.debug("Breaking download, got more bytes than expected from range")
+                    await res.aclose()
+    except httpx.ProtocolError as e:
+        logger.warning("Protocol error while downloading: %s", e)
+        raise WebseedHTTPError(status_code=0, detail=str(e)) from e
 
     logger.debug("Downloaded %s bytes from %s", len(body), get_url)
 
