@@ -7,8 +7,8 @@ from sciop.scheduler.base import run_in_event_loop
     minutes=get_config().services.tracker_scraping.job_interval,
     enabled=get_config().services.tracker_scraping.enabled,
 )
-def scrape_torrent_stats() -> None:
-    run_in_event_loop(services.scrape_torrent_stats())
+async def scrape_torrent_stats() -> None:
+    await services.scrape_torrent_stats()
 
 
 @scheduler.interval(
