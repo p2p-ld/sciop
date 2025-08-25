@@ -1,6 +1,5 @@
 from sciop import scheduler, services
 from sciop.config import get_config
-from sciop.scheduler.base import run_in_event_loop
 
 
 @scheduler.interval(
@@ -23,6 +22,5 @@ def update_site_stats() -> None:
     enabled=get_config().services.webseed_validation.enabled,
     max_concurrent=get_config().services.webseed_validation.max_concurrent,
 )
-def validate_webseed(infohash: str, url: str) -> None:
-
-    run_in_event_loop(services.validate_webseed_service(infohash, url))
+async def validate_webseed(infohash: str, url: str) -> None:
+    await services.validate_webseed_service(infohash, url)

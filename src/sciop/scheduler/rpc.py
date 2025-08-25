@@ -2,26 +2,32 @@ from __future__ import annotations
 
 import atexit
 import base64
+import concurrent.futures
 import contextlib
 import hashlib
 import multiprocessing as mp
 import secrets
 import signal
 import threading
+from concurrent.futures.process import BrokenProcessPool
 from datetime import datetime
+from functools import partial
 from threading import TIMEOUT_MAX
 from typing import Any, NotRequired, TypedDict, cast
 from xmlrpc.client import Fault, ServerProxy
 from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
+from anyio import from_thread
 from apscheduler.events import JobEvent, JobExecutionEvent, JobSubmissionEvent
-from apscheduler.executors.pool import ProcessPoolExecutor
+from apscheduler.executors.base import run_coroutine_job, run_job
+from apscheduler.executors.pool import BasePoolExecutor
 from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers import SchedulerNotRunningError
 from apscheduler.schedulers.background import BackgroundScheduler as BackgroundScheduler_
 from apscheduler.schedulers.base import STATE_STOPPED
+from apscheduler.util import iscoroutinefunction_partial
 
 from sciop import get_config
 from sciop.logging import init_logger
@@ -59,7 +65,7 @@ class RPCSchedulerManager(BaseSchedulerManager):
     """
 
     rpc_process: mp.Process | None = None
-    start_event = mp.Event()
+    start_event = None
     rpc_pass = secrets.token_urlsafe(32)
     """
     single-use password created at module level so forked processes have it.
@@ -69,13 +75,16 @@ class RPCSchedulerManager(BaseSchedulerManager):
     where if an attacker has access to the python interpreter or can access program memory,
     we're probably already pwned.
     """
+    ctx = None
 
     @classmethod
     def start_scheduler(cls, block: bool = False) -> None:
         logger = init_logger("scheduler.manager.rpc")
         logger.debug("Starting RPC scheduler")
+        cls.ctx = mp.get_context("spawn")
+        cls.start_event: mp.Event = cls.ctx.Event()
         cls.start_event.clear()
-        cls.rpc_process = mp.Process(
+        cls.rpc_process: mp.Process = cls.ctx.Process(
             target=RPCSchedulerServer.start,
             args=(
                 cls.start_event,
@@ -96,6 +105,9 @@ class RPCSchedulerManager(BaseSchedulerManager):
 
     @classmethod
     def get_scheduler(cls) -> RPCClientProtocol | None:
+        if cls.start_event is None:
+            return None
+
         try:
             cls.start_event.wait(5)
             config = get_config()
@@ -258,6 +270,7 @@ class RPCSchedulerServer:
         scheduler = BackgroundScheduler(
             jobstores=RPCSchedulerManager.make_jobstores(),
             logger=init_logger("scheduler"),
+            executors={"default": ThreadPoolExecutor()},
         )
         for queue_name, queue_params in {
             **Registry.get_queued_jobs(),
@@ -384,6 +397,65 @@ class BackgroundScheduler(BackgroundScheduler_):
             self._event.clear()
 
 
+class AsyncPoolExecutor(BasePoolExecutor):
+    """
+    Pool executor that handles async tasks as well
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._pending_futures = set()
+
+    def _do_submit_job(self, job: Job, run_times: list[datetime]) -> None:
+        def callback(f: concurrent.futures.Future) -> None:
+            self._pending_futures.discard(f)
+            exc, tb = (
+                f.exception_info()
+                if hasattr(f, "exception_info")
+                else (f.exception(), getattr(f.exception(), "__traceback__", None))
+            )
+            if exc:
+                self._run_job_error(job.id, exc, tb)
+            else:
+                self._run_job_success(job.id, f.result())
+
+        if iscoroutinefunction_partial(job.func):
+            f = self._pool.submit(
+                run_in_event_loop,
+                job,
+                job._jobstore_alias,
+                run_times,
+                self._logger.name,
+            )
+        else:
+            f = self._pool.submit(run_job, job, job._jobstore_alias, run_times, self._logger.name)
+        f.add_done_callback(callback)
+        self._pending_futures.add(f)
+
+
+class ProcessPoolExecutor(AsyncPoolExecutor):
+    def __init__(self, max_workers: int = 10, pool_kwargs: dict = None):
+        self.pool_kwargs = pool_kwargs or {}
+        self.pool_kwargs.setdefault("mp_context", mp.get_context("spawn"))
+        pool = concurrent.futures.ProcessPoolExecutor(int(max_workers), **self.pool_kwargs)
+        super().__init__(pool)
+
+    def _do_submit_job(self, job: Job, run_times: list[datetime]) -> None:
+        try:
+            super()._do_submit_job(job, run_times)
+        except BrokenProcessPool:
+            self._logger.warning("Process pool is broken; replacing pool with a fresh instance")
+            self._pool = self._pool.__class__(self._pool._max_workers, **self.pool_kwargs)
+            super()._do_submit_job(job, run_times)
+
+
+class ThreadPoolExecutor(AsyncPoolExecutor):
+    def __init__(self, max_workers: int = 10, pool_kwargs: dict = None):
+        pool_kwargs = pool_kwargs or {}
+        pool = concurrent.futures.ThreadPoolExecutor(int(max_workers), **pool_kwargs)
+        super().__init__(pool)
+
+
 def _marshall_job(job: Job) -> MarshallableJob:
     state = job.__getstate__()
     return MarshallableJob(
@@ -395,3 +467,19 @@ def _marshall_job(job: Job) -> MarshallableJob:
         name=state["name"],
         next_run_time=state["next_run_time"],
     )
+
+
+def run_in_event_loop(
+    job: Job, jobstore_alias: str, run_times: list[datetime], logger_name: str
+) -> Any:
+    """
+    Run a coroutine with `asyncio.run` inside a pool executor.
+    Rather than `EventLoop.run_in_executor` where the event loop is on the "outside" of the pool,
+    we want the event loop *inside* of the pool's threads/processes.
+
+    See: https://github.com/agronholm/apscheduler/pull/1074
+    """
+    coro = partial(run_coroutine_job, job, jobstore_alias, run_times, logger_name)
+    with from_thread.start_blocking_portal() as portal:
+        f = portal.call(coro)
+        return f
