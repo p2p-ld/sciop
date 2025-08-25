@@ -1,3 +1,5 @@
+import pytest
+from sqlalchemy.exc import InvalidRequestError
 from sqlmodel import Session, select
 
 from sciop.db import ensure_root
@@ -30,3 +32,18 @@ def test_ensure_root_without_root_configured(set_config, session):
     """
     set_config(root_user=None, root_password=None)
     assert ensure_root(session) is None
+
+
+def test_get_session_contextmanager(session):
+    """
+    The get_session function should behave as a context manager
+    """
+    from sciop.db import get_session
+
+    with get_session() as session:
+        # do nothing, we care about the closure
+        assert session.is_active
+
+    # trying to use it again should throw an error
+    with pytest.raises(InvalidRequestError):
+        session.exec(select(Account)).first()

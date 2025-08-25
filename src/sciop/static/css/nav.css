@@ -1,3 +1,38 @@
+.site-header {
+  position: relative;
+  top: 0;
+  right: 0;
+  left: 0;
+  margin-bottom: 1em;
+  display: flex;
+  flex-direction: column;
+
+  .alert {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    padding: 0.3em;
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--color-background),
+      var(--color-background) 20px,
+      var(--color-alert) 20px,
+      var(--color-alert) 40px
+    );
+    div.alert-content {
+      background-color: var(--color-background);
+      margin: auto;
+      padding: 0.5em 1em;
+      p {
+        margin: 0;
+      }
+      p + p {
+        margin-top: 0.5em;
+      }
+    }
+  }
+}
+
 nav.navbar {
   display: flex;
   flex-direction: row;
@@ -7,7 +42,6 @@ nav.navbar {
   align-items: center;
   border-bottom: 1px solid var(--color-primary);
   padding: 0.5em 1em;
-  margin-bottom: 1em;
   box-sizing: border-box;
   gap: 0.5em;
   position: relative;

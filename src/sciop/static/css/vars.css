@@ -1,14 +1,18 @@
 /* Root vars that are needed in both themes */
 :root {
+  /* Base colors */
   --color-dark-background: rgba(23, 23, 26, 1);
   --color-light-background: lch(99.25% 3.6 199.47);
   --color-good: lch(76.36% 99.79 133.94);
   --color-neutral: lch(56.05% 49.39 256.63);
   --color-evil: red;
   --color-warning: #FF6319;
+  --color-alert: #FCCC0A;
+
+  /* Context-specific colors */
   --color-threat-unknown: var(--color-background-shade);
   --color-threat-indefinite: var(--color-neutral);
-  --color-threat-watchlist: #FCCC0A;
+  --color-threat-watchlist: var(--color-alert);
   --color-threat-endangered: var(--color-warning);
   --color-threat-takedown_issued: lch(47.26% 75.67 14.74);
   --color-threat-extinct: var(--color-background-shade);
@@ -19,7 +23,6 @@
   --color-src: #fbd259;
   --color-src-background: #4a4e53;
   --color-src-buildings: #222426;
-
 
   --font-sans: "Work Sans", "Helvetica Neue", "Segoe UI", "Helvetica", "Roboto", sans-serif;
   --font-mono: "Anonymous Pro", "Fira Code", "Courier New", "Courier", monospace;
@@ -58,9 +61,9 @@ body {
   --color-border-emphasized: color-mix(in lch, var(--color-border) 70%, var(--color-text));
   --color-deemphasized: #888;
   --color-disabled: #404040;
-  --color-alert: var(--color-threat-watchlist);
   --color-caution-contrast: var(--color-primary-contrast);
   --color-warning-contrast: #000;
+  --color-alert-contrast: var(--color-dark-background);
 
 
   &.light-theme {

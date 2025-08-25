@@ -9,6 +9,7 @@ import secrets
 import signal
 import threading
 from datetime import datetime
+from threading import TIMEOUT_MAX
 from typing import Any, NotRequired, TypedDict, cast
 from xmlrpc.client import Fault, ServerProxy
 from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
@@ -19,7 +20,8 @@ from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers import SchedulerNotRunningError
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.background import BackgroundScheduler as BackgroundScheduler_
+from apscheduler.schedulers.base import STATE_STOPPED
 
 from sciop import get_config
 from sciop.logging import init_logger
@@ -118,8 +120,8 @@ class RPCSchedulerManager(BaseSchedulerManager):
         with contextlib.suppress(ConnectionRefusedError):
             # scheduler would already be shut down if we refused connection
             scheduler.shutdown()
+            cls.rpc_process.join(5)
 
-        cls.rpc_process.join(1)
         if not cls.rpc_process.is_alive():
             return
 
@@ -128,7 +130,9 @@ class RPCSchedulerManager(BaseSchedulerManager):
         if cls.rpc_process.is_alive():
             logger.info("Scheduler RPC process could not be terminated cleanly, killing process")
             cls.rpc_process.kill()
-        cls.rpc_process.close()
+            cls.rpc_process.join(timeout=5)
+        with contextlib.suppress(ValueError):
+            cls.rpc_process.close()
         cls.rpc_process = None
 
     @classmethod
@@ -241,6 +245,9 @@ class RPCSchedulerServer:
                 self.scheduler.shutdown()
                 self.scheduler = None
                 self.logger.debug("Background scheduler shut down")
+            self.logger.debug("Disposing database")
+            clear_globals()
+
             self.logger.debug("RPC server shut down")
 
     def create_scheduler(self) -> BackgroundScheduler:
@@ -362,6 +369,19 @@ class RPCSchedulerServer:
         evt.wait(timeout)
         self.scheduler.remove_listener(_cb)
         return result
+
+
+class BackgroundScheduler(BackgroundScheduler_):
+    """
+    Override parent class _main_loop which ends up calling `process_jobs` once more after shutdown
+    """
+
+    def _main_loop(self) -> None:
+        wait_seconds = TIMEOUT_MAX
+        while self.state != STATE_STOPPED:
+            wait_seconds = self._process_jobs()
+            self._event.wait(wait_seconds)
+            self._event.clear()
 
 
 def _marshall_job(job: Job) -> MarshallableJob:

@@ -36,6 +36,12 @@ class InstanceConfig(BaseModel):
         description="Footer message shown on the bottom-right of every page."
         "Markdown is supported.",
     )
+    alert: str | None = Field(
+        None,
+        description="An alert banner that is shown beneath the header of the page. "
+        "Used for temporary notifications and updates. "
+        "Markdown is supported.",
+    )
     show_docs: bool = Field(
         True,
         description="Show link to documentation in navigation. "
@@ -59,3 +65,12 @@ class InstanceConfig(BaseModel):
         from sciop.services.markdown import render_markdown
 
         return render_markdown(self.footer)
+
+    @cached_property
+    def alert_html(self) -> str | None:
+        if self.alert is None:
+            return None
+
+        from sciop.services.markdown import render_markdown
+
+        return render_markdown(self.alert)
