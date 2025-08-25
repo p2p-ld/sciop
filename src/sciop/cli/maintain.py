@@ -53,7 +53,6 @@ def validate(status: str = "queued") -> None:
 
     So if the instance crashes, the webseeds are marked as queued and never run.
     """
-    from concurrent.futures import as_completed
     from datetime import UTC, datetime, timedelta
 
     from anyio import from_thread
@@ -77,14 +76,12 @@ def validate(status: str = "queued") -> None:
         ).all()
 
     results = []
-    with from_thread.start_blocking_portal() as portal, tqdm(total=len(queued)) as pbar:
-        futures = [
-            portal.start_task_soon(validate_webseed_service, ws.torrent.infohash, ws.url)
-            for ws in queued
-        ]
-        for future in as_completed(futures):
-            pbar.update()
-            results.append(future.result())
+    with from_thread.start_blocking_portal() as portal:
+        for ws in tqdm(queued):
+            # run them one by one because each call makes a lot of requests,
+            # and running all at once had a tendency to timeout.
+            res = portal.call(validate_webseed_service, ws.torrent.infohash, ws.url)
+            results.append(res)
 
     rprint("Webseed validation results:")
     rprint(results)
