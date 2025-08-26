@@ -105,11 +105,9 @@ class RPCSchedulerManager(BaseSchedulerManager):
 
     @classmethod
     def get_scheduler(cls) -> RPCClientProtocol | None:
-        if cls.start_event is None:
-            return None
-
         try:
-            cls.start_event.wait(5)
+            if cls.start_event:
+                cls.start_event.wait(5)
             config = get_config()
             client = ServerProxy(
                 f"http://sciop:{cls.rpc_pass}@127.0.0.1:{config.server.scheduler_rpc_port}",
