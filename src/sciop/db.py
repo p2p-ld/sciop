@@ -1,5 +1,7 @@
 import importlib.resources
 import random
+import uuid
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, Generator, Optional
 
 from alembic import command
@@ -12,6 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine, func, select
 
 from sciop.config import get_config
+from sciop.logging import init_logger
 
 if TYPE_CHECKING:
 
@@ -21,14 +24,37 @@ _engine: Engine | None = None
 _maker: sessionmaker | None = None
 
 
-def get_session() -> Generator[Session, None, None]:
+def iter_session() -> Generator[Session, None, None]:
+    """
+    Generator used to create session objects.
+
+    Used for fastapi deps because fastapi does too much,
+    converts generators into contextmanagers,
+    and fails to enter actual contextmanagers.
+
+    Use `get_session` as a contextmanager everywhere in the program except for the fastapi deps.
+
+    """
     from sciop.models.mixins import EditableMixin
 
-    maker = get_maker()
+    logger = init_logger("db.session")
 
-    with maker() as session:
+    maker = get_maker()
+    session = maker()
+    try:
         session = EditableMixin.editable_session(session)
+        session_id = uuid.uuid4()
+        session.info["session_id"] = session_id
+        logger.debug("session opened - %s", session_id)
         yield session
+    finally:
+        session.close()
+        logger.debug("session closed - %s", session.info.get("session_id"))
+
+
+@contextmanager
+def get_session() -> Session:
+    yield from iter_session()
 
 
 def get_engine() -> Engine:
@@ -52,7 +78,9 @@ def get_maker(engine: Engine | None = None) -> sessionmaker:
     if _maker is None:
         if engine is None:
             engine = get_engine()
-        _maker = sessionmaker(class_=Session, autocommit=False, autoflush=False, bind=engine)
+        _maker = sessionmaker(
+            class_=Session, autocommit=False, autoflush=False, close_resets_only=False, bind=engine
+        )
     return _maker
 
 
@@ -63,6 +91,8 @@ def clear_globals() -> None:
     DB objects will be recreated when using `get_*` methods
     """
     global _engine, _maker
+    if _engine is not None:
+        _engine.dispose()
     _engine = None
     _maker = None
 

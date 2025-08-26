@@ -36,6 +36,7 @@ import random
 from collections.abc import Coroutine
 from typing import Any, Callable, Literal
 
+import httpx
 from httpx import AsyncClient, Limits, ReadTimeout, TimeoutException
 from pydantic import BaseModel
 from torrent_models import Torrent, TorrentVersion
@@ -57,7 +58,7 @@ class WebseedValidationResult(BaseModel):
     ranges: list[V1PieceRange] | list[V2PieceRange] | None = None
 
 
-async def validate_webseed_service(infohash: str, url: str) -> None:
+async def validate_webseed_service(infohash: str, url: str) -> WebseedValidationResult | None:
     """
     Service wrapper for validating webseeds.
     Handles updating the database objects with the results of the validation.
@@ -69,7 +70,7 @@ async def validate_webseed_service(infohash: str, url: str) -> None:
     cfg = get_config()
     logger = init_logger("jobs.validate_webseed")
     logger.info("Validating webseed %s for torrent %s", url, infohash)
-    with next(get_session()) as session:
+    with get_session() as session:
         webseed = crud.get_webseed(session=session, infohash=infohash, url=url)
         if not webseed:
             msg = f"No webseed with url {url} found for torrent {infohash}"
@@ -96,7 +97,7 @@ async def validate_webseed_service(infohash: str, url: str) -> None:
         res = await validate_webseed(infohash=infohash, url=url)
     except Exception as e:
         logger.exception(f"Exception while validating webseed {url} for {infohash}: {e}")
-        with next(get_session()) as session:
+        with get_session() as session:
             webseed = crud.get_webseed(session=session, infohash=infohash, url=url)
             webseed.status = WebseedStatus.error
             webseed.message = str(e)
@@ -104,7 +105,7 @@ async def validate_webseed_service(infohash: str, url: str) -> None:
             session.commit()
         raise
 
-    with next(get_session()) as session:
+    with get_session() as session:
         webseed = crud.get_webseed(session=session, infohash=infohash, url=url)
         if res.valid:
             webseed.status = WebseedStatus.validated
@@ -116,6 +117,7 @@ async def validate_webseed_service(infohash: str, url: str) -> None:
             webseed.message = f"{res.error_type} - {res.message}"
         session.add(webseed)
         session.commit()
+    return res
 
 
 async def validate_webseed(infohash: str, url: str) -> WebseedValidationResult:
@@ -125,7 +127,7 @@ async def validate_webseed(infohash: str, url: str) -> WebseedValidationResult:
     cfg = get_config()
     ws_config = cfg.services.webseed_validation
 
-    with next(get_session()) as session:
+    with get_session() as session:
         torrent_file = crud.get_torrent_from_infohash(session=session, infohash=infohash)
         if not torrent_file:
             raise ValueError(f"Torrent with infohash {infohash} not found")
@@ -231,7 +233,6 @@ async def _request_range(
     cfg = get_config()
 
     logger = init_logger("services.webseed_validation")
-    logger.debug("%s - retries: %s", get_url, retries)
     if retries is None:
         retries = cfg.services.webseed_validation.retries.copy()
 
@@ -247,16 +248,20 @@ async def _request_range(
 
     # iterate through the stream and quit early if we transfer more bytes than expected
     expected_size = piece_range.range_end - piece_range.range_start
-    async with client.stream(
-        "GET", get_url, headers=headers, timeout=cfg.services.webseed_validation.get_timeout
-    ) as res:
-        async for chunk in res.aiter_bytes():
-            body += chunk
-            if res.num_bytes_downloaded >= expected_size * 1.1:
-                # just break, this is only expected in the case
-                # the server doesn't support range requests
-                logger.debug("Breaking download, got more bytes than expected from range")
-                await res.aclose()
+    try:
+        async with client.stream(
+            "GET", get_url, headers=headers, timeout=cfg.services.webseed_validation.get_timeout
+        ) as res:
+            async for chunk in res.aiter_bytes():
+                body += chunk
+                if res.num_bytes_downloaded >= expected_size * 1.1:
+                    # just break, this is only expected in the case
+                    # the server doesn't support range requests
+                    logger.debug("Breaking download, got more bytes than expected from range")
+                    await res.aclose()
+    except httpx.ProtocolError as e:
+        logger.warning("Protocol error while downloading: %s", e)
+        raise WebseedHTTPError(status_code=0, detail=str(e)) from e
 
     logger.debug("Downloaded %s bytes from %s", len(body), get_url)
 

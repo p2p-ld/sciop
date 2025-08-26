@@ -12,7 +12,7 @@ from starlette.datastructures import QueryParams
 from sciop import crud
 from sciop.api.auth import ALGORITHM
 from sciop.config import get_config
-from sciop.db import get_session
+from sciop.db import iter_session
 from sciop.models import (
     Account,
     Dataset,
@@ -49,13 +49,13 @@ reusable_oauth2 = OAuth2PasswordBearerCookie(
 )
 
 
-def raw_session() -> Session:
+def raw_session():
     """
     Get a session - put this in a wrapper function so it's invoked once per
     resolution of the dependency graph, rather than multiple times
     if one was just using `get_session` on its own
     """
-    return next(get_session())
+    yield from iter_session()
 
 
 RawSessionDep = Annotated[Session, Depends(raw_session)]

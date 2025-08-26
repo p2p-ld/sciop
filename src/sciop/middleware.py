@@ -16,9 +16,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from sciop.api.deps import get_current_account
 from sciop.config import get_config
-from sciop.db import get_session
 from sciop.exceptions import UploadSizeExceeded
 from sciop.logging import init_logger
 
@@ -81,22 +79,6 @@ limiter = Limiter(
     headers_enabled=True,
     default_limits=["100 per minute", "1000 per hour", "10000 per day"],
 )
-
-
-def exempt_scoped(request: Request) -> bool:
-    """
-    Exempt any account with any scope from rate limits
-
-    FIXME: Needs to also get accounts from header tokens from API requests
-    """
-    token = request.cookies.get("access_token", None)
-    if token is None:
-        return False
-    session = next(get_session())
-    account = get_current_account(session, token)
-    if not account:
-        return False
-    return len(account.scopes) > 0
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):

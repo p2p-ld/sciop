@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Generator
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
@@ -84,30 +84,40 @@ def _session_start(
         session, connection, trans = _file_session(engine)
         transactions.append((trans, connection))
 
-        def get_session_override() -> Session:
+        def iter_session_override() -> Session:
             nonlocal transactions
             session, connection, trans = _file_session(engine)
             # don't rollback here, or we'll rollback in the middle of the test.
             # rollback at the end
             transactions.append((trans, connection))
-            session = EditableMixin.editable_session(session)
-            yield session
-
-    else:
-        maker = sessionmaker(bind=engine, autoflush=False, autocommit=False, class_=Session)
-        session = Session(engine, autoflush=False, autocommit=False)
-
-        def get_session_override() -> Session:
-            nonlocal maker
-            with maker() as session:
+            try:
                 session = EditableMixin.editable_session(session)
                 yield session
+            finally:
                 session.close()
 
-    monkeypatch.setattr(db, "get_session", get_session_override)
-    monkeypatch.setattr(deps, "get_session", get_session_override)
+    else:
+        maker = sessionmaker(
+            bind=engine, autoflush=False, autocommit=False, close_resets_only=False, class_=Session
+        )
+        session = Session(engine, autoflush=False, autocommit=False)
 
-    app.dependency_overrides[deps.raw_session] = get_session_override
+        def iter_session_override() -> Session:
+            nonlocal maker
+            session = maker()
+            try:
+                session = EditableMixin.editable_session(session)
+                yield session
+            finally:
+                session.close()
+
+    monkeypatch.setattr(db, "iter_session", iter_session_override)
+    monkeypatch.setattr(deps, "iter_session", iter_session_override)
+
+    def raw_session_override() -> Generator[Session, None, None]:
+        yield from iter_session_override()
+
+    app.dependency_overrides[deps.raw_session] = raw_session_override
 
     session = EditableMixin.editable_session(session)
     return session, transactions

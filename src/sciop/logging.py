@@ -88,7 +88,7 @@ def init_logger(
     # if run from a forked process, need to add different handlers to not collide
     if mp.parent_process() is not None:
         handler_name = f"{name}_{mp.current_process().pid}"
-        if not any([h.name == handler_name for h in logger.handlers]):
+        if not any([h.get_name() == handler_name for h in logger.handlers]):
 
             logger.addHandler(
                 _file_handler(
@@ -165,6 +165,7 @@ def _file_handler(
     file_formatter = logging.Formatter("[%(asctime)s] %(levelname)s [%(name)s]: %(message)s")
     file_handler.setLevel(file_level)
     file_handler.setFormatter(file_formatter)
+    file_handler.set_name(name)
     return file_handler
 
 

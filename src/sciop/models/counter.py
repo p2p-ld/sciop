@@ -39,17 +39,20 @@ class HitCount(SQLModel, table=True):
         path = _normalize_path(path)
         maybe_counter = session.exec(select(HitCount).where(HitCount.path == path)).first()
         count = 0 if maybe_counter is None else maybe_counter.count
-        background_tasks.add_task(HitCount.writeback, path=path, session=session)
+        background_tasks.add_task(HitCount.writeback, path=path)
         return count
 
     @classmethod
-    def writeback(cls, path: str, session: Session) -> None:
+    def writeback(cls, path: str) -> None:
+        from sciop.db import get_session
+
         path = _normalize_path(path)
-        maybe_counter = session.exec(select(HitCount).where(HitCount.path == path)).first()
-        counter = HitCount(path=path, count=0) if maybe_counter is None else maybe_counter
-        if maybe_counter is None:
+        with get_session() as session:
+            maybe_counter = session.exec(select(HitCount).where(HitCount.path == path)).first()
+            counter = HitCount(path=path, count=0) if maybe_counter is None else maybe_counter
+            if maybe_counter is None:
+                session.add(counter)
+                session.commit()
+            counter.count = HitCount.count + 1
             session.add(counter)
             session.commit()
-        counter.count = HitCount.count + 1
-        session.add(counter)
-        session.commit()

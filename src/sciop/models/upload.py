@@ -319,7 +319,7 @@ def _upload_remove_torrent(
     if value and not oldvalue and oldvalue is not None and target.torrent:
         from sciop.db import get_session
 
-        with next(get_session()) as session:
+        with get_session() as session:
             torrent = session.merge(target.torrent)
             session.delete(torrent)
             session.commit()

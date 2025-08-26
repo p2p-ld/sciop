@@ -1,24 +1,33 @@
-<nav class="navbar">
-  <a href="/" class="site-title text redacted">SciOp</a>
-	<a href="/" class="site-title responsive">
-		<img src="/static/img/android-chrome-512x512.png"
-				 alt="SciOp logo: three white arrows facing down and to the left against a pink stripe"
-			/>
-	</a>
-  <a href="/datasets/" class="nav-link">Datasets</a>
-	<a href="/uploads/" class="nav-link">Uploads</a>
-  <a href="/feeds" class="nav-link">Feeds</a>
-  {% if config.instance.show_docs %}<a href="/docs/" class="nav-link">Docs</a>{% endif %}
-  <a href="/about" class="nav-link">About</a>
-  <div class="spacer"></div>
+<div class="site-header">
+	<nav class="navbar">
+		<a href="/" class="site-title text redacted">SciOp</a>
+		<a href="/" class="site-title responsive">
+			<img src="/static/img/android-chrome-512x512.png"
+					 alt="SciOp logo: three white arrows facing down and to the left against a pink stripe"
+				/>
+		</a>
+		<a href="/datasets/" class="nav-link">Datasets</a>
+		<a href="/uploads/" class="nav-link">Uploads</a>
+		<a href="/feeds" class="nav-link">Feeds</a>
+		{% if config.instance.show_docs %}<a href="/docs/" class="nav-link">Docs</a>{% endif %}
+		<a href="/about" class="nav-link">About</a>
+		<div class="spacer"></div>
 
-	<div class="cta-wrapper">
-    {% include "includes/theme-toggle.html" %}
-		<a class="nav-button outline request-button" href="/request">Add Dataset</a>
-		{% if current_account %}
-		<a href="/self/" class="nav-button account-button">{{ current_account.username }}</a>
-		{% else %}
-		<a href="/login" class="nav-button login-button">Login</a>
-		{% endif %}
+		<div class="cta-wrapper">
+			{% include "includes/theme-toggle.html" %}
+			<a class="nav-button outline request-button" href="/request">Add Dataset</a>
+			{% if current_account %}
+			<a href="/self/" class="nav-button account-button">{{ current_account.username }}</a>
+			{% else %}
+			<a href="/login" class="nav-button login-button">Login</a>
+			{% endif %}
+		</div>
+	</nav>
+{% if config.instance.alert %}
+	<div class="alert">
+		<div class="alert-content">
+		{{ config.instance.alert_html | safe }}
+			</div>
 	</div>
-</nav>
+{% endif %}
+</div>
