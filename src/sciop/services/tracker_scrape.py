@@ -646,7 +646,6 @@ async def scrape_torrent_stats() -> None:
     logger.debug("Updating scrape results in db")
     _update_scrape_results(results, logger=logger)
     _handle_tracker_error(results, logger=logger)
-    _touch_tracker(results)
 
     total = sum([len(r.responses) for r in results])
     errors = sum([len(r.errors) for r in results])
@@ -802,32 +801,71 @@ def _handle_tracker_error(results: Sequence[ScrapeResult], logger: Logger) -> No
     from sciop.db import get_session
     from sciop.models import Tracker
 
-    tracker_errors = [
-        e for tracker in results for e in tracker.errors if e.announce_url and e.infohash is None
-    ]
-    if not tracker_errors:
-        return
+    # first get all tracker errors - they are the only rows we need to load first
+    # because we need to increment errors
+    tracker_errors = defaultdict(list)
+    for tracker in results:
+        for e in tracker.errors:
+            if e.announce_url and e.infohash is None:
+                tracker_errors[e.announce_url].append(e)
     with get_session() as session:
-        for e in tracker_errors:
-            tracker = session.exec(
-                select(Tracker).where(Tracker.announce_url == e.announce_url)
-            ).first()
-            if e.type != tracker.error_type:
-                tracker.n_errors = 0
-            tracker.n_errors += 1
-            next_scrape = datetime.now(UTC) + timedelta(
-                minutes=_compute_backoff(tracker.n_errors, e.type)
+        err_rows = session.exec(
+            select(Tracker.announce_url, Tracker.n_errors).where(
+                Tracker.announce_url.in_(list(tracker_errors.keys()))
             )
-            tracker.next_scrape_after = next_scrape
-            tracker.error_type = e.type
-            session.add(tracker)
-            logger.debug(
-                "Backing off tracker %s - %s errors - next scrape at %s",
-                e.announce_url,
-                tracker.n_errors,
-                next_scrape,
-            )
-        session.commit()
+        ).all()
+
+    update_rows = []
+    scrape_time = datetime.now(UTC)
+    for row in err_rows:
+        n_errors = row.n_errors + 1
+        # there should only ever be one error per tracker,
+        # but it's nbd if there are multiple, we still penalize
+        e = tracker_errors[row.announce_url][0]
+        next_scrape = datetime.now(UTC) + timedelta(minutes=_compute_backoff(n_errors, e.type))
+        update_rows.append(
+            {
+                "b_announce_url": row.announce_url,
+                "n_errors": n_errors,
+                "next_scrape_after": next_scrape,
+                "error_type": e.type,
+                "last_scraped_at": scrape_time,
+            }
+        )
+
+        logger.debug(
+            "Backing off tracker %s - %s errors - next scrape at %s",
+            e.announce_url,
+            n_errors,
+            next_scrape,
+        )
+
+    # then we make rows for all the non-erroring trackers
+    working = [
+        t.announce_url
+        for tracker in results
+        for t in tracker.responses.values()
+        if t.announce_url not in tracker_errors
+    ]
+    working = list(dict.fromkeys(working))
+    for working_url in working:
+        update_rows.append(
+            {
+                "b_announce_url": working_url,
+                "n_errors": 0,
+                "error_type": None,
+                "next_scrape_after": None,
+                "last_scraped_at": scrape_time,
+            }
+        )
+
+    with get_session() as session, session.connection() as connection:
+        connection.execute(
+            update(Tracker).where(Tracker.announce_url == sqla.bindparam("b_announce_url")),
+            update_rows,
+            execution_options={"synchronize_session": None},
+        )
+        connection.commit()
 
 
 def _compute_backoff(
@@ -840,34 +878,3 @@ def _compute_backoff(
     multiplier = multipliers.get(error_type, multipliers.get("default", 1))
     backoff = get_config().services.tracker_scraping.interval * multiplier * (2**n_errors)
     return min(backoff, get_config().services.tracker_scraping.max_backoff)
-
-
-def _touch_tracker(results: Sequence[ScrapeResult]) -> None:
-    from sciop.db import get_session
-    from sciop.models import Tracker
-
-    params = []
-    for tracker in results:
-        if not tracker.errors and not tracker.responses:
-            continue
-        announce_url = (
-            tracker.errors[0].announce_url
-            if tracker.errors
-            else next(iter(tracker.responses.values())).announce_url
-        )
-
-        item = {"last_scraped_at": datetime.now(UTC), "b_announce_url": announce_url}
-        if not tracker.errors:
-            item.update({"n_errors": 0, "error_type": None, "next_scrape_after": None})
-        params.append(item)
-
-    if not params:
-        return
-
-    with get_session() as session, session.connection() as connection:
-        connection.execute(
-            update(Tracker).where(Tracker.announce_url == sqla.bindparam("b_announce_url")),
-            params,
-            execution_options={"synchronize_session": None},
-        )
-        connection.commit()

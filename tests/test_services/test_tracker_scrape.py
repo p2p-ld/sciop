@@ -143,6 +143,7 @@ async def test_scrape_torrent_stats(
         f"udp://localhost:{ports[0]}",
         f"udp://localhost:{ports[1]}",
         "https://example.com/announce.php",
+        "https://error.example.com/announce.php",
     ]
     a: TorrentFile = torrentfile(announce_urls=trackers)
     b: TorrentFile = torrentfile(announce_urls=trackers)
@@ -161,11 +162,17 @@ async def test_scrape_torrent_stats(
             for t in (a, b, c)
         }
     }
-    client = HTTPTrackerClient(url=trackers[-1])
-
+    client = HTTPTrackerClient(url=trackers[-2])
     httpx_mock.add_response(
         url=client.make_scrape_url([t.v1_infohash for t in (a, b, c)]),
         content=bencode_rs.bencode(expected_http),
+    )
+
+    err_client = HTTPTrackerClient(url=trackers[-1])
+    httpx_mock.add_response(
+        url=err_client.make_scrape_url([t.v1_infohash for t in (a, b, c)]),
+        content=b"",
+        status_code=404,
     )
 
     async with (
@@ -184,11 +191,14 @@ async def test_scrape_torrent_stats(
             assert tb_proto.stats[link.torrent.v1_infohash[0:40]]["seeders"] == link.seeders
             assert tb_proto.stats[link.torrent.v1_infohash[0:40]]["leechers"] == link.leechers
             assert tb_proto.stats[link.torrent.v1_infohash[0:40]]["completed"] == link.completed
-        else:
+        elif link.tracker.announce_url == trackers[-2]:
             t_expected = expected_http["files"][bytes.fromhex(link.torrent.v1_infohash[0:40])]
             assert t_expected[b"complete"] == link.seeders
             assert t_expected[b"incomplete"] == link.leechers
             assert t_expected[b"downloaded"] == link.completed
+        else:
+            assert all([item is None for item in (link.seeders, link.leechers, link.completed)])
+            assert link.tracker.n_errors == 1
 
 
 @pytest.mark.asyncio
