@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from logging import Logger
 from types import TracebackType
-from typing import Any, Optional, cast
+from typing import Any, Optional, Sequence, cast
 from urllib.parse import ParseResult, urlencode, urlparse, urlunparse
 
 import aiodns
@@ -420,7 +420,9 @@ class UDPTrackerClient:
         for hash in infohashes:
             if offset + length_per_hash > len(data):
                 msg = f"Response not enough long enough to get scrape result from {hash}"
-                errors.append(ScrapeError(type="unpack", infohash=hash, msg=msg))
+                errors.append(
+                    ScrapeError(type="unpack", infohash=hash, msg=msg, announce_url=self.host)
+                )
                 self.logger.debug(msg)
                 continue
 
@@ -634,12 +636,18 @@ async def scrape_torrent_stats() -> None:
     to_scrape = gather_scrapable_torrents()
     sem = asyncio.Semaphore(value=get_config().services.tracker_scraping.n_workers)
     logger.debug("Scraping torrent stats for: %s", to_scrape)
-    results = await asyncio.gather(
+    results: tuple[ScrapeResult] = await asyncio.gather(
         *[
             scrape_tracker(url=tracker, infohashes=infohashes, semaphore=sem)
             for tracker, infohashes in to_scrape.items()
         ]
     )
+
+    logger.debug("Updating scrape results in db")
+    _update_scrape_results(results, logger=logger)
+    _handle_tracker_error(results, logger=logger)
+    _touch_tracker(results)
+
     total = sum([len(r.responses) for r in results])
     errors = sum([len(r.errors) for r in results])
     logger.info(
@@ -714,9 +722,6 @@ async def scrape_tracker(
                 ]
             )
 
-    _update_scrape_results(results, logger=logger)
-    _handle_tracker_error(results, logger=logger)
-    _touch_tracker(url, results)
     return results
 
 
@@ -749,52 +754,57 @@ async def scrape_http_tracker(url: str, infohashes: list[str]) -> ScrapeResult:
     return results
 
 
-def _update_scrape_results(results: ScrapeResult, logger: Logger) -> None:
+def _update_scrape_results(results: Sequence[ScrapeResult], logger: Logger) -> None:
     from sciop.db import get_session
     from sciop.models import TorrentFile, TorrentTrackerLink, Tracker
 
-    if len(results.responses) == 0:
+    if len(results) == 0:
         return
 
-    # FIXME: assuming we are storing a collection from a single tracker,
-    # which are are most of the time
-    # revisit using `sqla.tuple_(col1, col2).in([(val1, val2) for ...])
-    announce_url = set([r.announce_url for r in results.responses.values()])
-    if len(announce_url) > 1:
-        raise ValueError("Can only store one tracker's worth of results at a time")
-    if len(announce_url) == 0:
-        logger.warning("no announce url found in responses")
-        return
-    announce_url = list(announce_url)[0]
+    # unpack scrape results into flat value dicts for inserting
 
-    update_select_stmt = (
-        select(TorrentTrackerLink)
-        .join(TorrentFile.tracker_links)
-        .join(TorrentTrackerLink.tracker)
-        .where(
-            Tracker.announce_url == announce_url,
-            TorrentFile.v1_infohash.in_([res.infohash for res in results.responses.values()]),
-        )
+    scrape_time = datetime.now(UTC)
+    to_update = [
+        {
+            "b_announce_url": torrent.announce_url,
+            "b_v1_infohash": torrent.infohash,
+            "seeders": torrent.seeders,
+            "leechers": torrent.leechers,
+            "completed": torrent.completed,
+            "last_scraped_at": scrape_time,
+        }
+        for tracker in results
+        for torrent in tracker.responses.values()
+    ]
+
+    update_select_stmt = update(TorrentTrackerLink).where(
+        TorrentTrackerLink.tracker_id
+        == (
+            select(Tracker.tracker_id)
+            .where(Tracker.announce_url == sqla.bindparam("b_announce_url"))
+            .scalar_subquery()
+        ),
+        TorrentTrackerLink.torrent_file_id
+        == (
+            select(TorrentFile.torrent_file_id)
+            .where(TorrentFile.v1_infohash == sqla.bindparam("b_v1_infohash"))
+            .scalar_subquery()
+        ),
     )
-    with get_session() as session:
-        scrape_time = datetime.now(UTC)
-        links = session.exec(update_select_stmt).all()
-        for link in links:
-            response = results.responses[link.torrent.v1_infohash]
-            link.seeders = response.seeders
-            link.leechers = response.leechers
-            link.completed = response.completed
-            link.last_scraped_at = scrape_time
-            session.add(link)
-
-        session.commit()
+    with get_session() as session, session.connection() as connection:
+        connection.execute(
+            update_select_stmt, to_update, execution_options={"synchronize_session": None}
+        )
+        connection.commit()
 
 
-def _handle_tracker_error(results: ScrapeResult, logger: Logger) -> None:
+def _handle_tracker_error(results: Sequence[ScrapeResult], logger: Logger) -> None:
     from sciop.db import get_session
     from sciop.models import Tracker
 
-    tracker_errors = [e for e in results.errors if e.announce_url and e.infohash is None]
+    tracker_errors = [
+        e for tracker in results for e in tracker.errors if e.announce_url and e.infohash is None
+    ]
     if not tracker_errors:
         return
     with get_session() as session:
@@ -832,17 +842,32 @@ def _compute_backoff(
     return min(backoff, get_config().services.tracker_scraping.max_backoff)
 
 
-def _touch_tracker(url: str, results: ScrapeResult) -> None:
+def _touch_tracker(results: Sequence[ScrapeResult]) -> None:
     from sciop.db import get_session
     from sciop.models import Tracker
 
-    errors = [e for e in results.errors]
-    any_errors = any([e.announce_url == url for e in errors])
+    params = []
+    for tracker in results:
+        if not tracker.errors and not tracker.responses:
+            continue
+        announce_url = (
+            tracker.errors[0].announce_url
+            if tracker.errors
+            else next(iter(tracker.responses.values())).announce_url
+        )
 
-    params = {"last_scraped_at": datetime.now(UTC)}
-    if not any_errors:
-        params.update({"n_errors": 0, "error_type": None, "next_scrape_after": None})
+        item = {"last_scraped_at": datetime.now(UTC), "b_announce_url": announce_url}
+        if not tracker.errors:
+            item.update({"n_errors": 0, "error_type": None, "next_scrape_after": None})
+        params.append(item)
 
-    with get_session() as session:
-        session.exec(update(Tracker).where(Tracker.announce_url == url), params=params)
-        session.commit()
+    if not params:
+        return
+
+    with get_session() as session, session.connection() as connection:
+        connection.execute(
+            update(Tracker).where(Tracker.announce_url == sqla.bindparam("b_announce_url")),
+            params,
+            execution_options={"synchronize_session": None},
+        )
+        connection.commit()
