@@ -233,7 +233,6 @@ async def _request_range(
     cfg = get_config()
 
     logger = init_logger("services.webseed_validation")
-    logger.debug("%s - retries: %s", get_url, retries)
     if retries is None:
         retries = cfg.services.webseed_validation.retries.copy()
 

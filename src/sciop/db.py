@@ -1,5 +1,6 @@
 import importlib.resources
 import random
+import uuid
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Generator, Optional
 
@@ -13,6 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel, create_engine, func, select
 
 from sciop.config import get_config
+from sciop.logging import init_logger
 
 if TYPE_CHECKING:
 
@@ -35,13 +37,19 @@ def iter_session() -> Generator[Session, None, None]:
     """
     from sciop.models.mixins import EditableMixin
 
+    logger = init_logger("db.session")
+
     maker = get_maker()
     session = maker()
     try:
         session = EditableMixin.editable_session(session)
+        session_id = uuid.uuid4()
+        session.info["session_id"] = session_id
+        logger.debug("session opened - %s", session_id)
         yield session
     finally:
         session.close()
+        logger.debug("session closed - %s", session.info.get("session_id"))
 
 
 @contextmanager
