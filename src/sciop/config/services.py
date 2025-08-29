@@ -118,13 +118,15 @@ class WebseedValidationConfig(QueueJobConfig):
     Configuration of adding and validatation of webseeds from the web UI.
 
     If enabled, when webseeds are added, sciop will request `n_pieces` from the torrent
-    (or, in the case of large piece sizes, the number of pieces that kees us
+    (or, in the case of large piece sizes, the number of pieces that keeps us
     below `max_validation_data` bytes worth of bandwidth)
     """
 
     queue_name: str = "webseeds"
     max_concurrent: int = 2
     """
+    The size of the process pool that controls the number of added webseeds validated concurrently.
+    
     This is a potentially memory-intensive job, so keep default count low.
     """
 
