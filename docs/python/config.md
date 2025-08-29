@@ -187,3 +187,9 @@ Background services.
 ::: sciop.config.DocsConfig
     options:
         heading_level: 4
+
+### Webseed Validation
+
+::: sciop.config.WebseedValidationConfig
+    options:
+        heading_level: 4
