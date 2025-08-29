@@ -70,6 +70,7 @@ def _make_engine() -> Engine:
         echo=get_config().db.echo,
         pool_size=get_config().db.pool_size,
         max_overflow=get_config().db.overflow_size,
+        connect_args={"timeout": get_config().db.busy_timeout},
     )
 
 
