@@ -41,7 +41,7 @@ Install the optional dependencies for other workflows:
 - Documentation rendering: `pip install -e '.[docs]'`
 - Testing sciop package: `pip install -e '.[test]'`
 - Development server running: `pip install -e '[dev]'`
-- All three workflows: 'pip install -e .[docs, test, dev]'
+- All three workflows: `pip install -e .[docs, test, dev]'`
 
 Note:
 `sciop` is available on [PyPI](https://pypi.org/project/sciop/).
