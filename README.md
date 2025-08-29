@@ -37,6 +37,12 @@ Install sciop in editable mode and it's dependencies into your virtual environme
 
     pip install -e .
 
+Install the optional dependencies for other workflows:
+- Documentation rendering: `pip install -e '.[docs]'`
+- Testing sciop package: `pip install -e '.[test]'`
+- Development server running: `pip install -e '[dev]'`
+- All three workflows: 'pip install -e .[docs, test, dev]'
+
 Note:
 `sciop` is available on [PyPI](https://pypi.org/project/sciop/).
 However, while we are in beta development, we do not regularly deploy versions there. Installing from this repository is *strongly recommended.*
