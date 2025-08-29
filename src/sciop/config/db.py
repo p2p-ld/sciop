@@ -14,3 +14,8 @@ class DBConfig(BaseModel):
     """Number of active database connections to maintain"""
     overflow_size: int = 20
     """Additional database connections that are not allowed to sleep"""
+    busy_timeout: float = 15
+    """
+    Timeout when waiting for database locks to resolve.
+    Passed to the sqlite3.connect `timeout` param
+    """
