@@ -18,7 +18,7 @@
 
         <span class="account-scopes tokens">
         {% if review %}
-            {% for scope_name in models.Scopes.__members__.values() %}
+            {% for scope_name in types.Scopes.__members__.values() %}
                 {% set disabled=(current_account and
                     (current_account.has_scope("root") and (scope_name == "root" or scope_name == "admin") and (current_account.username == account.username)) or
                     (((not current_account.has_scope("root")) and (current_account.has_scope("admin")) and (scope_name == "root" or scope_name == "admin"))))
