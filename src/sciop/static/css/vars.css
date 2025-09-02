@@ -79,7 +79,9 @@ body {
     --color-primary-contrast: #000;
     --color-primary-shade-1: lch(44% 132 317);
     --color-caution-contrast: var(--color-primary-contrast);
-
     --color-good: lch(69.29% 92.19 133.94);
+    --color-src: #e79d01;
+    --color-src-background: #4a4e53;
+    --color-src-buildings: var(--color-background-shade);
   }
 }
