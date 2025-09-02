@@ -45,11 +45,12 @@ def get_env_globals() -> dict:
     """
     # const within closure to avoid the infinite monkeypatching hell problem
     # since we need to import models here
-    from sciop import models
+    from sciop import models, types
     from sciop.config import get_config
 
     return {
         "models": models,
+        "types": types,
         "now": datetime.now,
         "UTC": UTC,
         "unwrap_optional": unwrap_optional,

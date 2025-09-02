@@ -6,7 +6,7 @@
         </a>
     </td>
     <td class="action">
-      {{entry.action.value}}
+      {{entry.action}}
     </td>
     <td class="value">
       {{entry.value}}
@@ -23,10 +23,26 @@
           {{ entry.target_dataset.slug }}
         </a>
       </td>
+    {% elif entry.target_dataset_part %}
+      <td class="target dataset-part-slug item-link">
+        <a href="/datasets/{{ entry.target_dataset_part.dataset.slug }}">
+          {{ entry.target_dataset_part.dataset.slug }}
+        </a>
+        /
+        <a href="/datasets/{{ entry.target_dataset_part.dataset.slug }}/{{ entry.target_dataset_part.part_slug }}">
+          {{ entry.target_dataset_part.part_slug }}
+        </a>
+      </td>
     {% elif entry.target_upload %}
       <td class="target short-hash item-link">
         <a href="/uploads/{{ entry.target_upload.infohash }}">
           {{ entry.target_upload.short_hash }}
+        </a>
+      </td>
+    {% elif entry.target_webseed %}
+      <td class="target webseed-url item-link">
+        <a href="/uploads/{{ entry.target_webseed.torrent.infohash }}">
+          {{ entry.target_webseed.url }}
         </a>
       </td>
     {% endif %}
