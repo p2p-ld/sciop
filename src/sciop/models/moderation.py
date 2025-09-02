@@ -114,7 +114,9 @@ class AuditLogRead(SQLModel):
     action: ModerationAction
     target_account: Optional["AccountRead"] = None
     target_dataset: Optional["Dataset"] = None
+    target_dataset_part: Optional["DatasetPart"] = None
     target_upload: Optional["Upload"] = None
+    target_webseed: Optional["Webseed"] = None
     value: Optional[str] = None
     created_at: UTCDateTime
     updated_at: UTCDateTime
