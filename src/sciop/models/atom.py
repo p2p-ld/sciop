@@ -2,15 +2,16 @@
 Models for parsing and storing atom feeds
 """
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Field, Relationship
 
 from sciop.models.base import SQLModel
 from sciop.types import IDField, MaxLenURL, UTCDateTime
+
+if TYPE_CHECKING:
+    from bs4 import Tag
 
 
 class AtomFeed(SQLModel, table=True):
@@ -27,8 +28,10 @@ class AtomFeed(SQLModel, table=True):
     created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: Optional[UTCDateTime] = Field(None)
     url: MaxLenURL
-    name: str = Field(..., description="Short-name used when displaying items from this feed")
-    entries: list[AtomFeedEntry] = Relationship(back_populates="feed", cascade_delete=True)
+    name: str | None = Field(
+        None, description="Short-name used when displaying items from this feed"
+    )
+    entries: list["AtomFeedEntry"] = Relationship(back_populates="feed", cascade_delete=True)
 
 
 class AtomFeedEntry(SQLModel, table=True):
@@ -59,3 +62,34 @@ class AtomFeedEntry(SQLModel, table=True):
     author_uri: MaxLenURL | None = None
     published: UTCDateTime | None = None
     updated: UTCDateTime
+
+    @classmethod
+    def from_soup(cls, soup: "Tag") -> "AtomFeedEntry":
+        """
+        Create from an `<entry>` item in an atom feed
+        """
+        # handle optionals
+        if published := soup.select_one("published"):
+            published = datetime.fromisoformat(published.text.strip()).astimezone(UTC)
+        else:
+            published = None
+
+        if author_uri := soup.select_one("author > uri"):
+            author_uri = author_uri.text.strip()
+        else:
+            author_uri = None
+
+        return AtomFeedEntry(
+            id=soup.select_one("id").text.strip(),
+            title=soup.select_one("title").text.strip(),
+            summary=soup.select_one("summary").text.strip(),
+            link=soup.select_one("link").attrs["href"].strip(),
+            author_name=soup.select_one("author > name").text.strip(),
+            updated=datetime.fromisoformat(soup.select_one("updated").text.strip()).astimezone(UTC),
+            published=published,
+            author_uri=author_uri,
+        )
+
+
+AtomFeed.model_rebuild()
+AtomFeedEntry.model_rebuild()
