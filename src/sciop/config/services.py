@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field
 
 
 class JobConfig(BaseModel):
@@ -184,6 +184,46 @@ class WebseedValidationConfig(QueueJobConfig):
         return min(self.n_pieces, self.max_validation_data // piece_length)
 
 
+class UpdateFeed(BaseModel):
+    """
+    A single feed to use for "whats new" updates
+    """
+
+    url: AnyHttpUrl
+    """URL of an Atom feed"""
+    name: str
+    """
+    Short, taglike name to use when displaying posts from this feed.
+    """
+
+
+class UpdateFeedsConfig(JobConfig):
+    """
+    Configure a set of (atom) feeds that are displayed on the homepage as "what's new" updates.
+
+    Each of the feeds **must** be under **your** control -
+    the titles and summaries of the feeds are displayed **without sanitization**,
+    and while the CSP headers should prohibit inlined JS and CSS,
+    you should **never** display unsanitized external data.
+    """
+
+    interval: int = 30
+    """
+    Frequency (in minutes) to check feed for updates.
+    
+    If the feed has not been updated in that time, no changes are made to local objects.
+    """
+    feeds: list[UpdateFeed] | None = None
+    """
+    Potentially multiple feeds to pull updates from.
+    If `feeds` is not provided, service will be disabled.
+    """
+    max_n_posts: int = 10
+    """
+    Only keep the last n posts from each configured feed.
+    """
+
+
 class ServicesConfig(BaseModel):
     """
     Top-level config for all background services
@@ -193,6 +233,8 @@ class ServicesConfig(BaseModel):
     """Service config: Tracker scraping"""
     site_stats: StatsConfig = StatsConfig()
     """Service config: Site stats computation"""
+    update_feeds: UpdateFeedsConfig = UpdateFeedsConfig()
+    """Service config: What's new update feeds"""
     docs: DocsConfig = DocsConfig()
     """Live-building docs in dev mode"""
     webseed_validation: WebseedValidationConfig = Field(

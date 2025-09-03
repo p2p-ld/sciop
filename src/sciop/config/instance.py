@@ -16,14 +16,6 @@ class InstanceQuote(BaseModel):
     link: str
 
 
-class InstanceUpdates(BaseModel):
-    header: str
-    title: str
-    description: str
-    subtext_l: str
-    subtext_r: str
-
-
 class InstanceConfig(BaseModel):
     """
     Configuration for the public-facing parts of this instance
@@ -36,16 +28,13 @@ class InstanceConfig(BaseModel):
         description="A list of quotes to show on the homepage",
         default_factory=list,
     )
-    updates: Optional[InstanceUpdates] = Field(
-        default=None, description="An update message to display in the homepage"
-    )
     rules: list[InstanceRule] = Field(
         default_factory=list, description="Site rules to display in the docs"
     )
     footer: str = Field(
         "",
         description="Footer message shown on the bottom-right of every page."
-                    "Markdown is supported.",
+        "Markdown is supported.",
     )
     alert: str | None = Field(
         None,
