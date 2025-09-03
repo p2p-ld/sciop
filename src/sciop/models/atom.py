@@ -28,9 +28,7 @@ class AtomFeed(SQLModel, table=True):
     created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: Optional[UTCDateTime] = Field(None)
     url: MaxLenURL
-    name: str | None = Field(
-        None, description="Short-name used when displaying items from this feed"
-    )
+    name: str = Field(..., description="Short-name used when displaying items from this feed")
     entries: list["AtomFeedEntry"] = Relationship(back_populates="feed", cascade_delete=True)
 
 

@@ -3,7 +3,7 @@
 {% from 'macros/stats.html' import site_stats %}
 {% from 'macros/counter.html' import counter %}
 {% from 'macros/quote.html' import instance_quote %}
-{% from 'macros/instance-updates.html' import instance_updates %}
+{% from 'macros/whats-new.html' import whatsnew_window %}
 {% block container_class %}text-container{% endblock %}
 {% block content %}
 <div class="site-index">
@@ -56,7 +56,9 @@
         {{ site_stats(stats) }}
         </div>
         {% endif %}
-        {{ instance_updates(updates) }}
+        {% if config.services.update_feeds.enabled %}
+        {{ whatsnew_window() }}
+        {% endif %}
     </div>
     <div class="hidden">
         <a rel="nofollow" href="/crawlers">crawlers</a>

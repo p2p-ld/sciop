@@ -1,0 +1,37 @@
+{% macro whatsnew_window() %}
+<div class="status-strip">
+    <div class="window">
+        <div class="title-bar">
+            <h2 class="title-bar-text">What's New???</h2>
+            <div class="title-bar-controls">
+                <button class="index-cancel-button" aria-label="Close"></button>
+            </div>
+        </div>
+        <div class="window-body">
+            <div
+                hx-get="/partials/whatsnew/"
+                hx-trigger="load"
+                hx-swap="outerHTML"
+                hx-indicator="#whatsnew-loading-indicator"
+            >
+                <p class="status-text">Loading...</p>
+                <p class="htmx-indicator" id="whatsnew-loading-indicator">
+                    <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+                </p>
+            </div>
+            <section class="field-row">
+                <a href="/login"><button>OK</button></a>
+              <button class="index-cancel-button">Cancel</button>
+            </section>
+        </div>
+        <div class="status-bar">
+            <p class="status-bar-field">LEFT TEXT</p>
+            <p class="status-bar-field">RIGHT TEXT</p>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro whatsnew_entry(entry) %}
+
+{% endmacro %}

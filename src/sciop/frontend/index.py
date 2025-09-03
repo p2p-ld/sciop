@@ -26,8 +26,6 @@ async def index(request: Request, session: SessionDep, background_tasks: Backgro
 
     hit_count = HitCount.next(path="/", session=session, background_tasks=background_tasks)
 
-    update = get_config().instance.updates
-
     quotes = get_config().instance.quotes
     quote = random.choice(quotes) if quotes else None
 
@@ -37,7 +35,6 @@ async def index(request: Request, session: SessionDep, background_tasks: Backgro
         {
             "version": sciop.__version__,
             "quote": quote,
-            "updates": update,
             "short_hash": short_hash,
             "stats": stats,
             "hit_count": hit_count,

@@ -107,7 +107,7 @@ async def update_atom_feed(url: str, max_items: int = 10) -> None:
         res = await client.get(url, timeout=cfg.server.default_timeout)
 
     res.raise_for_status()
-    soup = BeautifulSoup(res.text, "lxml")
+    soup = BeautifulSoup(res.text, "xml")
     feed_updated = datetime.fromisoformat(
         soup.select_one("feed > updated").text.strip()
     ).astimezone(UTC)
