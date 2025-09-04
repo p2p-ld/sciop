@@ -103,3 +103,7 @@ This project includes the following vendored software:
 - [htmx](https://htmx.org/) - Zero-Clause BSD
 - [form-json](https://github.com/xehrad/form-json/) - GPL 3.0
 - [fastapi_rss](https://github.com/sbordeyne/fastapi_rss) - MIT
+
+And includes modified but still substantial quotes from the following software:
+
+- [98.css](https://jdan.github.io/98.css/) - MIT

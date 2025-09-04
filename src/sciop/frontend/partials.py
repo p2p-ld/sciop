@@ -34,10 +34,13 @@ def model_list(idx: int, field_name: str, model_name: str, form_id: str, request
 
 
 @partials_router.get("/whatsnew", response_class=HTMLResponse)
-def whatsnew_items(session: SessionDep, request: Request):
+async def whatsnew_items(session: SessionDep, request: Request):
     entries = session.exec(
         select(models.AtomFeedEntry).order_by(models.AtomFeedEntry.updated.desc())
     ).all()
+    updated_date = entries[0].updated
     return templates.TemplateResponse(
-        request, "partials/whatsnew-entries.html", {"entries": entries}
+        request,
+        "partials/whatsnew-entries.html",
+        {"entries": entries, "updated_date": updated_date},
     )
