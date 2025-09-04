@@ -590,9 +590,8 @@ progress::-moz-progress-bar {
 }
 
 .hit-counter {
-  margin-top: 1em;
+  margin-top: auto;
   margin-left: auto;
-  position: absolute;
   right: 1em;
   border: 5px ridge var(--color-border);
   font-family: var(--font-mono);

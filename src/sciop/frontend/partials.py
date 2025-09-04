@@ -2,8 +2,10 @@
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
+from sqlmodel import select
 
 from sciop import models
+from sciop.api.deps import SessionDep
 from sciop.frontend.templates import templates
 
 partials_router = APIRouter(prefix="/partials")
@@ -28,4 +30,17 @@ def model_list(idx: int, field_name: str, model_name: str, form_id: str, request
             "field_name": field_name,
             "field_name_prefix": f"{field_name}[{idx}].",
         },
+    )
+
+
+@partials_router.get("/whatsnew", response_class=HTMLResponse)
+async def whatsnew_items(session: SessionDep, request: Request):
+    entries = session.exec(
+        select(models.AtomFeedEntry).order_by(models.AtomFeedEntry.updated.desc())
+    ).all()
+    updated_date = entries[0].updated
+    return templates.TemplateResponse(
+        request,
+        "partials/whatsnew-entries.html",
+        {"entries": entries, "updated_date": updated_date},
     )

@@ -1,0 +1,5 @@
+{% from "macros/whats-new.html" import whatsnew_entry %}
+<span id="whatsnew-updated-date" hx-swap-oob="true"> - {{ updated_date.strftime("%y-%m-%d") }}</span>
+{% for entry in entries %}
+{{ whatsnew_entry(entry) }}
+{% endfor %}

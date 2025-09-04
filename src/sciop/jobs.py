@@ -11,6 +11,26 @@ async def scrape_torrent_stats() -> None:
 
 
 @scheduler.interval(
+    minutes=get_config().services.update_feeds.interval,
+    enabled=bool(
+        get_config().services.update_feeds.enabled and get_config().services.update_feeds.feeds
+    ),
+)
+async def update_atom_feeds() -> None:
+    """
+    Update any configured atom feeds.
+
+    Atom feeds can be subscribed to and displayed on the homepage for instance news and updates.
+
+    Multiple feeds can be configured for different types of updates,
+    or updates from different sources,
+    however since the titles and summaries from the feeds are displayed without sanitization,
+    feeds outside the instance's control should *never* be configured.
+    """
+    await services.update_feeds()
+
+
+@scheduler.interval(
     minutes=get_config().services.site_stats.job_interval,
     enabled=get_config().services.site_stats.enabled,
 )

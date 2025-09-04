@@ -77,6 +77,11 @@ class ServerConfig(BaseModel):
     """Submodel containing CSP config"""
     user_agent: str = f"sciop ({sciop_version})"
     """User agent to use for outgoing http requests"""
+    default_timeout: float = 10
+    """
+    Default timeout to use for outgoing HTTP requests if no more specific timeout is configured
+    (in seconds).
+    """
     scheduler_mode: Literal["local", "rpc"] = "rpc"
     """
     Scheduler can be run either...

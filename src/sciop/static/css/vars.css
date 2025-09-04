@@ -28,7 +28,9 @@
   --font-mono: "Anonymous Pro", "Fira Code", "Courier New", "Courier", monospace;
 
   --width-container: 750px;
+  --breakpoint-mobile: 535px;
   --breakpoint-tablet: 768px;
+  --breakpoint-half: 1200px;
 
   --disabled-bg: repeating-linear-gradient(
         -45deg,
@@ -64,6 +66,7 @@ body {
   --color-caution-contrast: var(--color-primary-contrast);
   --color-warning-contrast: #000;
   --color-alert-contrast: var(--color-dark-background);
+  --color-twocol-shadow: var(--color-dark-background);
 
 
   &.light-theme {
@@ -83,5 +86,6 @@ body {
     --color-src: #e79d01;
     --color-src-background: #4a4e53;
     --color-src-buildings: var(--color-background-shade);
+    --color-twocol-shadow: transparent;
   }
 }

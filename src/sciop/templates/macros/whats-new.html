@@ -1,0 +1,50 @@
+{% macro whatsnew_window() %}
+<div class="status-strip">
+    <div class="window">
+        <div class="title-bar">
+            <h2 class="title-bar-text">What's New<span id="whatsnew-updated-date"></span></h2>
+            <div class="title-bar-controls">
+                <button class="index-cancel-button" aria-label="Close"></button>
+            </div>
+        </div>
+        <div class="window-body">
+            <div class="window-content">
+            <div
+                hx-get="/partials/whatsnew/"
+                hx-trigger="load"
+                hx-swap="outerHTML"
+                hx-indicator="#whatsnew-loading-indicator"
+                id="whatsnew-indicator-container"
+            >
+                <p class="status-text">Loading...</p>
+                <p class="htmx-indicator" id="whatsnew-loading-indicator">
+                    <img src="/static/img/hourglass.gif" alt="Loading indicator, a spinning ring"/>
+                </p>
+            </div>
+            </div>
+            <section class="field-row">
+                <a href="/login"><button>OK</button></a>
+              <button class="index-cancel-button">Cancel</button>
+            </section>
+        </div>
+        <div class="status-bar">
+            <p class="status-bar-field">Swarm Churn: Optimal</p>
+            <p class="status-bar-field">NAT Holepunching: Occasional</p>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro whatsnew_entry(entry) %}
+<div class="whatsnew-entry">
+    <h3 class="title"><a href="{{ entry.link }}">{{ entry.title }}</a></h3>
+    <div class="meta-bar">
+        <span class="date">{{ entry.updated.strftime("%y-%m-%d") }}</span> -
+        {% if entry.author_uri %}<a href="{{entry.author_uri }}">{% endif %}
+        <span class="author">{{ entry.author_name }}</span>
+        {%- if entry.author_uri %}</a>{% endif %} -
+        <span class="feed">{{ entry.feed.name }}</span>
+    </div>
+    <p class="summary">{{ entry.summary }}</p>
+</div>
+{% endmacro %}

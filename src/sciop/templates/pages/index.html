@@ -1,12 +1,14 @@
-{% extends "layouts/default.html" %}
+{% extends "layouts/twocol.html" %}
 {% from 'macros/dataset.html' import dataset_collapsible %}
 {% from 'macros/stats.html' import site_stats %}
 {% from 'macros/counter.html' import counter %}
 {% from 'macros/quote.html' import instance_quote %}
+{% from 'macros/whats-new.html' import whatsnew_window %}
 {% block container_class %}text-container{% endblock %}
-{% block content %}
+{% block left %}
 <div class="site-index">
     <div class="center-column">
+        <div class="hero">
         <h1 class="site-title redacted">SciOp</h1>
         <p class="version-tag">
             Version: <a
@@ -17,14 +19,6 @@
         </p>
 
         {{ instance_quote(quote) }}
-
-        <div class="admonition surface" id="new-here">
-            <div class="corner top-left"></div>
-            <div class="text-container">
-            <h2>New here?</h2>
-            <span>Check the <a href="/docs/quickstart/">quickstart guide</a></span>
-            </div>
-            <div class="corner bottom-right"></div>
         </div>
 
         <div id="about-sciop">
@@ -56,36 +50,23 @@
         </div>
         {% endif %}
 
-        <div class="status-strip">
-            <div class="window">
-                <div class="title-bar">
-                    <h2 class="title-bar-text">2025-03-25 Project Status</h2>
-                    <div class="title-bar-controls">
-                        <button class="index-cancel-button" aria-label="Close"></button>
-                    </div>
-                </div>
-                <div class="window-body">
-                    <p class="status-text">Open Beta</p>
-                    <p>Sign up, upload, and maybe even download. <br>Help us buff out the rough parts and get the archive ready for mass use.</p>
-                    <section class="field-row">
-                        <a href="/login"><button>OK</button></a>
-                      <button class="index-cancel-button">Cancel</button>
-                    </section>
-                </div>
-                <div class="status-bar">
-                    <p class="status-bar-field">Swarm: Assembling</p>
-                    <p class="status-bar-field">Odds of Bits Torrented: 100%</p>
-                </div>
-            </div>
-        </div>
     </div>
     <div class="hidden">
         <a rel="nofollow" href="/crawlers">crawlers</a>
     </div>
-    {% if hit_count is number %}
-    {{ counter(hit_count) }}
-    {% endif %}
 </div>
-
-
-{% endblock content %}
+{% endblock %}
+{% block right %}
+{% if config.services.update_feeds.enabled %}
+{{ whatsnew_window() }}
+{% endif %}
+<div id="new-here">
+    <div class="text-container">
+    <h2>New here?</h2>
+    <span>Check the <a href="/docs/quickstart/">quickstart guide</a></span>
+    </div>
+</div>
+{% if hit_count is number %}
+{{ counter(hit_count) }}
+{% endif %}
+{% endblock %}

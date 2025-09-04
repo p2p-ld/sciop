@@ -31,6 +31,7 @@ from sciop.models.api import (
     SearchParams,
     SuccessResponse,
 )
+from sciop.models.atom import AtomFeed, AtomFeedEntry
 from sciop.models.claim import ClaimStatus, DatasetClaim, DatasetClaimCreate, DatasetClaimRead
 from sciop.models.counter import HitCount
 from sciop.models.dataset import (
@@ -81,6 +82,8 @@ __all__ = [
     "AccountCreate",
     "AccountRead",
     "AccountScopeLink",
+    "AtomFeed",
+    "AtomFeedEntry",
     "AuditLog",
     "AuditLogRead",
     "ClaimStatus",

@@ -1,19 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-	{% block head %}
-	{% include "includes/head.html" %}
-	{% endblock head %}
-    </head>
-
-    <body class="preload{% if config.env in ('dev', 'test') %} {{ config.env }}{% endif %}">
-        {% include "includes/header.html" %}
-        <div class="container page-container {% block container_class %}{% endblock %}">
-            <div class="main">
-                {% block content %}{% endblock %}
-            </div>
-        </div>
-        {% include "includes/footer.html" %}
-        {% include "includes/footer-js.html" %}
-    </body>
-</html>
+{% extends "layouts/base.html" %}
+{% block main %}
+<div class="main">
+    {% block content %}{% endblock %}
+</div>
+{% endblock %}

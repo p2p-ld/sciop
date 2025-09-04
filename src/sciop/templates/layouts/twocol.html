@@ -1,0 +1,11 @@
+{% extends 'layouts/base.html' %}
+{% block main %}
+<div class="main two-col">
+  <div class="column left">
+    {% block left %}{% endblock %}
+  </div>
+  <div class="column right">
+    {% block right %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

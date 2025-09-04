@@ -218,26 +218,6 @@ blockquote {
 }
 
 /* Lifted from 98.css */
-
-
-div.status-strip {
-    width: 100%;
-    padding: 2em 1em;
-    display: flex;
-    flex-direction: column;
-    gap: 1em;
-    h2 {
-        font-size: 2em;
-    }
-
-    background: repeating-linear-gradient(
-        -45deg,
-        var(--color-background),
-        var(--color-background) 15px,
-        var(--color-neutral-darker-1) 15px,
-        var(--color-neutral-darker-1) 30px );
-}
-
 div.status-strip {
   --dialog-blue: #000080;
   --dialog-blue-light: #1084d0;
@@ -261,6 +241,14 @@ div.status-strip {
   inset 1px 1px var(--window-frame);
   --border-sunken-inner: inset -2px -2px var(--button-face),
   inset 2px 2px var(--button-shadow);
+
+  margin: 0.5em;
+  box-shadow: 0.25em 0.25em 0.5em black;
+
+  a {
+    color: var(--dialog-blue);
+    text-decoration: underline;
+  }
 
 
   button,
@@ -340,13 +328,18 @@ div.status-strip {
     color: #222;
   }
 
+  .window-content {
+    max-height: 25em;
+    overflow-y: auto;
+
+  }
+
   .window {
     box-shadow: var(--border-window-outer), var(--border-window-inner);
     background: var(--surface);
     padding: 3px;
     min-width: 300px;
     margin: auto;
-    border: 1em solid var(--color-background);
   }
 
   button,
@@ -404,6 +397,7 @@ div.status-strip {
     padding: 2px 3px;
     margin: 0;
     color: #222;
+    font-size: 0.8em;
   }
   .field-row {
     display: flex;
@@ -427,6 +421,28 @@ div.status-strip {
   }
 }
 
+.whatsnew-entry {
+  .author {
+    margin: 0;
+  }
+  .title {
+    margin: 0 0 0.5em 0;
+  }
+
+  & + .whatsnew-entry {
+    margin-top: 2em;
+  }
+}
+
+#whatsnew-indicator-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  img {
+    max-height: 10em;
+  }
+}
 
 .site-stats-container {
   width: 100%;
