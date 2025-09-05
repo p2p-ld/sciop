@@ -35,7 +35,7 @@ class TorrentVersion(StrEnum):
     hybrid = "hybrid"
 
 
-class FileInTorrent(TableMixin, SortMixin, table=True):
+class FileInTorrent(SortMixin, table=True):
     """A file within a torrent file"""
 
     __sortable__ = (SortableCol(name="path"), SortableCol(name="size"))

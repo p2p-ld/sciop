@@ -1,6 +1,6 @@
 from typing import Any, Literal, Optional
 
-from sqlmodel import Session, select
+from sqlmodel import Session, insert, select
 
 from sciop.api.auth import get_password_hash, verify_password
 from sciop.models import (
@@ -260,6 +260,14 @@ def get_torrent_from_short_hash(*, short_hash: str, session: Session) -> Optiona
 def create_torrent(
     *, session: Session, created_torrent: TorrentFileCreate, account: Account
 ) -> TorrentFile:
+    """
+    Create a torrent in the database given a parameterized creation object.
+
+    Creating all the file items through the ORM takes an ungodly amount of time,
+    so we remove them from the `Torrent` object that is created,
+    create it, and then construct a bulk insert statement using the torrent_file_id
+    from the created torrentfile item.
+    """
     existing_trackers = session.exec(
         select(Tracker).filter(Tracker.announce_url.in_(created_torrent.announce_urls))
     ).all()
@@ -271,8 +279,6 @@ def create_torrent(
         session.add(tracker)
         new_trackers.append(tracker)
 
-    # FIXME: this takes an extremely long time for no reason.
-    files = [FileInTorrent(path=file.path, size=file.size) for file in created_torrent.files]
     if created_torrent.webseeds:
         webseeds = [
             Webseed(url=ws, status="in_original", account=account, is_approved=True)
@@ -280,8 +286,10 @@ def create_torrent(
         ]
     else:
         webseeds = []
+
+    # Don't add files here, create the torrent first and add the files manually afterwards
     db_obj = TorrentFile.model_validate(
-        created_torrent, update={"files": files, "account": account, "webseeds": webseeds}
+        created_torrent, update={"files": [], "account": account, "webseeds": webseeds}
     )
     session.add(db_obj)
 
@@ -294,6 +302,16 @@ def create_torrent(
 
     session.commit()
     session.refresh(db_obj)
+
+    # bulk insert files using the ID from the created torrent file item.
+    # These should already be validated and coerced by the `torrent_models.Torrent` class.
+    # Don't sort here, since file order is meaningful in v1 torrents.
+    file_rows = [
+        {"path": file.path, "size": file.size, "torrent_id": db_obj.torrent_file_id}
+        for file in created_torrent.files
+    ]
+    session.exec(insert(FileInTorrent), params=file_rows)
+    session.commit()
     return db_obj
 
 
