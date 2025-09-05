@@ -133,7 +133,12 @@ async def upload_files(
     search: RaggedQueryNoCurrentUrl,
 ) -> RaggedSearchPage[FileInTorrentRead]:
     """
-    Files in a torrent file
+    Files in a torrent file.
+
+    We don't order by path by default,
+    since v1 torrents can have their file list in an arbitrary order,
+    and that's meaningful for hashing since piece hashes can span multiple files.
+    (Sorting by path can be done with the standard `sort` query params, though).
     """
     stmt = (
         select(FileInTorrent)
