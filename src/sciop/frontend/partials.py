@@ -38,7 +38,12 @@ async def whatsnew_items(session: SessionDep, request: Request):
     entries = session.exec(
         select(models.AtomFeedEntry).order_by(models.AtomFeedEntry.updated.desc())
     ).all()
-    updated_date = entries[0].updated
+    if not entries:
+        entries = []
+        updated_date = None
+    else:
+        updated_date = entries[0].updated
+
     return templates.TemplateResponse(
         request,
         "partials/whatsnew-entries.html",
