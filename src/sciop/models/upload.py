@@ -16,6 +16,7 @@ from sciop.models import (
     AuditLog,
     Dataset,
     DatasetPart,
+    Report,
     TorrentFile,
     TorrentFileRead,
     TorrentTrackerLink,
@@ -176,6 +177,7 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
     )
 
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
+    reports: list["Report"] = Relationship(back_populates="target_upload")
 
     @hybrid_property
     def infohash(self) -> Optional[str]:

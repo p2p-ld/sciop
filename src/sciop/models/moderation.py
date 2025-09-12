@@ -120,11 +120,3 @@ class AuditLogRead(SQLModel):
     value: Optional[str] = None
     created_at: UTCDateTime
     updated_at: UTCDateTime
-
-
-class Report(TableMixin, table=True):
-    """Reports of items and accounts"""
-
-    __tablename__ = "reports"
-
-    report_id: IDField = Field(None, primary_key=True)

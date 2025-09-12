@@ -4,7 +4,7 @@ from enum import StrEnum
 from html import escape
 from os import PathLike as PathLike_
 from pathlib import Path
-from typing import Annotated, Literal, Optional, TypeAlias
+from typing import TYPE_CHECKING, Annotated, Literal, Optional, TypeAlias, Union
 
 import sqlalchemy as sqla
 from annotated_types import Gt, MaxLen, MinLen
@@ -12,6 +12,9 @@ from pydantic import AfterValidator, AnyUrl, BeforeValidator, PlainSerializer, T
 from slugify import slugify
 from sqlalchemy import Case, ColumnElement, case
 from sqlmodel import Field
+
+if TYPE_CHECKING:
+    from sciop.models import Account
 
 USERNAME_PATTERN = re.compile(r"^[\w-]+$")
 """Only word characters and hyphens"""
@@ -79,11 +82,20 @@ def _username_col() -> sqla.Column:
     )
 
 
+def _extract_username(val: Union[str, "Account"]) -> str:
+    from sciop.models import Account
+
+    if isinstance(val, Account):
+        return val.username
+    return val
+
+
 UsernameStr: TypeAlias = Annotated[
     str,
     MinLen(1),
     MaxLen(64),
     # Need a specific functional validator because sqlmodel regex validation is busted
+    BeforeValidator(_extract_username),
     AfterValidator(_validate_username),
     Field(
         ...,

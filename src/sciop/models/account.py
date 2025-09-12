@@ -20,6 +20,7 @@ if TYPE_CHECKING:
         DatasetClaim,
         DatasetPart,
         ExternalSource,
+        Report,
         TorrentFile,
         Upload,
         Webseed,
@@ -134,6 +135,27 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
         sa_relationship=relationship(
             "AuditLog",
             primaryjoin="Account.account_id == AuditLog.target_account_id",
+        ),
+    )
+    reports: list["Report"] = Relationship(
+        back_populates="target_account",
+        sa_relationship=relationship(
+            "Report",
+            primaryjoin="Account.account_id == Report.target_account_id",
+        ),
+    )
+    opened_reports: list["Report"] = Relationship(
+        back_populates="opened_by",
+        sa_relationship=relationship(
+            "Report",
+            primaryjoin="Account.account_id == Report.opened_by_id",
+        ),
+    )
+    resolved_reports: list["Report"] = Relationship(
+        back_populates="resolved_by",
+        sa_relationship=relationship(
+            "Report",
+            primaryjoin="Account.account_id == Report.resolved_by_id",
         ),
     )
     is_suspended: bool = False

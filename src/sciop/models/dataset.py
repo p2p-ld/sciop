@@ -48,7 +48,7 @@ from sciop.types import (
 if TYPE_CHECKING:
     from sqlmodel import Session
 
-    from sciop.models import AuditLog, DatasetClaim, Tag, Upload, UploadRead
+    from sciop.models import AuditLog, DatasetClaim, Report, Tag, Upload, UploadRead
 
 PREFIX_PATTERN = re.compile(r"\w{6}-[A-Z]{3}_\S+")
 
@@ -256,6 +256,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
     account: Optional["Account"] = Relationship(back_populates="datasets")
     scrape_status: ScrapeStatus = "unknown"
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
+    reports: list["Report"] = Relationship(back_populates="target_dataset")
     parts: list["DatasetPart"] = Relationship(back_populates="dataset")
     claims: list["DatasetClaim"] = Relationship(back_populates="dataset")
 
@@ -586,6 +587,7 @@ class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, EditableMixin, ta
     )
     paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset_part")
+    reports: list["Report"] = Relationship(back_populates="target_dataset_part")
     claims: list["DatasetClaim"] = Relationship(back_populates="dataset_part")
 
     def update(
