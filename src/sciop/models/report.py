@@ -9,7 +9,7 @@ from sqlmodel import Field, Relationship, Session
 from sciop.models.base import SQLModel
 from sciop.models.mixins import TableMixin
 from sciop.models.moderation import ModerationAction
-from sciop.types import IDField, UsernameStr
+from sciop.types import IDField, InputType, UsernameStr
 
 if TYPE_CHECKING:
     from sciop.models import (
@@ -149,8 +149,14 @@ class Report(TableMixin, table=True):
 
 
 class ReportCreate(SQLModel):
-    report_type: ReportType
-    comment: Annotated[str, MaxLen(8192)] | None = None
+    report_type: ReportType = Field(
+        ...,
+        schema_extra={"json_schema_extra": {"input_type": InputType.select}},
+    )
+    comment: Annotated[str, MaxLen(8192)] | None = Field(
+        None,
+        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+    )
     target_type: TargetType
     target: str = Field(
         ...,

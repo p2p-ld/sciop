@@ -354,7 +354,9 @@ a.button:hover {
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 999;
 
-  &.visible {
+  &.visible,
+  &:has(.modal)
+  {
     display: flex;
     align-items: center;
     align-content: center;
@@ -379,15 +381,6 @@ a.button:hover {
     .modal-body {
       padding: 1em;
     }
-  }
-
-}
-
-#error-modal-container {
-  &:has(.error-modal) {
-    display: flex;
-    align-items: center;
-    align-content: center;
   }
 }
 

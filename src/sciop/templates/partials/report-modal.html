@@ -1,0 +1,36 @@
+{% from "macros/model-form.html" import inner_model_form %}
+{% set outer_id = "report-" + target_type + "-" + target %}
+{% set form_id = outer_id + "-form" %}
+{% set label_id = outer_id + "-header" %}
+<div id="{{ outer_id }}"
+     class="surface report-modal modal"
+     aria-modal="true"
+     role="dialog"
+     aria-labelledby="{{ label_id }}"
+     tabindex="-1"
+>
+  <div class="modal-header">
+    <span id="{{ label_id }}">Report {{ target_type }} {{ target }}</span>
+    <button class="close-button" hx-target="#{{ outer_id }}" hx-swap="delete"
+        data-target="#{{ outer_id }}">close</button>
+  </div>
+  <div class="modal-body">
+    {% if config.instance.report_message %}
+    <p class="report-message">{{ config.instance.report_message }}</p>
+    {% endif %}
+
+    <form class="form" id="{{ form_id }}" hx-ext="form-json">
+    {{ inner_model_form(id=form_id, model=models.ReportCreate) }}
+    </form>
+    <button
+      class="form-button"
+      type="submit"
+      name="report"
+      hx-post="{{ config.api_prefix }}/reports"
+      hx-include="#{{ form_id }}"
+      hx-target="#report-modal-container"
+      hx-swap="innerHTML"
+      hx-ext="form-json"
+    >Submit</button>
+  </div>
+</div>

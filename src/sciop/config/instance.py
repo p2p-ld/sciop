@@ -50,6 +50,9 @@ class InstanceConfig(BaseModel):
         "or the [.services.docs][sciop.config.services.DocsConfig] auto-build "
         "service should be enabled.",
     )
+    report_message: str | None = Field(
+        None, description="An optional message shown when opening a report."
+    )
 
     @property
     def contact_email_obfuscated(self) -> str | None:

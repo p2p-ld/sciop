@@ -7,6 +7,7 @@ from sqlmodel import select
 from sciop import models
 from sciop.api.deps import SessionDep
 from sciop.frontend.templates import templates
+from sciop.models import TargetType
 
 partials_router = APIRouter(prefix="/partials")
 
@@ -48,4 +49,17 @@ async def whatsnew_items(session: SessionDep, request: Request):
         request,
         "partials/whatsnew-entries.html",
         {"entries": entries, "updated_date": updated_date},
+    )
+
+
+@partials_router.get("/report", response_class=HTMLResponse)
+async def report_modal(request: Request, target_type: TargetType, target: str):
+    """
+    Inject a report modal into the `#report-modal-container` element
+    """
+    return templates.TemplateResponse(
+        request,
+        "partials/report-modal.html",
+        {"target_type": target_type, "target": target},
+        headers={"HX-Retarget": "#report-modal-container"},
     )
