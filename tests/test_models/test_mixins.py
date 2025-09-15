@@ -5,7 +5,15 @@ from typing import Optional
 import pytest
 from sqlmodel import Field, Session, select
 
-from sciop.models import Dataset, DatasetPart, DatasetTagLink, DatasetURL, Tag
+from sciop.models import (
+    AccountDatasetScopeLink,
+    Dataset,
+    DatasetPart,
+    DatasetTagLink,
+    DatasetURL,
+    Scope,
+    Tag,
+)
 from sciop.models.mixins import SearchableMixin
 from sciop.models.mixins.enum import EnumTableMixin
 
@@ -223,14 +231,20 @@ def test_ensure_enum(recreate_models):
 @pytest.mark.parametrize("is_removed", [True, False])
 def test_visible_to(dataset, account, is_approved, is_removed, session):
     """
-    Moderable items should be visible to creators and moderators if not removed,
-    even if not yet approved
+    Moderable items should be visible to users with dataset scopes and moderators if not removed,
+    excluding the dataset creator if they have no scopes, even if not yet approved
     """
     creator = account(username="creator")
+    permissioned = account(username="permissioned")
     public = account(username="public")
     reviewer = account(username="reviewer", scopes=["review"])
     moderable = dataset()
     moderable.account = creator
+    moderable.account_scopes = [
+        AccountDatasetScopeLink(
+            account=permissioned, dataset=moderable, _scope=Scope.get_item("edit", session)
+        )
+    ]
     moderable.is_approved = is_approved
     moderable.is_removed = is_removed
     session.add(moderable)
@@ -241,16 +255,19 @@ def test_visible_to(dataset, account, is_approved, is_removed, session):
         assert not moderable.visible_to()
         assert not moderable.visible_to(public)
         assert not moderable.visible_to(creator)
+        assert not moderable.visible_to(permissioned)
         assert not moderable.visible_to(reviewer)
     elif is_approved:
         assert moderable.visible_to()
         assert moderable.visible_to(public)
+        assert moderable.visible_to(permissioned)
         assert moderable.visible_to(creator)
         assert moderable.visible_to(reviewer)
     else:
         assert not moderable.visible_to()
         assert not moderable.visible_to(public)
-        assert moderable.visible_to(creator)
+        assert not moderable.visible_to(creator)
+        assert moderable.visible_to(permissioned)
         assert moderable.visible_to(reviewer)
 
 
@@ -258,14 +275,21 @@ def test_visible_to(dataset, account, is_approved, is_removed, session):
 @pytest.mark.parametrize("is_removed", [True, False])
 def test_visible_to_expression(dataset, account, is_approved, is_removed, session):
     """
-    Moderable items should be visible to creators and moderators if not removed,
+    Moderable items should be visible to to users with dataset scopes and moderators if not removed,
+    excluding the dataset creator if they have no scopes,
     even if not yet approved when used as an expression
     """
     creator = account(username="creator")
+    permissioned = account(username="permissioned")
     public = account(username="public")
     reviewer = account(username="reviewer", scopes=["review"])
     moderable = dataset()
     moderable.account = creator
+    moderable.account_scopes = [
+        AccountDatasetScopeLink(
+            account=permissioned, dataset=moderable, _scope=Scope.get_item("edit", session)
+        )
+    ]
     moderable.is_approved = is_approved
     moderable.is_removed = is_removed
     session.add(moderable)
@@ -283,17 +307,29 @@ def test_visible_to_expression(dataset, account, is_approved, is_removed, sessio
         assert (
             moderable not in session.exec(select(Dataset).where(Dataset.visible_to(reviewer))).all()
         )
+        assert (
+            moderable
+            not in session.exec(select(Dataset).where(Dataset.visible_to(permissioned))).all()
+        )
     elif is_approved:
         assert moderable in session.exec(select(Dataset).where(Dataset.visible_to())).all()
         assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(public))).all()
         assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(creator))).all()
+        assert (
+            moderable in session.exec(select(Dataset).where(Dataset.visible_to(permissioned))).all()
+        )
         assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(reviewer))).all()
     else:
         assert moderable not in session.exec(select(Dataset).where(Dataset.visible_to())).all()
         assert (
             moderable not in session.exec(select(Dataset).where(Dataset.visible_to(public))).all()
         )
-        assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(creator))).all()
+        assert (
+            moderable not in session.exec(select(Dataset).where(Dataset.visible_to(creator))).all()
+        )
+        assert (
+            moderable in session.exec(select(Dataset).where(Dataset.visible_to(permissioned))).all()
+        )
         assert moderable in session.exec(select(Dataset).where(Dataset.visible_to(reviewer))).all()
 
 
