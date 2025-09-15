@@ -9,8 +9,7 @@
 <h1 class="dataset-title">Editing - {{ dataset.title }} </h1>
 
 {% set form_id="edit-dataset-" + dataset.slug %}
-{{ model_form(id=form_id, model=dataset, edit=True) }}
-
+{{ model_form(id=form_id, model=dataset, edit=True, current_account=current_account) }}
 <div class="button-row">
     <button
         class="form-button"

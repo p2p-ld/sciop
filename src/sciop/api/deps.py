@@ -2,10 +2,11 @@ from typing import Annotated, Any, Optional, TypeVar
 from urllib.parse import parse_qsl, urlparse
 
 import jwt
-from fastapi import Depends, HTTPException, Query, Request, Response, status
+from fastapi import Body, Depends, HTTPException, Query, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, ValidationError
+from sciop.models.scope import AccountScopesRead
 from sqlmodel import Session, select
 from starlette.datastructures import QueryParams
 
@@ -15,9 +16,12 @@ from sciop.config import get_config
 from sciop.db import iter_session
 from sciop.models import (
     Account,
+    AccountScopes,
     Dataset,
     DatasetClaim,
     DatasetPart,
+    DatasetUpdate,
+    ItemScopes,
     RaggedSearchParams,
     Report,
     SearchParams,
@@ -234,6 +238,38 @@ def require_visible_dataset(dataset: RequireDataset, current_account: CurrentAcc
 RequireVisibleDataset = Annotated[Dataset, Depends(require_visible_dataset)]
 
 
+def require_scopable_dataset(
+    dataset: RequireVisibleDataset,
+    current_account: RequireEditableBy,
+    dataset_patch: Annotated[DatasetUpdate, Body()],
+) -> Dataset:
+    account_scopes = dataset_patch.account_scopes
+    if not account_scopes or current_account.get_scope("review"):
+        return dataset
+
+    existing = {(scope.account.username, scope.scope.value) for scope in dataset.account_scopes}
+    new = {(acct.username, scope) for acct in account_scopes for scope in acct.scopes if scope}
+    changed = existing.symmetric_difference(new)
+
+    if len(changed) == 0:
+        return dataset
+
+    if not current_account.get_scope("permissions", dataset_id=dataset.dataset_id):
+        raise HTTPException(403, "You cannot modify permissions for this dataset.")
+
+    if current_account.username in [scope[0] for scope in changed]:
+        raise HTTPException(403, "You cannot modify your own permissions.")
+
+    current_account_scopes = {e[1] for e in existing if e[0] == current_account.username}
+    if len({scope[1] for scope in changed} - current_account_scopes.union({"edit"})):
+        raise HTTPException(403, "You cannot modify permissions that you do not have.")
+
+    return dataset
+
+
+RequireScopableDataset = Annotated[Dataset, Depends(require_scopable_dataset)]
+
+
 def current_dataset_part(
     dataset: RequireVisibleDataset, dataset_part_slug: str, session: SessionDep
 ) -> DatasetPart | None:
@@ -345,9 +381,9 @@ def require_tag(tag: str, session: SessionDep) -> Tag:
 RequireTag = Annotated[Tag, Depends(require_tag)]
 
 
-def valid_scope(scope_name: str | Scopes) -> Scopes:
+def valid_account_scope(scope_name: str | AccountScopes) -> Scopes:
     try:
-        scope = getattr(Scopes, scope_name)
+        scope = getattr(AccountScopes, scope_name)
     except AttributeError:
         raise HTTPException(
             status_code=404,
@@ -356,7 +392,19 @@ def valid_scope(scope_name: str | Scopes) -> Scopes:
     return scope
 
 
-ValidScope = Annotated[Scopes, Depends(valid_scope)]
+def valid_item_scope(scope_name: str | ItemScopes) -> Scopes:
+    try:
+        scope = getattr(ItemScopes, scope_name)
+    except AttributeError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No such scope as {scope_name} exists!",
+        ) from None
+    return scope
+
+
+ValidAccountScope = Annotated[Scopes, Depends(valid_account_scope)]
+ValidItemScope = Annotated[Scopes, Depends(valid_item_scope)]
 
 
 def add_htmx_response_trigger(request: Request, response: Response) -> Response:

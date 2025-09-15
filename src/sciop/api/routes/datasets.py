@@ -19,6 +19,7 @@ from sciop.api.deps import (
     RequireCurrentAccount,
     RequireDataset,
     RequireEditableBy,
+    RequireScopableDataset,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
     SessionDep,
@@ -119,7 +120,7 @@ async def dataset_show(dataset_slug: str, dataset: RequireDataset) -> DatasetRea
 async def dataset_edit(
     dataset_slug: str,
     dataset_patch: Annotated[DatasetUpdate, Body()],
-    dataset: RequireVisibleDataset,
+    dataset: RequireScopableDataset,
     current_account: RequireEditableBy,
     session: SessionDep,
     request: Request,

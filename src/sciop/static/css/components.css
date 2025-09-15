@@ -96,14 +96,14 @@ button,
         border-color: var(--color-primary);
       }
 
-      &:disabled {
+      &:disabled, &.disabled {
         &:hover {
           border-color: var(--color-border-deemphasized);
         }
       }
     }
     &.checked {
-      &:disabled {
+      &:disabled, &.disabled {
         border-color: var(--color-primary);
         box-shadow: 2px 2px 0 var(--color-primary-darker-1);
       }
@@ -128,7 +128,7 @@ button,
     column-gap: 1em;
   }
 
-  &:disabled {
+  &:disabled, &.disabled {
     background: repeating-linear-gradient(
       -45deg,
       var(--color-background),
@@ -139,6 +139,10 @@ button,
     box-shadow: unset;
     border-color: var(--color-border-deemphasized);
     color: var(--color-deemphasized);
+  }
+  
+  &.disabled {
+    pointer-events: none;
   }
 
   &.table-link {

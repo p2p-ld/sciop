@@ -21,9 +21,9 @@ USERNAME_PATTERN = re.compile(r"^[\w-]+$")
 
 
 def _validate_username(username: str) -> str:
-    assert USERNAME_PATTERN.fullmatch(
-        username
-    ), f"{username} is not a valid username, must match {USERNAME_PATTERN.pattern}"
+    assert USERNAME_PATTERN.fullmatch(username), (
+        f"{username} is not a valid username, must match {USERNAME_PATTERN.pattern}"
+    )
     return username
 
 
@@ -292,58 +292,6 @@ suffix_to_ctype = {
 ctype_to_suffix = {v: k for k, v in suffix_to_ctype.items()}
 
 
-class Scopes(StrEnum):
-    """Account Permissions"""
-
-    submit: Annotated[str, doc("Create new datasets without review")] = "submit"
-    upload: Annotated[str, doc("Upload new torrents and create new webseeds without review")] = (
-        "upload"
-    )
-    review: Annotated[
-        str,
-        doc(
-            """
-            Base moderator permissions. Reviewers can
-            
-                - See unapproved datasets, uploads, webseeds, and other items\n
-                - Approve or deny pending items\n
-                - Resolve reports, hiding or removing items\n
-                - Edit items that do not belong to them
-            """
-        ),
-    ] = "review"
-    admin: Annotated[
-        str,
-        doc(
-            """
-            Administrate the instance. 
-            Admin accounts have all other scopes except root, and are additionally able to 
-            
-                - Suspend accounts *except* other admins or roots
-                - Grant and remove permission scopes *except* for admin and root
-                - Resolve reports against accounts by suspending them
-                - View the audit log of moderation actions
-            """
-        ),
-    ] = "admin"
-    root: Annotated[
-        str,
-        doc(
-            """
-            All permissions.
-            Separating "root" from "admin" is intended to make `admin` easier to grant,
-            where admins are limited from staging a coup and demoting other admins.
-            There should be a very small number of `root` accounts,
-            and their primary role is to create and demote other `admin` accounts.
-            Roots have all other scopes, and have the additionally able to
-           
-                - Create new `admin` accounts
-                - Suspend `admin` accounts
-            """
-        ),
-    ] = "root"
-
-
 class ReportType(StrEnum):
     rules: Annotated[str, doc("This item breaks one or more instance rules")] = "rules"
     spam: Annotated[str, doc("Automated behavior, comments, uploads, etc.")] = "spam"
@@ -449,3 +397,93 @@ class ReportAction(StrEnum):
     @classmethod
     def get_base_action(self, action: str) -> ModerationAction:
         return ModerationAction.__members__[action]
+
+
+class AccountScopes(StrEnum):
+    """Instance-wide Permissions"""
+
+    submit: Annotated[str, doc("Create new datasets without review")] = "submit"
+    upload: Annotated[str, doc("Upload new torrents and create new webseeds without review")] = (
+        "upload"
+    )
+    review: Annotated[
+        str,
+        doc(
+            """
+            Base moderator permissions. Reviewers can
+            
+                - See unapproved datasets, uploads, webseeds, and other items\n
+                - Approve or deny pending items\n
+                - Resolve reports, hiding or removing items\n
+                - Edit items that do not belong to them
+            """
+        ),
+    ] = "review"
+    admin: Annotated[
+        str,
+        doc(
+            """
+            Administrate the instance. 
+            Admin accounts have all other scopes except root, and are additionally able to 
+            
+                - Suspend accounts *except* other admins or roots
+                - Grant and remove permission scopes *except* for admin and root
+                - Resolve reports against accounts by suspending them
+                - View the audit log of moderation actions
+            """
+        ),
+    ] = "admin"
+    root: Annotated[
+        str,
+        doc(
+            """
+            All permissions.
+            Separating "root" from "admin" is intended to make `admin` easier to grant,
+            where admins are limited from staging a coup and demoting other admins.
+            There should be a very small number of `root` accounts,
+            and their primary role is to create and demote other `admin` accounts.
+            Roots have all other scopes, and have the additionally able to
+           
+                - Create new `admin` accounts
+                - Suspend `admin` accounts
+            """
+        ),
+    ] = "root"
+
+
+class ItemScopes(StrEnum):
+    """Item-scoped Permissions"""
+
+    edit = "edit"
+    """Edit an item"""
+    permissions = "permissions"
+    """
+    Modify other account scopes for an item
+    Users can only grant or revoke scopes that they also have
+    """
+    delete = "delete"
+    """Delete an item"""
+
+
+class Scopes(StrEnum):
+    """All Permissions"""
+
+    submit = "submit"
+    """Create new items without review"""
+    upload = "upload"
+    """Upload new torrents without review"""
+    review = "review"
+    """Review submissions"""
+    admin = "admin"
+    """Modify other account scopes, except for demoting/suspending other admins"""
+    root = "root"
+    """All permissions"""
+    edit = "edit"
+    """Edit an item"""
+    permissions = "permissions"
+    """
+    Modify other account scopes for an item
+    Users can only grant or revoke scopes that they also have
+    """
+    delete = "delete"
+    """Delete an item"""

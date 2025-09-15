@@ -6,16 +6,25 @@ from sciop.api.deps import (
     RequireAccount,
     RequireAdmin,
     RequireAnyAccount,
+    RequireCurrentAccount,
     RequireDataset,
     RequireDatasetPart,
     RequireReviewer,
     RequireUpload,
     SessionDep,
-    ValidScope,
+    ValidAccountScope,
+    ValidItemScope,
 )
 from sciop.frontend.templates import jinja
 from sciop.middleware import limiter
-from sciop.models import Scope, SuccessResponse, Webseed, WebseedCreate
+from sciop.models import (
+    AccountDatasetScopeLink,
+    ModerationAction,
+    Scope,
+    SuccessResponse,
+    Webseed,
+    WebseedCreate,
+)
 from sciop.models.mystery import _Friedolin
 from sciop.scheduler import queue_job
 from sciop.types import ModerationAction
@@ -278,7 +287,7 @@ async def restore_account(
 @jinja.hx("partials/scope-toggle-button.html")
 async def grant_account_scope(
     username: str,
-    scope_name: ValidScope,
+    scope_name: ValidAccountScope,
     current_account: RequireAdmin,
     account: RequireAccount,
     session: SessionDep,
@@ -312,7 +321,7 @@ async def grant_account_scope(
 @jinja.hx("partials/scope-toggle-button.html")
 async def revoke_account_scope(
     username: str,
-    scope_name: ValidScope,
+    scope_name: ValidAccountScope,
     current_account: RequireAdmin,
     account: RequireAccount,
     session: SessionDep,
@@ -339,6 +348,99 @@ async def revoke_account_scope(
     )
     return SuccessResponse(
         success=True, extra={"username": account.username, "scope_name": scope_name}
+    )
+
+
+@review_router.put("/datasets/{dataset_slug}/scopes/{username}/{scope_name}")
+@jinja.hx("partials/scope-toggle-button.html")
+async def grant_dataset_account_scope(
+    dataset_slug: str,
+    username: str,
+    scope_name: ValidItemScope,
+    current_account: RequireCurrentAccount,
+    dataset: RequireDataset,
+    account: RequireAccount,
+    session: SessionDep,
+):
+    if not current_account.get_scope("review"):
+        if not current_account.get_scope("permissions", dataset_id=dataset.dataset_id):
+            raise HTTPException(
+                403, "You do not have permission to modify account scopes for this dataset."
+            )
+        if scope_name != "edit" and not current_account.get_scope(
+            scope_name, dataset_id=dataset.dataset_id
+        ):
+            raise HTTPException(403, "You cannot grant a permission that you do not have yourself.")
+
+    if username == current_account.username:
+        raise HTTPException(403, "You cannot grant permissions to yourself.")
+
+    if not account.has_scope(scope_name, dataset_id=dataset.dataset_id):
+        dataset.account_scopes.append(
+            AccountDatasetScopeLink(
+                account=account, dataset=dataset, _scope=Scope.get_item(scope_name, session)
+            )
+        )
+        session.add(dataset)
+        session.commit()
+
+    crud.log_moderation_action(
+        session=session,
+        actor=current_account,
+        action=ModerationAction.add_scope,
+        target=dataset,
+        value=scope_name,
+    )
+    return SuccessResponse(
+        success=True,
+        extra={"username": account.username, "scope_name": scope_name, "item_scope": True},
+    )
+
+
+@review_router.delete("/datasets/{dataset_slug}/scopes/{username}/{scope_name}")
+@jinja.hx("partials/scope-toggle-button.html")
+async def revoke_dataset_account_scope(
+    dataset_slug: str,
+    username: str,
+    scope_name: ValidItemScope,
+    current_account: RequireCurrentAccount,
+    dataset: RequireDataset,
+    account: RequireAccount,
+    session: SessionDep,
+):
+    if not current_account.get_scope("review"):
+        if not current_account.get_scope("permissions", dataset_id=dataset.dataset_id):
+            raise HTTPException(
+                403, "You do not have permission to modify account scopes for this dataset."
+            )
+        if scope_name != "edit" and not current_account.get_scope(
+            scope_name, dataset_id=dataset.dataset_id
+        ):
+            raise HTTPException(
+                403, "You cannot revoke a permission that you do not have yourself."
+            )
+
+    if username == current_account.username:
+        raise HTTPException(403, "You cannot grant permissions to yourself.")
+
+    if scope := next(
+        (s for s in dataset.account_scopes if s.scope.value == scope_name and s.account == account),
+        None,
+    ):
+        session.delete(scope)
+        session.add(dataset)
+        session.commit()
+
+    crud.log_moderation_action(
+        session=session,
+        actor=current_account,
+        action=ModerationAction.remove_scope,
+        target=dataset,
+        value=scope_name,
+    )
+    return SuccessResponse(
+        success=True,
+        extra={"username": account.username, "scope_name": scope_name, "item_scope": True},
     )
 
 

@@ -1,4 +1,3 @@
-from enum import StrEnum
 from typing import TYPE_CHECKING, Literal, Optional
 
 import sqlalchemy as sqla
@@ -9,66 +8,13 @@ from sqlmodel import Field, Relationship, select
 
 from sciop.models.base import SQLModel
 from sciop.models.mixins import EnumTableMixin, TableMixin
-from sciop.types import IDField
+from sciop.types import AccountScopes, IDField, ItemScopes, Scopes
 
 if TYPE_CHECKING:
     from sciop.models import (
         Account,
         Dataset,
     )
-
-
-class AccountScopes(StrEnum):
-    """Instance-wide Permissions"""
-
-    submit = "submit"
-    """Create new items without review"""
-    upload = "upload"
-    """Upload new torrents without review"""
-    review = "review"
-    """Review submissions"""
-    admin = "admin"
-    """Modify other account scopes, except for demoting/suspending other admins"""
-    root = "root"
-    """All permissions"""
-
-
-class ItemScopes(StrEnum):
-    """Item-scoped Permissions"""
-
-    edit = "edit"
-    """Edit an item"""
-    permissions = "permissions"
-    """
-    Modify other account scopes for an item
-    Users can only grant or revoke scopes that they also have
-    """
-    delete = "delete"
-    """Delete an item"""
-
-
-class Scopes(StrEnum):
-    """All Permissions"""
-
-    submit = "submit"
-    """Create new items without review"""
-    upload = "upload"
-    """Upload new torrents without review"""
-    review = "review"
-    """Review submissions"""
-    admin = "admin"
-    """Modify other account scopes, except for demoting/suspending other admins"""
-    root = "root"
-    """All permissions"""
-    edit = "edit"
-    """Edit an item"""
-    permissions = "permissions"
-    """
-    Modify other account scopes for an item
-    Users can only grant or revoke scopes that they also have
-    """
-    delete = "delete"
-    """Delete an item"""
 
 
 class AccountScopeLinkBase(SQLModel):
@@ -121,16 +67,16 @@ class Scope(TableMixin, EnumTableMixin, table=True):
     scope: Scopes = Field(unique=True)
 
 
-class FormAccountScope(BaseModel):
-    """Account scope object for use in forms"""
+class AccountScopesRead(BaseModel):
+    """Aggregated account scopes object"""
 
     username: str
     scopes: list[str]
 
 
-class FormAccountScopeAction(BaseModel):
+class ItemScopesAction(BaseModel):
     """Action object for handling account scope form events"""
 
-    action: Literal["load", "add account", "add scope", "remove account", "remove scope"]
+    action: Literal["load", "add account", "add scope", "remove scope"]
     username: Optional[str] = None
     scope: Optional[str] = None

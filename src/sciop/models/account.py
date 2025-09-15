@@ -90,6 +90,8 @@ class AccountBase(SQLModel, FrontendMixin):
             has_scopes = [
                 scope.scope for scope in self.dataset_scopes if scope.dataset_id == dataset_id
             ]
+            if "permissions" in has_scopes:
+                has_scopes.append("edit")
         else:
             has_scopes = [scope.scope for scope in self.scopes]
 
@@ -109,9 +111,13 @@ class AccountBase(SQLModel, FrontendMixin):
             return sqla.or_(cls.scopes.any(scope="admin"), cls.scopes.any(scope="root"))
 
         if dataset_id:
+            scopes = list(args)
+            if "permissions" in args and "edit" not in args:
+                scopes.append("edit")
+
             return sqla.or_(
                 *[cls.scopes.any(scope=s) for s in ("root", "admin")],
-                *[cls.dataset_scopes.any(scope=s, dataset_id=dataset_id) for s in args],
+                *[cls.dataset_scopes.any(scope=s, dataset_id=dataset_id) for s in scopes],
             )
         else:
             args = ("root", "admin", *args)

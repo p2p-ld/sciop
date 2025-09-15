@@ -105,25 +105,30 @@ class EditableMixin(SQLModel):
     def editable_by(self, account: Optional["Account"] = None) -> bool:
         if account is None:
             return False
-        return (
-            self.account == account
-            or account.has_scope("review")
-            or (self.dataset_id and account.has_scope("edit", dataset_id=self.dataset_id))
+        return account.has_scope("review") or (
+            self.dataset_id and account.has_scope("edit", "permissions", dataset_id=self.dataset_id)
         )
 
     @editable_by.inplace.expression
     @classmethod
     def _editable_by(cls, account: Optional["Account"] = None) -> ColumnElement[bool]:
-        if hasattr(cls, "dataset_id"):
-            return sqla.or_(
-                cls.account == account,
-                account.has_scope("review") == True,
-                cls.account_scopes.any(scope="edit", account=account),
-            )
-
         if account is None:
             return sqla.false()
-        return sqla.or_(cls.account == account, account.has_scope("review") == True)
+
+        or_stmts = [account.has_scope("review") == True]
+
+        if hasattr(cls, "dataset_id"):
+            or_stmts.append(
+                cls.dataset_id.in_(
+                    [
+                        s.dataset_id
+                        for s in account.dataset_scopes
+                        if s.scope.value in ("edit", "permissions")
+                    ]
+                )
+            )
+
+        return sqla.or_(*or_stmts)
 
     @classmethod
     def history_table(cls) -> Table:
