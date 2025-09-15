@@ -383,7 +383,9 @@ class DatasetCreate(DatasetBase):
                             if s.account.username == username
                         ],
                     )
-                    for username in {s.account.username for s in dataset.account_scopes}
+                    for username in list(
+                        dict.fromkeys([s.account.username for s in dataset.account_scopes])
+                    )
                 ],
                 "parts": [DatasetPartCreate.model_validate(part) for part in dataset.parts],
             },
