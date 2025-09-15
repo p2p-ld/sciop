@@ -34,21 +34,7 @@ if TYPE_CHECKING:
     )
 
 
-class AccountScopeLink(TableMixin, table=True):
-    __tablename__ = "account_scope_links"
-    __table_args__ = (UniqueConstraint("account_id", "scope_id", name="_account_scope_uc"),)
-
-    account_id: Optional[int] = Field(
-        default=None, foreign_key="accounts.account_id", primary_key=True, index=True
-    )
-    scope_id: Optional[int] = Field(
-        default=None, foreign_key="scopes.scope_id", primary_key=True, index=True
-    )
-
-
-class AccountBase(SQLModel, FrontendMixin):
-    __name__: ClassVar[str] = "account"
-
+class AccountBase(SQLModel):
     username: UsernameStr
 
     model_config = ConfigDict(ignored_types=(hybrid_method, hybrid_property))
