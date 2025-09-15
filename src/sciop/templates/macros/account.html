@@ -1,47 +1,50 @@
-{% macro account_row(account, models=None, current_account=None, idx=None) %}
+{% macro account_row(account, models=None, current_account=None, current_account_scopes=[], edit=False, idx=None) %}
 <div class="account-row" id="account-row-{{ account.username }}">
+    <span></span>
     <span class="account-username item-link">
         <a href="/accounts/{{ account.username }}">
             {{ account.username }}
         </a>
     </span>
     <span class="account-scopes tokens">
+        <input class="hidden" name="account_scopes[{{ idx }}].username" value="{{ account.username }}" readonly="readonly">
+        {% if account.scopes | length == 0 %}
+        <input class="hidden" name="account_scopes[{{ idx }}].scopes[]" readonly="readonly">
+        {% endif %}
         {% for scope_name in models.ItemScopes.__members__.values() %}
-            {% set disabled=(current_account and False)%}
-            {% if scope_name in account.scopes %}
-                <a class="toggle-button button checked"
+            {% set disabled=(
+                not current_account.has_scope("review")
+                and edit
+                and (
+                    current_account.username == account.username
+                    or "permissions" not in current_account_scopes
+                    or (scope_name != "edit" and scope_name not in current_account_scopes)
+                )
+            ) %}
+            {% if scope_name in account.scopes or (scope_name == "edit" and "permissions" in account.scopes) %}
+                <a class="toggle-button button checked {% if disabled %}disabled{% endif %}"
                         id="{{ account.username }}-scope-{{scope_name}}"
                         hx-target="closest .account-scopes-container"
                         hx-post="/partials/account-scopes"
                         hx-params="*"
                         hx-vals='{ "action": { "action": "remove scope", "username": "{{ account.username }}", "scope": "{{ scope_name }}" } }'
-                        {% if disabled %}disabled{% endif %}
                 >
                     {{scope_name}}
                 </a>
                 <input class="hidden" name="account_scopes[{{ idx }}].scopes[]" value="{{ scope_name }}" readonly="readonly">
             {% else %}
-                <a class="toggle-button button"
+                <a class="toggle-button button {% if disabled %}disabled{% endif %}"
                         id="{{ account.username }}-scope-{{scope_name}}"
                         hx-target="closest .account-scopes-container"
                         hx-post="/partials/account-scopes"
                         hx-params="*"
                         hx-vals='{ "action": { "action": "add scope", "username": "{{ account.username }}", "scope": "{{ scope_name }}" } }'
-                        {% if disabled %}disabled{% endif %}
                 >
                     {{scope_name}}
                 </a>
             {% endif %}
         {% endfor %}
     </span>
-    <a class="button caution"
-            hx-target="closest .account-scopes-container"
-            hx-post="/partials/account-scopes"
-            hx-params="*"
-            hx-vals='{ "action": { "action": "remove account", "username": "{{ account.username }}" } }'
-    >
-        x
-    </a>
 </div>
 {% endmacro %}
 

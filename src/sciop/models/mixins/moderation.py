@@ -10,7 +10,7 @@ from sqlmodel import Field, Session
 
 from sciop.exceptions import ModerationPermissionsError
 from sciop.models.base import SQLModel
-from sciop.types import InputType, ModerationAction
+from sciop.types import InputType, ItemScopes, ModerationAction
 
 if TYPE_CHECKING:
     from sciop.models import Account
@@ -64,7 +64,9 @@ class ModerableMixin(SQLModel):
             return True
         elif self.is_removed:
             return False
-        elif hasattr(self, "account") and self.account == account:
+        elif self.dataset_id and account.has_scope(
+            *[s.value for s in ItemScopes], dataset_id=self.dataset_id
+        ):
             return True
         else:
             return account.has_scope("review")
@@ -75,29 +77,22 @@ class ModerableMixin(SQLModel):
         if account is None:
             return cls._is_visible
 
-        if hasattr(cls, "account"):
-            return sqla.and_(
-                cls.is_removed == False,
-                sqla.or_(
-                    cls.is_visible == True,
-                    account.has_scope("review") == True,
-                    cls.account == account,
-                ),
-            )
-        else:
-            return sqla.and_(
-                cls.is_removed == False,
-                sqla.or_(cls.is_visible == True, account.has_scope("review") == True),
-            )
+        or_stmts = [cls.is_visible == True, account.has_scope("review") == True]
+
+        if hasattr(cls, "dataset_id"):
+            or_stmts.append(cls.dataset_id.in_([s.dataset_id for s in account.dataset_scopes]))
+
+        return sqla.and_(
+            cls.is_removed == False,
+            sqla.or_(*or_stmts),
+        )
 
     @hybrid_method
     def removable_by(self, account: Optional["Account"] = None) -> bool:
         if account is None:
             return False
-        return (
-            self.account == account
-            or account.has_scope("review")
-            or (self.dataset_id and account.has_scope("delete", dataset_id=self.dataset_id))
+        return account.has_scope("review") or (
+            self.dataset_id and account.has_scope("delete", dataset_id=self.dataset_id)
         )
 
     @removable_by.inplace.expression
@@ -106,14 +101,16 @@ class ModerableMixin(SQLModel):
         if account is None:
             return sqla.false()
 
+        or_stmts = [account.has_scope("review") == True]
+
         if hasattr(cls, "dataset_id"):
-            return sqla.or_(
-                cls.account == account,
-                account.has_scope("review") == True,
-                cls.account_scopes.any(scope="delete", account=account),
+            or_stmts.append(
+                cls.dataset_id.in_(
+                    [s.dataset_id for s in account.dataset_scopes if s.scope.value == "delete"]
+                )
             )
 
-        return sqla.or_(cls.account == account, account.has_scope("review") == True)
+        return sqla.or_(*or_stmts)
 
     def hide(self, account: "Account", session: Session, commit: bool = True) -> None:
         """

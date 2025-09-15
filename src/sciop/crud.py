@@ -7,6 +7,7 @@ from sciop.models import (
     Account,
     AccountCreate,
     AccountDatasetScopeLink,
+    AccountScopesRead,
     AuditLog,
     Dataset,
     DatasetClaim,
@@ -17,7 +18,6 @@ from sciop.models import (
     DatasetURL,
     ExternalIdentifier,
     FileInTorrent,
-    FormAccountScope,
     ItemScopes,
     ModerationAction,
     Report,
@@ -87,9 +87,15 @@ def create_dataset(
 
     tags = get_tags(session=session, tags=dataset_create.tags)
 
-    account_scopes = get_account_item_scopes(
-        session=session, account_scopes=dataset_create.account_scopes
-    )
+    scopes = dataset_create.account_scopes if dataset_create.account_scopes else []
+    if current_account:
+        scopes.insert(
+            0,
+            AccountScopesRead(
+                username=current_account.username, scopes=list(ItemScopes.__members__.values())
+            ),
+        )
+    account_scopes = get_account_item_scopes(session=session, account_scopes=scopes)
 
     params = {
         "is_approved": is_approved,
@@ -523,32 +529,35 @@ def get_tags(*, session: Session, tags: list[str], commit: bool = False) -> list
 def get_account_item_scopes(
     *,
     session: Session,
-    account_scopes: list[FormAccountScope],
+    account_scopes: list[AccountScopesRead],
     existing_scopes: Optional[list[AccountDatasetScopeLink]] = None,
 ) -> list[AccountDatasetScopeLink]:
     """
-    Given a list of FormAccountScope objects,
+    Given a list of AccountScopesRead objects,
     create and return a list of AccountDatasetScopeLink objects
     """
+    new = {(a["username"], scope) for a in account_scopes for scope in a["scopes"] if scope}
     scope_links: list[AccountDatasetScopeLink] = []
-    usernames = [s.username for s in account_scopes]
+    usernames = [s[0] for s in new]
     accounts = session.exec(select(Account).filter(Account.username.in_(usernames))).all()
 
-    # recreating any unchanged scopes to avoid primary key dependency rule error
     if existing_scopes:
-        for e in existing_scopes:
-            session.delete(e)
+        scope_links = [e for e in existing_scopes if (e.account.username, e.scope.value) in new]
+        revoked_scopes = [e for e in existing_scopes if e not in scope_links]
+        for scope in revoked_scopes:
+            session.delete(scope)
 
-    for scopes in account_scopes:
-        account = next((a for a in accounts if a.username == scopes.username), None)
+        existing = {(scope.account.username, scope.scope.value) for scope in existing_scopes}
+        new -= existing
+
+    for scope in new:
+        account = next((a for a in accounts if a.username == scope[0]), None)
         if not account:
-            raise ValueError("Account not found: " + scopes.username)
+            raise ValueError("Account not found: " + scope[0])
 
-        scope_links = scope_links + [
-            AccountDatasetScopeLink(account=account, _scope=Scope.get_item(scope, session))
-            for scope in scopes.scopes
-            if scope in ItemScopes.__members__.values()
-        ]
+        scope_links.append(
+            AccountDatasetScopeLink(account=account, _scope=Scope.get_item(scope[1], session))
+        )
 
     return scope_links
 

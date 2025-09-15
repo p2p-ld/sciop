@@ -176,7 +176,7 @@ table {
   }
 
   &.scopes-form {
-    --item-cols: 7em 7fr 2em;
+    --item-cols: 0.3em 7em 7fr 0.5em;
   }
 
   .table-head {

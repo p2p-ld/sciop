@@ -1,4 +1,4 @@
-{% macro form_field(field, field_name, parent_id, value=None) %}
+{% macro form_field(field, field_name, parent_id, value=None, current_account=None, edit=False) %}
 {%- set ns=namespace(minlength=False, maxlength=False, pattern=False) %}
 {%- set required=field.is_required() %}
 {%- if field.metadata %}
@@ -52,7 +52,7 @@
 {%- if field.json_schema_extra.input_type == "tokens" %}
     {{ token_input(field, field_name, parent_id, value) }}
 {%- elif field.json_schema_extra.input_type == "account_scopes" %}
-    {{ account_scopes_input(field, field_name, parent_id, value) }}
+    {{ account_scopes_input(field, field_name, parent_id, value, current_account, edit) }}
 {%- elif field.json_schema_extra.input_type == "model_list" %}
     <div class="model-list-input" name="{{ field_name }}">
     {% if value %}
@@ -179,7 +179,7 @@
 <datalist id="{{ parent_id }}-{{ field_name }}-autocomplete"></datalist>
 {% endmacro %}
 
-{% macro account_scopes_input(field, field_name, parent_id, value=None) %}
+{% macro account_scopes_input(field, field_name, parent_id, value=None, current_account=None, edit=False) %}
 <div class="account-scopes-input-container">
     <input
         class="form-input form-account-scopes"
@@ -199,20 +199,15 @@
         hx-target="this"
         hx-post="/partials/account-scopes"
         hx-params="*"
-        hx-vals='{ "action": { "action": "add account" } }'
+        hx-vals='{ "action": { "action": "add account" }, "editing": "{{ edit }}" }'
     >
         {% if value %}
         {% from 'macros/account.html' import account_row %}
         <div id="accounts-table-inner" class="collapsible-table accounts-table scopes-form has-entries">
-            <div class="account-items">
-                {% for account in value %}
-                <input class="hidden" name="account_scopes[{{ loop.index }}].username" value="{{ account.username }}" readonly="readonly">
-                {% if account.scopes | length == 0 %}
-                <input class="hidden" name="account_scopes[{{ loop.index }}].scopes[]" readonly="readonly">
-                {% endif %}
-                {{ account_row(account, models=models, current_account=current_account, idx=loop.index) }}
-                {% endfor %}
-            </div>
+            {% set current_account_scopes=value | selectattr("username", "eq", current_account.username) | map(attribute="scopes") | first %}
+            {% for account in value %}
+            {{ account_row(account, models=models, current_account=current_account, current_account_scopes=current_account_scopes, edit=edit, idx=loop.index) }}
+            {% endfor %}
         </div>
         {% endif %}
     </div>
@@ -262,7 +257,7 @@
 </a>
 {% endmacro %}
 
-{% macro inner_model_form(id=None, model=None, exclude = [], edit=False) %}
+{% macro inner_model_form(id=None, model=None, exclude=[], edit=False, current_account=None) %}
 {% set model_fields = model | get_model_fields %}
 {% for field_name, field in model_fields.items() if field_name not in exclude %}
 {% if field.json_schema_extra
@@ -285,15 +280,15 @@
         {% endif %}
     </label>
     {% set field_value = model|attr(field_name) %}
-    {{ form_field(field, field_name, id, field_value) }}
+    {{ form_field(field, field_name, id, field_value, current_account, edit) }}
 </div>
 {% else %}
 {% endif %}
 {% endfor %}
 {% endmacro %}
 
-{% macro model_form(id, model, exclude = [], edit = False) %}
+{% macro model_form(id, model, exclude = [], edit = False, current_account = None) %}
 <form class="form" id="{{ id }}" hx-ext="form-json">
-  {{ inner_model_form(id, model, exclude, edit) }}
+  {{ inner_model_form(id, model, exclude, edit, current_account) }}
 </form>
 {% endmacro %}

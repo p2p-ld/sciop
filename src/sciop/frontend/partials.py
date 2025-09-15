@@ -11,9 +11,9 @@ from sciop.api.deps import RequireCurrentAccount, SessionDep
 from sciop.frontend.templates import templates
 from sciop.models import (
     Account,
-    FormAccountScope,
-    FormAccountScopeAction,
+    AccountScopesRead,
     ItemScopes,
+    ItemScopesAction,
     TargetType,
 )
 
@@ -77,21 +77,22 @@ async def account_scopes(
     session: SessionDep,
     request: Request,
     current_account: RequireCurrentAccount,
-    action: FormAccountScopeAction,
+    action: ItemScopesAction,
+    editing: Annotated[Optional[bool], Body()] = False,
     account_query: Annotated[Optional[str], Body()] = None,
-    account_scopes: Optional[list[FormAccountScope]] = None,
-    item_slug: Optional[str] = None,
+    account_scopes: Optional[list[AccountScopesRead]] = None,
 ):
     if account_scopes is None:
         account_scopes = []
     else:
-        for a in account_scopes:
-            a.scopes = [s for s in a.scopes if s != ""]
+        for acc in account_scopes:
+            acc.scopes = [s for s in acc.scopes if s != ""]
 
     if (
         action.action == "add account"
         and account_query
         and account_query.strip() != current_account.username
+        and account_query.strip() not in [s.username for s in account_scopes]
     ):
         acct = session.exec(
             select(Account).where(
@@ -99,28 +100,26 @@ async def account_scopes(
             )
         ).first()
         if acct:
-            scopes = []
-            if item_slug:
-                scopes = [s.scope.value for s in acct.dataset_scopes if s.dataset.slug == item_slug]
-
-            account_scopes.append(FormAccountScope(username=acct.username, scopes=scopes))
-    elif action.action == "remove account":
-        account_scopes = [a for a in account_scopes if a.username != action.username]
+            account_scopes.append(AccountScopesRead(username=acct.username, scopes=[]))
     elif (
         action.action == "add scope"
         and action.scope
         and action.scope in ItemScopes.__members__.values()
     ):
-        for i, a in enumerate(account_scopes):
-            if a.username == action.username and action.scope not in a.scopes:
-                account_scopes[i].scopes.append(action.scope)
+        for idx, scope in enumerate(account_scopes):
+            if scope.username == action.username and action.scope not in scope.scopes:
+                account_scopes[idx].scopes.append(action.scope)
     elif action.action == "remove scope":
-        for i, a in enumerate(account_scopes):
-            if a.username == action.username and action.scope in a.scopes:
-                account_scopes[i].scopes.remove(action.scope)
+        for idx, scope in enumerate(account_scopes):
+            if scope.username == action.username and action.scope in scope.scopes:
+                account_scopes[idx].scopes.remove(action.scope)
 
     return templates.TemplateResponse(
         request,
         "partials/accounts.html",
-        {"items": account_scopes, "scopes_form": True},
+        {
+            "items": account_scopes,
+            "scopes_form": True,
+            "edit": editing,
+        },
     )
