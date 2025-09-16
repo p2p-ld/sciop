@@ -458,13 +458,13 @@ def random_dataset(
         external_identifiers=[
             ExternalIdentifierCreate(
                 type="doi",
-                identifier=f"10.{randint(1000,9999)}/{fake.word().lower()}.{randint(10000,99999)}",
+                identifier=f"10.{randint(1000, 9999)}/{fake.word().lower()}.{randint(10000, 99999)}",
             )
         ],
         parts=parts,
     )
 
-    ds = crud.create_dataset(session=session, dataset_create=ds)
+    ds = crud.create_dataset(session=session, dataset_create=ds, current_account=account)
     timestamp = datetime.now(UTC) - timedelta(minutes=random.randint(60, 60 * 24 * 7))
     ds.created_at = timestamp
     ds.updated_at = timestamp
