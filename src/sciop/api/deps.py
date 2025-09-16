@@ -6,7 +6,6 @@ from fastapi import Body, Depends, HTTPException, Query, Request, Response, stat
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, ValidationError
-from sciop.models.scope import AccountScopesRead
 from sqlmodel import Session, select
 from starlette.datastructures import QueryParams
 
@@ -16,12 +15,10 @@ from sciop.config import get_config
 from sciop.db import iter_session
 from sciop.models import (
     Account,
-    AccountScopes,
     Dataset,
     DatasetClaim,
     DatasetPart,
     DatasetUpdate,
-    ItemScopes,
     RaggedSearchParams,
     Report,
     SearchParams,
@@ -29,7 +26,7 @@ from sciop.models import (
     TokenPayload,
     Upload,
 )
-from sciop.types import Scopes
+from sciop.types import AccountScopes, ItemScopes, Scopes
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 

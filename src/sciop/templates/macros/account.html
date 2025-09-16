@@ -1,4 +1,5 @@
-{% macro account_row(account, models=None, current_account=None, current_account_scopes=[], edit=False, idx=None) %}
+{% macro account_row(account, items=None, current_account=None, current_account_scopes=[], edit=False, idx=None) %}
+{% set current_account_scopes=items | selectattr("username", "eq", current_account.username) | map(attribute="scopes") | first %}
 <div class="account-row" id="account-row-{{ account.username }}">
     <span></span>
     <span class="account-username item-link">
@@ -11,7 +12,7 @@
         {% if account.scopes | length == 0 %}
         <input class="hidden" name="account_scopes[{{ idx }}].scopes[]" readonly="readonly">
         {% endif %}
-        {% for scope_name in models.ItemScopes.__members__.values() %}
+        {% for scope_name in types.ItemScopes.__members__.values() %}
             {% set disabled=(
                 not current_account.has_scope("review")
                 and edit
@@ -48,7 +49,7 @@
 </div>
 {% endmacro %}
 
-{% macro account_collapsible(account, review=False, config=None, models=None, current_account=None) %}
+{% macro account_collapsible(account, review=False, config=None, current_account=None) %}
 <details class="collapsible account-collapsible" id="account-collapsible-{{ account.account_id }}">
     <summary class="collapsible-summary"
              hx-get="/accounts/{{ account.username }}/partial"
@@ -64,7 +65,7 @@
 
         <span class="account-scopes tokens">
         {% if review %}
-            {% for scope_name in models.AccountScopes.__members__.values() %}
+            {% for scope_name in types.AccountScopes.__members__.values() %}
                 {% set disabled=(current_account and
                     (current_account.has_scope("root") and (scope_name == "root" or scope_name == "admin") and (current_account.username == account.username)) or
                     (((not current_account.has_scope("root")) and (current_account.has_scope("admin")) and (scope_name == "root" or scope_name == "admin"))))

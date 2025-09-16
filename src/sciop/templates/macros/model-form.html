@@ -204,9 +204,8 @@
         {% if value %}
         {% from 'macros/account.html' import account_row %}
         <div id="accounts-table-inner" class="collapsible-table accounts-table scopes-form has-entries">
-            {% set current_account_scopes=value | selectattr("username", "eq", current_account.username) | map(attribute="scopes") | first %}
             {% for account in value %}
-            {{ account_row(account, models=models, current_account=current_account, current_account_scopes=current_account_scopes, edit=edit, idx=loop.index) }}
+            {{ account_row(account, items=value, current_account=current_account, edit=edit, idx=loop.index) }}
             {% endfor %}
         </div>
         {% endif %}

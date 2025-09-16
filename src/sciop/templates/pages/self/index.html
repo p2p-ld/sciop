@@ -13,7 +13,7 @@
 </p>
 
 Scopes:
-{% for scope in current_account.scopes if scope.scope.value in models.AccountScopes.__members__.values() %}
+{% for scope in current_account.scopes if scope.scope.value in types.AccountScopes.__members__.values() %}
 <span class="token">{{ scope.scope.value }}</span>
 {% endfor %}
 
