@@ -536,7 +536,7 @@ def get_account_item_scopes(
     Given a list of AccountScopesRead objects,
     create and return a list of AccountDatasetScopeLink objects
     """
-    new = {(a["username"], scope) for a in account_scopes for scope in a["scopes"] if scope}
+    new = {(a.username, scope) for a in account_scopes for scope in a.scopes if scope}
     scope_links: list[AccountDatasetScopeLink] = []
     usernames = [s[0] for s in new]
     accounts = session.exec(select(Account).filter(Account.username.in_(usernames))).all()

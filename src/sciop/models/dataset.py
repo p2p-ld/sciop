@@ -273,7 +273,10 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
         if "account_scopes" in updated:
             updated["account_scopes"] = crud.get_account_item_scopes(
                 session=session,
-                account_scopes=updated["account_scopes"],
+                account_scopes=[
+                    AccountScopesRead(username=scope["username"], scopes=scope["scopes"])
+                    for scope in updated["account_scopes"]
+                ],
                 existing_scopes=self.account_scopes,
             )
 
