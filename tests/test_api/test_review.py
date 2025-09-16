@@ -2,7 +2,8 @@ import pytest
 from sqlmodel import select
 
 from sciop.config import get_config
-from sciop.models import AccountScopes, AuditLog, DatasetPart
+from sciop.models import AuditLog, DatasetPart
+from sciop.types import AccountScopes
 
 
 @pytest.mark.parametrize("scope", AccountScopes.__members__.values())

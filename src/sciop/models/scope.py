@@ -8,7 +8,7 @@ from sqlmodel import Field, Relationship, select
 
 from sciop.models.base import SQLModel
 from sciop.models.mixins import EnumTableMixin, TableMixin
-from sciop.types import AccountScopes, IDField, ItemScopes, Scopes
+from sciop.types import IDField, Scopes
 
 if TYPE_CHECKING:
     from sciop.models import (

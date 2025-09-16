@@ -19,9 +19,6 @@ from sciop.models.account import (
     Account,
     AccountCreate,
     AccountRead,
-    AccountScopeLink,
-    Scope,
-    Scopes,
     Token,
     TokenPayload,
 )
@@ -65,12 +62,9 @@ from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.scope import (
     AccountDatasetScopeLink,
     AccountScopeLink,
-    AccountScopes,
     AccountScopesRead,
-    ItemScopes,
     ItemScopesAction,
     Scope,
-    Scopes,
 )
 from sciop.models.stats import SiteStats, SiteStatsRead
 from sciop.models.tag import DatasetTagLink, Tag, TagSummary
@@ -104,7 +98,6 @@ __all__ = [
     "AccountDatasetScopeLink",
     "AccountRead",
     "AccountScopeLink",
-    "AccountScopes",
     "AccountScopesRead",
     "AtomFeed",
     "AtomFeedEntry",
@@ -131,7 +124,6 @@ __all__ = [
     "FileInTorrentCreate",
     "FileInTorrentRead",
     "HitCount",
-    "ItemScopes",
     "ItemScopesAction",
     "MagnetLink",
     "RaggedSearchPage",

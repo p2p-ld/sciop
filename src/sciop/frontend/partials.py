@@ -12,10 +12,10 @@ from sciop.frontend.templates import templates
 from sciop.models import (
     Account,
     AccountScopesRead,
-    ItemScopes,
     ItemScopesAction,
     TargetType,
 )
+from sciop.types import ItemScopes
 
 partials_router = APIRouter(prefix="/partials")
 
