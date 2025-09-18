@@ -94,8 +94,15 @@ def upgrade() -> None:
     conn.execute(
         sa.text(
             """
-           INSERT INTO account_dataset_scope_links (created_at, updated_at, scope_id, account_id, dataset_id)
-           SELECT scopes.created_at, scopes.updated_at, scopes.scope_id, datasets.account_id, datasets.dataset_id
+           INSERT INTO account_dataset_scope_links (
+               created_at, updated_at, scope_id, account_id, dataset_id
+            )
+           SELECT
+               scopes.created_at,
+               scopes.updated_at,
+               scopes.scope_id,
+               datasets.account_id,
+               datasets.dataset_id
            FROM datasets
            JOIN scopes ON scopes.scope IN ("edit", "permissions", "delete")
            WHERE datasets.account_id IS NOT NULL
