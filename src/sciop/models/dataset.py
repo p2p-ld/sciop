@@ -342,7 +342,7 @@ class DatasetCreate(DatasetBase):
         description="""
         Additional users who should be able to make changes to this dataset.
         Supply a username and press enter to start granting them permissions.
-        Hover over permissions buttons to see their descriptions.
+        Hover over permission buttons to see their descriptions.
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.account_scopes}},
         max_length=512,

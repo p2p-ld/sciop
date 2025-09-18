@@ -25,6 +25,7 @@
             {% if scope_name in account.scopes or (scope_name == "edit" and "permissions" in account.scopes) %}
                 <a class="toggle-button button checked {% if disabled %}disabled{% endif %}"
                         id="{{ account.username }}-scope-{{scope_name}}"
+                        title="{{ types.ItemScopeDescriptions[scope_name] }}"
                         hx-target="closest .account-scopes-container"
                         hx-post="/partials/account-scopes"
                         hx-params="*"
@@ -36,6 +37,7 @@
             {% else %}
                 <a class="toggle-button button {% if disabled %}disabled{% endif %}"
                         id="{{ account.username }}-scope-{{scope_name}}"
+                        title="{{ types.ItemScopeDescriptions[scope_name] }}"
                         hx-target="closest .account-scopes-container"
                         hx-post="/partials/account-scopes"
                         hx-params="*"
