@@ -21,9 +21,9 @@ USERNAME_PATTERN = re.compile(r"^[\w-]+$")
 
 
 def _validate_username(username: str) -> str:
-    assert USERNAME_PATTERN.fullmatch(
-        username
-    ), f"{username} is not a valid username, must match {USERNAME_PATTERN.pattern}"
+    assert USERNAME_PATTERN.fullmatch(username), (
+        f"{username} is not a valid username, must match {USERNAME_PATTERN.pattern}"
+    )
     return username
 
 
@@ -463,6 +463,18 @@ class ItemScopes(StrEnum):
     """
     delete = "delete"
     """Delete an item"""
+
+
+class ItemScopeDescriptions(StrEnum):
+    """Descriptions for ItemScopes"""
+
+    edit = "Enables a user to edit the current item"
+    permissions = (
+        "Enables a user to modify other users' permissions for this item."
+        + "\nYou can only modify permissions that you have already been granted."
+        + "\nThis permission includes the 'edit' permission."
+    )
+    delete = "Enables a user to delete the current item"
 
 
 class Scopes(StrEnum):

@@ -68,7 +68,7 @@ class Scope(TableMixin, EnumTableMixin, table=True):
 
 
 class ItemScopesRead(BaseModel):
-    """Aggregated account scopes object"""
+    """Aggregated-by-account scopes object returned from API methods"""
 
     username: str
     scopes: list[str]
