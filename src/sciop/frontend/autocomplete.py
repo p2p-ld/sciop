@@ -5,7 +5,7 @@ from sqlmodel import select
 
 from sciop.api.deps import RequireCurrentAccount, SessionDep
 from sciop.frontend.templates import jinja
-from sciop.models import Account, AccountScopesRead, Dataset, Tag
+from sciop.models import Account, Dataset, ItemScopesRead, Tag
 
 autocomplete_router = APIRouter(prefix="/autocomplete", include_in_schema=False)
 
@@ -60,7 +60,7 @@ async def collaborators(
     request: Request,
     current_account: RequireCurrentAccount,
     account_query: Annotated[str, Body()],
-    account_scopes: Optional[list[AccountScopesRead]] = None,
+    account_scopes: Optional[list[ItemScopesRead]] = None,
 ):
     if not account_scopes:
         account_scopes = []

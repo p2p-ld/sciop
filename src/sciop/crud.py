@@ -7,7 +7,7 @@ from sciop.models import (
     Account,
     AccountCreate,
     AccountDatasetScopeLink,
-    AccountScopesRead,
+    ItemScopesRead,
     AuditLog,
     Dataset,
     DatasetClaim,
@@ -90,7 +90,7 @@ def create_dataset(
     if current_account:
         scopes.insert(
             0,
-            AccountScopesRead(
+            ItemScopesRead(
                 username=current_account.username, scopes=list(ItemScopes.__members__.values())
             ),
         )
@@ -528,11 +528,11 @@ def get_tags(*, session: Session, tags: list[str], commit: bool = False) -> list
 def get_account_item_scopes(
     *,
     session: Session,
-    account_scopes: list[AccountScopesRead],
+    account_scopes: list[ItemScopesRead],
     existing_scopes: Optional[list[AccountDatasetScopeLink]] = None,
 ) -> list[AccountDatasetScopeLink]:
     """
-    Given a list of AccountScopesRead objects,
+    Given a list of ItemScopesRead objects,
     create and return a list of AccountDatasetScopeLink objects
     """
     new = {(a.username, scope) for a in account_scopes for scope in a.scopes if scope}
