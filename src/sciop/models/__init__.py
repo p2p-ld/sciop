@@ -62,8 +62,8 @@ from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.scope import (
     AccountDatasetScopeLink,
     AccountScopeLink,
-    AccountScopesRead,
     ItemScopesAction,
+    ItemScopesRead,
     Scope,
 )
 from sciop.models.stats import SiteStats, SiteStatsRead
@@ -98,7 +98,7 @@ __all__ = [
     "AccountDatasetScopeLink",
     "AccountRead",
     "AccountScopeLink",
-    "AccountScopesRead",
+    "ItemScopesRead",
     "AtomFeed",
     "AtomFeedEntry",
     "AuditLog",

@@ -27,7 +27,7 @@ from sciop.models.mixins import (
     all_optional,
     exclude_fields,
 )
-from sciop.models.scope import AccountScopesRead
+from sciop.models.scope import ItemScopesRead
 from sciop.models.tag import DatasetTagLink
 from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import (
@@ -274,7 +274,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
             updated["account_scopes"] = crud.get_account_item_scopes(
                 session=session,
                 account_scopes=[
-                    AccountScopesRead(username=scope["username"], scopes=scope["scopes"])
+                    ItemScopesRead(username=scope["username"], scopes=scope["scopes"])
                     for scope in updated["account_scopes"]
                 ],
                 existing_scopes=self.account_scopes,
@@ -337,7 +337,7 @@ class DatasetCreate(DatasetBase):
         min_length=1,
         max_length=512,
     )
-    account_scopes: Optional[list["AccountScopesRead"]] = Field(
+    account_scopes: Optional[list["ItemScopesRead"]] = Field(
         title="Collaborators",
         description="""
         Additional users who should be able to make changes to this dataset.
@@ -378,7 +378,7 @@ class DatasetCreate(DatasetBase):
                     for ex in dataset.external_identifiers
                 ],
                 "account_scopes": [
-                    AccountScopesRead(
+                    ItemScopesRead(
                         username=username,
                         scopes=[
                             s.scope.value

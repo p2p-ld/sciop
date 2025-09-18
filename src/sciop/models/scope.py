@@ -67,7 +67,7 @@ class Scope(TableMixin, EnumTableMixin, table=True):
     scope: Scopes = Field(unique=True)
 
 
-class AccountScopesRead(BaseModel):
+class ItemScopesRead(BaseModel):
     """Aggregated account scopes object"""
 
     username: str

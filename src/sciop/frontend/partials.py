@@ -11,9 +11,9 @@ from sciop.api.deps import RequireCurrentAccount, SessionDep
 from sciop.frontend.templates import templates
 from sciop.models import (
     Account,
-    AccountScopesRead,
     ItemScopesAction,
     TargetType,
+    ItemScopesRead,
 )
 from sciop.types import ItemScopes
 
@@ -80,7 +80,7 @@ async def account_scopes(
     action: ItemScopesAction,
     editing: Annotated[Optional[bool], Body()] = False,
     account_query: Annotated[Optional[str], Body()] = None,
-    account_scopes: Optional[list[AccountScopesRead]] = None,
+    account_scopes: Optional[list[ItemScopesRead]] = None,
 ):
     if account_scopes is None:
         account_scopes = []
@@ -100,7 +100,7 @@ async def account_scopes(
             )
         ).first()
         if acct:
-            account_scopes.append(AccountScopesRead(username=acct.username, scopes=[]))
+            account_scopes.append(ItemScopesRead(username=acct.username, scopes=[]))
     elif (
         action.action == "add scope"
         and action.scope
