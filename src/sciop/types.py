@@ -454,27 +454,16 @@ class AccountScopes(StrEnum):
 class ItemScopes(StrEnum):
     """Item-scoped Permissions"""
 
-    edit = "edit"
-    """Edit an item"""
-    permissions = "permissions"
-    """
-    Modify other account scopes for an item
-    Users can only grant or revoke scopes that they also have
-    """
-    delete = "delete"
-    """Delete an item"""
-
-
-class ItemScopeDescriptions(StrEnum):
-    """Descriptions for ItemScopes"""
-
-    edit = "Enables a user to edit the current item"
-    permissions = (
-        "Enables a user to modify other users' permissions for this item."
-        + "\nYou can only modify permissions that you have already been granted."
-        + "\nThis permission includes the 'edit' permission."
-    )
-    delete = "Enables a user to delete the current item"
+    edit: Annotated[str, "Enables a user to edit the current item"] = "edit"
+    permissions: Annotated[
+        str,
+        (
+            "Enables a user to modify other users' permissions for this item."
+            "\nYou can only modify permissions that you have already been granted."
+            "\nThis permission includes the 'edit' permission."
+        ),
+    ] = "permissions"
+    delete: Annotated[str, "Enables a user to delete the current item"] = "delete"
 
 
 class Scopes(StrEnum):
