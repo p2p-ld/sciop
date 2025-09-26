@@ -458,7 +458,9 @@ def random_dataset(
         external_identifiers=[
             ExternalIdentifierCreate(
                 type="doi",
-                identifier=f"10.{randint(1000, 9999)}/{fake.word().lower()}.{randint(10000, 99999)}",
+                identifier=(
+                    f"10.{randint(1000, 9999)}/{fake.word().lower()}.{randint(10000, 99999)}"
+                ),
             )
         ],
         parts=parts,
