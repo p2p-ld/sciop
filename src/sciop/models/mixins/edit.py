@@ -105,8 +105,13 @@ class EditableMixin(SQLModel):
     def editable_by(self, account: Optional["Account"] = None) -> bool:
         if account is None:
             return False
-        return account.has_scope("review") or (
-            self.dataset_id and account.has_scope("edit", "permissions", dataset_id=self.dataset_id)
+        return (
+            account.has_scope("review")
+            or (
+                hasattr(self, "dataset_id")
+                and account.has_scope("edit", "permissions", dataset_id=self.dataset_id)
+            )
+            or (hasattr(self, "upload_id") and self.account == account)
         )
 
     @editable_by.inplace.expression
@@ -127,6 +132,9 @@ class EditableMixin(SQLModel):
                     ]
                 )
             )
+
+        if hasattr(cls, "upload_id"):
+            or_stmts.append(cls.account == account)
 
         return sqla.or_(*or_stmts)
 
