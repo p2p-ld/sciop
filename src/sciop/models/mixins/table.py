@@ -33,6 +33,10 @@ class TableMixin(SQLModel):
                 continue
         raise AttributeError("No IDField found")
 
+    def to_read(self) -> SQLModel:
+        """Convert a table form of a model to its "read" form"""
+        raise NotImplementedError("Models must override the to_read method to use it")
+
 
 class TableReadMixin(SQLModel):
     """

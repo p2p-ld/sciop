@@ -1,5 +1,14 @@
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Literal, Optional, TypeAlias, Union, get_args
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Literal,
+    Optional,
+    Self,
+    TypeAlias,
+    Union,
+    get_args,
+)
 
 from annotated_types import DocInfo, MaxLen, doc
 from sqlalchemy import Column, ForeignKey, Integer
@@ -83,7 +92,7 @@ class Report(TableMixin, table=True):
     report_id: IDField = Field(None, primary_key=True)
     report_type: ReportType
     opened_by_id: Optional[int] = Field(
-        sa_column=_opened_by_id, description="The account that created this report"
+        None, sa_column=_opened_by_id, description="The account that created this report"
     )
     opened_by: "Account" = Relationship(
         back_populates="opened_reports",
@@ -92,7 +101,7 @@ class Report(TableMixin, table=True):
         ),
     )
     resolved_by_id: Optional[int] = Field(
-        sa_column=_resolved_by_id, description="The account that resolved this report"
+        None, sa_column=_resolved_by_id, description="The account that resolved this report"
     )
     resolved_by: "Account" = Relationship(
         back_populates="resolved_reports",
@@ -128,7 +137,7 @@ class Report(TableMixin, table=True):
     target_upload: Optional["Upload"] = Relationship(
         back_populates="reports", sa_relationship_kwargs={"lazy": "selectin"}
     )
-    target_account_id: Optional[int] = Field(sa_column=_target_account_id)
+    target_account_id: Optional[int] = Field(None, sa_column=_target_account_id)
     target_account: Optional["Account"] = Relationship(
         back_populates="reports",
         sa_relationship=RelationshipProperty(
@@ -141,11 +150,34 @@ class Report(TableMixin, table=True):
 
     @property
     def target(self) -> Union["Account", "Dataset", "DatasetPart", "Upload"]:
-        target_fields = [f for f in type(self).model_fields if f.startswith("target_")]
+        target_fields = [
+            f for f in type(self).__sqlmodel_relationships__ if f.startswith("target_")
+        ]
         for field in target_fields:
             if tgt := getattr(self, field):
                 return tgt
         raise ValueError(f"No target could be found for report, checked fields {target_fields}")
+
+    @property
+    def target_type(self) -> TargetType:
+        from sciop.models import (
+            Account,
+            Dataset,
+            DatasetPart,
+            Upload,
+        )
+
+        tgt = self.target
+        if isinstance(tgt, Account):
+            return "account"
+        elif isinstance(tgt, Dataset):
+            return "dataset"
+        elif isinstance(tgt, DatasetPart):
+            return "dataset_part"
+        elif isinstance(tgt, Upload):
+            return "upload"
+        else:
+            raise ValueError(f"Unknown target type for target {tgt}")
 
 
 class ReportCreate(SQLModel):
@@ -183,6 +215,12 @@ class ReportRead(SQLModel):
     resolved_by: UsernameStr | None = None
     action: ModerationAction | None = None
     action_comment: str | None = None
+
+    @classmethod
+    def from_report(cls, report: Report) -> Self:
+        return ReportRead.model_validate(
+            report, update={"target_type": report.target_type, "target": report.target.to_read()}
+        )
 
 
 def get_target(target_type: TargetType, target: str, session: Session) -> TargetModels:

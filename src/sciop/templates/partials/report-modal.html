@@ -10,26 +10,31 @@
      tabindex="-1"
 >
   <div class="modal-header">
-    <span id="{{ label_id }}">Report {{ target_type }} {{ target }}</span>
+    <span id="{{ label_id }}">Open Report</span>
     <button class="close-button" hx-target="#{{ outer_id }}" hx-swap="delete"
         data-target="#{{ outer_id }}">close</button>
   </div>
   <div class="modal-body">
+    <p>
+      Reporting <span data-key="target_type">{{ target_type }}: <span data-value="target">{{ target }}</span>
+    </p>
     {% if config.instance.report_message %}
     <p class="report-message">{{ config.instance.report_message }}</p>
     {% endif %}
 
-    <form class="form" id="{{ form_id }}" hx-ext="form-json">
+    <form class="form" id="{{ form_id }}" name="report" hx-ext="form-json">
     {{ inner_model_form(id=form_id, model=models.ReportCreate) }}
+    <input name="target_type" value="{{ target_type }}" type="hidden" readonly="readonly">
+    <input name="target" value="{{ target }}" type="hidden" readonly="readonly">
     </form>
+    <div class="spacer"></div>
     <button
-      class="form-button"
+      class="form-button full-width"
       type="submit"
-      name="report"
       hx-post="{{ config.api_prefix }}/reports"
       hx-include="#{{ form_id }}"
-      hx-target="#report-modal-container"
-      hx-swap="innerHTML"
+      hx-target="#{{ outer_id }} .modal-body"
+      hx-swap="outerHTML"
       hx-ext="form-json"
     >Submit</button>
   </div>

@@ -281,6 +281,9 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
             session.refresh(self)
         return self
 
+    def to_read(self) -> "DatasetRead":
+        return DatasetRead.model_validate(self)
+
 
 event.listen(Dataset, "before_update", render_db_fields_to_html("description"))
 event.listen(Dataset, "before_insert", render_db_fields_to_html("description"))
@@ -603,6 +606,9 @@ class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, EditableMixin, ta
             session.commit()
             session.refresh(self)
         return self
+
+    def to_read(self) -> "DatasetPartRead":
+        return DatasetPartRead.model_validate(self)
 
 
 @event.listens_for(DatasetPart.is_removed, "set")

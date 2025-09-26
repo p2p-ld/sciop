@@ -312,6 +312,9 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
             session.refresh(self)
         return self
 
+    def to_read(self) -> "UploadRead":
+        return UploadRead.model_validate(self)
+
 
 @event.listens_for(Upload.is_removed, "set")
 def _upload_remove_torrent(

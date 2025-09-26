@@ -171,6 +171,9 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
             or (not self.has_scope("root") and account.has_scope("admin"))
         )
 
+    def to_read(self) -> "AccountRead":
+        return AccountRead.model_validate(self)
+
 
 class AccountCreate(AccountBase):
     password: SecretStr = Field(min_length=12, max_length=64)
