@@ -68,7 +68,7 @@ class ModerableMixin(SQLModel):
             *[s.value for s in ItemScopes], dataset_id=self.dataset_id
         ):
             return True
-        elif hasattr(self, "upload_id") and self.account == account:
+        elif hasattr(self, "upload_id") and hasattr(self, "account") and self.account == account:
             return True
         else:
             return account.has_scope("review")
@@ -84,7 +84,7 @@ class ModerableMixin(SQLModel):
         if hasattr(cls, "dataset_id"):
             or_stmts.append(cls.dataset_id.in_([s.dataset_id for s in account.dataset_scopes]))
 
-        if hasattr(cls, "upload_id"):
+        if hasattr(cls, "upload_id") and hasattr(cls, "account"):
             or_stmts.append(cls.account == account)
 
         return sqla.and_(
@@ -102,7 +102,7 @@ class ModerableMixin(SQLModel):
                 hasattr(self, "dataset_id")
                 and account.has_scope("delete", dataset_id=self.dataset_id)
             )
-            or (hasattr(self, "upload_id") and self.account == account)
+            or (hasattr(self, "upload_id") and hasattr(self, "account") and self.account == account)
         )
 
     @removable_by.inplace.expression
@@ -120,7 +120,7 @@ class ModerableMixin(SQLModel):
                 )
             )
 
-        if hasattr(cls, "upload_id"):
+        if hasattr(cls, "upload_id") and hasattr(cls, "account"):
             or_stmts.append(cls.account == account)
 
         return sqla.or_(*or_stmts)
