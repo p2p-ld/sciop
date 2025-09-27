@@ -67,9 +67,7 @@ async def collaborators(
 
     stmt = select(Account.username).filter(
         Account.username.like(f"%{account_query.strip()}%"),
-        Account.username.not_in(
-            [account_query, *[s.username for s in account_scopes], current_account.username]
-        ),
+        Account.username.not_in([*[s.username for s in account_scopes], current_account.username]),
     )
     results = session.exec(stmt).all()
     return results

@@ -111,7 +111,7 @@ class EditableMixin(SQLModel):
                 hasattr(self, "dataset_id")
                 and account.has_scope("edit", "permissions", dataset_id=self.dataset_id)
             )
-            or (hasattr(self, "upload_id") and self.account == account)
+            or (hasattr(self, "upload_id") and hasattr(self, "account") and self.account == account)
         )
 
     @editable_by.inplace.expression
@@ -133,7 +133,7 @@ class EditableMixin(SQLModel):
                 )
             )
 
-        if hasattr(cls, "upload_id"):
+        if hasattr(cls, "upload_id") and hasattr(cls, "account"):
             or_stmts.append(cls.account == account)
 
         return sqla.or_(*or_stmts)

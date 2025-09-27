@@ -352,8 +352,7 @@ async def revoke_account_scope(
 
 
 @review_router.put("/datasets/{dataset_slug}/scopes/{username}/{scope_name}")
-@jinja.hx("partials/scope-toggle-button.html")
-async def grant_dataset_account_scope(
+async def grant_dataset_scope(
     dataset_slug: str,
     username: str,
     scope_name: ValidItemScope,
@@ -393,13 +392,12 @@ async def grant_dataset_account_scope(
     )
     return SuccessResponse(
         success=True,
-        extra={"username": account.username, "scope_name": scope_name, "item_scope": True},
+        extra={"username": account.username, "scope_name": scope_name},
     )
 
 
 @review_router.delete("/datasets/{dataset_slug}/scopes/{username}/{scope_name}")
-@jinja.hx("partials/scope-toggle-button.html")
-async def revoke_dataset_account_scope(
+async def revoke_dataset_scope(
     dataset_slug: str,
     username: str,
     scope_name: ValidItemScope,
@@ -440,7 +438,7 @@ async def revoke_dataset_account_scope(
     )
     return SuccessResponse(
         success=True,
-        extra={"username": account.username, "scope_name": scope_name, "item_scope": True},
+        extra={"username": account.username, "scope_name": scope_name},
     )
 
 
