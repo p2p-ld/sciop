@@ -1,0 +1,27 @@
+{% extends "layouts/default.html" %}
+{% block head %}
+{% with title = "Reports" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% include "includes/self-tabs.html" %}
+<div class="page-header">
+  <h1>Reports</h1>
+  <span class="htmx-indicator loading-indicator" id="reports-loading-indicator">
+      <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+  </span>
+</div>
+<div class="container flex-container column">
+   <div
+    id="reports-table"
+    aria-live="polite"
+    hx-get="{{ config.api_prefix }}/reports/"
+    hx-trigger="load"
+    hx-swap="innerHTML"
+     hx-indicator="#reports-loading-indicator"
+  >
+  </div>
+</div>
+
+{% endblock %}

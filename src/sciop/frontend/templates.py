@@ -3,7 +3,7 @@ Common source for template environments and decorators
 """
 
 from types import ModuleType
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 from typing import Literal as L
 
 from fastapi import Request
@@ -39,6 +39,25 @@ def template_models(request: Request) -> dict[L["models", "types"], ModuleType]:
 
 def template_nonce(request: Request) -> dict[L["nonce"], str]:
     return {"nonce": getattr(request.state, "nonce", "")}
+
+
+def passthrough_context(key: str) -> Callable:
+    """
+    Create a context for jinja htmx templates with the returned model as a variable named `key`,
+    rather than unpacking the fields of the model.
+
+    Usage:
+
+    ```
+    @jinja.hx("some/template.html", make_context=passthrough_context("key"))
+    async def some_endpoint(): ...
+    ```
+    """
+
+    def _passthrough(*, route_result: Any, route_context: Any = None) -> dict[str, Any]:
+        return {key: route_result}
+
+    return _passthrough
 
 
 templates = Jinja2Templates(

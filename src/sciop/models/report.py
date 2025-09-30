@@ -10,13 +10,15 @@ from typing import (
     get_args,
 )
 
+import sqlalchemy as sqla
 from annotated_types import DocInfo, MaxLen, doc
-from sqlalchemy import Column, ForeignKey, Integer
+from sqlalchemy import Column, ColumnElement, ForeignKey, Integer
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship, Session
 
 from sciop.models.base import SQLModel
-from sciop.models.mixins import TableMixin
+from sciop.models.mixins import SortableCol, SortMixin, TableMixin
 from sciop.models.moderation import ModerationAction
 from sciop.types import IDField, InputType, UsernameStr
 
@@ -84,10 +86,16 @@ _target_account_id = Column(
 )
 
 
-class Report(TableMixin, table=True):
+class Report(TableMixin, SortMixin, table=True):
     """Reports of items and accounts"""
 
     __tablename__ = "reports"
+    __sortable__ = (
+        SortableCol(name="report_id", title="ID"),
+        SortableCol(name="created_at", title="Created"),
+        SortableCol(name="is_open", title="Open"),
+        SortableCol(name="report_type", title="Type"),
+    )
 
     report_id: IDField = Field(None, primary_key=True)
     report_type: ReportType
@@ -178,6 +186,30 @@ class Report(TableMixin, table=True):
             return "upload"
         else:
             raise ValueError(f"Unknown target type for target {tgt}")
+
+    @hybrid_method
+    def visible_to(self, account: Optional["Account"] = None) -> bool:
+        """Reports are visible to moderators and the account that made the report"""
+        if account is None:
+            return False
+        return self.opened_by == account or account.has_scope("review")
+
+    @visible_to.inplace.expression
+    @classmethod
+    def _visible_to(cls, account: Optional["Account"] = None) -> ColumnElement[bool]:
+        if account is None:
+            return sqla.false()
+
+        return sqla.or_(cls.opened_by == account, account.has_scope("review") == True)
+
+    @hybrid_property
+    def is_open(self) -> bool:
+        """
+        A report is open if it has not been resolved,
+        ie. it does not have an action taken against it.
+        """
+        # equality comparison to None is valid with sqlalchemy
+        return self.action == None  # noqa: E711
 
 
 class ReportCreate(SQLModel):

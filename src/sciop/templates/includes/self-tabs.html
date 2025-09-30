@@ -2,6 +2,7 @@
   <a href="/self/" class="nav-link tab-link {% if request.url.path.endswith('self/') %}current{% endif %}">Profile</a>
   {% if current_account.has_scope("review") %}
     <a href="/self/review" class="nav-link tab-link {% if 'review' in request.url.path %}current{% endif %}">Review</a>
+    <a href="/self/reports/" class="nav-link tab-link {% if 'reports' in request.url.path %}current{% endif %}">Reports</a>
   {% endif %}
   {% if current_account.has_scope("admin") %}
     <a href="/self/admin" class="nav-link tab-link {% if 'admin' in request.url.path %}current{% endif %}">Admin</a>

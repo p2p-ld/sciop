@@ -44,6 +44,11 @@ async def review(request: Request, account: RequireReviewer):
     return templates.TemplateResponse(request, "pages/self/review.html")
 
 
+@self_router.get("/reports", response_class=HTMLResponse)
+async def reports(request: Request, account: RequireReviewer):
+    return templates.TemplateResponse(request, "pages/self/reports.html")
+
+
 @self_router.get("/admin", response_class=HTMLResponse)
 async def admin(request: Request, account: RequireAdmin):
     return templates.TemplateResponse(request, "pages/self/admin.html")
