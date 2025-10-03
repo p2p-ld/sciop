@@ -276,6 +276,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
                 account_scopes=[
                     ItemScopesRead(username=scope["username"], scopes=scope["scopes"])
                     for scope in updated["account_scopes"]
+                    if "scopes" in scope
                 ],
                 existing_scopes=self.account_scopes,
             )

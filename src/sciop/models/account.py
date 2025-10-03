@@ -98,8 +98,8 @@ class AccountBase(SQLModel):
 
         if dataset_id:
             scopes = list(args)
-            if "permissions" in args and "edit" not in args:
-                scopes.append("edit")
+            if "edit" in args and "permissions" not in args:
+                scopes.append("permissions")
 
             return sqla.or_(
                 *[cls.scopes.any(scope=s) for s in ("root", "admin")],

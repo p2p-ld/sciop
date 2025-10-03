@@ -161,28 +161,6 @@ function init_token_input(){
 }
 init_token_input();
 
-// account scopes form input
-function init_account_scopes_input() {
-  let inputs = document.querySelectorAll(".form-account-scopes");
-  inputs.forEach(e => {
-    // trigger htmx event for parent and clear input
-    e.addEventListener("keyup", e => {
-      if (e.key !== "Enter"){ return }
-      e.preventDefault();
-
-      let parent = htmx.closest(document.activeElement, ".account-scopes-input-container");
-      let elt = parent.querySelector(".account-scopes-container")
-      if (elt !== null && e.target.value != ""){
-        htmx.trigger(elt, "accountSelected");
-      }
-
-      e.target.value = "";
-      e.target.focus();
-    })
-  })
-}
-init_account_scopes_input();
-
 function init_upload_progress(target) {
   let upload_form = target.querySelector(".upload-form");
   if (upload_form === null){return}
