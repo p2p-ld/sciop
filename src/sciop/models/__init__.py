@@ -62,7 +62,6 @@ from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.scope import (
     AccountDatasetScopeLink,
     AccountScopeLink,
-    ItemScopesAction,
     ItemScopesRead,
     Scope,
 )
@@ -124,7 +123,6 @@ __all__ = [
     "FileInTorrentCreate",
     "FileInTorrentRead",
     "HitCount",
-    "ItemScopesAction",
     "MagnetLink",
     "RaggedSearchPage",
     "RaggedSearchParams",

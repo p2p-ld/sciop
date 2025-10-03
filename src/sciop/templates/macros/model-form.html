@@ -173,7 +173,6 @@
     hx-target="#{{ parent_id }}-{{ field_name }}-autocomplete"
     hx-trigger="input changed delay:250ms"
     hx-include="#{{ parent_id }}-{{ field_name }}-tokens"
-    hx-params="*"
     data-tokens-container="#{{ parent_id }}-{{ field_name }}-tokens"
 >
 <datalist id="{{ parent_id }}-{{ field_name }}-autocomplete"></datalist>
@@ -190,22 +189,25 @@
         hx-target="#{{ parent_id }}-{{ field_name }}-autocomplete"
         hx-trigger="input changed delay:250ms"
         hx-params="*"
-    >
+        _="on keyup[key=='Enter']
+           if my value.trim() == '' set my value to ''
+           else trigger account_selected on #{{ parent_id }}-{{ field_name }}-account-scopes">
     <datalist id="{{ parent_id }}-{{ field_name }}-autocomplete"></datalist>
     <div
         id="{{ parent_id }}-{{ field_name }}-account-scopes"
         class="account-scopes-container"
-        hx-trigger="accountSelected"
+        hx-trigger="account_selected"
         hx-target="this"
-        hx-post="/partials/account-scopes"
+        hx-post="/partials/add-account-scopes-row"
         hx-params="*"
-        hx-vals='{ "action": { "action": "add account" }, "editing": "{{ edit }}" }'
+        hx-vals='{ "editing": "{{ edit }}" }'
+        _="on htmx:afterRequest set #{{ parent_id }}-{{ field_name }}.value to ''"
     >
         {% if value %}
-        {% from 'macros/account.html' import account_row %}
-        <div id="accounts-table-inner" class="collapsible-table accounts-table scopes-form has-entries">
+        {% from 'macros/account.html' import account_scopes_row %}
+        <div id="accounts-table-inner" class="collapsible-table accounts-table scopes-form">
             {% for account in value %}
-            {{ account_row(account, items=value, current_account=current_account, edit=edit, idx=loop.index) }}
+            {{ account_scopes_row(account, items=value, current_account=current_account, edit=edit, idx=loop.index) }}
             {% endfor %}
         </div>
         {% endif %}

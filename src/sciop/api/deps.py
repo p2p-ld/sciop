@@ -240,6 +240,11 @@ def require_scopable_dataset(
     current_account: RequireEditableBy,
     dataset_patch: Annotated[DatasetUpdate, Body()],
 ) -> Dataset:
+    """
+    Require that a dataset is editable by the current user,
+    and that the user has should be be able to make any scope
+    changes that are included in the dataset patch
+    """
     account_scopes = dataset_patch.account_scopes
     if not account_scopes or current_account.get_scope("review"):
         return dataset

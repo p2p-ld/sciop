@@ -71,12 +71,4 @@ class ItemScopesRead(BaseModel):
     """Aggregated-by-account scopes object returned from API methods"""
 
     username: str
-    scopes: list[str]
-
-
-class ItemScopesAction(BaseModel):
-    """Action object for handling account scope form events"""
-
-    action: Literal["load", "add account", "add scope", "remove scope"]
-    username: Optional[str] = None
-    scope: Optional[str] = None
+    scopes: list[str] = []

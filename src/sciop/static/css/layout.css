@@ -198,7 +198,7 @@ table {
   &.scopes-form {
     margin-bottom: 0em;
 
-    &.has-entries {
+    &:has(.account-scopes-row) {
       margin-top: 1em;
     }
   }
@@ -214,7 +214,7 @@ table {
   .dataset-slug,
   .dataset-slug a,
   .table-head,
-  .account-row,
+  .account-scopes-row,
   .dataset-collapsible > .collapsible-summary,
   .dataset-part-collapsible > .collapsible-summary,
   .upload-collapsible > .collapsible-summary,

@@ -12,8 +12,8 @@ from sciop.frontend.templates import templates
 from sciop.models import (
     Account,
     ItemScopesAction,
-    TargetType,
     ItemScopesRead,
+    TargetType,
 )
 from sciop.types import ItemScopes
 
@@ -77,7 +77,6 @@ async def account_scopes(
     session: SessionDep,
     request: Request,
     current_account: RequireCurrentAccount,
-    action: ItemScopesAction,
     editing: Annotated[Optional[bool], Body()] = False,
     account_query: Annotated[Optional[str], Body()] = None,
     account_scopes: Optional[list[ItemScopesRead]] = None,
@@ -89,30 +88,19 @@ async def account_scopes(
             acc.scopes = [s for s in acc.scopes if s != ""]
 
     if (
-        action.action == "add account"
-        and account_query
+        account_query
         and account_query.strip() != current_account.username
         and account_query.strip() not in [s.username for s in account_scopes]
     ):
         acct = session.exec(
             select(Account).where(
-                Account.username == account_query.strip(), Account != current_account
+                Account.username == account_query.strip(),
+                Account != current_account,
+                Account.is_suspended == False,
             )
         ).first()
         if acct:
             account_scopes.append(ItemScopesRead(username=acct.username, scopes=[]))
-    elif (
-        action.action == "add scope"
-        and action.scope
-        and action.scope in ItemScopes.__members__.values()
-    ):
-        for idx, scope in enumerate(account_scopes):
-            if scope.username == action.username and action.scope not in scope.scopes:
-                account_scopes[idx].scopes.append(action.scope)
-    elif action.action == "remove scope":
-        for idx, scope in enumerate(account_scopes):
-            if scope.username == action.username and action.scope in scope.scopes:
-                account_scopes[idx].scopes.remove(action.scope)
 
     return templates.TemplateResponse(
         request,

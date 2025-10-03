@@ -121,7 +121,6 @@ async def dataset_edit(
     dataset_slug: str,
     dataset_patch: Annotated[DatasetUpdate, Body()],
     dataset: RequireScopableDataset,
-    current_account: RequireEditableBy,
     session: SessionDep,
     request: Request,
     response: Response,

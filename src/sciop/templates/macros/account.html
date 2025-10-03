@@ -1,6 +1,6 @@
-{% macro account_row(account, items=None, current_account=None, current_account_scopes=[], edit=False, idx=None) %}
+{% macro account_scopes_row(account, items=None, current_account=None, current_account_scopes=[], edit=False, idx=None) %}
 {% set current_account_scopes=items | selectattr("username", "eq", current_account.username) | map(attribute="scopes") | first %}
-<div class="account-row" id="account-row-{{ account.username }}">
+<div class="account-scopes-row" id="account-scopes-row-{{ account.username }}">
     <span></span>
     <span class="account-username item-link">
         <a href="/accounts/{{ account.username }}">
@@ -22,34 +22,36 @@
                     or (scope_name != "edit" and scope_name not in current_account_scopes)
                 )
             ) %}
-            {% if scope_name in account.scopes or (scope_name == "edit" and "permissions" in account.scopes) %}
-                <a class="toggle-button button checked {% if disabled %}disabled{% endif %}"
-                        id="{{ account.username }}-scope-{{scope_name}}"
-                        {% if types.ItemScopes.__annotations__.get(scope_name, None) %}
-                        title="{{ types.ItemScopes.__annotations__.get(scope_name, None).__metadata__[-1] }}"
-                        {% endif %}
-                        hx-target="closest .account-scopes-container"
-                        hx-post="/partials/account-scopes"
-                        hx-params="*"
-                        hx-vals='{ "action": { "action": "remove scope", "username": "{{ account.username }}", "scope": "{{ scope_name }}" } }'
-                >
-                    {{scope_name}}
-                </a>
-                <input class="hidden" name="account_scopes[{{ idx }}].scopes[]" value="{{ scope_name }}" readonly="readonly">
-            {% else %}
-                <a class="toggle-button button {% if disabled %}disabled{% endif %}"
-                        id="{{ account.username }}-scope-{{scope_name}}"
-                        {% if types.ItemScopes.__annotations__.get(scope_name, None) %}
-                        title="{{ types.ItemScopes.__annotations__.get(scope_name, None).__metadata__[-1] }}"
-                        {% endif %}
-                        hx-target="closest .account-scopes-container"
-                        hx-post="/partials/account-scopes"
-                        hx-params="*"
-                        hx-vals='{ "action": { "action": "add scope", "username": "{{ account.username }}", "scope": "{{ scope_name }}" } }'
-                >
-                    {{scope_name}}
-                </a>
-            {% endif %}
+            {% set has_scope=(scope_name in account.scopes or (scope_name == "edit" and "permissions" in account.scopes))%}
+            <button class="toggle-button {% if has_scope %}checked{% endif %}"
+                    id="{{ account.username }}-scope-{{scope_name}}"
+                    {% if types.ItemScopes.__annotations__.get(scope_name, None) %}
+                    title="{{ types.ItemScopes.__annotations__.get(scope_name, None).__metadata__[-1] }}"
+                    {% endif %}
+                    {% if disabled or (scope_name == "edit" and "permissions" in account.scopes) %}disabled{% endif %}
+                    _="on click if event.explicitOriginalTarget is me
+                           toggle .checked on me
+                           toggle @disabled on #{{ account.username }}-scope-{{scope_name}}-input
+                           if I match #{{ account.username }}-scope-permissions then
+                               if I match .checked then
+                                   add .checked to #{{ account.username }}-scope-edit
+                                   add @disabled to #{{ account.username }}-scope-edit
+                                   remove @disabled from #{{ account.username }}-scope-edit-input
+                               else
+                                   remove @disabled from #{{ account.username }}-scope-edit
+                               end
+                           end
+                       end
+                       halt the event"
+            >
+                {{scope_name}}
+            </button>
+            <input class="hidden"
+                   id="{{ account.username }}-scope-{{scope_name}}-input"
+                   name="account_scopes[{{ idx }}].scopes[]"
+                   value="{{ scope_name }}"
+                   {% if not has_scope %}disabled{% endif %}
+                   readonly="readonly">
         {% endfor %}
     </span>
 </div>
