@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sqla
 from pydantic import BaseModel, ConfigDict

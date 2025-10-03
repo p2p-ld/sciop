@@ -18,7 +18,6 @@ from sciop.api.deps import (
     CurrentAccount,
     RequireCurrentAccount,
     RequireDataset,
-    RequireEditableBy,
     RequireScopableDataset,
     RequireVisibleDataset,
     RequireVisibleDatasetPart,
