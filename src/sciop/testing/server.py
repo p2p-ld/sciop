@@ -30,7 +30,7 @@ class UvicornTestServer(Server):
     async def startup(self, sockets: list | None = None) -> None:
         """Override uvicorn startup"""
         await super().startup(sockets=sockets)
-        self.config.setup_event_loop()
+        self.config.get_loop_factory()
         self._startup_done.set()
 
     async def up(self) -> None:
