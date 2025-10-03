@@ -15,7 +15,6 @@ from sciop.models import (
     ItemScopesRead,
     TargetType,
 )
-from sciop.types import ItemScopes
 
 partials_router = APIRouter(prefix="/partials")
 
