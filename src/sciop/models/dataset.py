@@ -1,7 +1,7 @@
 import hashlib
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Optional, Self, Union, cast
 
 from annotated_types import MaxLen
 from pydantic import BaseModel, TypeAdapter, computed_field, field_validator, model_validator
@@ -16,6 +16,7 @@ from sciop.models.account import Account
 from sciop.models.base import SQLModel
 from sciop.models.mixins import (
     EditableMixin,
+    FrontendMixin,
     ListlikeMixin,
     ModerableMixin,
     SearchableMixin,
@@ -75,7 +76,9 @@ def _prefixed_len(info: FieldInfo) -> int:
     return max_len.max_length + PREFIX_LEN
 
 
-class DatasetBase(ModerableMixin):
+class DatasetBase(ModerableMixin, FrontendMixin):
+    __name__: ClassVar[str] = "dataset"
+
     title: str = Field(
         title="Title",
         description="""
@@ -211,6 +214,14 @@ class DatasetBase(ModerableMixin):
     """,
         schema_extra={"json_schema_extra": {"input_type": InputType.select}},
     )
+
+    @property
+    def frontend_url(self) -> str:
+        return f"/datasets/{self.slug}/"
+
+    @property
+    def short_name(self) -> str:
+        return self.slug
 
 
 class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, table=True):
@@ -549,7 +560,9 @@ class UploadDatasetPartLink(SQLModel, table=True):
     )
 
 
-class DatasetPartBase(SQLModel):
+class DatasetPartBase(SQLModel, FrontendMixin):
+    __name__: ClassVar[str] = "dataset part"
+
     part_slug: SlugStr = Field(
         title="Part Slug",
         description="Unique identifier for this dataset part",
@@ -569,6 +582,23 @@ class DatasetPartBase(SQLModel):
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
         max_length=8192,
     )
+
+    @property
+    def frontend_url(self) -> str:
+        return f"/datasets/{self.dataset.slug}/parts/{self.part_slug}/"
+
+    @property
+    def short_name(self) -> str:
+        return f"{self.dataset.slug}/{self.part_slug}"
+
+    @property
+    def link_to(self) -> str:
+        """A rendered <a> element linking to the item"""
+        return (
+            f"<span>"
+            f'  {self.dataset.link_to}/<a href="{self.frontend_url}">{self.part_slug}</a>'
+            f"</span>"
+        )
 
 
 class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, EditableMixin, table=True):

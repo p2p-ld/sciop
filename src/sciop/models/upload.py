@@ -1,6 +1,6 @@
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Optional, Self, cast
+from typing import TYPE_CHECKING, ClassVar, Optional, Self, cast
 from urllib.parse import urljoin
 
 import sqlalchemy as sqla
@@ -24,6 +24,7 @@ from sciop.models import (
 from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixins import (
     EditableMixin,
+    FrontendMixin,
     ModerableMixin,
     SearchableMixin,
     SortableCol,
@@ -39,10 +40,12 @@ if TYPE_CHECKING:
     from sqlmodel import Session
 
 
-class UploadBase(ModerableMixin):
+class UploadBase(ModerableMixin, FrontendMixin):
     """
     A copy of a dataset
     """
+
+    __name__: ClassVar[str] = "upload"
 
     method: Optional[str] = Field(
         None,
@@ -135,6 +138,14 @@ class UploadBase(ModerableMixin):
     @property
     def leechers(self) -> int:
         return self.torrent.leechers
+
+    @property
+    def frontend_url(self) -> str:
+        return f"/uploads/{self.infohash}/"
+
+    @property
+    def short_name(self) -> str:
+        return self.short_hash
 
 
 class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, table=True):

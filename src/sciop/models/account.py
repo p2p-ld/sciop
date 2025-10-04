@@ -1,6 +1,6 @@
 import re
 import unicodedata
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 import sqlalchemy as sqla
 from pydantic import ConfigDict, SecretStr, field_validator
@@ -10,7 +10,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship
 
 from sciop.models.base import SQLModel
-from sciop.models.mixins import EnumTableMixin, SearchableMixin, TableMixin
+from sciop.models.mixins import EnumTableMixin, FrontendMixin, SearchableMixin, TableMixin
 from sciop.types import IDField, Scopes, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
@@ -39,7 +39,9 @@ class AccountScopeLink(TableMixin, table=True):
     )
 
 
-class AccountBase(SQLModel):
+class AccountBase(SQLModel, FrontendMixin):
+    __name__: ClassVar[str] = "account"
+
     username: UsernameStr
 
     model_config = ConfigDict(ignored_types=(hybrid_method,))
@@ -101,6 +103,18 @@ class AccountBase(SQLModel):
         """Get the scope object from its name, returning None if not present"""
         scope = [a_scope for a_scope in self.scopes if a_scope.scope.value == scope]
         return None if not scope else scope[0]
+
+    @property
+    def frontend_url(self) -> str:
+        return f"/accounts/{self.username}/"
+
+    @property
+    def short_name(self) -> str:
+        return self.username
+
+    @property
+    def link_to(self) -> str:
+        return f'<a href="{self.frontend_url}">@{self.short_name}</a>'
 
 
 class Account(AccountBase, TableMixin, SearchableMixin, table=True):
