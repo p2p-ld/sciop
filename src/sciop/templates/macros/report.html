@@ -1,7 +1,23 @@
-{% macro report() %}
+{% macro report_row(report) %}
 
 {% endmacro %}
 
 {% macro report_collapsible(report, config) %}
 {{ report }}
+<details class="collapsible report-collapsible" id="report-collapsible-{{ report.report_id }}">
+  <summary
+    class="collapsible-summary"
+    hx-get="/reports/{{ report.report_id }}/partial"
+    hx-trigger="click once"
+    hx-target="#report-{{ report.report_id }}"
+  >
+    <span class="collapsible-marker" aria-label="Expand/Collapse"></span>
+    <span class="report-id">{{ report.report_id }}</span>
+    <span class="report-timestamp" datetime="{{ report.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+      {{ report.created_at }}
+    </span>
+    <span class="report-type"></span>
+  </summary>
+  <div class="report" id="report-{{ report.report_id }}"></div>
+</details>
 {% endmacro %}

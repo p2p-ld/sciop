@@ -1,0 +1,12 @@
+{% extends "layouts/default.html" %}
+[% from "macros/report.html" import report_row %}
+{% block head %}
+{% with title = "Report " + report.report_id %}
+  {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+
+{{ report_row(report) }}
+
+{% endblock %}

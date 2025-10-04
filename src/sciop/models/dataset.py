@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Optional, Self, Unio
 from annotated_types import MaxLen
 from pydantic import BaseModel, TypeAdapter, computed_field, field_validator, model_validator
 from sqlalchemy import event
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship
@@ -219,7 +220,7 @@ class DatasetBase(ModerableMixin, FrontendMixin):
     def frontend_url(self) -> str:
         return f"/datasets/{self.slug}/"
 
-    @property
+    @hybrid_property
     def short_name(self) -> str:
         return self.slug
 
@@ -587,9 +588,9 @@ class DatasetPartBase(SQLModel, FrontendMixin):
     def frontend_url(self) -> str:
         return f"/datasets/{self.dataset.slug}/parts/{self.part_slug}/"
 
-    @property
+    @hybrid_property
     def short_name(self) -> str:
-        return f"{self.dataset.slug}/{self.part_slug}"
+        return self.dataset.slug + "/" + self.part_slug
 
     @property
     def link_to(self) -> str:

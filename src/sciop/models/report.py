@@ -12,13 +12,13 @@ from typing import (
 
 import sqlalchemy as sqla
 from annotated_types import DocInfo, MaxLen, doc
-from sqlalchemy import Column, ColumnElement, ForeignKey, Integer
+from sqlalchemy import Column, ColumnElement, ForeignKey, Integer, SQLColumnExpression
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship, Session
 
 from sciop.models.base import SQLModel
-from sciop.models.mixins import SortableCol, SortMixin, TableMixin
+from sciop.models.mixins import FrontendMixin, SortableCol, SortMixin, TableMixin
 from sciop.models.moderation import ModerationAction
 from sciop.types import IDField, InputType, UsernameStr
 
@@ -86,9 +86,10 @@ _target_account_id = Column(
 )
 
 
-class Report(TableMixin, SortMixin, table=True):
+class Report(TableMixin, SortMixin, FrontendMixin, table=True):
     """Reports of items and accounts"""
 
+    __name__ = "report"
     __tablename__ = "reports"
     __sortable__ = (
         SortableCol(name="report_id", title="ID"),
@@ -187,6 +188,16 @@ class Report(TableMixin, SortMixin, table=True):
         else:
             raise ValueError(f"Unknown target type for target {tgt}")
 
+    @hybrid_property
+    def target_name(self) -> str:
+        return self.target.short_name
+
+    @target_name.expression
+    @classmethod
+    def _target_name(cls) -> SQLColumnExpression[str]:
+        # implement case expression form
+        raise NotImplementedError()
+
     @hybrid_method
     def visible_to(self, account: Optional["Account"] = None) -> bool:
         """Reports are visible to moderators and the account that made the report"""
@@ -210,6 +221,14 @@ class Report(TableMixin, SortMixin, table=True):
         """
         # equality comparison to None is valid with sqlalchemy
         return self.action == None  # noqa: E711
+
+    @property
+    def frontend_url(self) -> str:
+        return f"/reports/{self.report_id}"
+
+    @property
+    def short_name(self) -> str:
+        return str(self.report_id)
 
 
 class ReportCreate(SQLModel):

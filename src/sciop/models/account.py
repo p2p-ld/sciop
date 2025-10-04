@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, ClassVar, Optional
 
 import sqlalchemy as sqla
 from pydantic import ConfigDict, SecretStr, field_validator
-from sqlalchemy.ext.hybrid import hybrid_method
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship
@@ -108,7 +108,7 @@ class AccountBase(SQLModel, FrontendMixin):
     def frontend_url(self) -> str:
         return f"/accounts/{self.username}/"
 
-    @property
+    @hybrid_property
     def short_name(self) -> str:
         return self.username
 

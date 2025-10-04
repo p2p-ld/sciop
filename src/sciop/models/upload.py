@@ -143,7 +143,7 @@ class UploadBase(ModerableMixin, FrontendMixin):
     def frontend_url(self) -> str:
         return f"/uploads/{self.infohash}/"
 
-    @property
+    @hybrid_property
     def short_name(self) -> str:
         return self.short_hash
 
