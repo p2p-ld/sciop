@@ -8,7 +8,7 @@ from typing import Literal as L
 
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
-from fasthx import Jinja
+from fasthx.jinja import Jinja
 
 from sciop import models, types
 from sciop.config import Config, get_config
