@@ -78,6 +78,14 @@ class WebseedHTTPError(WebseedException, HTTPException):
     """An HTTP error was raised while trying to validate a webseed"""
 
 
+class ModerationError(SciOpException):
+    """Base class for moderatino-related errors"""
+
+
+class ReportResolvedError(ModerationError, ValueError):
+    """A report resolution was attempted, but the report was already resolved!"""
+
+
 async def http_handler(request: Request, exc: HTTPException) -> Response:
     """
     Small wrapping of FastAPI's error handling to

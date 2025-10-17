@@ -93,11 +93,21 @@ class UploadBase(ModerableMixin, FrontendMixin):
         """Download path including the site root"""
         return urljoin(get_config().server.base_url, self.download_path)
 
-    @property
+    @hybrid_property
     def short_hash(self) -> Optional[str]:
         if self.torrent:
             return self.torrent.short_hash
         return None
+
+    @short_hash.inplace.expression
+    @classmethod
+    def _short_hash(cls) -> SQLColumnExpression[str]:
+        return (
+            select(TorrentFile.short_hash)
+            .join(TorrentFile.upload)
+            .where(TorrentFile.upload_id == cls.upload_id)
+            .label("short_hash")
+        )
 
     @property
     def rss_description(self) -> str:

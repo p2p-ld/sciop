@@ -1,5 +1,5 @@
 {% from "macros/model-form.html" import inner_model_form %}
-{% set outer_id = "report-" + target_type + "-" + target %}
+{% set outer_id = "report-" + target_type + "-" + target | replace("/", "-") %}
 {% set form_id = outer_id + "-form" %}
 {% set label_id = outer_id + "-header" %}
 <div id="{{ outer_id }}"

@@ -1,4 +1,4 @@
-{% from "macros/actions.html" import delete_button, edit_button, unapprove_button, approve_button %}
+{% from "macros/actions.html" import delete_button, edit_button, unapprove_button, approve_button, report_button %}
 {% macro upload_row(upload, current_account, config, header_start=1) %}
 <div class="upload" id="upload-{{ upload.infohash }}">
     <div class="upload-topmatter topmatter">
@@ -141,6 +141,7 @@
                     {% set delete_url= config.api_prefix + "/uploads/" + upload.infohash %}
                     {{ delete_button(url=delete_url, item_type="upload", name=upload.infohash)}}
                     {% endif %}
+                    {{ report_button(target_type="upload", target=upload.infohash) }}
                     </td>
                 </tr>
                 {% endif %}
@@ -220,7 +221,7 @@
 {% endmacro %}
 
 {% macro upload_collapsible(upload, review=False, config = None) %}
-<details id="upload-collapsible-{{ upload.upload_id }}"
+<details id="upload-collapsible-{{ upload.infohash }}"
          class="collapsible upload-collapsible{% if not upload.is_approved %} unapproved{% endif %}">
     <summary class="collapsible-summary"
              hx-get="/uploads/{{ upload.infohash }}/partial"

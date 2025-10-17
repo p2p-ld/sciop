@@ -1,12 +1,11 @@
 {% extends "layouts/default.html" %}
-[% from "macros/report.html" import report_row %}
+{% from "macros/report.html" import report_row %}
 {% block head %}
-{% with title = "Report " + report.report_id %}
+{% set report_id_str = report.report_id | string %}
+{% with title = "Report " + report_id_str %}
   {% include "includes/head.html" %}
 {% endwith %}
 {% endblock %}
 {% block content %}
-
-{{ report_row(report) }}
-
+{{ report_row(report, target, current_account, config) }}
 {% endblock %}

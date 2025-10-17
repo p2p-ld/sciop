@@ -1,3 +1,4 @@
+{% from "macros/actions.html" import report_button %}
 {% macro dataset_part_row(part, dataset, current_account, config) %}
 <div class="dataset-part" id="dataset-part-{{ dataset.slug }}-{{ part.part_slug }}">
   <span class="page-type">dataset part</span>
@@ -13,8 +14,13 @@
       Dataset part has not yet been reviewed, and is not visible in public lists
   </p>
   {% endif %}
-  {% if current_account and (part.needs_review and current_account.has_scope("review")) %}
-  <div >{{ review_buttons(dataset, part, config) }}</div>
+  {% if current_account %}
+  <div >
+    {% if (part.needs_review and current_account.has_scope("review")) %}
+    {{ review_buttons(dataset, part, config) }}
+    {% endif %}
+    {{ report_button(target_type="dataset_part", target=part.short_name) }}
+  </div>
   {% endif %}
   {% if part.description_html %}
   <div class="dataset-description">

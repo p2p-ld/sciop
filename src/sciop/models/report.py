@@ -12,15 +12,17 @@ from typing import (
 
 import sqlalchemy as sqla
 from annotated_types import DocInfo, MaxLen, doc
-from sqlalchemy import Column, ColumnElement, ForeignKey, Integer, SQLColumnExpression
+from pydantic import BaseModel
+from sqlalchemy import Column, ColumnElement, ForeignKey, Integer
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import RelationshipProperty
-from sqlmodel import Field, Relationship, Session
+from sqlmodel import Field, Relationship, Session, select
 
+from sciop.exceptions import ReportResolvedError
 from sciop.models.base import SQLModel
 from sciop.models.mixins import FrontendMixin, SortableCol, SortMixin, TableMixin
-from sciop.models.moderation import ModerationAction
-from sciop.types import IDField, InputType, UsernameStr
+from sciop.models.moderation import ReportAction
+from sciop.types import IDField, InputType, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import (
@@ -86,16 +88,30 @@ _target_account_id = Column(
 )
 
 
-class Report(TableMixin, SortMixin, FrontendMixin, table=True):
+class ReportBase(SQLModel, FrontendMixin):
+    report_id: IDField
+
+    @property
+    def frontend_url(self) -> str:
+        return f"/reports/{self.report_id}"
+
+    @property
+    def short_name(self) -> str:
+        return str(self.report_id)
+
+
+class Report(ReportBase, TableMixin, SortMixin, table=True):
     """Reports of items and accounts"""
 
     __name__ = "report"
     __tablename__ = "reports"
     __sortable__ = (
         SortableCol(name="report_id", title="ID"),
-        SortableCol(name="created_at", title="Created"),
-        SortableCol(name="is_open", title="Open"),
+        SortableCol(name="opened_by", title="By"),
         SortableCol(name="report_type", title="Type"),
+        SortableCol(name="target_type", title="Target"),
+        SortableCol(name="report_name", title="Name"),
+        SortableCol(name="created_at", title="Opened"),
     )
 
     report_id: IDField = Field(None, primary_key=True)
@@ -118,10 +134,13 @@ class Report(TableMixin, SortMixin, FrontendMixin, table=True):
             "Account", foreign_keys=[_resolved_by_id], back_populates="resolved_reports"
         ),
     )
+    resolved_at: Optional[UTCDateTime] = Field(
+        None, description="The UTC time when the report was resolved"
+    )
     comment: Optional[str] = Field(
         None, description="Additional information provided by the reporting account"
     )
-    action: ModerationAction | None = Field(
+    action: ReportAction | None = Field(
         None, description="Action taken that resolved this report. None before action taken"
     )
     action_comment: Optional[str] = Field(
@@ -164,6 +183,8 @@ class Report(TableMixin, SortMixin, FrontendMixin, table=True):
         ]
         for field in target_fields:
             if tgt := getattr(self, field):
+                print(field)
+                print(tgt)
                 return tgt
         raise ValueError(f"No target could be found for report, checked fields {target_fields}")
 
@@ -192,11 +213,51 @@ class Report(TableMixin, SortMixin, FrontendMixin, table=True):
     def target_name(self) -> str:
         return self.target.short_name
 
-    @target_name.expression
+    @target_name.inplace.expression
     @classmethod
-    def _target_name(cls) -> SQLColumnExpression[str]:
-        # implement case expression form
-        raise NotImplementedError()
+    def _target_name(cls) -> ColumnElement[str]:
+        from sciop.models import Account, Dataset, DatasetPart, Upload
+
+        # don't @ me about this heinously verbose shit
+        q = sqla.case(
+            (
+                cls.target_account_id != None,
+                (
+                    select(Account.short_name)
+                    .join(Account.reports)
+                    .where(Account.account_id == cls.target_account_id)
+                    .scalar_subquery()
+                ),
+            ),
+            (
+                cls.target_dataset_id != None,
+                (
+                    select(Dataset.short_name)
+                    .join(Dataset.reports)
+                    .where(Dataset.dataset_id == cls.target_dataset_id)
+                    .scalar_subquery()
+                ),
+            ),
+            (
+                cls.target_dataset_part_id != None,
+                (
+                    select(DatasetPart.short_name)
+                    .join(DatasetPart.reports)
+                    .where(DatasetPart.dataset_part_id == cls.target_dataset_part_id)
+                    .scalar_subquery()
+                ),
+            ),
+            (
+                cls.target_upload_id != None,
+                (
+                    select(Upload.short_name)
+                    .join(Upload.reports)
+                    .where(Upload.upload_id == cls.target_upload_id)
+                    .scalar_subquery()
+                ),
+            ),
+        ).label("target_name")
+        return q
 
     @hybrid_method
     def visible_to(self, account: Optional["Account"] = None) -> bool:
@@ -222,13 +283,25 @@ class Report(TableMixin, SortMixin, FrontendMixin, table=True):
         # equality comparison to None is valid with sqlalchemy
         return self.action == None  # noqa: E711
 
-    @property
-    def frontend_url(self) -> str:
-        return f"/reports/{self.report_id}"
+    def resolve(
+        self, action: "ReportResolve", resolved_by: "Account", session: Session
+    ) -> "Report":
+        """
+        Resolve the report, taking the requested action.
+        This assumes that the account has already been validated as able to resolve the report.
 
-    @property
-    def short_name(self) -> str:
-        return str(self.report_id)
+        See :class:`.ReportAction` for description of actions
+
+        Raises:
+            ReportResolvedError if the report has already been resolved
+        """
+        if self.action:
+            raise ReportResolvedError(
+                f"Report {self.report_id} has already been resolved with {self.action} "
+                f"by {self.resolved_by.username} on {self.resolved_at.isoformat()}"
+            )
+
+        raise NotImplementedError("Implement me!")
 
 
 class ReportCreate(SQLModel):
@@ -256,15 +329,23 @@ class ReportCreate(SQLModel):
         return get_target(target_type=self.target_type, target=self.target, session=session)
 
 
-class ReportRead(SQLModel):
+class ReportResolve(BaseModel):
     report_id: int
+    action: ReportAction
+    action_comment: Optional[str] = None
+
+
+class ReportRead(ReportBase):
+    report_id: int
+    created_at: UTCDateTime
     report_type: ReportType
     comment: Annotated[str, MaxLen(8192)] | None = None
     target_type: TargetType
+    target_name: str
     target: TargetModelsRead
     opened_by: UsernameStr
     resolved_by: UsernameStr | None = None
-    action: ModerationAction | None = None
+    action: ReportAction | None = None
     action_comment: str | None = None
 
     @classmethod

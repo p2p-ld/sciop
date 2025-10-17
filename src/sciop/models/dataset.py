@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Optional, Self, Unio
 
 from annotated_types import MaxLen
 from pydantic import BaseModel, TypeAdapter, computed_field, field_validator, model_validator
-from sqlalchemy import event
+from sqlalchemy import SQLColumnExpression, event
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
-from sqlmodel import Field, Relationship
+from sqlmodel import Field, Relationship, select
 from sqlmodel.main import FieldInfo
 
 from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PREFIX_LEN
@@ -591,6 +591,16 @@ class DatasetPartBase(SQLModel, FrontendMixin):
     @hybrid_property
     def short_name(self) -> str:
         return self.dataset.slug + "/" + self.part_slug
+
+    @short_name.inplace.expression
+    @classmethod
+    def _short_name(cls) -> SQLColumnExpression[str]:
+        return (
+            select(Dataset.slug + "/" + DatasetPart.part_slug)
+            .join(Dataset.parts)
+            .where(Dataset.dataset_id == cls.dataset_id)
+            .label("short_name")
+        )
 
     @property
     def link_to(self) -> str:

@@ -126,7 +126,7 @@ table {
 
 /* --- Datasets layout --- */
 
-.datasets-table {
+.datasets-table, .dataset-collapsible {
   --item-cols: 1em minmax(12em, 2fr) 7fr 1.5em 6.5em;
   display: grid;
 
@@ -134,19 +134,23 @@ table {
     --item-cols: 1em minmax(12em, 2fr) 7fr 1.5em 6.5em 5em 4em;
   }
   .table-head {
-      --item-cols: 1em minmax(12em, 2fr) 7fr 4em 7.5em;
+      --item-cols: 1.25em minmax(12em, 2fr) 7fr 4em 7.5em;
   }
 }
 
-.dataset-parts-table {
+.dataset-parts-table, .dataset-part-collapsible {
   --item-cols: 1em 1fr 6.5em 1em 1em;
 
   &.review {
     --item-cols: 1em 1fr 6.5em 5em 4em;
   }
+
+  .table-head {
+    padding: 0.25em 0.5em;
+  }
 }
 
-.uploads-table {
+.uploads-table, .upload-collapsible {
   --item-cols: 1em 5em 7fr 5em 3em 3em 4em 1em 1em;
   display: grid;
 
@@ -158,17 +162,29 @@ table {
     .seeders-icon, .downloaders-icon {
       text-align: center;
     }
-    --item-cols: 1em 5em 7fr 5em 3.5em 3.5em 6.5em;
+    --item-cols: 1.25em 5em 7fr 5em 3.5em 3.5em 7.5em;
   }
 
 }
 
-.accounts-table {
+.accounts-table, .upload-collapsible {
   --item-cols: 1em 6em 7fr 7em 7em;
   display: grid;
 
   &.review {
     --item-cols: 1em 6em 7fr 7em 7em;
+  }
+
+  .table-head {
+    padding: 0.25em 0.5em;
+  }
+}
+
+.reports-table, .report-collapsible {
+  --item-cols: 1em 2em 8em 5em 6.5em 1fr 6.5em;
+
+  .table-head {
+      --item-cols: 4em 8em 5em 6.5em 1fr 6.5em;
   }
 }
 
@@ -176,35 +192,21 @@ table {
   margin-bottom: 1em;
 }
 
-.datasets-table,
-.dataset-parts-table,
-.uploads-table,
-.accounts-table{
+.table-head,
+.collapsible-summary
+{
+  display: grid;
+  grid-template-columns: var(--item-cols);
+  grid-column-gap: 0.5em;
 
-  .table-head,
-  .dataset-collapsible > .collapsible-summary,
-  .dataset-part-collapsible > .collapsible-summary,
-  .upload-collapsible > .collapsible-summary,
-  .account-collapsible > .collapsible-summary
-  {
-    display: grid;
-    grid-template-columns: var(--item-cols);
-      grid-column-gap: 0.5em;
-  }
-
-  .table-head {
-    padding: 0.25em 0.5em;
-    /*margin-bottom: 0.5em;*/
-  }
-
-  & .collapsible-summary > .dataset-slug,
-  & .collapsible-summary > .dataset-slug a,
+  .dataset-slug,
+  .dataset-slug a,
   .upload-hash,
   .instance-hash a,
   .account-username,
   .account-username a,
-  & .collapsible-summary > .upload-title,
-  & .collapsible-summary > .timestamp
+  & > .upload-title,
+  & > .timestamp
   {
     font-family: var(--font-mono);
     text-wrap: nowrap;
@@ -212,10 +214,11 @@ table {
     overflow: hidden;
   }
 
-  .collapsible-summary span {
+  span {
     overflow-wrap: anywhere;
     word-break: break-word;
   }
+
 }
 
 #torrent-table {

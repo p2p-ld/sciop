@@ -1,0 +1,18 @@
+{% from 'macros/dataset.html' import dataset_collapsible %}
+{% from 'macros/upload.html' import upload_collapsible %}
+{% from 'macros/dataset-part.html' import dataset_part_collapsible %}
+{% from 'macros/account.html' import account_collapsible %}
+
+{% macro item_collapsible(x) %}
+{% if x.__name__ == "dataset" %}
+{{ dataset_collapsible(dataset=x) }}
+{% elif x.__name__ == "dataset part" %}
+{{ dataset_part_collapsible(x) }}
+{% elif x.__name__ == "upload" %}
+{{ upload_collapsible(item) }}
+{% elif x.__name__ == "account" %}
+{{ account_collapsible(x) }}
+{% else %}
+Unknown item type
+{% endif %}
+{% endmacro %}

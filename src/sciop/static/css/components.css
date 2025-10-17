@@ -275,6 +275,7 @@ a.button:hover {
 }
 
 .unapproved > summary,
+.disabled > summary,
 .unapproved-row {
     background: repeating-linear-gradient(
       -45deg,

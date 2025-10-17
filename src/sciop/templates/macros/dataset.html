@@ -199,7 +199,7 @@
 </div>
 {% endmacro %}
 
-{% macro dataset_collapsible(dataset, review = False, config = None, types= None) %}
+{% macro dataset_collapsible(dataset, review = False) %}
 <details class="collapsible dataset-collapsible{% if not dataset.is_approved %} unapproved{% endif %}"
          id="dataset-collapsible-{{ dataset.slug }}">
     <summary class="collapsible-summary"

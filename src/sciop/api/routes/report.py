@@ -4,9 +4,10 @@ from sqlmodel import select
 
 from sciop import crud
 from sciop.api.deps import RequireCurrentAccount, RequireReport, SearchQueryNoCurrentUrl, SessionDep
+from sciop.exceptions import ReportResolvedError
 from sciop.frontend.templates import jinja, passthrough_context
 from sciop.middleware import limiter
-from sciop.models import Report, ReportCreate, ReportRead, SearchPage
+from sciop.models import Report, ReportCreate, ReportRead, ReportResolve, SearchPage
 
 report_router = APIRouter(prefix="/reports")
 
@@ -58,3 +59,23 @@ async def show_report(
     report: RequireReport,
 ) -> ReportRead:
     return ReportRead.from_report(report)
+
+
+@report_router.post("/{report_id}/resolve")
+@jinja.hx("partials/report-resolve.html")
+async def resolve_report(
+    report_id: int,
+    current_account: RequireCurrentAccount,
+    report: RequireReport,
+    action: ReportResolve,
+    session: SessionDep,
+) -> ReportRead:
+    if report.target_type == "account" and report.target.username == current_account.username:
+        raise HTTPException(403, "Cannot resolve reports about yourself")
+
+    try:
+        report = report.resolve(action=action, resolved_by=current_account, session=session)
+    except ReportResolvedError as e:
+        raise HTTPException(400, str(e)) from e
+
+    return report

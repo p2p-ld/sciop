@@ -1,6 +1,7 @@
 from enum import StrEnum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Annotated, Optional
 
+from annotated_types import doc
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship
@@ -40,6 +41,30 @@ class ModerationAction(StrEnum):
     """Restore a suspended account"""
     remove = "remove"
     """Remove an item"""
+    hide = "hide"
+    """Hide an item"""
+
+
+class ReportAction(StrEnum):
+    """
+    Can't subset an enum,
+    so this is a manual subset of moderation actions that apply to report resolutions.
+    """
+
+    dismiss: Annotated[str, doc("Dismiss a report, taking no action.")] = "dismiss"
+    hide: Annotated[
+        str,
+        doc(
+            "Hide an item by marking it as unapproved. The item is retained, but is only visible to moderators and the creator"
+        ),
+    ] = "hide"
+    remove: Annotated[str, doc("Permanently remove an item, upholding the review.")] = "remove"
+    suspend: Annotated[
+        str, doc("Suspend the account that created the item without removing their created items")
+    ] = "suspend"
+    suspend_remove: Annotated[
+        str, doc("Suspend the account AND remove all items created by this account.")
+    ] = "suspend_remove"
 
 
 _actor_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True, index=True)

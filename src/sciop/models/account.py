@@ -10,7 +10,12 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship
 
 from sciop.models.base import SQLModel
-from sciop.models.mixins import EnumTableMixin, FrontendMixin, SearchableMixin, TableMixin
+from sciop.models.mixins import (
+    EnumTableMixin,
+    FrontendMixin,
+    SearchableMixin,
+    TableMixin,
+)
 from sciop.types import IDField, Scopes, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
@@ -44,7 +49,7 @@ class AccountBase(SQLModel, FrontendMixin):
 
     username: UsernameStr
 
-    model_config = ConfigDict(ignored_types=(hybrid_method,))
+    model_config = ConfigDict(ignored_types=(hybrid_method, hybrid_property))
 
     @hybrid_method
     def has_scope(self, *args: str | Scopes) -> bool:
@@ -187,6 +192,15 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
 
     def to_read(self) -> "AccountRead":
         return AccountRead.model_validate(self)
+
+    def visible_to(self, account: Optional["Account"] = None) -> bool:
+        """Whether this item is visible to the given account"""
+        if account is None:
+            return not self.is_suspended
+        elif self == account:
+            return True
+        else:
+            return account.has_scope("review")
 
 
 class AccountCreate(AccountBase):
