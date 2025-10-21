@@ -174,6 +174,10 @@ button,
     align-items: center;
     justify-content: center;
   }
+
+  &.big {
+    padding: 1em 2em;
+  }
 }
 
 a.button:hover {
@@ -276,6 +280,7 @@ a.button:hover {
 
 .unapproved > summary,
 .disabled > summary,
+.inactive > summary,
 .unapproved-row {
     background: repeating-linear-gradient(
       -45deg,
@@ -368,6 +373,7 @@ a.button:hover {
     background-color: var(--color-background);
     margin: auto;
     width: 80%;
+    max-width: var(--width-container);
     box-shadow: 0px 0px 20px rgba(0,0,0,0.9);
     border-radius: 5px;
 
@@ -609,3 +615,36 @@ progress::-moz-progress-bar {
   border: 2px solid var(--color-warning);
   border-radius: 5px;
 }
+
+.report-actions {
+  display: flex;
+  flex-direction: column;
+
+  .form-input-group {
+    display: flex;
+    flex-direction: column;
+    row-gap: 0.5em;
+
+
+  }
+
+  .report-resolve-buttons {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    column-gap: 1em;
+    row-gap: 2em;
+    margin-top: 2em;
+    align-items: center;
+
+    @media only screen and (max-width: 768px) {
+      grid-template-columns: 1fr;
+      row-gap: 0;
+      & > *:nth-child(2n) {
+        margin-top: 0.5em;
+        margin-bottom: 2em;
+      }
+    }
+
+  }
+}
+

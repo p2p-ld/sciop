@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import (
     TYPE_CHECKING,
@@ -18,7 +19,11 @@ from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship, Session, select
 
-from sciop.exceptions import ReportResolvedError
+from sciop.exceptions import (
+    InvalidModerationActionError,
+    ModerationPermissionsError,
+    ReportResolvedError,
+)
 from sciop.models.base import SQLModel
 from sciop.models.mixins import FrontendMixin, SortableCol, SortMixin, TableMixin
 from sciop.models.moderation import ReportAction
@@ -183,8 +188,6 @@ class Report(ReportBase, TableMixin, SortMixin, table=True):
         ]
         for field in target_fields:
             if tgt := getattr(self, field):
-                print(field)
-                print(tgt)
                 return tgt
         raise ValueError(f"No target could be found for report, checked fields {target_fields}")
 
@@ -221,7 +224,7 @@ class Report(ReportBase, TableMixin, SortMixin, table=True):
         # don't @ me about this heinously verbose shit
         q = sqla.case(
             (
-                cls.target_account_id != None,
+                cls.target_account_id != None,  # noqa: E711
                 (
                     select(Account.short_name)
                     .join(Account.reports)
@@ -230,7 +233,7 @@ class Report(ReportBase, TableMixin, SortMixin, table=True):
                 ),
             ),
             (
-                cls.target_dataset_id != None,
+                cls.target_dataset_id != None,  # noqa: E711
                 (
                     select(Dataset.short_name)
                     .join(Dataset.reports)
@@ -239,7 +242,7 @@ class Report(ReportBase, TableMixin, SortMixin, table=True):
                 ),
             ),
             (
-                cls.target_dataset_part_id != None,
+                cls.target_dataset_part_id != None,  # noqa: E711
                 (
                     select(DatasetPart.short_name)
                     .join(DatasetPart.reports)
@@ -248,7 +251,7 @@ class Report(ReportBase, TableMixin, SortMixin, table=True):
                 ),
             ),
             (
-                cls.target_upload_id != None,
+                cls.target_upload_id != None,  # noqa: E711
                 (
                     select(Upload.short_name)
                     .join(Upload.reports)
@@ -273,6 +276,17 @@ class Report(ReportBase, TableMixin, SortMixin, table=True):
             return sqla.false()
 
         return sqla.or_(cls.opened_by == account, account.has_scope("review") == True)
+
+    @property
+    def reported_account(self) -> "Account":
+        """
+        The report target if the report directly reports the account,
+        otherwise the account that owns the reported item
+        """
+        if self.target_type == "account":
+            return self.target
+        else:
+            return self.target.account
 
     @hybrid_property
     def is_open(self) -> bool:
@@ -300,8 +314,77 @@ class Report(ReportBase, TableMixin, SortMixin, table=True):
                 f"Report {self.report_id} has already been resolved with {self.action} "
                 f"by {self.resolved_by.username} on {self.resolved_at.isoformat()}"
             )
+        elif self.report_id != action.report_id:
+            raise InvalidModerationActionError(
+                f"Attempted to resolve report {action.report_id} on report {self.report_id}"
+            )
+        elif (
+            self.reported_account
+            and self.reported_account.account_id == resolved_by.account_id
+            and not resolved_by.has_scope("root")
+        ):
+            raise ModerationPermissionsError("Can't resolve reports about yourself")
 
-        raise NotImplementedError("Implement me!")
+        if action.action == ReportAction.dismiss:
+            # do nothing
+            pass
+        elif action.action == ReportAction.hide:
+            if self.target_type == "account":
+                raise InvalidModerationActionError("Accounts can't be hidden")
+            self.target.hide(account=resolved_by, session=session)
+        elif action.action == ReportAction.remove:
+            if self.target_type == "account":
+                raise InvalidModerationActionError("Accounts can't be removed (use suspend)")
+            self.target.remove(account=resolved_by, session=session)
+        elif action.action == ReportAction.suspend:
+            if self.target_type == "account":
+                self.target.suspend(suspended_by=resolved_by, session=session)
+            else:
+                self.target.account.suspend(suspended_by=resolved_by, session=session)
+        elif action.action == ReportAction.suspend_remove:
+            account = self.target if self.target_type == "account" else self.target.account
+            # check first before removing items if we're allowed to do this
+            if not resolved_by.can_suspend(account):
+                raise ModerationPermissionsError(
+                    f"Not permitted to suspend and remove items from {account.username}"
+                )
+            account.remove_items(removed_by=resolved_by, session=session)
+        else:
+            raise InvalidModerationActionError(f"Invalid report resolution action {action.action}")
+
+        self.resolved_by = resolved_by
+        self.resolved_at = datetime.now(UTC)
+        self.action = action.action
+        self.action_comment = action.action_comment
+        session.add(self)
+        session.commit()
+        return self
+
+    def action_valid(self, action: "ReportAction", current_account: "Account") -> bool:
+        """
+        Check if a given action is valid for the report,
+        given its type and the account trying to take the action.
+
+        Intended for use in the frontend to filter displayed action buttons,
+        not to control the ability to take an action -
+        that is controlled by the `resolve` method,
+        which raises more informative error messages.
+        """
+        if not current_account.has_scope("review"):
+            return False
+        if (
+            self.reported_account
+            and self.reported_account.username == current_account.username
+            and not current_account.has_scope("root")
+        ):
+            return False
+
+        if action == ReportAction.dismiss:
+            return True
+        elif action == ReportAction.hide or action == ReportAction.remove:
+            return self.target_type != "account"
+        elif action in (ReportAction.suspend, ReportAction.suspend_remove):
+            return current_account.has_scope("admin")
 
 
 class ReportCreate(SQLModel):
@@ -309,9 +392,12 @@ class ReportCreate(SQLModel):
         ...,
         schema_extra={"json_schema_extra": {"input_type": InputType.select}},
     )
-    comment: Annotated[str, MaxLen(8192)] | None = Field(
+    comment: str | None = Field(
         None,
+        max_length=8192,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+        description="Please provide an explanation for your report, "
+        "including any details or context that would help moderators evaluate it.",
     )
     target_type: TargetType
     target: str = Field(
@@ -347,6 +433,10 @@ class ReportRead(ReportBase):
     resolved_by: UsernameStr | None = None
     action: ReportAction | None = None
     action_comment: str | None = None
+
+    @property
+    def is_open(self) -> bool:
+        return self.action is None
 
     @classmethod
     def from_report(cls, report: Report) -> Self:

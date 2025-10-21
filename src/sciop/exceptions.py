@@ -86,6 +86,14 @@ class ReportResolvedError(ModerationError, ValueError):
     """A report resolution was attempted, but the report was already resolved!"""
 
 
+class InvalidModerationActionError(ModerationError, ValueError):
+    """An attempted moderation action was invalid!"""
+
+
+class ModerationPermissionsError(ModerationError, PermissionError):
+    """Account does not have permissions to perform moderation action"""
+
+
 async def http_handler(request: Request, exc: HTTPException) -> Response:
     """
     Small wrapping of FastAPI's error handling to

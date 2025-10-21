@@ -167,7 +167,7 @@ table {
 
 }
 
-.accounts-table, .upload-collapsible {
+.accounts-table, .account-collapsible {
   --item-cols: 1em 6em 7fr 7em 7em;
   display: grid;
 

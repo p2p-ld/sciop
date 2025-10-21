@@ -1,14 +1,15 @@
 import re
 import unicodedata
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional, TypedDict
 
 import sqlalchemy as sqla
 from pydantic import ConfigDict, SecretStr, field_validator
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import UniqueConstraint
-from sqlmodel import Field, Relationship
+from sqlmodel import Field, Relationship, Session, select
 
+from sciop.exceptions import ModerationPermissionsError
 from sciop.models.base import SQLModel
 from sciop.models.mixins import (
     EnumTableMixin,
@@ -190,6 +191,29 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
             or (not self.has_scope("root") and account.has_scope("admin"))
         )
 
+    def suspend(self, suspended_by: "Account", session: Session, commit: bool = True) -> None:
+        """
+        Suspend this account.
+
+        `suspended_by` must be able to suspend this user,
+        and will be logged as the actor who suspended the account.
+        """
+        from sciop import crud
+        from sciop.models import ModerationAction
+
+        if not suspended_by.can_suspend(self):
+            raise ModerationPermissionsError(
+                f"{suspended_by.username} can't suspend {self.username}"
+            )
+
+        crud.log_moderation_action(
+            session=session, actor=suspended_by, action=ModerationAction.suspend, target=self
+        )
+        self.is_suspended = True
+        session.add(self)
+        if commit:
+            session.commit()
+
     def to_read(self) -> "AccountRead":
         return AccountRead.model_validate(self)
 
@@ -199,8 +223,42 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
             return not self.is_suspended
         elif self == account:
             return True
+        elif account.has_scope("review"):
+            return True
         else:
-            return account.has_scope("review")
+            return not self.is_suspended
+
+    def get_all_items(self, session: Session) -> "AccountItems":
+        """
+        Get all the items associated with an account.
+
+        Content-bearing items, not including items like moderation actions and etc.
+        """
+        from sciop.models import Dataset, DatasetPart, Upload
+
+        datasets = list(session.exec(select(Dataset).where(Dataset.account == self)).all())
+        dataset_parts = list(
+            session.exec(select(DatasetPart).where(DatasetPart.account == self)).all()
+        )
+        uploads = list(session.exec(select(Upload).where(Upload.account == self)).all())
+        return AccountItems(datasets=datasets, dataset_parts=dataset_parts, uploads=uploads)
+
+    def remove_all_items(self, removed_by: "Account", session: Session) -> None:
+        """
+        Remove all the items associated with an account.
+
+        Each item checks for permissions to remove, since they may be different per-item.
+
+        """
+        items = self.get_all_items(session)
+        # remove things that may be children of other things first: uploads, parts, then datasets
+        for ul in items["uploads"]:
+            ul.remove(account=removed_by, session=session, commit=False)
+        for part in items["dataset_parts"]:
+            part.remove(account=removed_by, session=session, commit=False)
+        for ds in items["datasets"]:
+            ds.remove(account=removed_by, session=session, commit=False)
+        session.commit()
 
 
 class AccountCreate(AccountBase):
@@ -255,3 +313,11 @@ class Token(SQLModel):
 # Contents of JWT token
 class TokenPayload(SQLModel):
     sub: str | None = None
+
+
+class AccountItems(TypedDict):
+    """All items created by an account"""
+
+    datasets: list["Dataset"]
+    dataset_parts: list["DatasetPart"]
+    uploads: list["Upload"]

@@ -66,8 +66,7 @@ htmx.on("htmx:beforeOnLoad", (evt) => {
 // rather than making the container invisible,
 // as one would do for a modal that would be expected to reappear
 htmx.on("htmx:afterSwap", (evt) => {
-  if (evt.detail.xhr.status<400){ return }
-  let modal = evt.detail.target.querySelector(".error-modal");
+  let modal = evt.detail.target.querySelector(".modal");
   let landmarks = document.querySelectorAll("header, main, footer");
   let buttons = [...evt.detail.target.querySelectorAll(".close-button")];
   buttons.forEach((b) => {
@@ -99,7 +98,6 @@ htmx.on("htmx:afterSwap", (evt) => {
     modal.removeAttribute("hidden")
     modal.focus();
   }
-
 })
 
 // Token input field

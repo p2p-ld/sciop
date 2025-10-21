@@ -4,7 +4,11 @@ from sqlmodel import select
 
 from sciop import crud
 from sciop.api.deps import RequireCurrentAccount, RequireReport, SearchQueryNoCurrentUrl, SessionDep
-from sciop.exceptions import ReportResolvedError
+from sciop.exceptions import (
+    InvalidModerationActionError,
+    ModerationPermissionsError,
+    ReportResolvedError,
+)
 from sciop.frontend.templates import jinja, passthrough_context
 from sciop.middleware import limiter
 from sciop.models import Report, ReportCreate, ReportRead, ReportResolve, SearchPage
@@ -41,12 +45,15 @@ async def list_reports(
     current_account: RequireCurrentAccount,
     search: SearchQueryNoCurrentUrl,
     session: SessionDep,
+    is_open: bool | None = None,
 ) -> SearchPage[ReportRead]:
     stmt = (
         select(Report)
         .where(Report.visible_to(current_account) == True)
         .order_by(Report.created_at.desc())
     )
+    if is_open is not None:
+        stmt = stmt.where(Report.is_open == is_open)
     stmt = search.apply_sort(stmt, Report)
     return paginate(query=stmt, conn=session)
 
@@ -62,7 +69,7 @@ async def show_report(
 
 
 @report_router.post("/{report_id}/resolve")
-@jinja.hx("partials/report-resolve.html")
+@jinja.hx("partials/report.html", make_context=passthrough_context("report"))
 async def resolve_report(
     report_id: int,
     current_account: RequireCurrentAccount,
@@ -70,12 +77,13 @@ async def resolve_report(
     action: ReportResolve,
     session: SessionDep,
 ) -> ReportRead:
-    if report.target_type == "account" and report.target.username == current_account.username:
-        raise HTTPException(403, "Cannot resolve reports about yourself")
-
     try:
         report = report.resolve(action=action, resolved_by=current_account, session=session)
     except ReportResolvedError as e:
         raise HTTPException(400, str(e)) from e
+    except InvalidModerationActionError as e:
+        raise HTTPException(422, str(e)) from e
+    except ModerationPermissionsError as e:
+        raise HTTPException(403, str(e)) from e
 
     return report

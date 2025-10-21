@@ -37,6 +37,8 @@ class ModerationAction(StrEnum):
     """Decrement trust value"""
     suspend = "suspend"
     """Suspend an account"""
+    suspend_remove = "suspend_remove"
+    """Suspend an account and remove all its associated content"""
     restore = "restore"
     """Restore a suspended account"""
     remove = "remove"
@@ -55,16 +57,27 @@ class ReportAction(StrEnum):
     hide: Annotated[
         str,
         doc(
-            "Hide an item by marking it as unapproved. The item is retained, but is only visible to moderators and the creator"
+            "Hide an item by marking it as unapproved. The item is retained, "
+            "but is only visible to moderators and the creator. "
+            "This returns the item to the moderation queue, "
+            "and is usually used when some change is needed but the item is otherwise salvageable."
         ),
     ] = "hide"
-    remove: Annotated[str, doc("Permanently remove an item, upholding the review.")] = "remove"
+    remove: Annotated[str, doc("Permanently remove an item, upholding the report.")] = "remove"
     suspend: Annotated[
-        str, doc("Suspend the account that created the item without removing their created items")
+        str,
+        doc(
+            "Suspend the reported account or the account that created the reported item "
+            "without removing their created items"
+        ),
     ] = "suspend"
     suspend_remove: Annotated[
         str, doc("Suspend the account AND remove all items created by this account.")
     ] = "suspend_remove"
+
+    @classmethod
+    def get_base_action(self, action: str) -> ModerationAction:
+        return ModerationAction.__members__[action]
 
 
 _actor_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True, index=True)

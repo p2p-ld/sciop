@@ -386,6 +386,9 @@ def get_auth_header(session: Session) -> C[[str, str], dict[L["Authorization"], 
         from sciop.api.auth import create_access_token
         from sciop.crud import get_account
 
+        if isinstance(username, Account):
+            username = username.username
+
         account = get_account(username=username, session=session)
         token = create_access_token(account.account_id, expires_delta=timedelta(minutes=5))
         return {"Authorization": f"Bearer {token}"}

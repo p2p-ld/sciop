@@ -125,7 +125,13 @@
     {%- for key, val in annotation.__annotations__.items() %}
     <tr>
         <td class="key"><span class="bold">{{ key }}</span></td>
-        <td class="value">{{ val.__metadata__[-1] }}</td>
+        <td class="value">
+            {% if val.__metadata__[-1].documentation %}
+            {{ val.__metadata__[-1].documentation }}
+            {% else %}
+            {{ val.__metadata__[-1] }}
+            {% endif %}
+        </td>
     </tr>
     {%- endfor %}
     </table>
@@ -232,7 +238,7 @@
         {% if field.title %}
             {{ field.title }}
         {% else %}
-            {{ field_name }}
+            {{ field_name | replace("_", " ") | capitalize }}
         {% endif %}
     </label>
     {% set field_value = model|attr(field_name) %}

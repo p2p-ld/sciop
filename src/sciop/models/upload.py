@@ -356,7 +356,7 @@ event.listen(Upload, "before_insert", render_db_fields_to_html("description", "m
 
 
 class UploadRead(UploadBase, TableReadMixin):
-    """Version of datasaet upload returned when reading"""
+    """Version of dataset upload returned when reading"""
 
     account: Optional[UsernameStr] = None
     dataset: Optional[SlugStr] = None

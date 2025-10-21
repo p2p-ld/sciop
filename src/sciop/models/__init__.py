@@ -50,7 +50,7 @@ from sciop.models.dataset import (
 )
 from sciop.models.magnet import MagnetLink
 from sciop.models.mixins import EditableMixin
-from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction
+from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction, ReportAction
 from sciop.models.mystery import _Friedolin
 from sciop.models.report import (
     Report,
@@ -123,6 +123,7 @@ __all__ = [
     "RaggedSearchPage",
     "RaggedSearchParams",
     "Report",
+    "ReportAction",
     "ReportCreate",
     "ReportRead",
     "ReportResolve",

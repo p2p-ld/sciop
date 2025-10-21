@@ -4,8 +4,9 @@ import sqlalchemy as sqla
 from pydantic import ConfigDict
 from sqlalchemy import ColumnElement
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
-from sqlmodel import Field
+from sqlmodel import Field, Session
 
+from sciop.exceptions import ModerationPermissionsError
 from sciop.models.base import SQLModel
 from sciop.types import InputType
 
@@ -99,3 +100,42 @@ class ModerableMixin(SQLModel):
         if account is None:
             return sqla.false()
         return sqla.or_(cls.account == account, account.has_scope("review") == True)
+
+    def hide(self, account: "Account", session: Session, commit: bool = True) -> None:
+        """
+        Hide the item - rendering it publicly invisible but preserving it in the database
+
+        Required permissions are same as `removable_by`
+        """
+        from sciop.crud import log_moderation_action
+        from sciop.models import ModerationAction
+
+        if not self.removable_by(account):
+            raise ModerationPermissionsError(f"{account.username} not permitted to hide this item")
+        log_moderation_action(
+            session=session, actor=account, target=self, action=ModerationAction.hide
+        )
+        self.is_approved = False
+        session.add(self)
+        if commit:
+            session.commit()
+
+    def remove(self, account: "Account", session: Session, commit: bool = True) -> None:
+        """
+        Remove the item, preserving necessary database remnants for internal references,
+        but for all intents and purposes rendering the item 'deleted.'
+        """
+        from sciop.crud import log_moderation_action
+        from sciop.models import ModerationAction
+
+        if not self.removable_by(account):
+            raise ModerationPermissionsError(
+                f"{account.username} not permitted to remove this item"
+            )
+        log_moderation_action(
+            session=session, actor=account, target=self, action=ModerationAction.remove
+        )
+        self.is_removed = True
+        session.add(self)
+        if commit:
+            session.commit()

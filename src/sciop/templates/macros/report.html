@@ -1,5 +1,8 @@
-{% macro report_row(report, target, current_account, config, header_start=1) %}
 {% from 'macros/item.html' import item_collapsible %}
+{% macro report_row(report, current_account, config, header_start=1) %}
+{% set report_id_str = report.report_id | string %}
+{% set container_id = "report-" + report_id_str %}
+<div class="report" id="{{ container_id }}">
 <h{{ header_start}}>Report #{{ report.report_id }}</h{{header_start}}>
 <table class="report-info-table">
   <tr>
@@ -19,7 +22,7 @@
     {% if report.is_open %}
     <td>Unresolved</td>
     {% else %}
-    <td>{{ report.action }}</td>
+    <td>Resolved</td>
     {% endif %}
   </tr>
   {% if report.action %}
@@ -39,7 +42,7 @@
 </table>
 
 <h{{ header_start + 1}}>Reported Item</h{{header_start + 1}}>
-{{ item_collapsible(target) }}
+{{ item_collapsible(report.target) }}
 
 <h{{ header_start + 1}}>Comment</h{{header_start + 1}}>
 {% if report.comment %}
@@ -52,17 +55,27 @@
 
 {% if report.is_open %}
 <h{{ header_start + 1 }}>Actions</h{{ header_start + 1 }}>
-{{ report_actions(report) }}
+{{ report_actions(report, current_account, container_id) }}
 {% endif %}
-
-<pre>
-{{ report.model_dump() | pprint }}
-  {{ target.model_dump() | pprint }}
-</pre>
+{% if report.action_comment %}
+<h{{ header_start + 1 }}>Action Comment</h{{ header_start + 1 }}>
+  <div class="comment">
+    <div class="author-row">
+      <a href="/accounts/{{ report.resolved_by.username }}" class="username">@{{ report.resolved_by.username }}</a> -
+      <time datetime="{{ report.resolved_at.strftime('%y-%m-%d %H:%M') }}Z">
+        {{ report.resolved_at.strftime('%y-%m-%d %H:%M') }}Z
+      </time>
+    </div>
+    <p>
+      {{ report.action_comment }}
+    </p>
+  </div>
+{% endif %}
+</div>
 {% endmacro %}
 
 {% macro report_collapsible(report, config) %}
-<details class="collapsible report-collapsible" id="report-collapsible-{{ report.report_id }}">
+<details class="collapsible report-collapsible{% if not report.is_open %} inactive{% endif %}" id="report-collapsible-{{ report.report_id }}">
   <summary
     class="collapsible-summary{% if not report.is_open %} disabled{% endif%}"
     hx-get="/reports/{{ report.report_id }}/partial"
@@ -89,11 +102,40 @@
 </details>
 {% endmacro %}
 
-{% macro report_actions(report) %}
+{% macro report_actions(report, current_account, container_id) %}
 {% set report_id_str = report.report_id | string %}
-{% set form_id = "report-" report_id_str + "-form" %}
+{% set actions_container_id = "report-" + report_id_str + "-actions" %}
+{% set form_id = "report-" + report_id_str + "-form" %}
+<div id="{{ actions_container_id }}" class="report-actions surface">
 <form id="{{ form_id }}" class="report-resolve-form">
-
+  <input type="hidden" name="report_id" value="{{ report_id_str }}">
+  <div class="form-input-group">
+  <label for="action_comment">
+    Optional: Provide a comment with the resolution of this report.
+    This comment will be visible to anyone the report is visible to,
+    including the account that raised it.
+  </label>
+  <textarea class="form-textarea form-input" name="action_comment"></textarea>
+  </div>
 </form>
+<div class="report-resolve-buttons">
+  {% for action_key, action in models.ReportAction.__members__.items() %}
+    {% if report.action_valid(action, current_account) %}
+    <button
+      class="big button"
+      hx-post="{{ config.api_prefix }}/reports/{{ report.report_id }}/resolve/"
+      hx-vals='{"action": "{{ action }}"}'
+      hx-include="#{{ form_id }}"
+      hx-ext="form-json"
+      hx-target="#{{ container_id }}"
+      hx-swap="outerHTML"
+    >
+      {{ action | replace("_", " ") | capitalize }}
+    </button>
+    <span class="action-description">{{ models.ReportAction.__annotations__[action_key].__metadata__[-1].documentation }}</span>
+    {% endif %}
+  {% endfor %}
+</div>
+</div>
 
 {% endmacro %}

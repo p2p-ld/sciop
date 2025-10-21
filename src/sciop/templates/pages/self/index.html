@@ -49,5 +49,21 @@ Scopes:
     </div>
 </div>
 
+<h2>Reports:</h2>
+
+<div id="reports-container" class="reports-container container">
+    <div
+        hx-get="/self/reports-partial"
+        hx-trigger="load"
+        hx-swap="outerHTML"
+        hx-indicator="#reports-indicator"
+    >
+        <span class="htmx-indicator search-indicator" id="reports-indicator">
+            <span>Loading reports...</span>
+            <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+        </span>
+    </div>
+</div>
+
 
 {% endblock %}

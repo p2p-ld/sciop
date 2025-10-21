@@ -122,10 +122,7 @@
                         </time>
                     </td>
                 </tr>
-                {% if current_account and (
-                    upload.removable_by(current_account) or
-                    upload.editable_by(current_account)
-                ) %}
+                {% if current_account %}
                 <tr>
                     <td class="infobox-key">Actions</td>
                     <td class="infobox-value flex row actions-box">
