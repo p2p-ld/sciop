@@ -370,11 +370,13 @@ class Report(ReportBase, TableMixin, SortMixin, table=True):
                     "associated with the reported item"
                 )
 
-            if not current_account.has_scope("admin") or not current_account.can_suspend(
-                self.reported_account
-            ):
+            if not current_account.has_scope("admin"):
+                raise ModerationPermissionsError("admin scope is required to suspend accounts")
+            elif not current_account.can_suspend(self.reported_account):
                 raise ModerationPermissionsError(
-                    f"{current_account.username} can't suspend {self.reported_account.username}"
+                    f"{current_account.username} has admin scope but can't suspend "
+                    f"{self.reported_account.username}, "
+                    f"e.g. because the reported account is another admin or root user."
                 )
 
         if (
