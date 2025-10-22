@@ -1,24 +1,34 @@
+from typing import Callable as C
+from typing import TypeAlias
+
 import pytest
+from sqlmodel import Session
 
 from sciop.models import Account, Dataset, DatasetPart, Report, Upload
 
+ReportableClass: TypeAlias = Account | Dataset | DatasetPart | Upload
+
 
 @pytest.fixture()
-def reporting_account(account) -> Account:
+def reporting_account(account: C[..., Account]) -> Account:
     acct = account(username="reporter")
     return acct
 
 
 @pytest.fixture()
-def reported_account(account) -> Account:
+def reported_account(account: C[..., Account]) -> Account:
     acct = account(username="reported")
     return acct
 
 
 @pytest.fixture(params=["account", "dataset", "dataset_part", "upload"])
 def reportable_item(
-    request: pytest.FixtureRequest, account, dataset, dataset_part, upload, reported_account
-) -> Account | Dataset | DatasetPart | Upload:
+    request: pytest.FixtureRequest,
+    dataset: C[..., Dataset],
+    dataset_part: C[..., DatasetPart],
+    upload: C[..., Upload],
+    reported_account: Account,
+) -> ReportableClass:
     """
     An item that is to be reported
     """
@@ -35,8 +45,8 @@ def reportable_item(
 
 @pytest.fixture
 def reported_item(
-    reportable_item, session, account, reporting_account
-) -> tuple[Account | Dataset | DatasetPart | Upload, Report]:
+    reportable_item: ReportableClass, session: Session, reporting_account: Account
+) -> tuple[ReportableClass, Report]:
     """
     An item that is reported and its associated report
     """
@@ -60,7 +70,9 @@ def reported_item(
 
 
 @pytest.fixture(params=["admin", "reviewer", "reporter", "rando"])
-def resolving_account(request: pytest.FixtureRequest, account, reporting_account) -> Account:
+def resolving_account(
+    request: pytest.FixtureRequest, account: C[..., Account], reporting_account: Account
+) -> Account:
     """
     Account attempting to resolve report, with varying permissions levels
     """
