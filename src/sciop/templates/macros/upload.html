@@ -219,7 +219,7 @@
 
 {% macro upload_collapsible(upload, review=False, config = None) %}
 <details id="upload-collapsible-{{ upload.infohash }}"
-         class="collapsible upload-collapsible{% if not upload.is_approved %} unapproved{% endif %}">
+         class="collapsible upload-collapsible{% if not upload.is_approved %} unapproved{% endif %}{% if review %} review{% endif %}">
     <summary class="collapsible-summary"
              hx-get="/uploads/{{ upload.infohash }}/partial"
              hx-trigger="click once"
@@ -342,7 +342,7 @@
 {% set escaped_url = re.sub("[^_a-zA-Z0-9]", "-", webseed.url) %}
 {% set row_id = "webseed-row-" + webseed.torrent.infohash + "-" + escaped_url %}
 {% set enabled = webseed.is_approved and webseed.status in ('validated', 'in_original') %}
-<tr class="webseed-row tracker{% if not enabled %} unapproved-row{% endif %}"
+<tr class="webseed-row tracker{% if not enabled %} unapproved-row{% endif %{% if review %} review{% endif %}}"
     id="{{ row_id }}">
     {% if review %}
     <td class="upload">

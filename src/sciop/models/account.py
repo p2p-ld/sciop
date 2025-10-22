@@ -187,8 +187,12 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
             return False
 
         return not (
+            # no self suspensions
             self.username == account.username
+            # non-roots can't ban admins
             or (not self.has_scope("root") and account.has_scope("admin"))
+            # roots can't ban other roots
+            or (self.has_scope("root") and account.has_scope("root"))
         )
 
     def suspend(self, suspended_by: "Account", session: Session, commit: bool = True) -> None:

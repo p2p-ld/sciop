@@ -200,7 +200,7 @@
 {% endmacro %}
 
 {% macro dataset_collapsible(dataset, review = False) %}
-<details class="collapsible dataset-collapsible{% if not dataset.is_approved %} unapproved{% endif %}"
+<details class="collapsible dataset-collapsible{% if not dataset.is_approved %} unapproved{% endif %}{% if review %} review{% endif %}"
          id="dataset-collapsible-{{ dataset.slug }}">
     <summary class="collapsible-summary"
              hx-get="/datasets/{{ dataset.slug }}/partial"
