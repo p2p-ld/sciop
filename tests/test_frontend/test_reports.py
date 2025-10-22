@@ -1,5 +1,5 @@
-from bs4 import BeautifulSoup
 import pytest
+from bs4 import BeautifulSoup
 
 
 @pytest.mark.parametrize("reportable_item", ["dataset"], indirect=True)

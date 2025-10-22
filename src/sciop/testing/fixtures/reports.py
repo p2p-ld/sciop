@@ -1,6 +1,6 @@
 import pytest
 
-from sciop.models import Account, Dataset, DatasetPart, Upload, Report
+from sciop.models import Account, Dataset, DatasetPart, Report, Upload
 
 
 @pytest.fixture()
