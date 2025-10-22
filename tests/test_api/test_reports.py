@@ -1,17 +1,30 @@
 import pytest
 from starlette.testclient import TestClient
 
+from sciop.config import get_config
 from sciop.models import Account, Dataset, DatasetPart, Report, ReportType, Upload
+
+
+@pytest.fixture()
+def reporting_account(account) -> Account:
+    acct = account(username="reporter")
+    return acct
+
+
+@pytest.fixture()
+def reported_account(account) -> Account:
+    acct = account(username="reported")
+    return acct
 
 
 @pytest.fixture(params=["account", "dataset", "dataset_part", "upload"])
 def reportable_item(
-    request: pytest.FixtureRequest, account, dataset, dataset_part, upload
+    request: pytest.FixtureRequest, account, dataset, dataset_part, upload, reported_account
 ) -> Account | Dataset | DatasetPart | Upload:
     """
     An item that is to be reported
     """
-    acct = account(username="reporty")
+    acct = reported_account
     if request.param == "account":
         return acct
     elif request.param == "dataset":
@@ -24,20 +37,21 @@ def reportable_item(
 
 @pytest.fixture
 def reported_item(
-    reportable_item, session, account
+    reportable_item, session, account, reporting_account
 ) -> tuple[Account | Dataset | DatasetPart | Upload, Report]:
     """
     An item that is reported and its associated report
     """
-    acct = account(username="reporter")
+    acct = reporting_account
+    kwargs = {"report_type": "rules"}
     if isinstance(reportable_item, Account):
-        kwargs = {"target_account": reportable_item}
+        kwargs["target_account"] = reportable_item
     elif isinstance(reportable_item, Dataset):
-        kwargs = {"target_dataset": reportable_item}
+        kwargs["target_dataset"] = reportable_item
     elif isinstance(reportable_item, DatasetPart):
-        kwargs = {"target_dataset_part": reportable_item}
+        kwargs["target_dataset_part"] = reportable_item
     elif isinstance(reportable_item, Upload):
-        kwargs = {"target_upload": reportable_item}
+        kwargs["target_upload"] = reportable_item
     else:
         raise ValueError(f"Unknown item type: {reportable_item}")
     report = Report(opened_by=acct, **kwargs)
@@ -47,8 +61,8 @@ def reported_item(
     return reportable_item, report
 
 
-@pytest.fixture(params=["admin", "reviewer", "rando"])
-def resolving_account(request: pytest.FixtureRequest, account) -> Account:
+@pytest.fixture(params=["admin", "reviewer", "reporter", "rando"])
+def resolving_account(request: pytest.FixtureRequest, account, reporting_account) -> Account:
     """
     Account attempting to resolve report, with varying permissions levels
     """
@@ -56,6 +70,8 @@ def resolving_account(request: pytest.FixtureRequest, account) -> Account:
         acct = account(username=request.param, scopes=["admin"])
     elif request.param == "reviewer":
         acct = account(username=request.param, scopes=["review"])
+    elif request.param == "reporter":
+        return reporting_account
     elif request.param == "rando":
         acct = account(username=request.param)
     else:
@@ -82,25 +98,38 @@ def test_report_item(
     header = get_auth_header(acct.username)
     comment = "my thing to say"
     expected = {
-        "target_type": request.param,
+        "target_type": reportable_item.__name__.replace(" ", "_"),
         "target": reportable_item.short_name,
         "report_type": report_type,
         "comment": comment,
     }
-    res = client.post("/reports/", json=expected, headers=header)
+    res = client.post(f"{get_config().api_prefix}/reports/", json=expected, headers=header)
     assert res.status_code == 200
     created = res.json()
     for k, v in expected.items():
+        if k == "target":
+            continue
         assert created[k] == v
+    # just make sure that we are returned a target object rather than its name
+    assert isinstance(created["target"], dict)
 
 
-@pytest.mark.xfail()
-def test_reporting_requires_login():
-    raise NotImplementedError()
+def test_reporting_requires_login(dataset, client):
+    ds = dataset()
+    expected = {
+        "target_type": "dataset",
+        "target": ds.slug,
+        "report_type": "rules",
+        "comment": "",
+    }
+    res = client.post(f"{get_config().api_prefix}/reports/", json=expected)
+    assert res.status_code == 401
 
 
-@pytest.mark.xfail()
-def test_report_visibility():
+@pytest.mark.parametrize("reportable_item", ["dataset"], indirect=True)
+def test_report_visibility(
+    resolving_account, reporting_account, reported_item, client, get_auth_header
+) -> None:
     """
     Reports can be viewed by
     - opening account
@@ -110,57 +139,166 @@ def test_report_visibility():
     - anonymous requests
     - other non-scoped accounts
     """
-    raise NotImplementedError()
+    ds, report = reported_item
+
+    # report is not visible to unauthorized gets/posts always
+    res = client.get(report.api_url)
+    assert res.status_code == 401
+    res = client.post(report.api_url + "/resolve", json={"action": "dismiss"})
+    assert res.status_code == 401
+
+    header = get_auth_header(resolving_account.username)
+    res = client.get(report.api_url, headers=header)
+    if resolving_account.username in ("admin", "reviewer", "reporter"):
+        assert res.status_code == 200
+    else:
+        assert res.status_code == 403
 
 
-@pytest.mark.xfail
-def test_resolve_dismiss():
+def test_resolve_dismiss(reported_item, resolving_account, get_auth_header, client, session):
     """Dismissing does nothing!"""
-    raise NotImplementedError()
+    header = get_auth_header(resolving_account.username)
+    item, report = reported_item
+    session.refresh(item)
+    dumped = item.model_dump()
+    data = {"action": "dismiss"}
+
+    res = client.post(report.api_url + "/resolve", json=data, headers=header)
+
+    session.refresh(item)
+    refreshed = item.model_dump()
+    if resolving_account.username not in ("admin", "reviewer"):
+        assert res.status_code == 403
+    else:
+        assert res.status_code == 200
+        assert res.json()["action"] == "dismiss"
+
+    assert dumped == refreshed
 
 
-@pytest.mark.xfail
-def test_resolve_hide():
+def test_resolve_hide(reported_item, resolving_account, get_auth_header, client, session):
     """Hiding an item removes its approval status and makes it invisible"""
-    raise NotImplementedError()
+    header = get_auth_header(resolving_account.username)
+    item, report = reported_item
+    session.refresh(item)
+    dumped = item.model_dump()
+    data = {"action": "hide"}
+
+    res = client.post(report.api_url + "/resolve", json=data, headers=header)
+
+    session.refresh(item)
+    refreshed = item.model_dump()
+    if resolving_account.username not in ("admin", "reviewer"):
+        assert res.status_code == 403
+        assert dumped == refreshed
+    elif report.target_type == "account":
+        assert res.status_code == 422
+        assert dumped == refreshed
+    else:
+        assert res.status_code == 200
+        assert res.json()["action"] == "hide"
+        assert dumped["is_approved"]
+        assert not refreshed["is_approved"]
 
 
-@pytest.mark.xfail
-def test_resolve_remove():
+def test_resolve_remove(reported_item, resolving_account, get_auth_header, client, session):
     """
     Removing an item renders it effectively deleted
     """
-    raise NotImplementedError()
+    header = get_auth_header(resolving_account.username)
+    item, report = reported_item
+    session.refresh(item)
+    dumped = item.model_dump()
+    data = {"action": "remove"}
+    assert client.get(item.frontend_url).status_code == 200
+
+    res = client.post(report.api_url + "/resolve", json=data, headers=header)
+
+    session.refresh(item)
+    refreshed = item.model_dump()
+    if resolving_account.username not in ("admin", "reviewer"):
+        assert res.status_code == 403
+        assert dumped == refreshed
+    elif report.target_type == "account":
+        assert res.status_code == 422
+        assert dumped == refreshed
+    else:
+        assert res.status_code == 200
+        assert res.json()["action"] == "remove"
+        assert not dumped["is_removed"]
+        assert refreshed["is_removed"]
+        assert client.get(item.frontend_url).status_code == 404
 
 
-@pytest.mark.xfail
-def test_resolve_suspend():
+def test_resolve_suspend(
+    reported_item, resolving_account, get_auth_header, client, session, reported_account, dataset
+):
     """
-    Suspends the reported account or the account that created the reported item
+    Suspends the reported account or the account that created the reported item,
+    removing the item but NOT any other items created by the suspended account
     """
-    raise NotImplementedError()
+    extra = dataset(slug="extra", account_=reported_account, is_approved=True)
+
+    header = get_auth_header(resolving_account.username)
+    item, report = reported_item
+    session.refresh(item)
+    dumped = item.model_dump()
+    data = {"action": "suspend"}
+
+    res = client.post(report.api_url + "/resolve", json=data, headers=header)
+
+    session.refresh(item)
+    session.refresh(extra)
+    refreshed = item.model_dump()
+
+    assert not extra.is_removed
+    if resolving_account.username not in ("admin",):
+        assert res.status_code == 403
+        assert dumped == refreshed
+        assert not report.reported_account.is_suspended
+    else:
+        assert res.status_code == 200
+        assert res.json()["action"] == "suspend"
+        assert report.reported_account.is_suspended
+
+        if report.target_type != "account":
+            assert not dumped["is_removed"]
+            assert refreshed["is_removed"]
+        assert client.get(item.frontend_url).status_code == 404
 
 
-@pytest.mark.xfail
-def test_resolve_suspend_remove():
+def test_resolve_suspend_remove(
+    reported_item, resolving_account, get_auth_header, client, session, reported_account, dataset
+):
     """
     Suspends the reported account or the account that created the reported item
     and removes all items
     """
-    raise NotImplementedError()
+    extra = dataset(slug="extra", account_=reported_account, is_approved=True)
 
+    header = get_auth_header(resolving_account.username)
+    item, report = reported_item
+    session.refresh(item)
+    dumped = item.model_dump()
+    data = {"action": "suspend_remove"}
 
-@pytest.mark.xfail
-def test_unauthorized_cant_resolve():
-    """
-    Unauthorized users can't resolve
-    """
-    raise NotImplementedError()
+    res = client.post(report.api_url + "/resolve", json=data, headers=header)
 
+    session.refresh(item)
+    session.refresh(extra)
+    refreshed = item.model_dump()
 
-@pytest.mark.xfail
-def test_review_cant_suspend():
-    """
-    An account with review but not admin permissions can't suspend accounts
-    """
-    raise NotImplementedError()
+    if resolving_account.username not in ("admin",):
+        assert res.status_code == 403
+        assert dumped == refreshed
+        assert not extra.is_removed
+        assert not report.reported_account.is_suspended
+    else:
+        assert res.status_code == 200
+        assert res.json()["action"] == "suspend_remove"
+        assert report.reported_account.is_suspended
+        assert extra.is_removed
+        if report.target_type != "account":
+            assert not dumped["is_removed"]
+            assert refreshed["is_removed"]
+        assert client.get(item.frontend_url).status_code == 404

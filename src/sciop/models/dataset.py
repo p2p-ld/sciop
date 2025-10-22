@@ -1,4 +1,3 @@
-import hashlib
 import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Optional, Self, Union, cast
@@ -53,23 +52,6 @@ if TYPE_CHECKING:
     from sciop.models import AuditLog, DatasetClaim, Report, Tag, Upload, UploadRead
 
 PREFIX_PATTERN = re.compile(r"\w{6}-[A-Z]{3}_\S+")
-
-
-def _add_prefix(val: str, timestamp: datetime, key: str) -> str:
-    # underscores can only get in slugs through prefix events
-    if "__" in val:
-        return val
-    hasher = hashlib.blake2b(digest_size=3)
-    hasher.update(timestamp.isoformat().encode("utf-8"))
-    hash = hasher.hexdigest()
-    return f"{hash}-{key.upper()}__{val}"
-
-
-def _remove_prefix(val: str) -> str:
-    if "__" in val:
-        return val.split("__")[1]
-    else:
-        return val
 
 
 def _prefixed_len(info: FieldInfo) -> int:
@@ -308,9 +290,9 @@ def _datset_prefix_on_removal(
     """Add or remove a prefix when removal state is toggled"""
     if value:
         # add prefix
-        target.slug = _add_prefix(target.slug, target.created_at, "REM")
+        target.slug = Dataset._add_prefix(target.slug, target.created_at, "REM")
     else:
-        target.slug = _remove_prefix(target.slug)
+        target.slug = Dataset._remove_prefix(target.slug)
 
 
 class DatasetCreate(DatasetBase):
@@ -586,7 +568,7 @@ class DatasetPartBase(SQLModel, FrontendMixin):
 
     @property
     def frontend_url(self) -> str:
-        return f"/datasets/{self.dataset.slug}/parts/{self.part_slug}/"
+        return f"/datasets/{self.dataset.slug}/{self.part_slug}/"
 
     @hybrid_property
     def short_name(self) -> str:
@@ -659,9 +641,9 @@ def _part_prefix_on_removal(
     """Add or remove a prefix when removal state is toggled"""
     if value:
         # add prefix
-        target.part_slug = _add_prefix(target.part_slug, target.created_at, "REM")
+        target.part_slug = DatasetPart._add_prefix(target.part_slug, target.created_at, "REM")
     else:
-        target.part_slug = _remove_prefix(target.part_slug)
+        target.part_slug = DatasetPart._remove_prefix(target.part_slug)
 
 
 event.listen(DatasetPart, "before_update", render_db_fields_to_html("description"))

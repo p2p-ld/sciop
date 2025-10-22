@@ -21,6 +21,7 @@ from sqlmodel import Field, Relationship, Session, select
 
 from sciop.exceptions import (
     InvalidModerationActionError,
+    ModerationError,
     ModerationPermissionsError,
     ReportResolvedError,
 )
@@ -99,6 +100,12 @@ class ReportBase(SQLModel, FrontendMixin):
     @property
     def frontend_url(self) -> str:
         return f"/reports/{self.report_id}"
+
+    @property
+    def api_url(self) -> str:
+        from sciop.config import get_config
+
+        return f"{get_config().api_prefix}/reports/{self.report_id}"
 
     @property
     def short_name(self) -> str:
@@ -302,53 +309,31 @@ class Report(ReportBase, TableMixin, SortMixin, table=True):
     ) -> "Report":
         """
         Resolve the report, taking the requested action.
-        This assumes that the account has already been validated as able to resolve the report.
 
-        See :class:`.ReportAction` for description of actions
+        See :class:`.ReportAction` for description of actions.
+
+        Uses `action_allowed` to validate that an action can be performed by the current account
 
         Raises:
-            ReportResolvedError if the report has already been resolved
+            See `action_allowed`
         """
-        if self.action:
-            raise ReportResolvedError(
-                f"Report {self.report_id} has already been resolved with {self.action} "
-                f"by {self.resolved_by.username} on {self.resolved_at.isoformat()}"
-            )
-        elif self.report_id != action.report_id:
-            raise InvalidModerationActionError(
-                f"Attempted to resolve report {action.report_id} on report {self.report_id}"
-            )
-        elif (
-            self.reported_account
-            and self.reported_account.account_id == resolved_by.account_id
-            and not resolved_by.has_scope("root")
-        ):
-            raise ModerationPermissionsError("Can't resolve reports about yourself")
+        # validate the action the account, this raises if it's invalid, so no need to reraise
+        self.action_allowed(action.action, resolved_by)
 
         if action.action == ReportAction.dismiss:
             # do nothing
             pass
         elif action.action == ReportAction.hide:
-            if self.target_type == "account":
-                raise InvalidModerationActionError("Accounts can't be hidden")
             self.target.hide(account=resolved_by, session=session)
         elif action.action == ReportAction.remove:
-            if self.target_type == "account":
-                raise InvalidModerationActionError("Accounts can't be removed (use suspend)")
             self.target.remove(account=resolved_by, session=session)
         elif action.action == ReportAction.suspend:
-            if self.target_type == "account":
-                self.target.suspend(suspended_by=resolved_by, session=session)
-            else:
-                self.target.account.suspend(suspended_by=resolved_by, session=session)
+            if self.target_type != "account":
+                self.target.remove(account=resolved_by, session=session)
+            self.reported_account.suspend(suspended_by=resolved_by, session=session)
         elif action.action == ReportAction.suspend_remove:
-            account = self.target if self.target_type == "account" else self.target.account
-            # check first before removing items if we're allowed to do this
-            if not resolved_by.can_suspend(account):
-                raise ModerationPermissionsError(
-                    f"Not permitted to suspend and remove items from {account.username}"
-                )
-            account.remove_items(removed_by=resolved_by, session=session)
+            self.reported_account.remove_all_items(removed_by=resolved_by, session=session)
+            self.reported_account.suspend(suspended_by=resolved_by, session=session)
         else:
             raise InvalidModerationActionError(f"Invalid report resolution action {action.action}")
 
@@ -360,31 +345,75 @@ class Report(ReportBase, TableMixin, SortMixin, table=True):
         session.commit()
         return self
 
+    def action_allowed(self, action: "ReportAction", current_account: "Account") -> bool:
+        """
+        Check if a given action can be taken for the report by the current_account.
+
+        - To take any action against a report, the current_account must have the `review` scope.
+        - To suspend accounts, the current_account must have `admin` scope
+        - There must not already be an action taken against the report
+
+        Raises:
+            ReportResolvedError if the report has already been resolved
+            ModerationPermissionsError if the account can't take the action but it's otherwise valid
+            InvalidModerationActionError if the action is invalid for the reported item type
+        """
+        # roughly in order of permissions first, then action validity
+
+        if not current_account.has_scope("review"):
+            raise ModerationPermissionsError(f"{current_account.username} is not a reviewer")
+
+        if action in (ReportAction.suspend, ReportAction.suspend_remove):
+            if not self.reported_account:
+                InvalidModerationActionError(
+                    "Cannot suspend account since there is no account "
+                    "associated with the reported item"
+                )
+
+            if not current_account.has_scope("admin") or not current_account.can_suspend(
+                self.reported_account
+            ):
+                raise ModerationPermissionsError(
+                    f"{current_account.username} can't suspend {self.reported_account.username}"
+                )
+
+        if (
+            self.reported_account
+            and self.reported_account.account_id == current_account.account_id
+            and not current_account.has_scope("root")
+        ):
+            raise ModerationPermissionsError("Can't resolve reports about yourself")
+
+        if self.action:
+            raise ReportResolvedError(
+                f"Report {self.report_id} has already been resolved with {self.action} "
+                f"by {self.resolved_by.username} on {self.resolved_at.isoformat()}"
+            )
+
+        if action in (ReportAction.hide, ReportAction.remove) and self.target_type == "account":
+            raise InvalidModerationActionError("Cannot hide or remove an account, use suspend")
+
+        if (
+            action not in ReportAction.__members__
+            and action not in ReportAction.__members__.values()
+        ):
+            raise InvalidModerationActionError(f"Unknown report action {action}")
+
     def action_valid(self, action: "ReportAction", current_account: "Account") -> bool:
         """
         Check if a given action is valid for the report,
         given its type and the account trying to take the action.
 
+        Wraps `action_allowed`:
         Intended for use in the frontend to filter displayed action buttons,
         not to control the ability to take an action -
-        that is controlled by the `resolve` method,
-        which raises more informative error messages.
+        so exceptions are caught here and returned `False`
         """
-        if not current_account.has_scope("review"):
-            return False
-        if (
-            self.reported_account
-            and self.reported_account.username == current_account.username
-            and not current_account.has_scope("root")
-        ):
-            return False
-
-        if action == ReportAction.dismiss:
+        try:
+            self.action_allowed(action, current_account)
             return True
-        elif action == ReportAction.hide or action == ReportAction.remove:
-            return self.target_type != "account"
-        elif action in (ReportAction.suspend, ReportAction.suspend_remove):
-            return current_account.has_scope("admin")
+        except ModerationError:
+            return False
 
 
 class ReportCreate(SQLModel):
@@ -416,7 +445,6 @@ class ReportCreate(SQLModel):
 
 
 class ReportResolve(BaseModel):
-    report_id: int
     action: ReportAction
     action_comment: Optional[str] = None
 

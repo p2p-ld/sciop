@@ -1,3 +1,5 @@
+import hashlib
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sqla
@@ -133,9 +135,30 @@ class ModerableMixin(SQLModel):
                 f"{account.username} not permitted to remove this item"
             )
         log_moderation_action(
-            session=session, actor=account, target=self, action=ModerationAction.remove
+            session=session,
+            actor=account,
+            target=self,
+            action=ModerationAction.remove,
+            commit=commit,
         )
         self.is_removed = True
         session.add(self)
         if commit:
             session.commit()
+
+    @staticmethod
+    def _add_prefix(val: str, timestamp: datetime, key: str) -> str:
+        # underscores can only get in slugs through prefix events
+        if "__" in val:
+            return val
+        hasher = hashlib.blake2b(digest_size=3)
+        hasher.update(timestamp.isoformat().encode("utf-8"))
+        hash = hasher.hexdigest()
+        return f"{hash}-{key.upper()}__{val}"
+
+    @staticmethod
+    def _remove_prefix(val: str) -> str:
+        if "__" in val:
+            return val.split("__", 1)[1]
+        else:
+            return val

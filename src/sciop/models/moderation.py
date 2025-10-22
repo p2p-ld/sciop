@@ -67,8 +67,9 @@ class ReportAction(StrEnum):
     suspend: Annotated[
         str,
         doc(
-            "Suspend the reported account or the account that created the reported item "
-            "without removing their created items"
+            "Suspend the reported account or the account that created the reported item. "
+            "If the report was for an item, that item will also be removed, "
+            "but an account's other created items will remain unchanged."
         ),
     ] = "suspend"
     suspend_remove: Annotated[

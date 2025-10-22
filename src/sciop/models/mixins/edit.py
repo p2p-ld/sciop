@@ -5,6 +5,7 @@ from logging import Logger
 from typing import TYPE_CHECKING, Any, ClassVar, Generator, Iterable, Optional, Self, TypeVar, cast
 
 import sqlalchemy as sqla
+from annotated_types import MaxLen
 from pydantic import ConfigDict
 from sqlalchemy import Column, ColumnElement, ForeignKeyConstraint, Index, Table, event, inspect
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
@@ -314,6 +315,13 @@ def _make_orm_class(
 
     annotations = _gather_annotations(cls, meta_cols)
     meta_fields = {k: col.field for k, col in meta_cols.items()}
+    pydantic_fields = cls.__pydantic_fields__.copy()
+
+    # clear max length constraints on fields - names are prefixed to avoid uniqueness constraints
+    for field in pydantic_fields.values():
+        if field.metadata:
+            field.metadata = [i for i in field.metadata if not isinstance(i, MaxLen)]
+
     history_cls = cast(
         type[EditableMixin],
         type(
@@ -324,7 +332,7 @@ def _make_orm_class(
                 "__annotations__": annotations,
                 "_history_table_configured": True,
                 "model_config": model_cfg,
-                **cls.__pydantic_fields__.copy(),
+                **pydantic_fields,
                 **meta_fields,
             },
         ),

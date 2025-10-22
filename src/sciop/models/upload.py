@@ -342,12 +342,32 @@ def _upload_remove_torrent(
     target: Upload, value: bool, oldvalue: bool, initiator: AttributeEventToken
 ) -> None:
     """Remove an associated torrent when the"""
-    if value and not oldvalue and oldvalue is not None and target.torrent:
-        from sciop.db import get_session
+    if oldvalue is None or not target.torrent:
+        return
 
+    from sciop.db import get_session
+
+    if value and not oldvalue:
         with get_session() as session:
             torrent = session.merge(target.torrent)
-            session.delete(torrent)
+            if torrent.v1_infohash:
+                torrent.v1_infohash = Upload._add_prefix(
+                    torrent.v1_infohash, torrent.created_at, "REM"
+                )
+            if torrent.v2_infohash:
+                torrent.v2_infohash = Upload._add_prefix(
+                    torrent.v2_infohash, torrent.created_at, "REM"
+                )
+            session.add(torrent)
+            session.commit()
+    elif not value and oldvalue:
+        with get_session() as session:
+            torrent = session.merge(target.torrent)
+            if torrent.v1_infohash:
+                torrent.v1_infohash = Upload._remove_prefix(torrent.v1_infohash)
+            if torrent.v2_infohash:
+                torrent.v2_infohash = Upload._remove_prefix(torrent.v2_infohash)
+            session.add(torrent)
             session.commit()
 
 

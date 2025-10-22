@@ -232,7 +232,7 @@ def test_deny_upload_no_delete(client, upload, session, admin_auth_header):
     assert res.status_code == 200
     session.refresh(ul)
     assert ul.is_removed
-    assert ul.infohash is None
+    assert "REM" in ul.infohash
     log = session.exec(select(AuditLog)).first()
     assert log.target_upload is ul
     assert log.action == "deny"

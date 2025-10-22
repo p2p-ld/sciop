@@ -3,7 +3,7 @@ from textwrap import dedent
 import pytest
 from sqlmodel import select
 
-from sciop.models import TorrentFile, Upload
+from sciop.models import Upload
 
 
 @pytest.fixture()
@@ -29,9 +29,9 @@ def props_uploads(upload, dataset, torrentfile, session) -> tuple[Upload, ...]:
     return tuple(uploads)
 
 
-def test_remove_torrent_on_removal(upload, session):
+def test_prefix_torrent_on_removal(upload, session):
     """
-    Marking an upload as removed deletes its torrent file
+    Marking an upload as removed prefixes the infohashes in its torrent file
     """
     ul: Upload = upload(session=session)
     torrent_id = ul.torrent.torrent_file_id
@@ -43,11 +43,9 @@ def test_remove_torrent_on_removal(upload, session):
     session.commit()
     session.refresh(ul)
     assert ul.is_removed
-    assert (
-        session.exec(select(TorrentFile).where(TorrentFile.torrent_file_id == torrent_id)).first()
-        is None
-    )
-    assert not torrent_file.exists()
+    assert "REM" in ul.torrent.v1_infohash
+    assert "REM" in ul.torrent.v2_infohash
+    assert torrent_file.exists()
 
 
 def test_upload_description_html_rendering(upload, session):

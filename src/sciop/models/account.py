@@ -250,6 +250,8 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
         Each item checks for permissions to remove, since they may be different per-item.
 
         """
+        if not removed_by.has_scope("admin"):
+            raise ModerationPermissionsError("Only admins can remove all items from an account")
         items = self.get_all_items(session)
         # remove things that may be children of other things first: uploads, parts, then datasets
         for ul in items["uploads"]:
