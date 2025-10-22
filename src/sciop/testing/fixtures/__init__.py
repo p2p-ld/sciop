@@ -32,6 +32,13 @@ from sciop.testing.fixtures.fabricators import (
     upload_module,
     uploader,
 )
+from sciop.testing.fixtures.reports import (
+    reportable_item,
+    reported_account,
+    reported_item,
+    reporting_account,
+    resolving_account,
+)
 from sciop.testing.fixtures.scheduler import clean_scheduler
 from sciop.testing.fixtures.server import (
     client,
@@ -86,6 +93,12 @@ __all__ = [
     "upload",
     "upload_module",
     "uploader",
+    # reports
+    "reportable_item",
+    "reported_account",
+    "reported_item",
+    "reporting_account",
+    "resolving_account",
     # scheduler
     "clean_scheduler",
     # server
