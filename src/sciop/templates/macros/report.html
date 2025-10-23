@@ -123,6 +123,7 @@
     {% if report.action_valid(action, current_account) %}
     <button
       class="big button"
+      data-action="{{ action_key }}"
       hx-post="{{ config.api_prefix }}/reports/{{ report.report_id }}/resolve/"
       hx-vals='{"action": "{{ action }}"}'
       hx-include="#{{ form_id }}"
