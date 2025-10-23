@@ -1,5 +1,5 @@
 import re
-from typing import Annotated, Any, ClassVar, Optional, Self, TypeVar, TypeAlias
+from typing import Annotated, Any, ClassVar, Optional, Self, TypeVar
 from typing import Literal as L
 from urllib.parse import quote_plus
 
@@ -11,7 +11,6 @@ from fastapi_pagination.customization import CustomizedPage, UseParams
 from fastapi_pagination.default import Params
 from pydantic import AfterValidator, BaseModel, Field, GetCoreSchemaHandler, field_validator
 from pydantic_core import CoreSchema, core_schema
-from fastapi.params import ParamTypes
 from sqlalchemy import Select
 from starlette.datastructures import QueryParams
 
@@ -77,13 +76,16 @@ class RemoveSort(SortStr):
         return None
 
 
-SortStrType: TypeAlias = Annotated[
-    RemoveSort | DescendingSort | AscendingSort, Query(union_mode="left_to_right")
+SortStrType = Annotated[
+    RemoveSort | DescendingSort | AscendingSort, Field(union_mode="left_to_right")
 ]
 
 
 def _remove_none(value: list[SortStrType]) -> list[SortStrType]:
     return [v for v in value if v and v is not None and not isinstance(v, RemoveSort)]
+
+
+SortParamsType = Annotated[list[SortStrType], AfterValidator(_remove_none)]
 
 
 class SearchParams(Params):
@@ -93,7 +95,7 @@ class SearchParams(Params):
 
     query: Optional[str] = Query(None)
     """The search query!"""
-    sort: list[SortStrType] = Query(
+    sort: SortParamsType = Query(
         default_factory=list,
         description="""
         Columns to sort by
@@ -111,11 +113,6 @@ class SearchParams(Params):
     @classmethod
     def str_to_list(cls, val: str | list[str]) -> list[str]:
         return val if isinstance(val, list) else [val]
-
-    @field_validator("sort", mode="after")
-    @classmethod
-    def remove_nones(cls, val: list[SortStrType]) -> list[str]:
-        return _remove_none(val)
 
     def should_redirect(self) -> bool:
         """Whether we have query parameters that should be included in HX-Replace-Url"""
