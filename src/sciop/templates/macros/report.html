@@ -130,6 +130,7 @@
       hx-ext="form-json"
       hx-target="#{{ container_id }}"
       hx-swap="outerHTML"
+      hx-confirm="Are you sure you want to {{ action_key }} the {{ report.target_type }} {{ report.target.short_name }}? This may not be reversible."
     >
       {{ action | replace("_", " ") | capitalize }}
     </button>

@@ -124,10 +124,9 @@ async def test_resolve_report(
 
     # take some action
     await page.locator('textarea[name="action_comment"]').fill(comment)
+    page.on("dialog", lambda dialog: dialog.accept())
     await page.locator(f'#report-1-actions button[data-action="{action}"]').click()
     await asyncio.sleep(0.05)
-
-    await page.pause()
 
     await expect(page.get_by_role("cell", name="Resolved By")).to_be_visible()
     await expect(page.get_by_role("cell", name="Resolved At")).to_be_visible()
