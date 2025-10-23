@@ -13,6 +13,7 @@ from sqlmodel.pool import StaticPool
 def _engine(request: pytest.FixtureRequest) -> Engine:
     if request.config.getoption("--file-db"):
         from sciop.config import get_config
+        from sciop.db import create_tables
 
         engine_kwargs = {
             "pool_size": get_config().db.pool_size,
@@ -21,10 +22,11 @@ def _engine(request: pytest.FixtureRequest) -> Engine:
         if request.config.getoption("--echo-queries"):
             engine_kwargs["echo"] = True
 
-        assert (
-            str(get_config().paths.sqlite) == "db.test.sqlite"
+        assert "db.test.sqlite" in str(
+            get_config().paths.sqlite
         ), "Must use db.test.sqlite for file dbs in testing"
         engine = create_engine(str(get_config().paths.sqlite), **engine_kwargs)
+        create_tables(engine, check_migrations=False, check_existing=False)
     else:
         engine = _in_memory_engine(request)
     return engine
