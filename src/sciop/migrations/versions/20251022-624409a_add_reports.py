@@ -142,6 +142,9 @@ def upgrade() -> None:
             ["account_id"],
         )
 
+    with op.batch_alter_table("datasets", schema=None) as batch_op:
+        batch_op.create_unique_constraint("uq_datasets_slug", ["slug"])
+
     # ### end Alembic commands ###
 
 
@@ -206,5 +209,8 @@ def downgrade() -> None:
             type_=sa.VARCHAR(length=12),
             existing_nullable=False,
         )
+
+    with op.batch_alter_table("datasets", schema=None) as batch_op:
+        batch_op.drop_constraint("uq_datasets_slug", type_="unique")
 
     # ### end Alembic commands ###
