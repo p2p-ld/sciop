@@ -48,6 +48,7 @@ nav:
           - python/models/claim.md
           - python/models/dataset.md
           - python/models/moderation.md
+          - python/models/report.md
           - python/models/rss.md
           - python/models/stats.md
           - python/models/system.md

@@ -5,7 +5,8 @@
 - [`api`](./api.md) - Models used only in the API
 - [`claim`](./claim.md) - Scrape coordination models
 - [`dataset`](./dataset.md) - Metadata container representing a single item
-- [`moderation`](./moderation.md) - Reports, audit logs
+- [`moderation`](./moderation.md) - Audit logs, action types
+- [`report`](./report.md) - Reporting items for moderation
 - [`rss`](./rss.md) - RSS feed generation
 - [`stats`](./stats.md) - Sitewide stats
 - [`system`](./system.md) - Template configs for system config
