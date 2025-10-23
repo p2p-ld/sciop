@@ -229,6 +229,8 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
         ),
         SortableCol(name="created_at", title="created"),
     )
+    __table_args__ = (UniqueConstraint("slug", name="uq_datasets_slug"),)
+
     created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     slug: SlugStr = Field(
         unique=True,
