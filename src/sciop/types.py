@@ -92,16 +92,12 @@ def _extract_username(val: Union[str, "Account"]) -> str:
 
 UsernameStr: TypeAlias = Annotated[
     str,
+    Field(..., regex=USERNAME_PATTERN.pattern, sa_column=_username_col()),
     MinLen(1),
     MaxLen(64),
     # Need a specific functional validator because sqlmodel regex validation is busted
     BeforeValidator(_extract_username),
     AfterValidator(_validate_username),
-    Field(
-        ...,
-        regex=USERNAME_PATTERN.pattern,
-        sa_column=_username_col(),
-    ),
 ]
 """Allowable usernames"""
 

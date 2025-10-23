@@ -196,8 +196,6 @@ class Config(BaseSettings):
         """
 
         after = handler(data)
-        # if "_yaml_source" in data:
-        # breakpoint()
         mtimes = {}
         if (env := Path.cwd() / ".env").exists():
             mtimes[env] = env.stat().st_mtime
