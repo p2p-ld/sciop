@@ -127,7 +127,7 @@ class ModerableMixin(SQLModel):
         but for all intents and purposes rendering the item 'deleted.'
         """
         from sciop.crud import log_moderation_action
-        from sciop.models import ModerationAction
+        from sciop.types import ModerationAction
 
         if not self.removable_by(account):
             raise ModerationPermissionsError(
