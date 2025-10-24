@@ -119,7 +119,7 @@
   </div>
 </form>
 <div class="report-resolve-buttons">
-  {% for action_key, action in models.ReportAction.__members__.items() %}
+  {% for action_key, action in types.ReportAction.__members__.items() %}
     {% if report.action_valid(action, current_account) %}
     <button
       class="big button"
@@ -134,7 +134,7 @@
     >
       {{ action | replace("_", " ") | capitalize }}
     </button>
-    <span class="action-description">{{ models.ReportAction.__annotations__[action_key].__metadata__[-1].documentation }}</span>
+    <span class="action-description">{{ types.ReportAction.__annotations__[action_key].__metadata__[-1].documentation }}</span>
     {% endif %}
   {% endfor %}
 </div>
