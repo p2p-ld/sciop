@@ -50,14 +50,13 @@ from sciop.models.dataset import (
 )
 from sciop.models.magnet import MagnetLink
 from sciop.models.mixins import EditableMixin
-from sciop.models.moderation import AuditLog, AuditLogRead, ModerationAction, ReportAction
+from sciop.models.moderation import AuditLog, AuditLogRead
 from sciop.models.mystery import _Friedolin
 from sciop.models.report import (
     Report,
     ReportCreate,
     ReportRead,
     ReportResolve,
-    ReportType,
     TargetModels,
     TargetType,
 )
@@ -119,15 +118,12 @@ __all__ = [
     "FileInTorrentRead",
     "HitCount",
     "MagnetLink",
-    "ModerationAction",
     "RaggedSearchPage",
     "RaggedSearchParams",
     "Report",
-    "ReportAction",
     "ReportCreate",
     "ReportRead",
     "ReportResolve",
-    "ReportType",
     "Scope",
     "SearchPage",
     "SearchParams",

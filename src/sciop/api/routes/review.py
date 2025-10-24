@@ -15,9 +15,10 @@ from sciop.api.deps import (
 )
 from sciop.frontend.templates import jinja
 from sciop.middleware import limiter
-from sciop.models import ModerationAction, Scope, SuccessResponse, Webseed, WebseedCreate
+from sciop.models import Scope, SuccessResponse, Webseed, WebseedCreate
 from sciop.models.mystery import _Friedolin
 from sciop.scheduler import queue_job
+from sciop.types import ModerationAction
 
 review_router = APIRouter()
 

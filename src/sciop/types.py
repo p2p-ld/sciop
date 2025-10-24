@@ -4,10 +4,10 @@ from enum import StrEnum
 from html import escape
 from os import PathLike as PathLike_
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Literal, Optional, TypeAlias, Union
+from typing import TYPE_CHECKING, Annotated, Literal, Optional, TypeAlias, Union, get_args
 
 import sqlalchemy as sqla
-from annotated_types import Gt, MaxLen, MinLen
+from annotated_types import DocInfo, Gt, MaxLen, MinLen, doc
 from pydantic import AfterValidator, AnyUrl, BeforeValidator, PlainSerializer, TypeAdapter
 from slugify import slugify
 from sqlalchemy import Case, ColumnElement, case
@@ -294,13 +294,157 @@ ctype_to_suffix = {v: k for k, v in suffix_to_ctype.items()}
 class Scopes(StrEnum):
     """Account Permissions"""
 
-    submit = "submit"
-    """Create new items without review"""
-    upload = "upload"
-    """Upload new torrents without review"""
-    review = "review"
-    """Review submissions"""
-    admin = "admin"
-    """Modify other account scopes, except for demoting/suspending other admins"""
-    root = "root"
-    """All permissions"""
+    submit: Annotated[str, doc("Create new datasets without review")] = "submit"
+    upload: Annotated[str, doc("Upload new torrents and create new webseeds without review")] = (
+        "upload"
+    )
+    review: Annotated[
+        str,
+        doc(
+            """
+            Base moderator permissions. Reviewers can
+            
+                - See unapproved datasets, uploads, webseeds, and other items\n
+                - Approve or deny pending items\n
+                - Resolve reports, hiding or removing items\n
+                - Edit items that do not belong to them
+            """
+        ),
+    ] = "review"
+    admin: Annotated[
+        str,
+        doc(
+            """
+            Administrate the instance. 
+            Admin accounts have all other scopes except root, and are additionally able to 
+            
+                - Suspend accounts *except* other admins or roots
+                - Grant and remove permission scopes *except* for admin and root
+                - Resolve reports against accounts by suspending them
+                - View the audit log of moderation actions
+            """
+        ),
+    ] = "admin"
+    root: Annotated[
+        str,
+        doc(
+            """
+            All permissions.
+            Separating "root" from "admin" is intended to make `admin` easier to grant,
+            where admins are limited from staging a coup and demoting other admins.
+            There should be a very small number of `root` accounts,
+            and their primary role is to create and demote other `admin` accounts.
+            Roots have all other scopes, and have the additionally able to
+           
+                - Create new `admin` accounts
+                - Suspend `admin` accounts
+            """
+        ),
+    ] = "root"
+
+
+class ReportType(StrEnum):
+    rules: Annotated[str, doc("This item breaks one or more instance rules")] = "rules"
+    spam: Annotated[str, doc("Automated behavior, comments, uploads, etc.")] = "spam"
+    malicious: Annotated[
+        str,
+        doc(
+            "This item contains malicious software, "
+            "or otherwise is intended to damage the recipient's system."
+        ),
+    ] = "malicious"
+    fake: Annotated[
+        str, doc("Contents of item are not as described, but not apparently malicious.")
+    ] = "fake"
+    incorrect: Annotated[
+        str,
+        doc(
+            "Contents of item are as described and not apparently malicious, "
+            "but are incorrect, incomplete, broken, etc."
+        ),
+    ] = "incorrect"
+    duplicate: Annotated[
+        str,
+        doc(
+            "Item is an identical duplicate of another item. "
+            "Please provide a link to the duplicated item in the comment."
+        ),
+    ] = "duplicate"
+    other: Annotated[str, doc("Any other reason that doesn't fit the other report types")] = "other"
+
+    @property
+    def description(self) -> str:
+        """Description to display in frontend"""
+        desc: list[DocInfo] = [
+            d for d in get_args(self.__annotations__[self.value]) if isinstance(d, DocInfo)
+        ]
+        if not desc:
+            return ""
+        return desc[0].documentation
+
+
+class ModerationAction(StrEnum):
+    request = "request"
+    """Request some permission or action"""
+    approve = "approve"
+    """Approve a request - e.g. a dataset or upload request"""
+    unapprove = "unapprove"
+    """Unapprove an already accepted request - e.g. a dataset or upload request"""
+    deny = "deny"
+    """Deny a request, as above"""
+    report = "report"
+    """Report an item"""
+    add_scope = "add_scope"
+    """Add, e.g. a scope to an account"""
+    remove_scope = "remove_scope"
+    """Remove an item - a dataset, upload, account scope etc."""
+    dismiss = "dismiss"
+    """Dismiss a report without action"""
+    trust = "trust"
+    """Increment trust value"""
+    distrust = "distrust"
+    """Decrement trust value"""
+    suspend = "suspend"
+    """Suspend an account"""
+    suspend_remove = "suspend_remove"
+    """Suspend an account and remove all its associated content"""
+    restore = "restore"
+    """Restore a suspended account"""
+    remove = "remove"
+    """Remove an item"""
+    hide = "hide"
+    """Hide an item"""
+
+
+class ReportAction(StrEnum):
+    """
+    Can't subset an enum,
+    so this is a manual subset of moderation actions that apply to report resolutions.
+    """
+
+    dismiss: Annotated[str, doc("Dismiss a report, taking no action.")] = "dismiss"
+    hide: Annotated[
+        str,
+        doc(
+            "Hide an item by marking it as unapproved. The item is retained, "
+            "but is only visible to moderators and the creator. "
+            "This returns the item to the moderation queue, "
+            "and is usually used when some change is needed but the item is otherwise salvageable."
+        ),
+    ] = "hide"
+    remove: Annotated[str, doc("Permanently remove an item, upholding the report.")] = "remove"
+    suspend: Annotated[
+        str,
+        doc(
+            "Suspend the reported account or the account that created the reported item. "
+            "If the report was for an item, that item will also be removed, "
+            "but an account's other created items will remain unchanged."
+        ),
+    ] = "suspend"
+    suspend_remove: Annotated[
+        str, doc("Suspend the account AND remove all items created by this account.")
+    ] = "suspend_remove"
+
+    @classmethod
+    def get_base_action(self, action: str) -> ModerationAction:
+        return ModerationAction.__members__[action]

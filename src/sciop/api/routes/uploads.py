@@ -23,7 +23,6 @@ from sciop.logging import init_logger
 from sciop.models import (
     FileInTorrent,
     FileInTorrentRead,
-    ModerationAction,
     RaggedSearchPage,
     SuccessResponse,
     TorrentFile,
@@ -36,7 +35,7 @@ from sciop.models import (
     WebseedRead,
 )
 from sciop.scheduler import queue_job
-from sciop.types import MaxLenURL
+from sciop.types import MaxLenURL, ModerationAction
 
 uploads_router = APIRouter(prefix="/uploads")
 

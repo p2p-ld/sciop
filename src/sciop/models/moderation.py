@@ -1,85 +1,15 @@
-from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Optional
+from typing import TYPE_CHECKING, Optional
 
-from annotated_types import doc
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship
 
 from sciop.models.base import SQLModel
 from sciop.models.mixins import TableMixin
-from sciop.types import IDField, UTCDateTime
+from sciop.types import IDField, ModerationAction, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import Account, AccountRead, Dataset, DatasetPart, Upload, Webseed
-
-
-class ModerationAction(StrEnum):
-    request = "request"
-    """Request some permission or action"""
-    approve = "approve"
-    """Approve a request - e.g. a dataset or upload request"""
-    unapprove = "unapprove"
-    """Unapprove an already accepted request - e.g. a dataset or upload request"""
-    deny = "deny"
-    """Deny a request, as above"""
-    report = "report"
-    """Report an item"""
-    add_scope = "add_scope"
-    """Add, e.g. a scope to an account"""
-    remove_scope = "remove_scope"
-    """Remove an item - a dataset, upload, account scope etc."""
-    dismiss = "dismiss"
-    """Dismiss a report without action"""
-    trust = "trust"
-    """Increment trust value"""
-    distrust = "distrust"
-    """Decrement trust value"""
-    suspend = "suspend"
-    """Suspend an account"""
-    suspend_remove = "suspend_remove"
-    """Suspend an account and remove all its associated content"""
-    restore = "restore"
-    """Restore a suspended account"""
-    remove = "remove"
-    """Remove an item"""
-    hide = "hide"
-    """Hide an item"""
-
-
-class ReportAction(StrEnum):
-    """
-    Can't subset an enum,
-    so this is a manual subset of moderation actions that apply to report resolutions.
-    """
-
-    dismiss: Annotated[str, doc("Dismiss a report, taking no action.")] = "dismiss"
-    hide: Annotated[
-        str,
-        doc(
-            "Hide an item by marking it as unapproved. The item is retained, "
-            "but is only visible to moderators and the creator. "
-            "This returns the item to the moderation queue, "
-            "and is usually used when some change is needed but the item is otherwise salvageable."
-        ),
-    ] = "hide"
-    remove: Annotated[str, doc("Permanently remove an item, upholding the report.")] = "remove"
-    suspend: Annotated[
-        str,
-        doc(
-            "Suspend the reported account or the account that created the reported item. "
-            "If the report was for an item, that item will also be removed, "
-            "but an account's other created items will remain unchanged."
-        ),
-    ] = "suspend"
-    suspend_remove: Annotated[
-        str, doc("Suspend the account AND remove all items created by this account.")
-    ] = "suspend_remove"
-
-    @classmethod
-    def get_base_action(self, action: str) -> ModerationAction:
-        return ModerationAction.__members__[action]
-
 
 _actor_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True, index=True)
 _target_account_id = Column(

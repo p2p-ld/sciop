@@ -1,4 +1,4 @@
-from sciop.models.report import ReportType
+from sciop.types import ReportType
 
 
 def test_report_type_description():

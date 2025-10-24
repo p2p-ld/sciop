@@ -17,7 +17,7 @@ from sciop.models.mixins import (
     SearchableMixin,
     TableMixin,
 )
-from sciop.types import IDField, Scopes, UsernameStr, UTCDateTime
+from sciop.types import IDField, ModerationAction, Scopes, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import (
@@ -203,7 +203,6 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
         and will be logged as the actor who suspended the account.
         """
         from sciop import crud
-        from sciop.models import ModerationAction
 
         if not suspended_by.can_suspend(self):
             raise ModerationPermissionsError(

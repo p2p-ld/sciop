@@ -4,8 +4,8 @@ import pytest
 from bs4 import BeautifulSoup
 from playwright.async_api import Page, expect
 
-from sciop.models import Account, AuditLog, DatasetPart, ModerationAction, Webseed
-from sciop.types import Scopes
+from sciop.models import Account, AuditLog, DatasetPart, Webseed
+from sciop.types import ModerationAction, Scopes
 
 
 @pytest.mark.playwright

@@ -4,8 +4,9 @@ import pytest
 from bs4 import BeautifulSoup
 from playwright.async_api import Page, expect
 
-from sciop.models import Account, Report, ReportAction
+from sciop.models import Account, Report
 from sciop.testing.fixtures.reports import ReportableClass
+from sciop.types import ReportAction
 
 
 @pytest.mark.parametrize("reportable_item", ["dataset"], indirect=True)

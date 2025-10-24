@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from enum import StrEnum
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -8,11 +7,10 @@ from typing import (
     Self,
     TypeAlias,
     Union,
-    get_args,
 )
 
 import sqlalchemy as sqla
-from annotated_types import DocInfo, MaxLen, doc
+from annotated_types import MaxLen
 from pydantic import BaseModel
 from sqlalchemy import Column, ColumnElement, ForeignKey, Integer
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
@@ -27,8 +25,7 @@ from sciop.exceptions import (
 )
 from sciop.models.base import SQLModel
 from sciop.models.mixins import FrontendMixin, SortableCol, SortMixin, TableMixin
-from sciop.models.moderation import ReportAction
-from sciop.types import IDField, InputType, UsernameStr, UTCDateTime
+from sciop.types import IDField, InputType, ReportAction, ReportType, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import (
@@ -45,47 +42,6 @@ if TYPE_CHECKING:
 TargetType = Literal["account", "dataset", "dataset_part", "upload"]
 TargetModels: TypeAlias = Union["Account", "Dataset", "DatasetPart", "Upload"]
 TargetModelsRead: TypeAlias = Union["AccountRead", "DatasetRead", "DatasetPartRead", "UploadRead"]
-
-
-class ReportType(StrEnum):
-    rules: Annotated[str, doc("This item breaks one or more instance rules")] = "rules"
-    spam: Annotated[str, doc("Automated behavior, comments, uploads, etc.")] = "spam"
-    malicious: Annotated[
-        str,
-        doc(
-            "This item contains malicious software, "
-            "or otherwise is intended to damage the recipient's system."
-        ),
-    ] = "malicious"
-    fake: Annotated[
-        str, doc("Contents of item are not as described, but not apparently malicious.")
-    ] = "fake"
-    incorrect: Annotated[
-        str,
-        doc(
-            "Contents of item are as described and not apparently malicious, "
-            "but are incorrect, incomplete, broken, etc."
-        ),
-    ] = "incorrect"
-    duplicate: Annotated[
-        str,
-        doc(
-            "Item is an identical duplicate of another item. "
-            "Please provide a link to the duplicated item in the comment."
-        ),
-    ] = "duplicate"
-    other: Annotated[str, doc("Any other reason that doesn't fit the other report types")] = "other"
-
-    @property
-    def description(self) -> str:
-        """Description to display in frontend"""
-        desc: list[DocInfo] = [
-            d for d in get_args(self.__annotations__[self.value]) if isinstance(d, DocInfo)
-        ]
-        if not desc:
-            return ""
-        return desc[0].documentation
-
 
 _opened_by_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True, index=True)
 _resolved_by_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True, index=True)

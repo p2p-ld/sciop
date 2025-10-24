@@ -10,7 +10,7 @@ from sqlmodel import Field, Session
 
 from sciop.exceptions import ModerationPermissionsError
 from sciop.models.base import SQLModel
-from sciop.types import InputType
+from sciop.types import InputType, ModerationAction
 
 if TYPE_CHECKING:
     from sciop.models import Account
@@ -110,7 +110,6 @@ class ModerableMixin(SQLModel):
         Required permissions are same as `removable_by`
         """
         from sciop.crud import log_moderation_action
-        from sciop.models import ModerationAction
 
         if not self.removable_by(account):
             raise ModerationPermissionsError(f"{account.username} not permitted to hide this item")

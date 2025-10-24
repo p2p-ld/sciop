@@ -2,7 +2,7 @@ import pytest
 from starlette.testclient import TestClient
 
 from sciop.config import get_config
-from sciop.models import ReportType
+from sciop.types import ReportType
 
 
 @pytest.mark.parametrize("report_type", ReportType.__members__.keys())

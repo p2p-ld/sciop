@@ -16,7 +16,6 @@ from sciop.models import (
     DatasetURL,
     ExternalIdentifier,
     FileInTorrent,
-    ModerationAction,
     Report,
     ReportCreate,
     SiteStats,
@@ -33,6 +32,7 @@ from sciop.models import (
     WebseedCreate,
     WebseedStatus,
 )
+from sciop.types import ModerationAction
 
 
 def create_account(*, session: Session, account_create: AccountCreate) -> Account:
