@@ -20,6 +20,8 @@ from sciop.models import (
     AccountCreate,
     Dataset,
     DatasetCreate,
+    DatasetPart,
+    DatasetPartCreate,
     FileInTorrentCreate,
     Scope,
     TorrentFile,
@@ -58,6 +60,13 @@ def default_dataset() -> dict:
         "source": "web",
         "urls": ["https://example.com/1", "https://example.com/2"],
         "tags": ["default", "dataset", "tags"],
+    }
+
+
+def default_dataset_part() -> dict:
+    return {
+        "part_slug": "default-part",
+        "description": "Some part of a dataset, who knows!",
     }
 
 
@@ -137,15 +146,42 @@ def make_dataset(
     session_: Session,
     is_approved: bool = True,
     is_removed: bool = False,
+    account_: Account | None = None,
     **kwargs: P.kwargs,
 ) -> Dataset:
     kwargs = {**default_dataset(), **kwargs}
 
     created = DatasetCreate(**kwargs)
     dataset = crud.create_dataset(
-        session=session_, dataset_create=created, is_approved=is_approved, is_removed=is_removed
+        session=session_,
+        dataset_create=created,
+        is_approved=is_approved,
+        is_removed=is_removed,
+        current_account=account_,
     )
     return dataset
+
+
+def make_dataset_part(
+    session_: Session,
+    account_: Account,
+    dataset_: Dataset,
+    is_approved: bool = True,
+    is_removed: bool = False,
+    **kwargs: P.kwargs,
+) -> DatasetPart:
+    kwargs = {**default_dataset_part(), **kwargs}
+    create = DatasetPartCreate(**kwargs)
+
+    part = crud.create_dataset_part(
+        session=session_, dataset_part=create, account=account_, dataset=dataset_, commit=False
+    )
+    part.is_approved = is_approved
+    part.is_removed = is_removed
+    session_.add(part)
+    session_.commit()
+    session_.refresh(part)
+    return part
 
 
 def make_torrent(path: Path | list[Path], tmp_path: Path | None = None, **kwargs: Any) -> Torrent:

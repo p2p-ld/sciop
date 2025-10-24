@@ -16,9 +16,11 @@ from sciop.models import (
     DatasetURL,
     ExternalIdentifier,
     FileInTorrent,
-    ModerationAction,
+    Report,
+    ReportCreate,
     SiteStats,
     Tag,
+    TargetType,
     TorrentFile,
     TorrentFileCreate,
     TorrentTrackerLink,
@@ -30,6 +32,7 @@ from sciop.models import (
     WebseedCreate,
     WebseedStatus,
 )
+from sciop.types import ModerationAction
 
 
 def create_account(*, session: Session, account_create: AccountCreate) -> Account:
@@ -435,6 +438,7 @@ def log_moderation_action(
     action: ModerationAction,
     target: Dataset | DatasetPart | Account | Upload | Webseed,
     value: Optional[str] = None,
+    commit: bool = True,
 ) -> AuditLog:
     audit_kwargs = {"actor": actor, "action": action, "value": value}
 
@@ -453,8 +457,9 @@ def log_moderation_action(
 
     db_item = AuditLog(**audit_kwargs)
     session.add(db_item)
-    session.commit()
-    session.refresh(db_item)
+    if commit:
+        session.commit()
+        session.refresh(db_item)
     return db_item
 
 
@@ -612,3 +617,20 @@ def get_webseed(*, session: Session, infohash: str, url: str) -> Webseed | None:
             Webseed.url == url,
         )
     ).first()
+
+
+def create_report(
+    *, session: Session, report: ReportCreate, opened_by: Account, target: TargetType | None = None
+) -> Report:
+
+    if target is None:
+        target = report.get_target(session)
+
+    # leaving this comment here for when this string interpolation inevitably breaks,
+    # and i get to go "that fucking sucks why was it ever like that"
+    update = {f"target_{report.target_type}": target, "opened_by": opened_by}
+    created = Report.model_validate(report, update=update)
+    session.add(created)
+    session.commit()
+    session.refresh(created)
+    return created

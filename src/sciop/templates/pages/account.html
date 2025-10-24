@@ -1,3 +1,4 @@
+{% from "macros/actions.html" import report_button %}
 {% extends "layouts/default.html" %}
 {% block head %}
 {% with title = account.username + " - Account" %}
@@ -6,6 +7,12 @@
 {% endblock %}
 {% block content %}
 <h1>{{ account.username }}</h1>
+{% if current_account and current_account.username != account.username %}
+<h2>Actions</h2>
+<div class="account-actions">
+    {{ report_button("account", account.username) }}
+</div>
+{% endif %}
 
 <h2>Scopes</h2>
 {% for scope in account.scopes %}

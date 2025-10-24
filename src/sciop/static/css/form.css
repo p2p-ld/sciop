@@ -38,7 +38,9 @@
         &.invalid {
             border: 1px solid var(--color-caution);
         }
-
+    }
+    textarea {
+        height: 10em;
     }
 
     .form-item-description {

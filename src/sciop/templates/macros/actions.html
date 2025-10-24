@@ -33,3 +33,12 @@
    hx-post="{{ url }}">Unapprove
 </a>
 {% endmacro %}
+
+{% macro report_button(target_type, target) %}
+<a class="button report-button caution"
+   role="button"
+   aria-roledescription="Report the {{ target_type }} {{ target }}"
+   hx-get="/partials/report?target_type={{ target_type }}&target={{ target }}"
+>Report
+</a>
+{% endmacro %}

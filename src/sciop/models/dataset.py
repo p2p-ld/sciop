@@ -1,14 +1,14 @@
-import hashlib
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Self, Union, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Optional, Self, Union, cast
 
 from annotated_types import MaxLen
 from pydantic import BaseModel, TypeAdapter, computed_field, field_validator, model_validator
-from sqlalchemy import event
+from sqlalchemy import SQLColumnExpression, event
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
-from sqlmodel import Field, Relationship
+from sqlmodel import Field, Relationship, select
 from sqlmodel.main import FieldInfo
 
 from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PREFIX_LEN
@@ -16,6 +16,7 @@ from sciop.models.account import Account
 from sciop.models.base import SQLModel
 from sciop.models.mixins import (
     EditableMixin,
+    FrontendMixin,
     ListlikeMixin,
     ModerableMixin,
     SearchableMixin,
@@ -48,26 +49,9 @@ from sciop.types import (
 if TYPE_CHECKING:
     from sqlmodel import Session
 
-    from sciop.models import AuditLog, DatasetClaim, Tag, Upload, UploadRead
+    from sciop.models import AuditLog, DatasetClaim, Report, Tag, Upload, UploadRead
 
 PREFIX_PATTERN = re.compile(r"\w{6}-[A-Z]{3}_\S+")
-
-
-def _add_prefix(val: str, timestamp: datetime, key: str) -> str:
-    # underscores can only get in slugs through prefix events
-    if "__" in val:
-        return val
-    hasher = hashlib.blake2b(digest_size=3)
-    hasher.update(timestamp.isoformat().encode("utf-8"))
-    hash = hasher.hexdigest()
-    return f"{hash}-{key.upper()}__{val}"
-
-
-def _remove_prefix(val: str) -> str:
-    if "__" in val:
-        return val.split("__")[1]
-    else:
-        return val
 
 
 def _prefixed_len(info: FieldInfo) -> int:
@@ -75,7 +59,9 @@ def _prefixed_len(info: FieldInfo) -> int:
     return max_len.max_length + PREFIX_LEN
 
 
-class DatasetBase(ModerableMixin):
+class DatasetBase(ModerableMixin, FrontendMixin):
+    __name__: ClassVar[str] = "dataset"
+
     title: str = Field(
         title="Title",
         description="""
@@ -212,6 +198,14 @@ class DatasetBase(ModerableMixin):
         schema_extra={"json_schema_extra": {"input_type": InputType.select}},
     )
 
+    @property
+    def frontend_url(self) -> str:
+        return f"/datasets/{self.slug}/"
+
+    @hybrid_property
+    def short_name(self) -> str:
+        return self.slug
+
 
 class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, table=True):
     __tablename__ = "datasets"
@@ -235,6 +229,8 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
         ),
         SortableCol(name="created_at", title="created"),
     )
+    __table_args__ = (UniqueConstraint("slug", name="uq_datasets_slug"),)
+
     created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     slug: SlugStr = Field(
         unique=True,
@@ -256,6 +252,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
     account: Optional["Account"] = Relationship(back_populates="datasets")
     scrape_status: ScrapeStatus = "unknown"
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
+    reports: list["Report"] = Relationship(back_populates="target_dataset")
     parts: list["DatasetPart"] = Relationship(back_populates="dataset")
     claims: list["DatasetClaim"] = Relationship(back_populates="dataset")
 
@@ -280,6 +277,9 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
             session.refresh(self)
         return self
 
+    def to_read(self) -> "DatasetRead":
+        return DatasetRead.model_validate(self)
+
 
 event.listen(Dataset, "before_update", render_db_fields_to_html("description"))
 event.listen(Dataset, "before_insert", render_db_fields_to_html("description"))
@@ -292,9 +292,9 @@ def _datset_prefix_on_removal(
     """Add or remove a prefix when removal state is toggled"""
     if value:
         # add prefix
-        target.slug = _add_prefix(target.slug, target.created_at, "REM")
+        target.slug = Dataset._add_prefix(target.slug, target.created_at, "REM")
     else:
-        target.slug = _remove_prefix(target.slug)
+        target.slug = Dataset._remove_prefix(target.slug)
 
 
 class DatasetCreate(DatasetBase):
@@ -545,7 +545,9 @@ class UploadDatasetPartLink(SQLModel, table=True):
     )
 
 
-class DatasetPartBase(SQLModel):
+class DatasetPartBase(SQLModel, FrontendMixin):
+    __name__: ClassVar[str] = "dataset part"
+
     part_slug: SlugStr = Field(
         title="Part Slug",
         description="Unique identifier for this dataset part",
@@ -565,6 +567,33 @@ class DatasetPartBase(SQLModel):
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
         max_length=8192,
     )
+
+    @property
+    def frontend_url(self) -> str:
+        return f"/datasets/{self.dataset.slug}/{self.part_slug}/"
+
+    @hybrid_property
+    def short_name(self) -> str:
+        return self.dataset.slug + "/" + self.part_slug
+
+    @short_name.inplace.expression
+    @classmethod
+    def _short_name(cls) -> SQLColumnExpression[str]:
+        return (
+            select(Dataset.slug + "/" + DatasetPart.part_slug)
+            .join(Dataset.parts)
+            .where(Dataset.dataset_id == cls.dataset_id)
+            .label("short_name")
+        )
+
+    @property
+    def link_to(self) -> str:
+        """A rendered <a> element linking to the item"""
+        return (
+            f"<span>"
+            f'  {self.dataset.link_to}/<a href="{self.frontend_url}">{self.part_slug}</a>'
+            f"</span>"
+        )
 
 
 class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, EditableMixin, table=True):
@@ -586,6 +615,7 @@ class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, EditableMixin, ta
     )
     paths: list["DatasetPath"] = Relationship(back_populates="dataset_part")
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset_part")
+    reports: list["Report"] = Relationship(back_populates="target_dataset_part")
     claims: list["DatasetClaim"] = Relationship(back_populates="dataset_part")
 
     def update(
@@ -602,6 +632,9 @@ class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, EditableMixin, ta
             session.refresh(self)
         return self
 
+    def to_read(self) -> "DatasetPartRead":
+        return DatasetPartRead.model_validate(self)
+
 
 @event.listens_for(DatasetPart.is_removed, "set")
 def _part_prefix_on_removal(
@@ -610,9 +643,9 @@ def _part_prefix_on_removal(
     """Add or remove a prefix when removal state is toggled"""
     if value:
         # add prefix
-        target.part_slug = _add_prefix(target.part_slug, target.created_at, "REM")
+        target.part_slug = DatasetPart._add_prefix(target.part_slug, target.created_at, "REM")
     else:
-        target.part_slug = _remove_prefix(target.part_slug)
+        target.part_slug = DatasetPart._remove_prefix(target.part_slug)
 
 
 event.listen(DatasetPart, "before_update", render_db_fields_to_html("description"))

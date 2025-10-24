@@ -57,26 +57,33 @@
 				display: none;
 			}
 		}
+  }
 
-    .dataset-collapsible > .collapsible-summary,
-    .account-collapsible > .collapsible-summary {
+	details.collapsible {
+		display: inline-flex;
+		flex-direction: column;
+		max-width: 100%;
+		min-width: 100%;
+	}
+	.collapsible-summary {
 			display: flex;
 			flex-wrap: wrap;
 			grid-column-gap: 0.5em;
 			align-items: center;
+			max-width: 100%;
+			box-sizing: border-box;
 
 			& > span {
 				line-height: 28px;
 			}
 
-			& *:last-child:not(.success-button) {
+			& > *:last-child:not(.success-button) {
 			 margin-left: auto;
 			}
 			& button:first-of-type {
 				margin-left: auto;
 			}
 	  }
-  }
 
 	& .collapsible-summary > .dataset-slug {
     max-width: 85%;
@@ -102,42 +109,42 @@
 				order: 6;
 			}
 		}
-		.upload-collapsible > .collapsible-summary {
-			display: grid;
-			grid-column-gap: 0.1em;
-			grid-row-gap: 0.25em;
-			grid-template-columns: 1em 5em 1fr 4em 3em 3em  4em;
-			grid-template-rows: 1.5em 1fr;
-			align-items: center;
+	}
+	.upload-collapsible > .collapsible-summary {
+		display: grid;
+		grid-column-gap: 0.1em;
+		grid-row-gap: 0.25em;
+		grid-template-columns: 1em 5em 1fr 4em 3em 3em  4em;
+		grid-template-rows: 1.5em 1fr;
+		align-items: center;
 
-			.upload-title {
-				grid-row: 2 / 2;
-				overflow: hidden;
-				text-overflow: ellipsis;
-				grid-column: 1/8;
-			}
-			.upload-size {
-				grid-column: 4/4;
-			}
-			&>.download-link,
-			&>.magnet-link
-			{
-				display: none;
-			}
-			&>.upload-size, &>.seeders .seeders-number, &>.downloaders .downloaders-number,
-			&>.upload-timestamp {
-				color: var(--color-text-deemphasized);
-				font-size: 0.8em;
-			}
-			&>.downloaders, &>.seeders {
-				display: flex;
-				flex-direction: row;
-				flex-wrap:nowrap;
-			}
-			&>.upload-timestamp {
-				align-self: right;
-				grid-column: 7/7;
-			}
+		.upload-title {
+			grid-row: 2 / 2;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			grid-column: 1/8;
+		}
+		.upload-size {
+			grid-column: 4/4;
+		}
+		&>.download-link,
+		&>.magnet-link
+		{
+			display: none;
+		}
+		&>.upload-size, &>.seeders .seeders-number, &>.downloaders .downloaders-number,
+		&>.upload-timestamp {
+			color: var(--color-text-deemphasized);
+			font-size: 0.8em;
+		}
+		&>.downloaders, &>.seeders {
+			display: flex;
+			flex-direction: row;
+			flex-wrap:nowrap;
+		}
+		&>.upload-timestamp {
+			align-self: right;
+			grid-column: 7/7;
 		}
 	}
 
@@ -171,6 +178,8 @@
 		a.tab-link {
 			padding-left: unset;
 			padding-right: unset;
+			overflow-wrap: break-word;
+			word-break: keep-all;
 		}
 	}
 

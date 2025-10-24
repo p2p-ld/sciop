@@ -100,3 +100,50 @@ def test_username_uniqueness_case_insensitive(account):
     acct1 = account(username="Original", create_only=True)
     with pytest.raises(sqlalchemy.exc.IntegrityError):
         acct2 = account(username="original", create_only=True)
+
+
+@pytest.mark.parametrize(
+    "source_scopes,target_scopes,expected",
+    [
+        ([], [], False),
+        *[([], [t_scope], False) for t_scope in Scopes.__members__],
+        *[([s_scope], [], s_scope in ("admin", "root")) for s_scope in Scopes.__members__],
+        (["admin"], ["admin"], False),
+        (["admin"], ["review"], True),
+        (["root"], ["admin"], True),
+    ],
+)
+def test_can_suspend(
+    account, source_scopes: list[str, ...], target_scopes: list[str, ...], expected: bool
+):
+    """
+    Test that suspension evaluation is correct for pairs of source and target scope levels
+    """
+    source = account(username="source", scopes=[*source_scopes])
+    target = account(username="target", scopes=[*target_scopes])
+    assert source.can_suspend(target) == expected
+
+
+def test_root_cant_suspend_roots(account):
+    """
+    root-scoped accounts shouldn't be able to suspend other roots
+    (though they can remove root scope from other roots and then suspend them,
+    this is a fat finger protection, but roots should be able to depose each other
+    since the root scope is assumed to be the most privileged you can be,
+    equivalent to assuming shell access to the host system)
+
+    (breaking this out to a separate test function so i can explain it a bit)
+    """
+    root1 = account(username="root1", scopes=["root"])
+    root2 = account(username="root2", scopes=["root"])
+
+    assert not root1.can_suspend(root2)
+
+
+@pytest.mark.parametrize("scope", ("admin", "root"))
+def test_cant_self_suspend(account, scope):
+    """
+    We can't suspend ourselves!
+    """
+    acct = account(username="self_suspend", scopes=[scope])
+    assert not acct.can_suspend(acct)

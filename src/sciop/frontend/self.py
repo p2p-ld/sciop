@@ -21,6 +21,8 @@ from sciop.models import (
     Dataset,
     DatasetPart,
     DatasetRead,
+    Report,
+    ReportRead,
     SearchPage,
     Upload,
     UploadRead,
@@ -42,6 +44,11 @@ async def profile(request: Request, account: CurrentAccount):
 @self_router.get("/review", response_class=HTMLResponse)
 async def review(request: Request, account: RequireReviewer):
     return templates.TemplateResponse(request, "pages/self/review.html")
+
+
+@self_router.get("/reports", response_class=HTMLResponse)
+async def reports(request: Request, account: RequireReviewer):
+    return templates.TemplateResponse(request, "pages/self/reports.html")
 
 
 @self_router.get("/admin", response_class=HTMLResponse)
@@ -85,6 +92,21 @@ async def uploads(
         .where(Upload.visible_to(account) == True, Upload.account == account)
         .order_by(Upload.created_at.desc())
     )
+    stmt = search.apply_sort(stmt, Upload)
+    return paginate(conn=session, query=stmt)
+
+
+# TODO: Fix awkward url structure here and put all the moderation pages in their own namespace
+@self_router.get("/reports-partial")
+@jinja.hx("partials/reports.html")
+async def reports_partial(
+    search: SearchQueryNoCurrentUrl,
+    request: Request,
+    account: RequireCurrentAccount,
+    session: SessionDep,
+) -> SearchPage[ReportRead]:
+    """Reports opened by the current account"""
+    stmt = select(Report).where(Report.opened_by == account).order_by(Report.created_at.desc())
     stmt = search.apply_sort(stmt, Upload)
     return paginate(conn=session, query=stmt)
 

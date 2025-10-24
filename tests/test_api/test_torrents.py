@@ -279,13 +279,15 @@ def test_files_ragged_pagination(client, upload, torrentfile):
 
 
 def test_webseeds_on_creation(
-    client, dataset, torrent: C[[], Torrent], tmp_path, uploader, get_auth_header
+    client, dataset, torrent: C[[], Torrent], tmp_path, account, get_auth_header, session
 ):
     """
     Webseeds are created from an uploaded torrent file, and we can get them from the API
     """
     tf = torrent()
-    header = get_auth_header()
+    uploader = account(username="uploader", scopes=["upload"])
+    header = get_auth_header(uploader.username)
+
     ds = dataset(slug="test-upload-webseeds", is_approved=True)
     webseeds = ["https://example.com/files/data", "https://backup.example.com/files/data"]
     torrent_path = tmp_path / "my_torrent.torrent"

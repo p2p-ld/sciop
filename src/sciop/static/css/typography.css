@@ -534,7 +534,6 @@ div.status-strip {
   }
 
   #site-stats-info {
-    max-width: unset;
     .modal-header {
       font-size: 1em;
     }

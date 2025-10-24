@@ -18,6 +18,12 @@
     options:
         heading_level: 3
 
+## Frontend
+
+::: sciop.models.mixins.frontend
+    options:
+        heading_level: 3
+
 ## List
 
 ::: sciop.models.mixins.list

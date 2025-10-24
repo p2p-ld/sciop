@@ -16,7 +16,7 @@
           swap_target="#dataset-page") }}
     <div class="dataset-items">
       {% for dataset in items %}
-      {{ dataset_collapsible(dataset, review=review, config=config, types=types) }}
+      {{ dataset_collapsible(dataset, review=review) }}
       {% endfor %}
     </div>
   </div>

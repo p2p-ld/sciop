@@ -1,4 +1,3 @@
-from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Column, ForeignKey, Integer
@@ -7,40 +6,10 @@ from sqlmodel import Field, Relationship
 
 from sciop.models.base import SQLModel
 from sciop.models.mixins import TableMixin
-from sciop.types import IDField, UTCDateTime
+from sciop.types import IDField, ModerationAction, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import Account, AccountRead, Dataset, DatasetPart, Upload, Webseed
-
-
-class ModerationAction(StrEnum):
-    request = "request"
-    """Request some permission or action"""
-    approve = "approve"
-    """Approve a request - e.g. a dataset or upload request"""
-    unapprove = "unapprove"
-    """Unapprove an already accepted request - e.g. a dataset or upload request"""
-    deny = "deny"
-    """Deny a request, as above"""
-    report = "report"
-    """Report an item"""
-    add_scope = "add_scope"
-    """Add, e.g. a scope to an account"""
-    remove_scope = "remove_scope"
-    """Remove an item - a dataset, upload, account scope etc."""
-    dismiss = "dismiss"
-    """Dismiss a report without action"""
-    trust = "trust"
-    """Increment trust value"""
-    distrust = "distrust"
-    """Decrement trust value"""
-    suspend = "suspend"
-    """Suspend an account"""
-    restore = "restore"
-    """Restore a suspended account"""
-    remove = "remove"
-    """Remove an item"""
-
 
 _actor_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True, index=True)
 _target_account_id = Column(
@@ -120,11 +89,3 @@ class AuditLogRead(SQLModel):
     value: Optional[str] = None
     created_at: UTCDateTime
     updated_at: UTCDateTime
-
-
-class Report(TableMixin, table=True):
-    """Reports of items and accounts"""
-
-    __tablename__ = "reports"
-
-    report_id: IDField = Field(None, primary_key=True)

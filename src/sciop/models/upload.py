@@ -1,6 +1,6 @@
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Optional, Self, cast
+from typing import TYPE_CHECKING, ClassVar, Optional, Self, cast
 from urllib.parse import urljoin
 
 import sqlalchemy as sqla
@@ -16,6 +16,7 @@ from sciop.models import (
     AuditLog,
     Dataset,
     DatasetPart,
+    Report,
     TorrentFile,
     TorrentFileRead,
     TorrentTrackerLink,
@@ -23,6 +24,7 @@ from sciop.models import (
 from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixins import (
     EditableMixin,
+    FrontendMixin,
     ModerableMixin,
     SearchableMixin,
     SortableCol,
@@ -38,10 +40,12 @@ if TYPE_CHECKING:
     from sqlmodel import Session
 
 
-class UploadBase(ModerableMixin):
+class UploadBase(ModerableMixin, FrontendMixin):
     """
     A copy of a dataset
     """
+
+    __name__: ClassVar[str] = "upload"
 
     method: Optional[str] = Field(
         None,
@@ -89,11 +93,21 @@ class UploadBase(ModerableMixin):
         """Download path including the site root"""
         return urljoin(get_config().server.base_url, self.download_path)
 
-    @property
+    @hybrid_property
     def short_hash(self) -> Optional[str]:
         if self.torrent:
             return self.torrent.short_hash
         return None
+
+    @short_hash.inplace.expression
+    @classmethod
+    def _short_hash(cls) -> SQLColumnExpression[str]:
+        return (
+            select(TorrentFile.short_hash)
+            .join(TorrentFile.upload)
+            .where(TorrentFile.upload_id == cls.upload_id)
+            .label("short_hash")
+        )
 
     @property
     def rss_description(self) -> str:
@@ -134,6 +148,14 @@ class UploadBase(ModerableMixin):
     @property
     def leechers(self) -> int:
         return self.torrent.leechers
+
+    @property
+    def frontend_url(self) -> str:
+        return f"/uploads/{self.infohash}/"
+
+    @hybrid_property
+    def short_name(self) -> str:
+        return self.short_hash
 
 
 class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, table=True):
@@ -176,6 +198,7 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
     )
 
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
+    reports: list["Report"] = Relationship(back_populates="target_upload")
 
     @hybrid_property
     def infohash(self) -> Optional[str]:
@@ -310,18 +333,41 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
             session.refresh(self)
         return self
 
+    def to_read(self) -> "UploadRead":
+        return UploadRead.model_validate(self)
+
 
 @event.listens_for(Upload.is_removed, "set")
 def _upload_remove_torrent(
     target: Upload, value: bool, oldvalue: bool, initiator: AttributeEventToken
 ) -> None:
     """Remove an associated torrent when the"""
-    if value and not oldvalue and oldvalue is not None and target.torrent:
-        from sciop.db import get_session
+    if oldvalue is None or not target.torrent:
+        return
 
+    from sciop.db import get_session
+
+    if value and not oldvalue:
         with get_session() as session:
             torrent = session.merge(target.torrent)
-            session.delete(torrent)
+            if torrent.v1_infohash:
+                torrent.v1_infohash = Upload._add_prefix(
+                    torrent.v1_infohash, torrent.created_at, "REM"
+                )
+            if torrent.v2_infohash:
+                torrent.v2_infohash = Upload._add_prefix(
+                    torrent.v2_infohash, torrent.created_at, "REM"
+                )
+            session.add(torrent)
+            session.commit()
+    elif not value and oldvalue:
+        with get_session() as session:
+            torrent = session.merge(target.torrent)
+            if torrent.v1_infohash:
+                torrent.v1_infohash = Upload._remove_prefix(torrent.v1_infohash)
+            if torrent.v2_infohash:
+                torrent.v2_infohash = Upload._remove_prefix(torrent.v2_infohash)
+            session.add(torrent)
             session.commit()
 
 
@@ -330,7 +376,7 @@ event.listen(Upload, "before_insert", render_db_fields_to_html("description", "m
 
 
 class UploadRead(UploadBase, TableReadMixin):
-    """Version of datasaet upload returned when reading"""
+    """Version of dataset upload returned when reading"""
 
     account: Optional[UsernameStr] = None
     dataset: Optional[SlugStr] = None

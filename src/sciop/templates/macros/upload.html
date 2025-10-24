@@ -1,4 +1,4 @@
-{% from "macros/actions.html" import delete_button, edit_button, unapprove_button, approve_button %}
+{% from "macros/actions.html" import delete_button, edit_button, unapprove_button, approve_button, report_button %}
 {% macro upload_row(upload, current_account, config, header_start=1) %}
 <div class="upload" id="upload-{{ upload.infohash }}">
     <div class="upload-topmatter topmatter">
@@ -122,10 +122,7 @@
                         </time>
                     </td>
                 </tr>
-                {% if current_account and (
-                    upload.removable_by(current_account) or
-                    upload.editable_by(current_account)
-                ) %}
+                {% if current_account %}
                 <tr>
                     <td class="infobox-key">Actions</td>
                     <td class="infobox-value flex row actions-box">
@@ -141,6 +138,7 @@
                     {% set delete_url= config.api_prefix + "/uploads/" + upload.infohash %}
                     {{ delete_button(url=delete_url, item_type="upload", name=upload.infohash)}}
                     {% endif %}
+                    {{ report_button(target_type="upload", target=upload.infohash) }}
                     </td>
                 </tr>
                 {% endif %}
@@ -220,8 +218,8 @@
 {% endmacro %}
 
 {% macro upload_collapsible(upload, review=False, config = None) %}
-<details id="upload-collapsible-{{ upload.upload_id }}"
-         class="collapsible upload-collapsible{% if not upload.is_approved %} unapproved{% endif %}">
+<details id="upload-collapsible-{{ upload.infohash }}"
+         class="collapsible upload-collapsible{% if not upload.is_approved %} unapproved{% endif %}{% if review %} review{% endif %}">
     <summary class="collapsible-summary"
              hx-get="/uploads/{{ upload.infohash }}/partial"
              hx-trigger="click once"
@@ -344,7 +342,7 @@
 {% set escaped_url = re.sub("[^_a-zA-Z0-9]", "-", webseed.url) %}
 {% set row_id = "webseed-row-" + webseed.torrent.infohash + "-" + escaped_url %}
 {% set enabled = webseed.is_approved and webseed.status in ('validated', 'in_original') %}
-<tr class="webseed-row tracker{% if not enabled %} unapproved-row{% endif %}"
+<tr class="webseed-row tracker{% if not enabled %} unapproved-row{% endif %}{% if review %} review{% endif %}"
     id="{{ row_id }}">
     {% if review %}
     <td class="upload">

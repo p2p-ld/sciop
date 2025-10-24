@@ -1,0 +1,143 @@
+{% from 'macros/item.html' import item_collapsible %}
+{% macro report_row(report, current_account, config, header_start=1) %}
+{% set report_id_str = report.report_id | string %}
+{% set container_id = "report-" + report_id_str %}
+<div class="report" id="{{ container_id }}">
+<h{{ header_start}}>Report #{{ report.report_id }}</h{{header_start}}>
+<table class="report-info-table">
+  <tr>
+    <td>Opened By</td>
+    <td><a href="{{ report.opened_by.frontend_url }}">@{{ report.opened_by.username }}</a></td>
+  </tr>
+  <tr>
+    <td>Opened At</td>
+    <td>{{ report.created_at.strftime("%y-%m-%d %H:%M") }}Z</td>
+  </tr>
+  <tr>
+    <td>Report Type</td>
+    <td>{{ report.report_type }}</td>
+  </tr>
+  <tr>
+    <td>Status</td>
+    {% if report.is_open %}
+    <td>Unresolved</td>
+    {% else %}
+    <td>Resolved</td>
+    {% endif %}
+  </tr>
+  {% if report.action %}
+  <tr>
+    <td>Action</td>
+    <td>{{ report.action }}</td>
+  </tr>
+  <tr>
+    <td>Resolved By</td>
+    <td><a href="{{ report.resolved_by.frontend_url }}">@{{ report.resolved_by.username }}</a></td>
+  </tr>
+  <tr>
+    <td>Resolved At</td>
+    <td>{{ report.resolved_at.strftime("%y-%m-%d %H:%M") }}Z</td>
+  </tr>
+  {% endif %}
+</table>
+
+<h{{ header_start + 1}}>Reported Item</h{{header_start + 1}}>
+{{ item_collapsible(report.target) }}
+
+<h{{ header_start + 1}}>Comment</h{{header_start + 1}}>
+{% if report.comment %}
+<p class="report-comment">
+  {{ report.comment }}
+</p>
+{% else %}
+<span>No Comment</span>
+{% endif %}
+
+{% if report.is_open %}
+<h{{ header_start + 1 }}>Actions</h{{ header_start + 1 }}>
+{{ report_actions(report, current_account, container_id) }}
+{% endif %}
+{% if report.action_comment %}
+<h{{ header_start + 1 }}>Action Comment</h{{ header_start + 1 }}>
+  <div class="comment">
+    <div class="author-row">
+      <a href="/accounts/{{ report.resolved_by.username }}" class="username">@{{ report.resolved_by.username }}</a> -
+      <time datetime="{{ report.resolved_at.strftime('%y-%m-%d %H:%M') }}Z">
+        {{ report.resolved_at.strftime('%y-%m-%d %H:%M') }}Z
+      </time>
+    </div>
+    <p>
+      {{ report.action_comment }}
+    </p>
+  </div>
+{% endif %}
+</div>
+{% endmacro %}
+
+{% macro report_collapsible(report, config) %}
+<details class="collapsible report-collapsible{% if not report.is_open %} inactive{% endif %}" id="report-collapsible-{{ report.report_id }}">
+  <summary
+    class="collapsible-summary{% if not report.is_open %} disabled{% endif%}"
+    hx-get="/reports/{{ report.report_id }}/partial"
+    hx-trigger="click once"
+    hx-target="#report-{{ report.report_id }}"
+  >
+    <span class="collapsible-marker" aria-label="Expand/Collapse"></span>
+    <span class="report-id"><a href="{{ report.frontend_url }}">{{ report.short_name }}</a></span>
+    <span class="report-opened-by"><a href="/accounts/{{ report.opened_by }}">@{{ report.opened_by }}</a></span>
+    <span class="report-type">{{ report.report_type }}</span>
+    <span class="report-target-type">{{ report.target_type }}</span>
+    <span class="report-target">
+      {% if report.target_type == "upload" %}
+      <a href="/datasets/{{ report.target.dataset }}/">{{ report.target.dataset }}</a> /
+      {% else %}
+      {% endif %}
+      <a href="{{ report.target.frontend_url }}">{{ report.target_name }}</a></span>
+
+    <span class="report-timestamp timestamp" datetime="{{ report.created_at.strftime('%y-%m-%d %H:%M') }}Z">
+      {{ report.created_at.strftime('%y-%m-%d %H:%M') }}
+    </span>
+  </summary>
+  <div class="report" id="report-{{ report.report_id }}"></div>
+</details>
+{% endmacro %}
+
+{% macro report_actions(report, current_account, container_id) %}
+{% set report_id_str = report.report_id | string %}
+{% set actions_container_id = "report-" + report_id_str + "-actions" %}
+{% set form_id = "report-" + report_id_str + "-form" %}
+<div id="{{ actions_container_id }}" class="report-actions surface">
+<form id="{{ form_id }}" class="report-resolve-form">
+  <input type="hidden" name="report_id" value="{{ report_id_str }}">
+  <div class="form-input-group">
+  <label for="action_comment">
+    Optional: Provide a comment with the resolution of this report.
+    This comment will be visible to anyone the report is visible to,
+    including the account that raised it.
+  </label>
+  <textarea class="form-textarea form-input" name="action_comment"></textarea>
+  </div>
+</form>
+<div class="report-resolve-buttons">
+  {% for action_key, action in types.ReportAction.__members__.items() %}
+    {% if report.action_valid(action, current_account) %}
+    <button
+      class="big button"
+      data-action="{{ action_key }}"
+      hx-post="{{ config.api_prefix }}/reports/{{ report.report_id }}/resolve/"
+      hx-vals='{"action": "{{ action }}"}'
+      hx-include="#{{ form_id }}"
+      hx-ext="form-json"
+      hx-target="#{{ container_id }}"
+      hx-swap="outerHTML"
+      hx-confirm="Are you sure you want to {{ action_key }} the {{ report.target_type }} {{ report.target.short_name }}? This may not be reversible."
+    >
+      {{ action | replace("_", " ") | capitalize }}
+    </button>
+    <span class="action-description">{{ types.ReportAction.__annotations__[action_key].__metadata__[-1].documentation }}</span>
+    {% endif %}
+  {% endfor %}
+</div>
+</div>
+
+{% endmacro %}

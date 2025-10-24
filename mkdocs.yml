@@ -48,6 +48,7 @@ nav:
           - python/models/claim.md
           - python/models/dataset.md
           - python/models/moderation.md
+          - python/models/report.md
           - python/models/rss.md
           - python/models/stats.md
           - python/models/system.md
@@ -147,7 +148,8 @@ plugins:
   - git-authors:
       enabled: true
       show_email_address: false
-  - macros
+  - macros:
+      module_name: docs/macros/main
   - mermaid2
   - mkdocstrings:
       default_handler: python

@@ -1,6 +1,5 @@
 from pathlib import Path
-from typing import Annotated, Any
-from typing import Literal as L
+from typing import Annotated
 
 from bencode_rs import BencodeDecodeError
 from fastapi import APIRouter, HTTPException, Query, UploadFile
@@ -11,7 +10,7 @@ from torrent_models import Torrent
 
 from sciop import crud
 from sciop.api.deps import RequireCurrentAccount, SessionDep
-from sciop.frontend.templates import jinja
+from sciop.frontend.templates import jinja, passthrough_context
 from sciop.logging import init_logger
 from sciop.middleware import limiter
 from sciop.models import FileInTorrentCreate, TorrentFileCreate, TorrentFileRead
@@ -21,15 +20,9 @@ torrents_router = APIRouter(prefix="/torrents")
 torrents_logger = init_logger("api.torrents")
 
 
-def _passthrough(
-    *, route_result: TorrentFileRead, route_context: Any = None
-) -> dict[L["torrent"], TorrentFileRead]:
-    return {"torrent": route_result}
-
-
 @torrents_router.post("/")
 @limiter.limit("60/minute;1000/hour")
-@jinja.hx("partials/torrent.html", make_context=_passthrough)
+@jinja.hx("partials/torrent.html", make_context=passthrough_context("torrent"))
 async def upload_torrent(
     request: Request,
     response: Response,

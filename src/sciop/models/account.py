@@ -1,17 +1,23 @@
 import re
 import unicodedata
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional, TypedDict
 
 import sqlalchemy as sqla
 from pydantic import ConfigDict, SecretStr, field_validator
-from sqlalchemy.ext.hybrid import hybrid_method
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import UniqueConstraint
-from sqlmodel import Field, Relationship
+from sqlmodel import Field, Relationship, Session, select
 
+from sciop.exceptions import ModerationPermissionsError
 from sciop.models.base import SQLModel
-from sciop.models.mixins import EnumTableMixin, SearchableMixin, TableMixin
-from sciop.types import IDField, Scopes, UsernameStr, UTCDateTime
+from sciop.models.mixins import (
+    EnumTableMixin,
+    FrontendMixin,
+    SearchableMixin,
+    TableMixin,
+)
+from sciop.types import IDField, ModerationAction, Scopes, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import (
@@ -20,6 +26,7 @@ if TYPE_CHECKING:
         DatasetClaim,
         DatasetPart,
         ExternalSource,
+        Report,
         TorrentFile,
         Upload,
         Webseed,
@@ -38,10 +45,12 @@ class AccountScopeLink(TableMixin, table=True):
     )
 
 
-class AccountBase(SQLModel):
+class AccountBase(SQLModel, FrontendMixin):
+    __name__: ClassVar[str] = "account"
+
     username: UsernameStr
 
-    model_config = ConfigDict(ignored_types=(hybrid_method,))
+    model_config = ConfigDict(ignored_types=(hybrid_method, hybrid_property))
 
     @hybrid_method
     def has_scope(self, *args: str | Scopes) -> bool:
@@ -101,6 +110,18 @@ class AccountBase(SQLModel):
         scope = [a_scope for a_scope in self.scopes if a_scope.scope.value == scope]
         return None if not scope else scope[0]
 
+    @property
+    def frontend_url(self) -> str:
+        return f"/accounts/{self.username}/"
+
+    @hybrid_property
+    def short_name(self) -> str:
+        return self.username
+
+    @property
+    def link_to(self) -> str:
+        return f'<a href="{self.frontend_url}">@{self.short_name}</a>'
+
 
 class Account(AccountBase, TableMixin, SearchableMixin, table=True):
     """A single actor"""
@@ -136,6 +157,27 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
             primaryjoin="Account.account_id == AuditLog.target_account_id",
         ),
     )
+    reports: list["Report"] = Relationship(
+        back_populates="target_account",
+        sa_relationship=relationship(
+            "Report",
+            primaryjoin="Account.account_id == Report.target_account_id",
+        ),
+    )
+    opened_reports: list["Report"] = Relationship(
+        back_populates="opened_by",
+        sa_relationship=relationship(
+            "Report",
+            primaryjoin="Account.account_id == Report.opened_by_id",
+        ),
+    )
+    resolved_reports: list["Report"] = Relationship(
+        back_populates="resolved_by",
+        sa_relationship=relationship(
+            "Report",
+            primaryjoin="Account.account_id == Report.resolved_by_id",
+        ),
+    )
     is_suspended: bool = False
     claims: list["DatasetClaim"] = Relationship(back_populates="account")
 
@@ -145,9 +187,83 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
             return False
 
         return not (
+            # no self suspensions
             self.username == account.username
+            # non-roots can't ban admins
             or (not self.has_scope("root") and account.has_scope("admin"))
+            # roots can't ban other roots
+            or (self.has_scope("root") and account.has_scope("root"))
         )
+
+    def suspend(self, suspended_by: "Account", session: Session, commit: bool = True) -> None:
+        """
+        Suspend this account.
+
+        `suspended_by` must be able to suspend this user,
+        and will be logged as the actor who suspended the account.
+        """
+        from sciop import crud
+
+        if not suspended_by.can_suspend(self):
+            raise ModerationPermissionsError(
+                f"{suspended_by.username} can't suspend {self.username}"
+            )
+
+        crud.log_moderation_action(
+            session=session, actor=suspended_by, action=ModerationAction.suspend, target=self
+        )
+        self.is_suspended = True
+        session.add(self)
+        if commit:
+            session.commit()
+
+    def to_read(self) -> "AccountRead":
+        return AccountRead.model_validate(self)
+
+    def visible_to(self, account: Optional["Account"] = None) -> bool:
+        """Whether this item is visible to the given account"""
+        if account is None:
+            return not self.is_suspended
+        elif self == account:
+            return True
+        elif account.has_scope("review"):
+            return True
+        else:
+            return not self.is_suspended
+
+    def get_all_items(self, session: Session) -> "AccountItems":
+        """
+        Get all the items associated with an account.
+
+        Content-bearing items, not including items like moderation actions and etc.
+        """
+        from sciop.models import Dataset, DatasetPart, Upload
+
+        datasets = list(session.exec(select(Dataset).where(Dataset.account == self)).all())
+        dataset_parts = list(
+            session.exec(select(DatasetPart).where(DatasetPart.account == self)).all()
+        )
+        uploads = list(session.exec(select(Upload).where(Upload.account == self)).all())
+        return AccountItems(datasets=datasets, dataset_parts=dataset_parts, uploads=uploads)
+
+    def remove_all_items(self, removed_by: "Account", session: Session) -> None:
+        """
+        Remove all the items associated with an account.
+
+        Each item checks for permissions to remove, since they may be different per-item.
+
+        """
+        if not removed_by.has_scope("admin"):
+            raise ModerationPermissionsError("Only admins can remove all items from an account")
+        items = self.get_all_items(session)
+        # remove things that may be children of other things first: uploads, parts, then datasets
+        for ul in items["uploads"]:
+            ul.remove(account=removed_by, session=session, commit=False)
+        for part in items["dataset_parts"]:
+            part.remove(account=removed_by, session=session, commit=False)
+        for ds in items["datasets"]:
+            ds.remove(account=removed_by, session=session, commit=False)
+        session.commit()
 
 
 class AccountCreate(AccountBase):
@@ -202,3 +318,11 @@ class Token(SQLModel):
 # Contents of JWT token
 class TokenPayload(SQLModel):
     sub: str | None = None
+
+
+class AccountItems(TypedDict):
+    """All items created by an account"""
+
+    datasets: list["Dataset"]
+    dataset_parts: list["DatasetPart"]
+    uploads: list["Upload"]

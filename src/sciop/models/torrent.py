@@ -17,7 +17,7 @@ from torrent_models import Torrent
 from sciop.config import get_config
 from sciop.models.base import SQLModel
 from sciop.models.magnet import MagnetLink
-from sciop.models.mixins import EditableMixin, SortableCol, SortMixin, TableMixin
+from sciop.models.mixins import EditableMixin, ModerableMixin, SortableCol, SortMixin, TableMixin
 from sciop.models.tracker import TorrentTrackerLink, Tracker
 from sciop.models.webseed import Webseed, WebseedRead
 from sciop.types import EscapedStr, FileName, IDField, MaxLenURL
@@ -390,3 +390,13 @@ class TorrentFileRead(TorrentFileBase):
             val.announce_urls = [v.tracker.announce_url for v in data.tracker_links]
 
         return val
+
+    @field_validator("v1_infohash", "v2_infohash", mode="before")
+    def unprefix_infohash(cls, value: Optional[str] = None) -> Optional[str]:
+        """
+        When representing removed uploads (should only happen in moderation views)
+        remove the prefix that deduplicates the infohash to avoid collisions
+        """
+        if value and isinstance(value, str) and "-REM__" in value:
+            value = ModerableMixin._remove_prefix(value)
+        return value

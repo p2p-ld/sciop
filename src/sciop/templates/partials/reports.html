@@ -1,0 +1,27 @@
+{% from 'macros/report.html' import report_collapsible %}
+{% from 'macros/pagination.html' import page_header %}
+<div id="report-page" class="report-page">
+  {% if items | length == 0 %}
+  No reports found :)
+  {% else %}
+  {% with swap_target="#report-page" %}
+    {% include 'includes/pagination-buttons.html' %}
+  {% endwith %}
+  <div id="reports-table-inner"
+       class="collapsible-table reports-table {% if review %}review{% endif %}">
+    {{ page_header(
+    request=request,
+    id="reports-table-head",
+    columns=models.Report.get_sortable_cols(review),
+    swap_target="#report-page") }}
+    <div class="report-items">
+      {% for report in items %}
+      {{ report_collapsible(report, config=config) }}
+      {% endfor %}
+    </div>
+  </div>
+  {% with swap_target="#report-page" %}
+    {% include 'includes/pagination-buttons.html' %}
+  {% endwith %}
+  {% endif %}
+</div>

@@ -15,6 +15,7 @@ from sciop.testing.fixtures.fabricators import (
     admin_user,
     dataset,
     dataset_module,
+    dataset_part,
     default_db,
     get_auth_header,
     infohashes,
@@ -30,6 +31,13 @@ from sciop.testing.fixtures.fabricators import (
     upload,
     upload_module,
     uploader,
+)
+from sciop.testing.fixtures.reports import (
+    reportable_item,
+    reported_account,
+    reported_item,
+    reporting_account,
+    resolving_account,
 )
 from sciop.testing.fixtures.scheduler import clean_scheduler
 from sciop.testing.fixtures.server import (
@@ -69,6 +77,7 @@ __all__ = [
     "admin_token",
     "dataset",
     "dataset_module",
+    "dataset_part",
     "default_db",
     "get_auth_header",
     "infohashes",
@@ -84,6 +93,12 @@ __all__ = [
     "upload",
     "upload_module",
     "uploader",
+    # reports
+    "reportable_item",
+    "reported_account",
+    "reported_item",
+    "reporting_account",
+    "resolving_account",
     # scheduler
     "clean_scheduler",
     # server

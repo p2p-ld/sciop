@@ -19,3 +19,10 @@ _filterwarnings(
     module="pydantic",
     message=r".*shadows an attribute in parent.*",
 )
+# now sqlmodel has chosen to adopt the behavior too
+_filterwarnings(
+    action="ignore",
+    category=UserWarning,
+    module="sqlmodel",
+    message=r".*shadows an attribute in parent.*",
+)

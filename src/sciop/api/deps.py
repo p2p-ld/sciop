@@ -19,6 +19,7 @@ from sciop.models import (
     DatasetClaim,
     DatasetPart,
     RaggedSearchParams,
+    Report,
     SearchParams,
     Tag,
     TokenPayload,
@@ -482,5 +483,23 @@ def require_dataset_part_claim(claim: CurrentDatasetPartClaim) -> DatasetClaim:
     return claim
 
 
-RequireDatasetClaim = Annotated[DatasetClaim | None, Depends(require_dataset_claim)]
-RequireDatasetPartClaim = Annotated[DatasetClaim | None, Depends(require_dataset_part_claim)]
+RequireDatasetClaim = Annotated[DatasetClaim, Depends(require_dataset_claim)]
+RequireDatasetPartClaim = Annotated[DatasetClaim, Depends(require_dataset_part_claim)]
+
+
+def require_report(
+    report_id: int, session: SessionDep, current_account: RequireCurrentAccount
+) -> Report:
+    """
+    A report must exist and it must be visible to the current account
+    """
+    report = session.exec(select(Report).where(Report.report_id == report_id)).first()
+    if report is None and current_account.has_scope("review"):
+        # only show 404s to reviewers to hide the total number of reports
+        raise HTTPException(404, "Report not found")
+    elif report is None or not report.visible_to(current_account):
+        raise HTTPException(403, "Not authorized to view report")
+    return report
+
+
+RequireReport = Annotated[Report, Depends(require_report)]

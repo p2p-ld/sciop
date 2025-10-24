@@ -33,12 +33,11 @@ from sciop.models import (
     DatasetPartRead,
     DatasetRead,
     DatasetUpdate,
-    ModerationAction,
     Upload,
     UploadCreate,
     UploadRead,
 )
-from sciop.types import SlugStr
+from sciop.types import ModerationAction, SlugStr
 
 datasets_router = APIRouter(prefix="/datasets")
 

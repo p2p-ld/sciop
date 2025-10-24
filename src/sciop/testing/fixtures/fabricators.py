@@ -16,6 +16,7 @@ from torrent_models import Torrent
 from sciop.models import (
     Account,
     Dataset,
+    DatasetPart,
     Token,
     TorrentFile,
     Upload,
@@ -26,6 +27,7 @@ from sciop.testing.fabricators import (
     fake,
     make_account,
     make_dataset,
+    make_dataset_part,
     make_torrent,
     make_torrentfile,
     make_upload,
@@ -39,6 +41,7 @@ __all__ = [
     "admin_user",
     "admin_token",
     "dataset",
+    "dataset_part",
     "dataset_module",
     "default_db",
     "get_auth_header",
@@ -165,20 +168,61 @@ def reviewer(account: C[..., "Account"], session: Session) -> Account:
 
 
 @pytest.fixture
-def dataset(session: Session) -> C[Concatenate[bool, bool, Session | None, P], Dataset]:
+def dataset(
+    session: Session, account: C[..., "Account"]
+) -> C[Concatenate[bool, bool, Session | None, P], Dataset]:
     def _dataset_inner(
         is_approved: bool = True,
         is_removed: bool = False,
         session_: Session | None = None,
+        account_: Account | None = None,
         **kwargs: P.kwargs,
     ) -> Dataset:
         if session_ is None:
             session_ = session
+        if account_ is None:
+            account_ = account()
         return make_dataset(
-            is_approved=is_approved, is_removed=is_removed, session_=session_, **kwargs
+            is_approved=is_approved,
+            is_removed=is_removed,
+            session_=session_,
+            account_=account_,
+            **kwargs,
         )
 
     return _dataset_inner
+
+
+@pytest.fixture
+def dataset_part(
+    session: Session,
+    dataset: C[..., Dataset],
+    account: C[..., Account],
+) -> C[[P], DatasetPart]:
+    def _dataset_part_inner(
+        account_: Account | None = None,
+        dataset_: Dataset | None = None,
+        session_: Session | None = None,
+        is_approved: bool = True,
+        is_removed: bool = False,
+        **kwargs: P.kwargs,
+    ) -> DatasetPart:
+        if session_ is None:
+            session_ = session
+        if account_ is None:
+            account_ = account(scopes=[Scopes.submit])
+        if dataset_ is None:
+            dataset_ = dataset(is_approved=True, session_=session, account_=account_)
+        return make_dataset_part(
+            session_=session_,
+            dataset_=dataset_,
+            account_=account_,
+            is_approved=is_approved,
+            is_removed=is_removed,
+            **kwargs,
+        )
+
+    return _dataset_part_inner
 
 
 @pytest.fixture(scope="module")
@@ -385,6 +429,9 @@ def get_auth_header(session: Session) -> C[[str, str], dict[L["Authorization"], 
     ) -> dict[L["Authorization"], str]:
         from sciop.api.auth import create_access_token
         from sciop.crud import get_account
+
+        if isinstance(username, Account):
+            username = username.username
 
         account = get_account(username=username, session=session)
         token = create_access_token(account.account_id, expires_delta=timedelta(minutes=5))

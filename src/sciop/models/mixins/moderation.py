@@ -1,13 +1,16 @@
+import hashlib
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sqla
 from pydantic import ConfigDict
 from sqlalchemy import ColumnElement
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
-from sqlmodel import Field
+from sqlmodel import Field, Session
 
+from sciop.exceptions import ModerationPermissionsError
 from sciop.models.base import SQLModel
-from sciop.types import InputType
+from sciop.types import InputType, ModerationAction
 
 if TYPE_CHECKING:
     from sciop.models import Account
@@ -99,3 +102,62 @@ class ModerableMixin(SQLModel):
         if account is None:
             return sqla.false()
         return sqla.or_(cls.account == account, account.has_scope("review") == True)
+
+    def hide(self, account: "Account", session: Session, commit: bool = True) -> None:
+        """
+        Hide the item - rendering it publicly invisible but preserving it in the database
+
+        Required permissions are same as `removable_by`
+        """
+        from sciop.crud import log_moderation_action
+
+        if not self.removable_by(account):
+            raise ModerationPermissionsError(f"{account.username} not permitted to hide this item")
+        log_moderation_action(
+            session=session, actor=account, target=self, action=ModerationAction.hide
+        )
+        self.is_approved = False
+        session.add(self)
+        if commit:
+            session.commit()
+
+    def remove(self, account: "Account", session: Session, commit: bool = True) -> None:
+        """
+        Remove the item, preserving necessary database remnants for internal references,
+        but for all intents and purposes rendering the item 'deleted.'
+        """
+        from sciop.crud import log_moderation_action
+        from sciop.types import ModerationAction
+
+        if not self.removable_by(account):
+            raise ModerationPermissionsError(
+                f"{account.username} not permitted to remove this item"
+            )
+        log_moderation_action(
+            session=session,
+            actor=account,
+            target=self,
+            action=ModerationAction.remove,
+            commit=commit,
+        )
+        self.is_removed = True
+        session.add(self)
+        if commit:
+            session.commit()
+
+    @staticmethod
+    def _add_prefix(val: str, timestamp: datetime, key: str) -> str:
+        # underscores can only get in slugs through prefix events
+        if "__" in val:
+            return val
+        hasher = hashlib.blake2b(digest_size=3)
+        hasher.update(timestamp.isoformat().encode("utf-8"))
+        hash = hasher.hexdigest()
+        return f"{hash}-{key.upper()}__{val}"
+
+    @staticmethod
+    def _remove_prefix(val: str) -> str:
+        if "__" in val:
+            return val.split("__", 1)[1]
+        else:
+            return val
