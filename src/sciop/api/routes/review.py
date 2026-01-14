@@ -6,11 +6,12 @@ from sciop.api.deps import (
     RequireAccount,
     RequireAdmin,
     RequireAnyAccount,
-    RequireCurrentAccount,
     RequireDataset,
     RequireDatasetPart,
+    RequireEditableBy,
     RequireReviewer,
     RequireUpload,
+    RequireVisibleDataset,
     SessionDep,
     ValidAccountScope,
     ValidItemScope,
@@ -18,7 +19,7 @@ from sciop.api.deps import (
 from sciop.frontend.templates import jinja
 from sciop.middleware import limiter
 from sciop.models import (
-    AccountDatasetScopeLink,
+    ItemScopeLink,
     ModerationAction,
     Scope,
     SuccessResponse,
@@ -356,29 +357,23 @@ async def grant_dataset_scope(
     dataset_slug: str,
     username: str,
     scope_name: ValidItemScope,
-    current_account: RequireCurrentAccount,
-    dataset: RequireDataset,
+    current_account: RequireEditableBy,
+    dataset: RequireVisibleDataset,
     account: RequireAccount,
     session: SessionDep,
 ):
     if not current_account.get_scope("review"):
-        if not current_account.get_scope("permissions", dataset_id=dataset.dataset_id):
-            raise HTTPException(
-                403, "You do not have permission to modify account scopes for this dataset."
-            )
-        if scope_name != "edit" and not current_account.get_scope(
-            scope_name, dataset_id=dataset.dataset_id
-        ):
-            raise HTTPException(403, "You cannot grant a permission that you do not have yourself.")
+        if not dataset.has_scope("permissions", account=current_account):
+            raise HTTPException(403, "You can't modify scopes for this dataset.")
+        if not dataset.has_scope(scope_name, account=current_account):
+            raise HTTPException(403, "You can't modify scopes that you don't have.")
 
     if username == current_account.username:
-        raise HTTPException(403, "You cannot grant permissions to yourself.")
+        raise HTTPException(403, "You can't modify your own scopes.")
 
-    if not account.has_scope(scope_name, dataset_id=dataset.dataset_id):
-        dataset.account_scopes.append(
-            AccountDatasetScopeLink(
-                account=account, dataset=dataset, _scope=Scope.get_item(scope_name, session)
-            )
+    if not dataset.has_scope(scope_name, account=account):
+        dataset.scopes.append(
+            ItemScopeLink(account=account, _scope=Scope.get_item(scope_name, session))
         )
         session.add(dataset)
         session.commit()
@@ -401,32 +396,25 @@ async def revoke_dataset_scope(
     dataset_slug: str,
     username: str,
     scope_name: ValidItemScope,
-    current_account: RequireCurrentAccount,
-    dataset: RequireDataset,
+    current_account: RequireEditableBy,
+    dataset: RequireVisibleDataset,
     account: RequireAccount,
     session: SessionDep,
 ):
     if not current_account.get_scope("review"):
-        if not current_account.get_scope("permissions", dataset_id=dataset.dataset_id):
-            raise HTTPException(
-                403, "You do not have permission to modify account scopes for this dataset."
-            )
-        if scope_name != "edit" and not current_account.get_scope(
-            scope_name, dataset_id=dataset.dataset_id
-        ):
-            raise HTTPException(
-                403, "You cannot revoke a permission that you do not have yourself."
-            )
+        if not dataset.has_scope("permissions", account=current_account):
+            raise HTTPException(403, "You can't modify scopes for this dataset.")
+        if not dataset.has_scope(scope_name, account=current_account):
+            raise HTTPException(403, "You can't modify scopes that you don't have.")
 
     if username == current_account.username:
-        raise HTTPException(403, "You cannot grant permissions to yourself.")
+        raise HTTPException(403, "You can't modify your own scopes.")
 
     if scope := next(
-        (s for s in dataset.account_scopes if s.scope.value == scope_name and s.account == account),
+        (s for s in dataset.scopes if s.scope.value == scope_name and s.account == account),
         None,
     ):
         session.delete(scope)
-        session.add(dataset)
         session.commit()
 
     crud.log_moderation_action(

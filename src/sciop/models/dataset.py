@@ -8,17 +8,18 @@ from sqlalchemy import SQLColumnExpression, event
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
-from sqlmodel import Field, Relationship, select
+from sqlmodel import Field, Relationship, Session, select
 from sqlmodel.main import FieldInfo
 
 from sciop.const import DATASET_PART_RESERVED_SLUGS, DATASET_RESERVED_SLUGS, PREFIX_LEN
-from sciop.models.account import Account, AccountDatasetScopeLink
+from sciop.models.account import Account, ItemScopeLink
 from sciop.models.base import SQLModel
 from sciop.models.mixins import (
     EditableMixin,
     FrontendMixin,
     ListlikeMixin,
     ModerableMixin,
+    ScopedMixin,
     SearchableMixin,
     SortableCol,
     SortMixin,
@@ -27,7 +28,7 @@ from sciop.models.mixins import (
     all_optional,
     exclude_fields,
 )
-from sciop.models.scope import ItemScopesRead
+from sciop.models.scope import ItemScope
 from sciop.models.tag import DatasetTagLink
 from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import (
@@ -208,7 +209,9 @@ class DatasetBase(ModerableMixin, FrontendMixin):
         return self.slug
 
 
-class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, table=True):
+class Dataset(
+    DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, ScopedMixin, table=True
+):
     __tablename__ = "datasets"
     __searchable__ = {
         "title": 5.0,
@@ -251,7 +254,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
     )
     account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id", index=True)
     account: Optional["Account"] = Relationship(back_populates="datasets")
-    account_scopes: list["AccountDatasetScopeLink"] = Relationship(back_populates="dataset")
+    scopes: list["ItemScopeLink"] = Relationship(back_populates="dataset")
     scrape_status: ScrapeStatus = "unknown"
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
     reports: list["Report"] = Relationship(back_populates="target_dataset")
@@ -270,15 +273,11 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
             updated["external_identifiers"] = ExternalIdentifier.get_items(
                 self.external_identifiers, updated["external_identifiers"]
             )
-        if "account_scopes" in updated:
-            updated["account_scopes"] = crud.get_account_item_scopes(
+        if "scopes" in updated:
+            updated["scopes"] = crud.get_account_item_scopes(
                 session=session,
-                account_scopes=[
-                    ItemScopesRead(username=scope["username"], scopes=scope["scopes"])
-                    for scope in updated["account_scopes"]
-                    if "scopes" in scope
-                ],
-                existing_scopes=self.account_scopes,
+                scopes=ItemScope.from_dict(updated["scopes"]),
+                existing_scopes=self.scopes,
             )
 
         for field_name, new_value in updated.items():
@@ -338,14 +337,14 @@ class DatasetCreate(DatasetBase):
         min_length=1,
         max_length=512,
     )
-    account_scopes: Optional[list["ItemScopesRead"]] = Field(
-        title="Collaborators",
+    scopes: Optional[list["ItemScope"]] = Field(
+        title="Maintainers",
         description="""
         Additional users who should be able to make changes to this dataset.
         Supply a username and press enter to start granting them permissions.
         Hover over permission buttons to see their descriptions.
         """,
-        schema_extra={"json_schema_extra": {"input_type": InputType.account_scopes}},
+        schema_extra={"json_schema_extra": {"input_type": InputType.item_scopes}},
         max_length=512,
         default=[],
     )
@@ -378,19 +377,7 @@ class DatasetCreate(DatasetBase):
                     ExternalIdentifierCreate.model_validate(ex)
                     for ex in dataset.external_identifiers
                 ],
-                "account_scopes": [
-                    ItemScopesRead(
-                        username=username,
-                        scopes=[
-                            s.scope.value
-                            for s in dataset.account_scopes
-                            if s.account.username == username
-                        ],
-                    )
-                    for username in list(
-                        dict.fromkeys([s.account.username for s in dataset.account_scopes])
-                    )
-                ],
+                "scopes": ItemScope.from_links(dataset.scopes),
                 "parts": [DatasetPartCreate.model_validate(part) for part in dataset.parts],
             },
         )
@@ -461,10 +448,15 @@ class DatasetRead(DatasetBase, TableReadMixin):
     tags: list[str] = Field(default_factory=list)
     scrape_status: ScrapeStatus
     is_approved: bool
+    scopes: list[ItemScope] = Field(default_factory=list)
 
     @field_validator("tags", mode="before")
     def collapse_tags(cls, val: list["Tag"]) -> list[str]:
         return [tag.tag for tag in val]
+
+    @field_validator("scopes", mode="before")
+    def collapse_scopes(cls, val: list[ItemScopeLink]) -> list[ItemScope]:
+        return ItemScope.from_links(links=val)
 
     @field_validator("urls", mode="before")
     def collapse_urls(cls, val: list["DatasetURL"]) -> list[str]:

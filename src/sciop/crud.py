@@ -6,7 +6,6 @@ from sciop.api.auth import get_password_hash, verify_password
 from sciop.models import (
     Account,
     AccountCreate,
-    AccountDatasetScopeLink,
     AuditLog,
     Dataset,
     DatasetClaim,
@@ -17,7 +16,8 @@ from sciop.models import (
     DatasetURL,
     ExternalIdentifier,
     FileInTorrent,
-    ItemScopesRead,
+    ItemScope,
+    ItemScopeLink,
     ModerationAction,
     Report,
     ReportCreate,
@@ -86,15 +86,15 @@ def create_dataset(
 
     tags = get_tags(session=session, tags=dataset_create.tags)
 
-    scopes = dataset_create.account_scopes if dataset_create.account_scopes else []
+    initial_scopes = dataset_create.scopes if dataset_create.scopes else []
     if current_account:
-        scopes.insert(
+        initial_scopes.insert(
             0,
-            ItemScopesRead(
+            ItemScope(
                 username=current_account.username, scopes=list(ItemScopes.__members__.values())
             ),
         )
-    account_scopes = get_account_item_scopes(session=session, account_scopes=scopes)
+    scopes = get_account_item_scopes(session=session, scopes=initial_scopes)
 
     params = {
         "is_approved": is_approved,
@@ -103,7 +103,7 @@ def create_dataset(
         "tags": tags,
         "external_identifiers": external_identifiers,
         "parts": parts,
-        "account_scopes": account_scopes,
+        "scopes": scopes,
     }
     # update from kwargs - kwargs are overrides that should mostly be used in tests
     params.update(kwargs)
@@ -528,15 +528,15 @@ def get_tags(*, session: Session, tags: list[str], commit: bool = False) -> list
 def get_account_item_scopes(
     *,
     session: Session,
-    account_scopes: list[ItemScopesRead],
-    existing_scopes: Optional[list[AccountDatasetScopeLink]] = None,
-) -> list[AccountDatasetScopeLink]:
+    scopes: list[ItemScope],
+    existing_scopes: Optional[list[ItemScopeLink]] = None,
+) -> list[ItemScopeLink]:
     """
-    Given a list of ItemScopesRead objects,
-    create and return a list of AccountDatasetScopeLink objects
+    Given a list of ItemScope objects,
+    create and return a list of ItemScopeLink objects
     """
-    new = {(a.username, scope) for a in account_scopes for scope in a.scopes if scope}
-    scope_links: list[AccountDatasetScopeLink] = []
+    new = {(a.username, scope) for a in scopes for scope in a.scopes if scope}
+    scope_links: list[ItemScopeLink] = []
     usernames = [s[0] for s in new]
     accounts = session.exec(select(Account).filter(Account.username.in_(usernames))).all()
 
@@ -554,9 +554,7 @@ def get_account_item_scopes(
         if not account:
             raise ValueError("Account not found: " + scope[0])
 
-        scope_links.append(
-            AccountDatasetScopeLink(account=account, _scope=Scope.get_item(scope[1], session))
-        )
+        scope_links.append(ItemScopeLink(account=account, _scope=Scope.get_item(scope[1], session)))
 
     return scope_links
 

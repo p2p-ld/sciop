@@ -6,7 +6,7 @@ import pytest
 from sqlmodel import Field, Session, select
 
 from sciop.models import (
-    AccountDatasetScopeLink,
+    ItemScopeLink,
     Dataset,
     DatasetPart,
     DatasetTagLink,
@@ -240,8 +240,8 @@ def test_visible_to(dataset, account, is_approved, is_removed, session):
     reviewer = account(username="reviewer", scopes=["review"])
     moderable = dataset()
     moderable.account = creator
-    moderable.account_scopes = [
-        AccountDatasetScopeLink(
+    moderable.scopes = [
+        ItemScopeLink(
             account=permissioned, dataset=moderable, _scope=Scope.get_item("edit", session)
         )
     ]
@@ -285,8 +285,8 @@ def test_visible_to_expression(dataset, account, is_approved, is_removed, sessio
     reviewer = account(username="reviewer", scopes=["review"])
     moderable = dataset()
     moderable.account = creator
-    moderable.account_scopes = [
-        AccountDatasetScopeLink(
+    moderable.scopes = [
+        ItemScopeLink(
             account=permissioned, dataset=moderable, _scope=Scope.get_item("edit", session)
         )
     ]

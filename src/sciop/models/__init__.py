@@ -60,9 +60,9 @@ from sciop.models.report import (
 )
 from sciop.models.rss import TorrentFeed, TorrentItem
 from sciop.models.scope import (
-    AccountDatasetScopeLink,
     AccountScopeLink,
-    ItemScopesRead,
+    ItemScope,
+    ItemScopeLink,
     Scope,
 )
 from sciop.models.stats import SiteStats, SiteStatsRead
@@ -94,10 +94,8 @@ EditableMixin.rebuild_history_models(namespace=locals())
 __all__ = [
     "Account",
     "AccountCreate",
-    "AccountDatasetScopeLink",
     "AccountRead",
     "AccountScopeLink",
-    "ItemScopesRead",
     "AtomFeed",
     "AtomFeedEntry",
     "AuditLog",
@@ -123,6 +121,8 @@ __all__ = [
     "FileInTorrentCreate",
     "FileInTorrentRead",
     "HitCount",
+    "ItemScope",
+    "ItemScopeLink",
     "MagnetLink",
     "RaggedSearchPage",
     "RaggedSearchParams",
