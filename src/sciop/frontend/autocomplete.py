@@ -5,7 +5,7 @@ from sqlmodel import select
 
 from sciop.api.deps import RequireCurrentAccount, SessionDep
 from sciop.frontend.templates import jinja
-from sciop.models import Account, Dataset, ItemScopesRead, Tag
+from sciop.models import Account, Dataset, ItemScope, Tag
 
 autocomplete_router = APIRouter(prefix="/autocomplete", include_in_schema=False)
 
@@ -53,21 +53,21 @@ async def tags(
     return results
 
 
-@autocomplete_router.post("/account_scopes")
+@autocomplete_router.post("/scopes")
 @jinja.hx("partials/autocomplete-options.html")
-async def collaborators(
+async def maintainers(
     session: SessionDep,
     request: Request,
     current_account: RequireCurrentAccount,
     account_query: Annotated[str, Body()],
-    account_scopes: Optional[list[ItemScopesRead]] = None,
+    scopes: Optional[list[ItemScope]] = None,
 ):
-    if not account_scopes:
-        account_scopes = []
+    if not scopes:
+        scopes = []
 
     stmt = select(Account.username).filter(
         Account.username.like(f"%{account_query.strip()}%"),
-        Account.username.not_in([*[s.username for s in account_scopes], current_account.username]),
+        Account.username.not_in([*[s.username for s in scopes], current_account.username]),
     )
     results = session.exec(stmt).all()
     return results

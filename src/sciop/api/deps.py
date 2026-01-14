@@ -235,7 +235,7 @@ def require_visible_dataset(dataset: RequireDataset, current_account: CurrentAcc
 RequireVisibleDataset = Annotated[Dataset, Depends(require_visible_dataset)]
 
 
-def require_scopable_dataset(
+def require_scoped_dataset(
     dataset: RequireVisibleDataset,
     current_account: RequireEditableBy,
     dataset_patch: Annotated[DatasetUpdate, Body()],
@@ -245,31 +245,30 @@ def require_scopable_dataset(
     and that the user has should be be able to make any scope
     changes that are included in the dataset patch
     """
-    account_scopes = dataset_patch.account_scopes
-    if not account_scopes or current_account.get_scope("review"):
+    scopes = dataset_patch.scopes
+    if not scopes or current_account.get_scope("review"):
         return dataset
 
-    existing = {(scope.account.username, scope.scope.value) for scope in dataset.account_scopes}
-    new = {(acct.username, scope) for acct in account_scopes for scope in acct.scopes if scope}
+    existing = {(scope.account.username, scope.scope.value) for scope in dataset.scopes}
+    new = {(acct.username, scope) for acct in scopes for scope in acct.scopes if scope}
     changed = existing.symmetric_difference(new)
 
     if len(changed) == 0:
         return dataset
 
-    if not current_account.get_scope("permissions", dataset_id=dataset.dataset_id):
-        raise HTTPException(403, "You cannot modify permissions for this dataset.")
+    if not dataset.has_scope("permissions", account=current_account):
+        raise HTTPException(403, "You can't modify scopes for this dataset.")
+
+    if not dataset.can_grant_scopes(*[c[1] for c in changed], current_account=current_account):
+        raise HTTPException(403, "You can't modify scopes that you don't have.")
 
     if current_account.username in [scope[0] for scope in changed]:
-        raise HTTPException(403, "You cannot modify your own permissions.")
-
-    current_account_scopes = {e[1] for e in existing if e[0] == current_account.username}
-    if len({scope[1] for scope in changed} - current_account_scopes.union({"edit"})):
-        raise HTTPException(403, "You cannot modify permissions that you do not have.")
+        raise HTTPException(403, "You can't modify your own scopes.")
 
     return dataset
 
 
-RequireScopableDataset = Annotated[Dataset, Depends(require_scopable_dataset)]
+RequireScopedDataset = Annotated[Dataset, Depends(require_scoped_dataset)]
 
 
 def current_dataset_part(

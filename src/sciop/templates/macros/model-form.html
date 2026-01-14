@@ -51,8 +51,8 @@
     </div>
 {%- if field.json_schema_extra.input_type == "tokens" %}
     {{ token_input(field, field_name, parent_id, value) }}
-{%- elif field.json_schema_extra.input_type == "account_scopes" %}
-    {{ account_scopes_input(field, field_name, parent_id, value, current_account, edit) }}
+{%- elif field.json_schema_extra.input_type == "item_scopes" %}
+    {{ item_scopes_input(field, field_name, parent_id, value, current_account, edit) }}
 {%- elif field.json_schema_extra.input_type == "model_list" %}
     <div class="model-list-input" name="{{ field_name }}">
     {% if value %}
@@ -178,10 +178,10 @@
 <datalist id="{{ parent_id }}-{{ field_name }}-autocomplete"></datalist>
 {% endmacro %}
 
-{% macro account_scopes_input(field, field_name, parent_id, value=None, current_account=None, edit=False) %}
-<div class="account-scopes-input-container">
+{% macro item_scopes_input(field, field_name, parent_id, value=None, current_account=None, edit=False) %}
+<div class="item-scopes-input-container">
     <input
-        class="form-input form-account-scopes"
+        class="form-input form-item-scopes"
         id="{{ parent_id }}-{{ field_name }}"
         name="account_query"
         list="{{ parent_id }}-{{ field_name }}-autocomplete"
@@ -191,23 +191,23 @@
         hx-params="*"
         _="on keyup[key=='Enter']
            if my value.trim() == '' set my value to ''
-           else trigger account_selected on #{{ parent_id }}-{{ field_name }}-account-scopes">
+           else trigger account_selected on #{{ parent_id }}-{{ field_name }}-item-scopes">
     <datalist id="{{ parent_id }}-{{ field_name }}-autocomplete"></datalist>
     <div
-        id="{{ parent_id }}-{{ field_name }}-account-scopes"
-        class="account-scopes-container"
+        id="{{ parent_id }}-{{ field_name }}-item-scopes"
+        class="item-scopes-container"
         hx-trigger="account_selected"
         hx-target="this"
-        hx-post="/partials/add-account-scopes-row"
+        hx-post="/partials/add-item-scopes-row"
         hx-params="*"
         hx-vals='{ "editing": "{{ edit }}" }'
         _="on htmx:afterRequest set #{{ parent_id }}-{{ field_name }}.value to ''"
     >
         {% if value %}
-        {% from 'macros/account.html' import account_scopes_row %}
+        {% from 'macros/account.html' import item_scopes_row %}
         <div id="accounts-table-inner" class="collapsible-table accounts-table scopes-form">
             {% for account in value %}
-            {{ account_scopes_row(account, items=value, current_account=current_account, edit=edit, idx=loop.index) }}
+            {{ item_scopes_row(account, items=value, current_account=current_account, edit=edit, idx=loop.index) }}
             {% endfor %}
         </div>
         {% endif %}

@@ -11,8 +11,7 @@ from sciop.api.deps import RequireCurrentAccount, SessionDep
 from sciop.frontend.templates import templates
 from sciop.models import (
     Account,
-    ItemScopesAction,
-    ItemScopesRead,
+    ItemScope,
     TargetType,
 )
 
@@ -78,18 +77,18 @@ async def account_scopes(
     current_account: RequireCurrentAccount,
     editing: Annotated[Optional[bool], Body()] = False,
     account_query: Annotated[Optional[str], Body()] = None,
-    account_scopes: Optional[list[ItemScopesRead]] = None,
+    scopes: Optional[list[ItemScope]] = None,
 ):
-    if account_scopes is None:
-        account_scopes = []
+    if scopes is None:
+        scopes = []
     else:
-        for acc in account_scopes:
+        for acc in scopes:
             acc.scopes = [s for s in acc.scopes if s != ""]
 
     if (
         account_query
         and account_query.strip() != current_account.username
-        and account_query.strip() not in [s.username for s in account_scopes]
+        and account_query.strip() not in [s.username for s in scopes]
     ):
         acct = session.exec(
             select(Account).where(
@@ -99,13 +98,13 @@ async def account_scopes(
             )
         ).first()
         if acct:
-            account_scopes.append(ItemScopesRead(username=acct.username, scopes=[]))
+            scopes.append(ItemScope(username=acct.username, scopes=[]))
 
     return templates.TemplateResponse(
         request,
         "partials/accounts.html",
         {
-            "items": account_scopes,
+            "items": scopes,
             "scopes_form": True,
             "edit": editing,
         },

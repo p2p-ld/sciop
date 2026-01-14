@@ -1,4 +1,4 @@
-{% macro account_scopes_row(account, items=None, current_account=None, current_account_scopes=[], edit=False, idx=None) %}
+{% macro item_scopes_row(account, items=None, current_account=None, edit=False, idx=None) %}
 {% set current_account_scopes=items | selectattr("username", "eq", current_account.username) | map(attribute="scopes") | first %}
 <div class="account-scopes-row" id="account-scopes-row-{{ account.username }}">
     <span></span>
@@ -8,9 +8,9 @@
         </a>
     </span>
     <span class="account-scopes tokens">
-        <input class="hidden" name="account_scopes[{{ idx }}].username" value="{{ account.username }}" readonly="readonly">
+        <input class="hidden" name="scopes[{{ idx }}].username" value="{{ account.username }}" readonly="readonly">
         {% if account.scopes | length == 0 %}
-        <input class="hidden" name="account_scopes[{{ idx }}].scopes[]" readonly="readonly">
+        <input class="hidden" name="scopes[{{ idx }}].scopes[]" readonly="readonly">
         {% endif %}
         {% for scope_name in types.ItemScopes.__members__.values() %}
             {% set disabled=(
@@ -48,7 +48,7 @@
             </button>
             <input class="hidden"
                    id="{{ account.username }}-scope-{{scope_name}}-input"
-                   name="account_scopes[{{ idx }}].scopes[]"
+                   name="scopes[{{ idx }}].scopes[]"
                    value="{{ scope_name }}"
                    {% if not has_scope %}disabled{% endif %}
                    readonly="readonly">
