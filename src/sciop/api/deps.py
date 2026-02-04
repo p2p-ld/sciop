@@ -259,7 +259,7 @@ def require_scoped_dataset(
     if not dataset.has_scope("permissions", account=current_account):
         raise HTTPException(403, "You can't modify scopes for this dataset.")
 
-    if not dataset.can_grant_scopes(*[c[1] for c in changed], current_account=current_account):
+    if not dataset.can_grant_scopes(*[c[1] for c in changed], account=current_account):
         raise HTTPException(403, "You can't modify scopes that you don't have.")
 
     if current_account.username in [scope[0] for scope in changed]:

@@ -7,6 +7,7 @@ from sqlmodel import select
 from sciop.api.deps import CurrentAccount, RequireAccount, SearchQueryNoCurrentUrl, SessionDep
 from sciop.frontend.templates import jinja, templates
 from sciop.models import Account, AccountRead, Dataset, DatasetRead, Upload, UploadRead
+from sciop.types import ItemScopes
 
 accounts_router = APIRouter(prefix="/accounts")
 
@@ -34,7 +35,10 @@ def account_datasets(
 ) -> Page[DatasetRead]:
     stmt = (
         select(Dataset)
-        .where(Dataset.account == account, Dataset.visible_to(current_account) == True)
+        .where(
+            Dataset.has_scope(*[s.value for s in ItemScopes], account=account, explicit=True),
+            Dataset.visible_to(current_account) == True,
+        )
         .order_by(Dataset.updated_at.desc())
     )
     stmt = search.apply_sort(stmt, Dataset)

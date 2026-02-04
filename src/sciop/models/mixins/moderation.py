@@ -64,11 +64,11 @@ class ModerableMixin(SQLModel):
             return True
         elif self.is_removed:
             return False
-        elif hasattr(self, "dataset_id") and account.has_scope(
-            *[s.value for s in ItemScopes], dataset_id=self.dataset_id
-        ):
+        elif hasattr(self, "account") and self.account == account:
             return True
-        elif hasattr(self, "upload_id") and hasattr(self, "account") and self.account == account:
+        elif hasattr(self, "scopes") and self.has_scope(
+            *[s.value for s in ItemScopes], account=account
+        ):
             return True
         else:
             return account.has_scope("review")
@@ -81,11 +81,11 @@ class ModerableMixin(SQLModel):
 
         or_stmts = [cls.is_visible == True, account.has_scope("review") == True]
 
-        if hasattr(cls, "dataset_id"):
-            or_stmts.append(cls.dataset_id.in_([s.dataset_id for s in account.dataset_scopes]))
-
-        if hasattr(cls, "upload_id") and hasattr(cls, "account"):
+        if hasattr(cls, "account"):
             or_stmts.append(cls.account == account)
+
+        if hasattr(cls, "scopes"):
+            or_stmts.append(cls.has_scope(*[s.value for s in ItemScopes], account=account) == True)
 
         return sqla.and_(
             cls.is_removed == False,
@@ -97,12 +97,9 @@ class ModerableMixin(SQLModel):
         if account is None:
             return False
         return (
-            account.has_scope("review")
-            or (
-                hasattr(self, "dataset_id")
-                and account.has_scope("delete", dataset_id=self.dataset_id)
-            )
-            or (hasattr(self, "upload_id") and hasattr(self, "account") and self.account == account)
+            (hasattr(self, "account") and self.account == account)
+            or (hasattr(self, "scopes") and self.has_scope("delete", account=account))
+            or account.has_scope("review")
         )
 
     @removable_by.inplace.expression
@@ -113,15 +110,11 @@ class ModerableMixin(SQLModel):
 
         or_stmts = [account.has_scope("review") == True]
 
-        if hasattr(cls, "dataset_id"):
-            or_stmts.append(
-                cls.dataset_id.in_(
-                    [s.dataset_id for s in account.dataset_scopes if s.scope.value == "delete"]
-                )
-            )
-
-        if hasattr(cls, "upload_id") and hasattr(cls, "account"):
+        if hasattr(cls, "account"):
             or_stmts.append(cls.account == account)
+
+        if hasattr(cls, "scopes"):
+            or_stmts.append(cls.has_scope("delete", account=account) == True)
 
         return sqla.or_(*or_stmts)
 

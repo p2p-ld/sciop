@@ -5,10 +5,10 @@
 groups = ["default", "dev", "docs", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:751e82c34aa7ea7b4c37506d06a805ba8cef2b387ace2107c469055ebb9070eb"
+content_hash = "sha256:8d6b1307696772d7dd986b5457ac9f7c23ed110aae2beaf3fdffa47806a30bd3"
 
 [[metadata.targets]]
-requires_python = ">=3.11"
+requires_python = ">=3.11,<3.14"
 
 [[package]]
 name = "aiodns"

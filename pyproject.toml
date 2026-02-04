@@ -39,7 +39,7 @@ dependencies = [
     "ruamel-yaml>=0.18.10",
     "bencode-rs>=0.0.7",
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 readme = "README.md"
 license = {text = "EUPL-1.2"}
 
