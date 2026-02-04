@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Optional, Self, Unio
 
 from annotated_types import MaxLen
 from pydantic import BaseModel, TypeAdapter, computed_field, field_validator, model_validator
-from sqlalchemy import SQLColumnExpression, event
-from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy import ColumnElement, SQLColumnExpression, event
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, Session, select
@@ -37,6 +37,7 @@ from sciop.types import (
     ExternalIdentifierType,
     IDField,
     InputType,
+    ItemScopes,
     MaxLenURL,
     PathLike,
     Scarcity,
@@ -210,7 +211,13 @@ class DatasetBase(ModerableMixin, FrontendMixin):
 
 
 class Dataset(
-    DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, ScopedMixin, table=True
+    DatasetBase,
+    TableMixin,
+    SearchableMixin,
+    EditableMixin,
+    SortMixin,
+    ScopedMixin,
+    table=True,
 ):
     __tablename__ = "datasets"
     __searchable__ = {
@@ -252,8 +259,6 @@ class Dataset(
         sa_relationship_kwargs={"lazy": "selectin"},
         link_model=DatasetTagLink,
     )
-    account_id: Optional[int] = Field(default=None, foreign_key="accounts.account_id", index=True)
-    account: Optional["Account"] = Relationship(back_populates="datasets")
     scopes: list["ItemScopeLink"] = Relationship(back_populates="dataset")
     scrape_status: ScrapeStatus = "unknown"
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_dataset")
@@ -662,6 +667,44 @@ class DatasetPart(DatasetPartBase, TableMixin, ModerableMixin, EditableMixin, ta
 
     def to_read(self) -> "DatasetPartRead":
         return DatasetPartRead.model_validate(self)
+
+    @hybrid_method
+    def visible_to(self, account: Optional["Account"] = None) -> bool:
+        """Whether this item is visible to the given account"""
+        if account is None:
+            return self.is_visible
+        if self.is_visible:
+            return True
+        elif self.is_removed:
+            return False
+        elif self.account == account:
+            return True
+        elif self.dataset and self.dataset.has_scope(
+            *[s.value for s in ItemScopes], account=account
+        ):
+            return True
+        else:
+            return account.has_scope("review")
+
+    @visible_to.inplace.expression
+    @classmethod
+    def _visible_to(cls, account: Optional["Account"] = None) -> ColumnElement[bool]:
+        if account is None:
+            return cls._is_visible
+
+        or_stmts = [
+            cls.is_visible == True,
+            account.has_scope("review") == True,
+            cls.account == account,
+            cls.dataset.has(
+                Dataset.has_scope(*[s.value for s in ItemScopes], account=account) == True
+            ),
+        ]
+
+        return sqla.and_(
+            cls.is_removed == False,
+            sqla.or_(*or_stmts),
+        )
 
 
 @event.listens_for(DatasetPart.is_removed, "set")

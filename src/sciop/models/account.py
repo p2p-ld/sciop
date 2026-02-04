@@ -124,7 +124,6 @@ class Account(AccountBase, TableMixin, SearchableMixin, table=True):
         link_model=AccountScopeLink,
     )
     """Permission scopes for this account"""
-    datasets: list["Dataset"] = Relationship(back_populates="account")
     item_scopes: list["ItemScopeLink"] = Relationship(back_populates="account")
     dataset_parts: list["DatasetPart"] = Relationship(back_populates="account")
     submissions: list["Upload"] = Relationship(back_populates="account")

@@ -28,6 +28,7 @@ from sciop.models import (
     UploadRead,
     Webseed,
 )
+from sciop.types import ItemScopes
 
 AuditLogRead.model_rebuild()
 self_router = APIRouter(prefix="/self")
@@ -71,7 +72,10 @@ async def datasets(
 ) -> SearchPage[DatasetRead]:
     stmt = (
         select(Dataset)
-        .where(Dataset.visible_to(account) == True, Dataset.account == account)
+        .where(
+            Dataset.visible_to(account) == True,
+            Dataset.has_scope(*[s.value for s in ItemScopes], account=account, explicit=True),
+        )
         .order_by(Dataset.created_at.desc())
     )
     stmt = search.apply_sort(stmt, Dataset)
@@ -165,5 +169,4 @@ async def audit_log(
     account: RequireReviewer,
     session: SessionDep,
 ) -> Page[AuditLogRead]:
-
     return paginate(conn=session, query=select(AuditLog).order_by(AuditLog.updated_at.desc()))

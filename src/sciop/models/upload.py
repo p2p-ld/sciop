@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 import sqlalchemy as sqla
 from pydantic import field_validator
 from sqlalchemy import ColumnElement, SQLColumnExpression, event
-from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship, func, select
 
@@ -34,7 +34,7 @@ from sciop.models.mixins import (
     all_optional,
 )
 from sciop.services.markdown import render_db_fields_to_html
-from sciop.types import FileName, IDField, InputType, SlugStr, UsernameStr, UTCDateTime
+from sciop.types import FileName, IDField, InputType, ItemScopes, SlugStr, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sqlmodel import Session
@@ -295,7 +295,89 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
     @classmethod
     def _is_visible(cls) -> ColumnElement[bool]:
         return sqla.and_(
-            cls.is_approved == True, cls.is_removed == False, cls.torrent != None  # noqa: E711
+            cls.is_approved == True,
+            cls.is_removed == False,
+            cls.torrent != None,  # noqa: E711
+        )
+
+    @hybrid_method
+    def visible_to(self, account: Optional["Account"] = None) -> bool:
+        """Whether this item is visible to the given account"""
+        if account is None:
+            return self.is_visible
+        if self.is_visible:
+            return True
+        elif self.is_removed:
+            return False
+        elif self.account == account:
+            return True
+        elif self.dataset.has_scope(*[s.value for s in ItemScopes], account=account):
+            return True
+        else:
+            return account.has_scope("review")
+
+    @visible_to.inplace.expression
+    @classmethod
+    def _visible_to(cls, account: Optional["Account"] = None) -> ColumnElement[bool]:
+        if account is None:
+            return cls._is_visible
+
+        or_stmts = [
+            cls.is_visible == True,
+            account.has_scope("review") == True,
+            cls.account == account,
+            cls.dataset.has(
+                Dataset.has_scope(*[s.value for s in ItemScopes], account=account) == True
+            ),
+        ]
+
+        return sqla.and_(
+            cls.is_removed == False,
+            sqla.or_(*or_stmts),
+        )
+
+    @hybrid_method
+    def removable_by(self, account: Optional["Account"] = None) -> bool:
+        if account is None:
+            return False
+        return (
+            self.account == account
+            or self.dataset.has_scope("delete", account=account)
+            or account.has_scope("review")
+        )
+
+    @removable_by.inplace.expression
+    @classmethod
+    def _removable_by(cls, account: Optional["Account"] = None) -> ColumnElement[bool]:
+        if account is None:
+            return sqla.false()
+
+        return sqla.or_(
+            account.has_scope("review") == True,
+            cls.account == account,
+            cls.dataset.has(Dataset.has_scope("delete", account=account) == True),
+        )
+
+    @hybrid_method
+    def editable_by(self, account: Optional["Account"] = None) -> bool:
+        if account is None:
+            return False
+        return (
+            self.account == account
+            or self.dataset.has_scope("edit", "permissions", account=account)
+            or account.has_scope("review")
+        )
+
+    @editable_by.inplace.expression
+    @classmethod
+    def _editable_by(cls, account: Optional["Account"] = None) -> ColumnElement[bool]:
+        if account is None:
+            return sqla.false()
+
+        return sqla.or_(
+            account.has_scope("review") == True,
+            cls.account == account,
+            cls.dataset.has(Dataset.has_scope("edit", "permissions", account=account) == True),
         )
 
     def update(self, session: "Session", new: "UploadUpdate", commit: bool = False) -> Self:

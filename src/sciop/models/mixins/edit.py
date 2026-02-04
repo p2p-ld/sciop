@@ -106,12 +106,9 @@ class EditableMixin(SQLModel):
         if account is None:
             return False
         return (
-            account.has_scope("review")
-            or (
-                hasattr(self, "dataset_id")
-                and account.has_scope("edit", "permissions", dataset_id=self.dataset_id)
-            )
-            or (hasattr(self, "upload_id") and hasattr(self, "account") and self.account == account)
+            (hasattr(self, "account") and self.account == account)
+            or (hasattr(self, "scopes") and self.has_scope("edit", "permissions", account=account))
+            or account.has_scope("review")
         )
 
     @editable_by.inplace.expression
@@ -122,19 +119,11 @@ class EditableMixin(SQLModel):
 
         or_stmts = [account.has_scope("review") == True]
 
-        if hasattr(cls, "dataset_id"):
-            or_stmts.append(
-                cls.dataset_id.in_(
-                    [
-                        s.dataset_id
-                        for s in account.dataset_scopes
-                        if s.scope.value in ("edit", "permissions")
-                    ]
-                )
-            )
-
-        if hasattr(cls, "upload_id") and hasattr(cls, "account"):
+        if hasattr(cls, "account"):
             or_stmts.append(cls.account == account)
+
+        if hasattr(cls, "scopes"):
+            or_stmts.append(cls.has_scope("edit", "permissions", account=account) == True)
 
         return sqla.or_(*or_stmts)
 

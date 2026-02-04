@@ -8,7 +8,7 @@ lock_version = "4.5.0"
 content_hash = "sha256:5b5e7713dc6e1c58410ff066e939fbb8697cc2fa4bfdf5922a797969b68d7c4b"
 
 [[metadata.targets]]
-requires_python = ">=3.11"
+requires_python = ">=3.11,<3.14"
 
 [[package]]
 name = "aiodns"

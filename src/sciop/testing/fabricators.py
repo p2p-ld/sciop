@@ -472,7 +472,6 @@ def random_dataset(
     ds.updated_at = timestamp
 
     ds.is_approved = random.random() > 0.1
-    ds.account = account
     for part in ds.parts:
         part.account = account
         part.is_approved = random.random() > 0.5
