@@ -1,7 +1,7 @@
 """create-scope-links-table
 
 Revision ID: 8eb0432e6bb0
-Revises: 99812ae0d9b1
+Revises: 624409a9355b
 Create Date: 2026-01-14 03:02:12.181220+00:00
 
 """
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "8eb0432e6bb0"
-down_revision: Union[str, None] = "99812ae0d9b1"
+down_revision: Union[str, None] = "624409a9355b"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

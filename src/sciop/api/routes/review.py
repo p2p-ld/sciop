@@ -20,7 +20,6 @@ from sciop.frontend.templates import jinja
 from sciop.middleware import limiter
 from sciop.models import (
     ItemScopeLink,
-    ModerationAction,
     Scope,
     SuccessResponse,
     Webseed,

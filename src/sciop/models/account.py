@@ -1,18 +1,16 @@
 import re
 import unicodedata
-from typing import TYPE_CHECKING, ClassVar, Optional, TypedDict
+from typing import TYPE_CHECKING, Optional, TypedDict
 
 import sqlalchemy as sqla
 from pydantic import ConfigDict, SecretStr, field_validator
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import relationship
-from sqlalchemy.schema import UniqueConstraint
 from sqlmodel import Field, Relationship, Session, select
 
 from sciop.exceptions import ModerationPermissionsError
 from sciop.models.base import SQLModel
 from sciop.models.mixins import (
-    EnumTableMixin,
     FrontendMixin,
     SearchableMixin,
     TableMixin,
@@ -34,7 +32,7 @@ if TYPE_CHECKING:
     )
 
 
-class AccountBase(SQLModel):
+class AccountBase(SQLModel, FrontendMixin):
     username: UsernameStr
 
     model_config = ConfigDict(ignored_types=(hybrid_method, hybrid_property))

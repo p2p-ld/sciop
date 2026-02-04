@@ -18,7 +18,6 @@ from sciop.models import (
     FileInTorrent,
     ItemScope,
     ItemScopeLink,
-    ModerationAction,
     Report,
     ReportCreate,
     Scope,

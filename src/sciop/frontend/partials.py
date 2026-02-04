@@ -68,9 +68,10 @@ async def report_modal(request: Request, target_type: TargetType, target: str):
         "partials/report-modal.html",
         {"target_type": target_type, "target": target},
         headers={"HX-Retarget": "#report-modal-container"},
+    )
 
 
-@partials_router.post("/account-scopes")
+@partials_router.post("/add-item-scopes-row")
 async def account_scopes(
     session: SessionDep,
     request: Request,

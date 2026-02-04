@@ -205,14 +205,11 @@ table {
 }
 
 .table-head,
-.collapsible-summary
-{
+.collapsible-summary {
   display: grid;
   grid-template-columns: var(--item-cols);
   grid-column-gap: 0.5em;
 
-  .dataset-slug,
-  .dataset-slug a,
   .table-head,
   .account-scopes-row,
   .dataset-collapsible > .collapsible-summary,
@@ -230,8 +227,8 @@ table {
     /*margin-bottom: 0.5em;*/
   }
 
-  & .collapsible-summary > .dataset-slug,
-  & .collapsible-summary > .dataset-slug a,
+  .dataset-slug,
+  .dataset-slug a,
   .upload-hash,
   .instance-hash a,
   .account-username,
