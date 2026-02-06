@@ -10,6 +10,7 @@ from pytest_httpx import HTTPXMock
 from sqlmodel import select
 
 from sciop import get_config
+from sciop.exceptions import ScrapeErrorType
 from sciop.models import TorrentFile, TorrentTrackerLink
 from sciop.services.tracker_scrape import (
     HTTPTrackerClient,
@@ -166,6 +167,34 @@ def test_no_gather_removed_torrents(torrentfile, upload, dataset, session, admin
     assert len(gathered_2[tracker]) == 1
     assert ul1_infohash not in gathered_2[tracker]
     assert ul2_infohash in gathered_2[tracker]
+
+
+def test_gather_clear_backoff(torrentfile, upload, dataset, session, admin_user):
+    """
+    Resetting the backoff of a tracker allows it to be scraped again immediately
+    """
+    unresponsive = "udp://un.responsive"
+    ds = dataset()
+    torrent: TorrentFile = torrentfile(extra_trackers=[unresponsive])
+    upload(dataset_=ds, torrentfile_=torrent, is_approved=True, is_removed=False)
+
+    tracker = torrent.tracker_links_map[unresponsive].tracker
+    tracker.n_errors = 10
+    tracker.error_type = ScrapeErrorType.dns
+    tracker.next_scrape_after = datetime.now(UTC) + timedelta(days=30)
+
+    session.add(torrent)
+    session.add(tracker)
+    session.commit()
+
+    scrapable = gather_scrapable_torrents()
+    assert tracker.announce_url not in scrapable
+
+    tracker.clear_backoff()
+    session.commit()
+
+    scrapable = gather_scrapable_torrents()
+    assert tracker.announce_url in scrapable
 
 
 @pytest.mark.asyncio
