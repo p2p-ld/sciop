@@ -70,6 +70,12 @@ class Tracker(TrackerBase, TableMixin, table=True):
     error_type: Optional[ScrapeErrorType] = Field(default=None)
     next_scrape_after: Optional[UTCDateTime] = Field(default=None)
 
+    def clear_backoff(self) -> None:
+        """Reset a tracker's error count to 0 and clear the backoff delay"""
+        self.n_errors = 0
+        self.error_type = None
+        self.next_scrape_after = None
+
 
 class TrackerCreate(SQLModel):
     announce_url: MaxLenURL = Field(description="Tracker announce url")

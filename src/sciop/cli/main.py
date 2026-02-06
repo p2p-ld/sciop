@@ -5,6 +5,7 @@ from sciop.cli.docs import docs
 from sciop.cli.generate import generate
 from sciop.cli.maintain import maintain
 from sciop.cli.start import start
+from sciop.cli.trackers import trackers
 
 
 @click.group(name="sciop")
@@ -23,3 +24,4 @@ main.add_command(docs, "docs")
 main.add_command(generate, "generate")
 main.add_command(start, "start")
 main.add_command(maintain, "maintain")
+main.add_command(trackers, "trackers")
