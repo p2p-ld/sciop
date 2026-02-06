@@ -18,7 +18,10 @@ def write_a_file_sleepy(tmp_path: Path, name: str = None) -> None:
     if name is None:
         name = "EVENT_" + "".join(random.sample(string.ascii_uppercase, 10))
 
-    time.sleep(1)
-    print(name)
     with open(Path(tmp_path) / name, "w") as f:
         f.write(name)
+        f.write("\n" + str(time.time()))
+    time.sleep(0.1)
+    print(name)
+    with open(Path(tmp_path) / name, "a") as f:
+        f.write("\n" + str(time.time()))
