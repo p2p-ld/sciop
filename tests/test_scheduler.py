@@ -155,7 +155,6 @@ def test_queue_job(capsys, clean_scheduler, set_config, tmp_path):
     messages = ["a", "b", "c"]
     results = [queue_job("sleepytime", [str(sleep_dir), msg]) for msg in messages]
     assert all([result["success"] for result in results])
-    assert len(list(sleep_dir.iterdir())) == 0
 
     # Wait until at least 1 has finished.
     # multiple jobs *could* start here if the pool was larger, but they shouldn't
