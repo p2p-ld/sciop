@@ -134,6 +134,34 @@ def test_gather_scrapable_torrents(torrentfile, session):
     assert not any([k.startswith("wss") for k in scrapable])
 
 
+def test_no_gather_removed_torrents(torrentfile, upload, dataset, session, admin_user):
+    """
+    We should not try and scrape removed torrents
+    """
+    tracker = "udp://example.com"
+    ds = dataset()
+    tf1 = torrentfile(extra_trackers=[tracker])
+    tf2 = torrentfile(extra_trackers=[tracker])
+
+    ul1 = upload(dataset_=ds, torrentfile_=tf1, is_approved=True, is_removed=False)
+    ul2 = upload(dataset_=ds, torrentfile_=tf2, is_approved=True, is_removed=False)
+    ul1_infohash = ul1.torrent.v1_infohash
+    ul2_infohash = ul2.torrent.v1_infohash
+
+    gathered_1 = gather_scrapable_torrents()
+
+    ul1.remove(account=admin_user, session=session)
+
+    gathered_2 = gather_scrapable_torrents()
+
+    assert len(gathered_1[tracker]) == 2
+    assert ul1_infohash in gathered_1[tracker]
+    assert ul2_infohash in gathered_1[tracker]
+    assert len(gathered_2[tracker]) == 1
+    assert ul1_infohash not in gathered_2[tracker]
+    assert ul2_infohash in gathered_2[tracker]
+
+
 @pytest.mark.asyncio
 async def test_scrape_torrent_stats(
     torrentfile, session, unused_udp_port_factory, tracker_factory, httpx_mock

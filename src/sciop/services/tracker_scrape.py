@@ -663,17 +663,19 @@ def gather_scrapable_torrents() -> dict[str, list[str]]:
     Gather scrapable torrents as a {"announce_url": ["infohash", ...]} dict.
     """
     from sciop.db import get_session
-    from sciop.models import TorrentFile, TorrentTrackerLink, Tracker
+    from sciop.models import TorrentFile, TorrentTrackerLink, Tracker, Upload
 
     last_scrape_time = datetime.now(UTC) - timedelta(
         minutes=get_config().services.tracker_scraping.interval
     )
     statement = (
         select(TorrentFile.v1_infohash, TorrentFile.v2_infohash, Tracker.announce_url)
+        .join(TorrentFile.upload)
         .join(TorrentFile.tracker_links)
         .join(TorrentTrackerLink.tracker)
         .filter(
             Tracker.protocol.in_(("udp", "http", "https")),
+            Upload.is_removed == False,
             sqla.and_(
                 sqla.or_(
                     TorrentTrackerLink.last_scraped_at == None,  # noqa: E711
