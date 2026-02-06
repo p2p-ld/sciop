@@ -336,14 +336,12 @@ class UDPTrackerClient:
                 f"response_id: {resp_id}\n",
                 f"request_id: {tid}",
             )
-        self.logger.debug(
-            f"""RESPONSE from {self.ip}:{self.port}:
+        self.logger.debug(f"""RESPONSE from {self.ip}:{self.port}:
                 Action:         {resp_action}
                 Transaction ID: {resp_id}
                 Connection ID:  {connection_id}
                 Tracker URL:    {self.host}
-                """
-        )
+                """)
         return connection_id
 
     async def announce_to_tracker(self) -> None:

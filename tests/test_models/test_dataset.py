@@ -61,12 +61,10 @@ def test_dataset_description_html_rendering(dataset, session):
     """
     Dataset descriptions are rendered to html
     """
-    description = dedent(
-        """\
+    description = dedent("""\
             * I can haz
             * markdown lists
-        """
-    )
+        """)
     ds: Dataset = dataset(description=description)
     assert ds.description == description
     assert (
@@ -109,12 +107,10 @@ def test_dataset_part_description_html_rendering(dataset, session):
     """
     Dataset Part descriptions are rendered to html
     """
-    description = dedent(
-        """\
+    description = dedent("""\
             * I can haz
             * markdown lists
-        """
-    )
+        """)
     ds: Dataset = dataset(parts=[DatasetPart(part_slug="asdf", description=description)])
     part = ds.parts[0]
     assert part.description == description

@@ -59,11 +59,9 @@ def cli_config(ctx: click.Context, config: Path | None = None) -> None:
 
         panels.append(
             Panel(
-                Markdown(
-                    f"""```yaml
+                Markdown(f"""```yaml
 {no_def_yaml}
-```"""
-                ),
+```"""),
                 title=config_file,
             )
         )
@@ -71,11 +69,9 @@ def cli_config(ctx: click.Context, config: Path | None = None) -> None:
     def_yaml = pyyaml.safe_dump(defaults, sort_keys=True, default_flow_style=False, indent=2)
     panels.append(
         Panel(
-            Markdown(
-                f"""```yaml
+            Markdown(f"""```yaml
 {def_yaml}
-```"""
-            ),
+```"""),
             title="Defaults",
         )
     )
