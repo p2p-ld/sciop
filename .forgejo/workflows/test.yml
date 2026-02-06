@@ -32,11 +32,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
       - name: Install deps
-        run: pip install -e .[test]
+        run: |
+          python -m pip install pdm
+          pdm install --with test
       - name: Run tests
         run: |
           mkdir $HOME/tmp
-          pytest -m "not playwright"
+          pdm run test -m "not playwright"
 
   test-playwright:
     name: tests-playwright-python${{ matrix.python-version }}
@@ -58,16 +60,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
       - name: Install deps
-        run: pip install -e .[test]
+        run: |
+          python -m pip install pdm
+          pdm install --with test
       - name: Install firefox
 #        run: playwright install firefox
         run: |
-          playwright install-deps
-          playwright install firefox
+          pdm run playwright install-deps
+          pdm run playwright install firefox
       - name: Run tests
         run: |
           mkdir $HOME/tmp
-          pytest -m "playwright"
+          pdm run test -m "playwright"
 
   test-slow:
     name: tests-slow
@@ -81,8 +85,10 @@ jobs:
           python-version: "3.13"
           cache: 'pip'
       - name: Install deps
-        run: pip install -e .[test,docs]
+        run: |
+          python -m pip install pdm
+          pdm install
       - name: Run tests
         run: |
           mkdir $HOME/tmp
-          pytest --with-slow --with-docs -m "slow or docs"
+          pdm run test --with-slow --with-docs -m "slow or docs"

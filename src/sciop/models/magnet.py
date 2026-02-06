@@ -1,5 +1,5 @@
 import re
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Union, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Self, Union, cast
 from urllib.parse import parse_qs, quote_plus, urlencode, urlparse
 
 from pydantic import (
@@ -184,10 +184,9 @@ class MagnetLink(BaseModel):
         return val
 
     @model_validator(mode="after")
-    @classmethod
-    def v1_or_v2_infohash(cls, value: "MagnetLink") -> "MagnetLink":
+    def v1_or_v2_infohash(self) -> Self:
         """Should have either the v1 or v2 infohash"""
         assert (
-            value.v1_infohash is not None or value.v2_infohash is not None
+            self.v1_infohash is not None or self.v2_infohash is not None
         ), "Either the v1 or v2 infohash must be present"
-        return value
+        return self

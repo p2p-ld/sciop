@@ -151,9 +151,7 @@ def downgrade() -> None:
     )
 
     conn = op.get_bind()
-    tracker_res = conn.execute(
-        sa.text(
-            """
+    tracker_res = conn.execute(sa.text("""
         SELECT 
           torrent_tracker_links.torrent_file_id, 
           trackers.announce_url, 
@@ -161,9 +159,7 @@ def downgrade() -> None:
           torrent_tracker_links.updated_at 
         FROM torrent_tracker_links
         INNER JOIN trackers ON torrent_tracker_links.tracker_id = trackers.tracker_id
-        """
-        )
-    )
+        """))
     trackers = tracker_res.fetchall()
     op.bulk_insert(
         TrackerInTorrent,

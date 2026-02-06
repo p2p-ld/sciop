@@ -81,8 +81,7 @@ def test_config_set_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     Setting a config value from the cli roundtrips any formatting in the file as well
     """
     monkeypatch.chdir(tmp_path)
-    cfg = dedent(
-        """
+    cfg = dedent("""
     # making a very informative comment
     env: dev
     db: ./test.sqlite
@@ -91,8 +90,7 @@ def test_config_set_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     # logging config
     logs:
       level: DEBUG
-    """
-    )
+    """)
     with open(tmp_path / "sciop.yaml", "w") as f:
         f.write(cfg)
 
@@ -102,8 +100,7 @@ def test_config_set_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     with open(tmp_path / "sciop.yaml") as f:
         cfg = f.read()
 
-    expected = dedent(
-        """    # making a very informative comment
+    expected = dedent("""    # making a very informative comment
     env: dev
     db: ./test.sqlite
     root_user: newtest
@@ -111,8 +108,7 @@ def test_config_set_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     # logging config
     logs:
       level: INFO
-    """
-    )
+    """)
     assert cfg == expected
 
 

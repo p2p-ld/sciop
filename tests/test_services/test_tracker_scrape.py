@@ -103,7 +103,7 @@ async def test_scrape_autoid(tracker):
     assert len(proto.connids) == 2
 
 
-def test_gather_scrapable_torrents(torrentfile, session):
+def test_gather_scrapable_torrents(torrentfile, upload, dataset, session):
     """
     We should update only torrents that we haven't scraped recently,
     and whose trackers aren't unresponsive
@@ -114,8 +114,14 @@ def test_gather_scrapable_torrents(torrentfile, session):
     extra = "udp://ex.tra"
     not_recent = "udp://not.recent"
 
+    ds = dataset()
+
     torrent: TorrentFile = torrentfile(extra_trackers=[recent, unresponsive, extra, not_recent])
     v1_only = torrentfile(v2_infohash=None, extra_trackers=[extra])
+
+    # make uploads that are approved so they don't get filtered
+    ul1 = upload(dataset_=ds, torrentfile_=torrent, is_approved=True, is_removed=False)
+    ul2 = upload(dataset_=ds, torrentfile_=v1_only, is_approved=True, is_removed=False)
 
     torrent.tracker_links_map[recent].last_scraped_at = datetime.now(UTC)
     torrent.tracker_links_map[unresponsive].tracker.next_scrape_after = datetime.now(
@@ -134,9 +140,37 @@ def test_gather_scrapable_torrents(torrentfile, session):
     assert not any([k.startswith("wss") for k in scrapable])
 
 
+def test_no_gather_removed_torrents(torrentfile, upload, dataset, session, admin_user):
+    """
+    We should not try and scrape removed torrents
+    """
+    tracker = "udp://example.com"
+    ds = dataset()
+    tf1 = torrentfile(extra_trackers=[tracker])
+    tf2 = torrentfile(extra_trackers=[tracker])
+
+    ul1 = upload(dataset_=ds, torrentfile_=tf1, is_approved=True, is_removed=False)
+    ul2 = upload(dataset_=ds, torrentfile_=tf2, is_approved=True, is_removed=False)
+    ul1_infohash = ul1.torrent.v1_infohash
+    ul2_infohash = ul2.torrent.v1_infohash
+
+    gathered_1 = gather_scrapable_torrents()
+
+    ul1.remove(account=admin_user, session=session)
+
+    gathered_2 = gather_scrapable_torrents()
+
+    assert len(gathered_1[tracker]) == 2
+    assert ul1_infohash in gathered_1[tracker]
+    assert ul2_infohash in gathered_1[tracker]
+    assert len(gathered_2[tracker]) == 1
+    assert ul1_infohash not in gathered_2[tracker]
+    assert ul2_infohash in gathered_2[tracker]
+
+
 @pytest.mark.asyncio
 async def test_scrape_torrent_stats(
-    torrentfile, session, unused_udp_port_factory, tracker_factory, httpx_mock
+    torrentfile, dataset, upload, session, unused_udp_port_factory, tracker_factory, httpx_mock
 ):
     ports = [unused_udp_port_factory(), unused_udp_port_factory()]
     trackers = [
@@ -148,6 +182,11 @@ async def test_scrape_torrent_stats(
     a: TorrentFile = torrentfile(announce_urls=trackers)
     b: TorrentFile = torrentfile(announce_urls=trackers)
     c: TorrentFile = torrentfile(announce_urls=trackers)
+
+    ds = dataset()
+    upload(dataset_=ds, torrentfile_=a, is_approved=True, is_removed=False)
+    upload(dataset_=ds, torrentfile_=b, is_approved=True, is_removed=False)
+    upload(dataset_=ds, torrentfile_=c, is_approved=True, is_removed=False)
 
     ta, _ = tracker_factory(port=ports[0])
     tb, _ = tracker_factory(port=ports[1])

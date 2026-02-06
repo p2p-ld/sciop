@@ -160,24 +160,29 @@ def test_queue_job(capsys, clean_scheduler, set_config, tmp_path):
     # Wait until at least 1 has finished.
     # multiple jobs *could* start here if the pool was larger, but they shouldn't
     # that's what we're testing lol
-
-    evt1 = client.await_event(EVENT_JOB_EXECUTED, 10)
-
-    assert len(list(sleep_dir.iterdir())) == 1
-
-    evt2 = client.await_event(EVENT_JOB_EXECUTED, 1)
-
-    assert len(list(sleep_dir.iterdir())) == 2
-
-    evt3 = client.await_event(EVENT_JOB_EXECUTED, 1)
+    client.await_event(EVENT_JOB_EXECUTED, 1)
+    client.await_event(EVENT_JOB_EXECUTED, 1)
+    client.await_event(EVENT_JOB_EXECUTED, 1)
+    assert len(list(sleep_dir.iterdir())) == 3
 
     # since they ran in sequence, theoretically, even though pools are unordered,
     # the results should be ordered
-    ordered_ids = [evt["job_id"] for evt in [evt1, evt2, evt3]]
-    expected_order = [
-        res["job"]["id"] for res in sorted(results, key=lambda x: x["job"]["args"][0])
+    # event file are the event name, the start timestamp, and the stop timestamp
+    event_files = [path.read_text().splitlines() for path in sleep_dir.iterdir()]
+    events = [
+        {"name": lines[0], "start": float(lines[1]), "end": float(lines[2])}
+        for lines in event_files
     ]
-    assert ordered_ids == expected_order
+    # order by expected name and then assert timestamps
+    events = sorted(events, key=lambda x: x["name"])
+    starts = [e["start"] for e in events]
+    ends = [e["end"] for e in events]
+
+    # they happened in order, and they ran sequentially
+    assert sorted(starts) == starts
+    assert sorted(ends) == ends
+    assert starts[1] > ends[0]
+    assert starts[2] > ends[1]
 
 
 def test_no_unauthed_rpc_access(clean_scheduler, set_config):

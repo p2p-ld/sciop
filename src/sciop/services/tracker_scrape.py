@@ -336,14 +336,12 @@ class UDPTrackerClient:
                 f"response_id: {resp_id}\n",
                 f"request_id: {tid}",
             )
-        self.logger.debug(
-            f"""RESPONSE from {self.ip}:{self.port}:
+        self.logger.debug(f"""RESPONSE from {self.ip}:{self.port}:
                 Action:         {resp_action}
                 Transaction ID: {resp_id}
                 Connection ID:  {connection_id}
                 Tracker URL:    {self.host}
-                """
-        )
+                """)
         return connection_id
 
     async def announce_to_tracker(self) -> None:
@@ -663,17 +661,19 @@ def gather_scrapable_torrents() -> dict[str, list[str]]:
     Gather scrapable torrents as a {"announce_url": ["infohash", ...]} dict.
     """
     from sciop.db import get_session
-    from sciop.models import TorrentFile, TorrentTrackerLink, Tracker
+    from sciop.models import TorrentFile, TorrentTrackerLink, Tracker, Upload
 
     last_scrape_time = datetime.now(UTC) - timedelta(
         minutes=get_config().services.tracker_scraping.interval
     )
     statement = (
         select(TorrentFile.v1_infohash, TorrentFile.v2_infohash, Tracker.announce_url)
+        .join(TorrentFile.upload)
         .join(TorrentFile.tracker_links)
         .join(TorrentTrackerLink.tracker)
         .filter(
             Tracker.protocol.in_(("udp", "http", "https")),
+            Upload.is_removed == False,
             sqla.and_(
                 sqla.or_(
                     TorrentTrackerLink.last_scraped_at == None,  # noqa: E711

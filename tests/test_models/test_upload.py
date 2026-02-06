@@ -52,10 +52,8 @@ def test_upload_description_html_rendering(upload, session):
     """
     Dataset descriptions are rendered to html
     """
-    description = dedent(
-        """## I am a heading
-        """
-    )
+    description = dedent("""## I am a heading
+        """)
     ul: Upload = upload(description=description)
     assert ul.description == description
     assert ul.description_html == '<div class="markdown"><h2>I am a heading</h2></div>'
@@ -72,10 +70,8 @@ def test_upload_method_html_rendering(upload, session):
     """
     Dataset descriptions are rendered to html
     """
-    method = dedent(
-        """**This is important**
-        """
-    )
+    method = dedent("""**This is important**
+        """)
     ul: Upload = upload(method=method)
     assert ul.method == method
     assert ul.method_html == '<div class="markdown"><p><strong>This is important</strong></p></div>'

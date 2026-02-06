@@ -300,21 +300,18 @@ class Scopes(StrEnum):
     )
     review: Annotated[
         str,
-        doc(
-            """
+        doc("""
             Base moderator permissions. Reviewers can
             
                 - See unapproved datasets, uploads, webseeds, and other items\n
                 - Approve or deny pending items\n
                 - Resolve reports, hiding or removing items\n
                 - Edit items that do not belong to them
-            """
-        ),
+            """),
     ] = "review"
     admin: Annotated[
         str,
-        doc(
-            """
+        doc("""
             Administrate the instance. 
             Admin accounts have all other scopes except root, and are additionally able to 
             
@@ -322,13 +319,11 @@ class Scopes(StrEnum):
                 - Grant and remove permission scopes *except* for admin and root
                 - Resolve reports against accounts by suspending them
                 - View the audit log of moderation actions
-            """
-        ),
+            """),
     ] = "admin"
     root: Annotated[
         str,
-        doc(
-            """
+        doc("""
             All permissions.
             Separating "root" from "admin" is intended to make `admin` easier to grant,
             where admins are limited from staging a coup and demoting other admins.
@@ -338,8 +333,7 @@ class Scopes(StrEnum):
            
                 - Create new `admin` accounts
                 - Suspend `admin` accounts
-            """
-        ),
+            """),
     ] = "root"
 
 

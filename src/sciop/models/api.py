@@ -9,7 +9,7 @@ from fastapi_pagination import Page
 from fastapi_pagination.bases import RawParams
 from fastapi_pagination.customization import CustomizedPage, UseParams
 from fastapi_pagination.default import Params
-from pydantic import AfterValidator, BaseModel, Field, GetCoreSchemaHandler, field_validator
+from pydantic import BaseModel, Field, GetCoreSchemaHandler, field_validator
 from pydantic_core import CoreSchema, core_schema
 from sqlalchemy import Select
 from starlette.datastructures import QueryParams
@@ -81,13 +81,6 @@ SortStrType = Annotated[
 ]
 
 
-def _remove_none(value: list[SortStrType]) -> list[SortStrType]:
-    return [v for v in value if v and v is not None and not isinstance(v, RemoveSort)]
-
-
-SortParamsType = Annotated[list[SortStrType], AfterValidator(_remove_none)]
-
-
 class SearchParams(Params):
     """Model for query parameters in a searchable"""
 
@@ -95,7 +88,7 @@ class SearchParams(Params):
 
     query: Optional[str] = Query(None)
     """The search query!"""
-    sort: SortParamsType = Query(
+    sort: list[SortStrType] = Query(
         default_factory=list,
         description="""
         Columns to sort by
@@ -111,8 +104,23 @@ class SearchParams(Params):
 
     @field_validator("sort", mode="before")
     @classmethod
-    def str_to_list(cls, val: str | list[str]) -> list[str]:
+    def str_to_list(cls, val: str | list[Any]) -> list[Any]:
         return val if isinstance(val, list) else [val]
+
+    @field_validator("sort", mode="before")
+    @classmethod
+    def remove_none(cls, value: list[str]) -> list[str]:
+        return [v for v in value if v and v is not None]
+
+    @field_validator("sort", mode="after")
+    @classmethod
+    def remove_removable(cls, value: list[SortStrType]) -> list[SortStrType]:
+        """
+        Yes, we have to do this twice, first to remove explicit Nones,
+        and now to remove Nones that are typed as strings that should be removed
+        (see `RemoveSort.match`)
+        """
+        return [v for v in value if v and not isinstance(v, RemoveSort)]
 
     def should_redirect(self) -> bool:
         """Whether we have query parameters that should be included in HX-Replace-Url"""

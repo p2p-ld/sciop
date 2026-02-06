@@ -25,51 +25,41 @@ bs = partial(BeautifulSoup, features="html.parser")
         ("<h4>Heading 4</h4>", "<h4>Heading 4</h4>"),
         ("<h5>Heading 5</h5>", "<p>Heading 5</p>"),
         (
-            dedent(
-                """\
+            dedent("""\
                     | Header 1 | Header 2 |
                     |----------|----------|
                     | Cell 1   | Cell 2   |
-                """
-            ),
-            bs(
-                """
+                """),
+            bs("""
                 <table>
                 <thead><tr> <th>Header 1 </th> <th>Header 2 </th></tr> </thead>
                 <tbody><tr> <td>Cell 1 </td> <td>Cell 2 </td></tr> </tbody>
                 </table>
-                """
-            ),
+                """),
         ),
         (
-            dedent(
-                """\
+            dedent("""\
                     * foo
                     * bar
-                """
-            ),
+                """),
             bs("<ul><li>foo</li><li>bar</li></ul>"),
         ),
         (
-            dedent(
-                """\
+            dedent("""\
                 ```
                 def hello():
                     print("Hello, World!")
                 ```
-                """
-            ),
+                """),
             "<pre><code>def hello():\n    print(&quot;Hello, World!&quot;)\n</code></pre>",
         ),
         (
-            dedent(
-                """\
+            dedent("""\
                 ```python
                 def hello():
                     print("Hello, World!")
                 ```
-                """
-            ),
+                """),
             bs(
                 '<div class="highlight">'
                 '<pre><span></span><span class="k">def</span><span class="w"> </span>'
@@ -80,26 +70,21 @@ bs = partial(BeautifulSoup, features="html.parser")
             ),
         ),
         (
-            dedent(
-                """\
+            dedent("""\
                     <details>
                     <summary>Blueprints</summary>
                     <p>Here are all the blueprints</p>
                     </details>
-                """
-            ),
-            bs(
-                """\
+                """),
+            bs("""\
                     <details>
                     <summary>Blueprints</summary>
                     <p>Here are all the blueprints</p>
                     </details>
-                """
-            ),
+                """),
         ),
         (
-            dedent(
-                """\
+            dedent("""\
                     This is a *markdown* description
                     
                     And it does markdown things
@@ -114,8 +99,7 @@ bs = partial(BeautifulSoup, features="html.parser")
                     ```
                     
                     </details>
-                """
-            ),
+                """),
             bs(
                 "<p>This is a <em>markdown</em> description</p>"
                 "<p>And it does markdown things</p>"
@@ -130,15 +114,13 @@ bs = partial(BeautifulSoup, features="html.parser")
             ),
         ),
         (
-            dedent(
-                """
+            dedent("""
                 Other text
                 
                 > I am quoting something here
                 
                 And not here
-                """
-            ),
+                """),
             bs(
                 "<p>Other text</p>"
                 "<blockquote>I am quoting something here</blockquote>"
@@ -146,8 +128,7 @@ bs = partial(BeautifulSoup, features="html.parser")
             ),
         ),
         (
-            dedent(
-                """
+            dedent("""
                     Other text
             
                     > I am quoting something here
@@ -157,8 +138,7 @@ bs = partial(BeautifulSoup, features="html.parser")
                     > and that one had whitespace
             
                     And not here
-                    """
-            ),
+                    """),
             bs(
                 "<p>Other text</p>"
                 "<blockquote>I am quoting something here"

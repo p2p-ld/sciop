@@ -173,33 +173,25 @@ class SearchableMixin(SQLModel):
         new_names = ", ".join([f"new.{cname}" for cname in _cnames])
         old_names = ", ".join([f"old.{cname}" for cname in _cnames])
         # ruff: noqa: E501
-        create_stmt = text(
-            f"""
+        create_stmt = text(f"""
             CREATE VIRTUAL TABLE {table_name} USING fts5({col_names}, content={target.name}, content_rowid={cls.primary_key_column()}, tokenize='trigram');
-            """
-        )
-        trigger_insert = text(
-            f"""  
+            """)
+        trigger_insert = text(f"""  
             CREATE TRIGGER {table_name}_ai AFTER INSERT ON {target.name} BEGIN
               INSERT INTO {table_name}(rowid, {', '.join(cls.__searchable__)}) VALUES ({new_names});
             END;
-            """  # noqa: S608 - confirmed no sqli
-        )
-        trigger_delete = text(
-            f"""
+            """)  # noqa: S608 - confirmed no sqli
+        trigger_delete = text(f"""
             CREATE TRIGGER {table_name}_ad AFTER DELETE ON {target.name} BEGIN
               INSERT INTO {table_name}({table_name}, rowid, {col_names}) VALUES('delete', {old_names});
             END;
-            """
-        )
-        trigger_update = text(
-            f"""
+            """)
+        trigger_update = text(f"""
             CREATE TRIGGER {table_name}_au AFTER UPDATE ON {target.name} BEGIN
               INSERT INTO {table_name}({table_name}, rowid, {col_names}) VALUES('delete', {old_names});
               INSERT INTO {table_name}(rowid, {col_names}) VALUES ({new_names});
             END;
-            """  # noqa: S608 - confirmed no sqli
-        )
+            """)  # noqa: S608 - confirmed no sqli
         try:
             connection.execute(create_stmt)
         except OperationalError as e:
