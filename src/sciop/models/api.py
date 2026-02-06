@@ -104,13 +104,23 @@ class SearchParams(Params):
 
     @field_validator("sort", mode="before")
     @classmethod
-    def str_to_list(cls, val: str | list[str]) -> list[str]:
+    def str_to_list(cls, val: str | list[Any]) -> list[Any]:
         return val if isinstance(val, list) else [val]
+
+    @field_validator("sort", mode="before")
+    @classmethod
+    def remove_none(cls, value: list[str]) -> list[str]:
+        return [v for v in value if v and v is not None]
 
     @field_validator("sort", mode="after")
     @classmethod
-    def remove_none(cls, value: list[SortStrType]) -> list[SortStrType]:
-        return [v for v in value if v and v is not None and not isinstance(v, RemoveSort)]
+    def remove_removable(cls, value: list[SortStrType]) -> list[SortStrType]:
+        """
+        Yes, we have to do this twice, first to remove explicit Nones,
+        and now to remove Nones that are typed as strings that should be removed
+        (see `RemoveSort.match`)
+        """
+        return [v for v in value if v and not isinstance(v, RemoveSort)]
 
     def should_redirect(self) -> bool:
         """Whether we have query parameters that should be included in HX-Replace-Url"""
