@@ -4,7 +4,7 @@ from pydantic import ValidationError
 from sqlmodel import select
 
 from sciop.models import Account, AccountCreate
-from sciop.types import Scopes
+from sciop.types import AccountScopes
 
 
 @pytest.mark.parametrize(
@@ -79,7 +79,7 @@ def test_has_scope_expression(
     assert sorted(matches, key=lambda x: x.username) == sorted(expected, key=lambda x: x.username)
 
 
-@pytest.mark.parametrize("scope", ["root", "admin", Scopes.root, Scopes.admin])
+@pytest.mark.parametrize("scope", ["root", "admin", AccountScopes.root, AccountScopes.admin])
 def test_has_scope_protected_scopes(scope, admin_user):
     """
     Protected scopes root and admin can only ever be used by themselves in a scope check
@@ -88,11 +88,11 @@ def test_has_scope_protected_scopes(scope, admin_user):
         _ = admin_user.has_scope(scope, "upload")
 
 
-@pytest.mark.parametrize("scope", ["review", Scopes.review])
+@pytest.mark.parametrize("scope", ["review", AccountScopes.review])
 def test_has_scope_from_enum(admin_user, scope):
     """Scope checks should accept strings and enum values"""
     assert admin_user.has_scope(scope)
-    assert admin_user.has_scope(scope, Scopes.upload)
+    assert admin_user.has_scope(scope, AccountScopes.upload)
     assert admin_user.has_scope(scope, "upload")
 
 
@@ -106,8 +106,8 @@ def test_username_uniqueness_case_insensitive(account):
     "source_scopes,target_scopes,expected",
     [
         ([], [], False),
-        *[([], [t_scope], False) for t_scope in Scopes.__members__],
-        *[([s_scope], [], s_scope in ("admin", "root")) for s_scope in Scopes.__members__],
+        *[([], [t_scope], False) for t_scope in AccountScopes.__members__],
+        *[([s_scope], [], s_scope in ("admin", "root")) for s_scope in AccountScopes.__members__],
         (["admin"], ["admin"], False),
         (["admin"], ["review"], True),
         (["root"], ["admin"], True),

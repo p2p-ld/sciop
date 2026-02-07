@@ -26,7 +26,7 @@ from sciop.models import (
     TokenPayload,
     Upload,
 )
-from sciop.types import AccountScopes, ItemScopes, Scopes
+from sciop.types import AccountScopes, ItemScopes
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 
@@ -382,7 +382,7 @@ def require_tag(tag: str, session: SessionDep) -> Tag:
 RequireTag = Annotated[Tag, Depends(require_tag)]
 
 
-def valid_account_scope(scope_name: str | AccountScopes) -> Scopes:
+def valid_account_scope(scope_name: str | AccountScopes) -> AccountScopes:
     try:
         scope = getattr(AccountScopes, scope_name)
     except AttributeError:
@@ -393,7 +393,7 @@ def valid_account_scope(scope_name: str | AccountScopes) -> Scopes:
     return scope
 
 
-def valid_item_scope(scope_name: str | ItemScopes) -> Scopes:
+def valid_item_scope(scope_name: str | ItemScopes) -> AccountScopes:
     try:
         scope = getattr(ItemScopes, scope_name)
     except AttributeError:
@@ -404,8 +404,8 @@ def valid_item_scope(scope_name: str | ItemScopes) -> Scopes:
     return scope
 
 
-ValidAccountScope = Annotated[Scopes, Depends(valid_account_scope)]
-ValidItemScope = Annotated[Scopes, Depends(valid_item_scope)]
+ValidAccountScope = Annotated[AccountScopes, Depends(valid_account_scope)]
+ValidItemScope = Annotated[ItemScopes, Depends(valid_item_scope)]
 
 
 def add_htmx_response_trigger(request: Request, response: Response) -> Response:

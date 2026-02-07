@@ -204,7 +204,7 @@ table {
   }
 }
 
-.table-head, .accounts-table > .account-scopes-row,
+.table-head, .account-scopes-row,
 .collapsible-summary {
   display: grid;
   grid-template-columns: var(--item-cols);

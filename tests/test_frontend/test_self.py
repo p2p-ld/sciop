@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from playwright.async_api import Page, expect
 
 from sciop.models import Account, AuditLog, DatasetPart, Webseed
-from sciop.types import ModerationAction, Scopes
+from sciop.types import AccountScopes, ModerationAction
 
 
 @pytest.mark.playwright
@@ -56,7 +56,7 @@ def test_audit_log_entries(
             actor=admin_user,
             action=ModerationAction.add_scope,
             target_account=rando,
-            value=Scopes.submit,
+            value=AccountScopes.submit,
         ),
     ]
     for e in entries:

@@ -29,7 +29,7 @@ from sciop.models import (
     Upload,
     UploadCreate,
 )
-from sciop.types import Scopes
+from sciop.types import AccountScopes
 
 fake = Faker()
 P = ParamSpec("P")
@@ -111,7 +111,7 @@ def default_torrent() -> dict:
 
 def make_account(
     session_: Session,
-    scopes: list[Scopes] = None,
+    scopes: list[AccountScopes] = None,
     is_suspended: bool = False,
     create_only: bool = False,
     **kwargs: P.kwargs,

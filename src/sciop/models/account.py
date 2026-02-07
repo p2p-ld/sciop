@@ -16,7 +16,7 @@ from sciop.models.mixins import (
     TableMixin,
 )
 from sciop.models.scope import AccountScopeLink, ItemScopeLink, Scope
-from sciop.types import IDField, ModerationAction, Scopes, UsernameStr, UTCDateTime
+from sciop.types import AccountScopes, IDField, ModerationAction, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sciop.models import (
@@ -38,7 +38,7 @@ class AccountBase(SQLModel, FrontendMixin):
     model_config = ConfigDict(ignored_types=(hybrid_method, hybrid_property))
 
     @hybrid_method
-    def has_scope(self, *args: str | Scopes) -> bool:
+    def has_scope(self, *args: str | AccountScopes) -> bool:
         """
         Check if an account has a given scope.
 

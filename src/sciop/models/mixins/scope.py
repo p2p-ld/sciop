@@ -6,7 +6,7 @@ from sqlalchemy import ColumnElement
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 
 from sciop.models.base import SQLModel
-from sciop.types import Scopes
+from sciop.types import ItemScopes
 
 if TYPE_CHECKING:
     from sciop.models import Account
@@ -21,7 +21,7 @@ class ScopedMixin(SQLModel):
 
     @hybrid_method
     def has_scope(
-        self, *args: str | Scopes, account: Optional["Account"] = None, explicit: bool = False
+        self, *args: str | ItemScopes, account: Optional["Account"] = None, explicit: bool = False
     ) -> bool:
         """
         Check if an account has a given scope for the object.
@@ -46,7 +46,7 @@ class ScopedMixin(SQLModel):
     @has_scope.inplace.expression
     @classmethod
     def _has_scope(
-        cls, *args: str | Scopes, account: Optional["Account"] = None, explicit: bool = False
+        cls, *args: str | ItemScopes, account: Optional["Account"] = None, explicit: bool = False
     ) -> ColumnElement[bool]:
         if account is None:
             return sqla.false()
@@ -59,7 +59,9 @@ class ScopedMixin(SQLModel):
         return sqla.or_(*or_stmts)
 
     @hybrid_method
-    def can_grant_scopes(self, *args: str | Scopes, account: Optional["Account"] = None) -> bool:
+    def can_grant_scopes(
+        self, *args: str | ItemScopes, account: Optional["Account"] = None
+    ) -> bool:
         """
         Check if an account can grant the provided scopes for the object.
 
@@ -84,7 +86,7 @@ class ScopedMixin(SQLModel):
     @can_grant_scopes.inplace.expression
     @classmethod
     def _can_grant_scopes(
-        cls, *args: str | Scopes, account: Optional["Account"] = None
+        cls, *args: str | ItemScopes, account: Optional["Account"] = None
     ) -> ColumnElement[bool]:
         if account is None:
             return sqla.false()

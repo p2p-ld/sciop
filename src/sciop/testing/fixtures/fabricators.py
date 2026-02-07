@@ -32,7 +32,7 @@ from sciop.testing.fabricators import (
     make_torrentfile,
     make_upload,
 )
-from sciop.types import Scopes
+from sciop.types import AccountScopes
 
 __all__ = [
     "account",
@@ -86,9 +86,9 @@ def infohashes() -> C[[], dict[L["v1_infohash", "v2_infohash"], str]]:
 @pytest.fixture
 def account(
     session: Session,
-) -> C[Concatenate[list[Scopes] | None, bool, Session | None, bool, P], "Account"]:
+) -> C[Concatenate[list[AccountScopes] | None, bool, Session | None, bool, P], "Account"]:
     def _account_inner(
-        scopes: list[Scopes] = None,
+        scopes: list[AccountScopes] = None,
         is_suspended: bool = False,
         session_: Session | None = None,
         create_only: bool = False,
@@ -110,9 +110,9 @@ def account(
 @pytest.fixture(scope="module")
 def account_module(
     session_module: Session,
-) -> C[Concatenate[list[Scopes] | None, bool, Session | None, bool, P], "Account"]:
+) -> C[Concatenate[list[AccountScopes] | None, bool, Session | None, bool, P], "Account"]:
     def _account_inner(
-        scopes: list[Scopes] = None,
+        scopes: list[AccountScopes] = None,
         is_suspended: bool = False,
         session_: Session | None = None,
         create_only: bool = False,
@@ -134,7 +134,12 @@ def account_module(
 @pytest.fixture
 def admin_user(account: C[..., "Account"], session: Session) -> "Account":
     yield account(
-        scopes=[Scopes.admin, Scopes.upload, Scopes.review, Scopes.submit],
+        scopes=[
+            AccountScopes.admin,
+            AccountScopes.upload,
+            AccountScopes.review,
+            AccountScopes.submit,
+        ],
         username="admin",
         password="adminadmin12",
         session=session,
@@ -144,7 +149,13 @@ def admin_user(account: C[..., "Account"], session: Session) -> "Account":
 @pytest.fixture
 def root_user(account: C[..., "Account"], session: Session) -> "Account":
     yield account(
-        scopes=[Scopes.root, Scopes.admin, Scopes.upload, Scopes.review, Scopes.submit],
+        scopes=[
+            AccountScopes.root,
+            AccountScopes.admin,
+            AccountScopes.upload,
+            AccountScopes.review,
+            AccountScopes.submit,
+        ],
         username="root",
         password="rootroot1234",
         session=session,
@@ -154,7 +165,7 @@ def root_user(account: C[..., "Account"], session: Session) -> "Account":
 @pytest.fixture
 def uploader(account: C[..., "Account"], session: Session) -> Account:
     return account(
-        scopes=[Scopes.upload],
+        scopes=[AccountScopes.upload],
         session=session,
     )
 
@@ -162,7 +173,7 @@ def uploader(account: C[..., "Account"], session: Session) -> Account:
 @pytest.fixture
 def reviewer(account: C[..., "Account"], session: Session) -> Account:
     return account(
-        scopes=[Scopes.review],
+        scopes=[AccountScopes.review],
         session=session,
     )
 
@@ -210,7 +221,7 @@ def dataset_part(
         if session_ is None:
             session_ = session
         if account_ is None:
-            account_ = account(scopes=[Scopes.submit])
+            account_ = account(scopes=[AccountScopes.submit])
         if dataset_ is None:
             dataset_ = dataset(is_approved=True, session_=session, account_=account_)
         return make_dataset_part(
@@ -246,7 +257,6 @@ def dataset_module(
 
 @pytest.fixture
 def torrent(tmp_path: Path) -> C[P, Torrent]:
-
     def _torrent(**kwargs: P.kwargs) -> Torrent:
         kwargs = {**default_torrent(), **kwargs}
         if "tmp_path" not in kwargs:
@@ -287,7 +297,9 @@ def torrentfile(
         if session_ is None:
             session_ = session
         if account_ is None:
-            account_ = account(scopes=[Scopes.upload], session_=session_, username="uploader")
+            account_ = account(
+                scopes=[AccountScopes.upload], session_=session_, username="uploader"
+            )
         return make_torrentfile(
             tmp_path=tmp_path,
             torrent_=torrent,
@@ -319,7 +331,7 @@ def torrentfile_module(
             session_ = session_module
         if account_ is None:
             account_ = account_module(
-                scopes=[Scopes.upload], session_=session_, username="uploader"
+                scopes=[AccountScopes.upload], session_=session_, username="uploader"
             )
         return make_torrentfile(
             tmp_path=tmp_path,
@@ -353,7 +365,7 @@ def upload(
         if session_ is None:
             session_ = session
         if account_ is None:
-            account_ = account(scopes=[Scopes.upload], session_=session)
+            account_ = account(scopes=[AccountScopes.upload], session_=session)
         if torrentfile_ is None:
             torrentfile_ = torrentfile(account_=account_, session_=session_)
         if dataset_ is None:
@@ -383,7 +395,7 @@ def upload_module(
         if session_ is None:
             session_ = session_module
         if account_ is None:
-            account_ = account_module(scopes=[Scopes.upload], session_=session_)
+            account_ = account_module(scopes=[AccountScopes.upload], session_=session_)
         if torrentfile_ is None:
             torrentfile_ = torrentfile_module(account_=account_, session_=session_)
         if dataset_ is None:
@@ -423,7 +435,6 @@ def root_auth_header(root_token: "Token") -> dict[L["Authorization"], str]:
 
 @pytest.fixture
 def get_auth_header(session: Session) -> C[[str, str], dict[L["Authorization"], str]]:
-
     def _get_auth_header(
         username: str = "default", password: str = "averystrongpassword123"
     ) -> dict[L["Authorization"], str]:
@@ -450,12 +461,12 @@ def default_db(
     torrentfile: C[..., TorrentFile],
 ) -> tuple[Account, Account, TorrentFile, Dataset, Upload]:
     admin = account(
-        scopes=[Scopes.admin, Scopes.upload, Scopes.review],
+        scopes=[AccountScopes.admin, AccountScopes.upload, AccountScopes.review],
         session_=session,
         username="admin",
         password="adminadmin12",
     )
-    uploader = account(scopes=[Scopes.upload], session_=session, username="uploader")
+    uploader = account(scopes=[AccountScopes.upload], session_=session, username="uploader")
     torrent = torrent()
     tfile = torrentfile(account_=uploader, session_=session, torrent=torrent)
     dataset_ = dataset(is_approved=True, session_=session)
