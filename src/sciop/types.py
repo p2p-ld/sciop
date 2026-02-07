@@ -21,9 +21,9 @@ USERNAME_PATTERN = re.compile(r"^[\w-]+$")
 
 
 def _validate_username(username: str) -> str:
-    assert USERNAME_PATTERN.fullmatch(username), (
-        f"{username} is not a valid username, must match {USERNAME_PATTERN.pattern}"
-    )
+    assert USERNAME_PATTERN.fullmatch(
+        username
+    ), f"{username} is not a valid username, must match {USERNAME_PATTERN.pattern}"
     return username
 
 

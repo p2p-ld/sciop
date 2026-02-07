@@ -6,11 +6,11 @@ import pytest
 from sqlmodel import Field, Session, select
 
 from sciop.models import (
-    ItemScopeLink,
     Dataset,
     DatasetPart,
     DatasetTagLink,
     DatasetURL,
+    ItemScopeLink,
     Scope,
     Tag,
 )

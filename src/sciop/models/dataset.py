@@ -2,6 +2,7 @@ import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Optional, Self, Union, cast
 
+import sqlalchemy as sqla
 from annotated_types import MaxLen
 from pydantic import BaseModel, TypeAdapter, computed_field, field_validator, model_validator
 from sqlalchemy import ColumnElement, SQLColumnExpression, event
