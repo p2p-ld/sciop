@@ -5,10 +5,10 @@
 groups = ["default", "dev", "docs", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:5b5e7713dc6e1c58410ff066e939fbb8697cc2fa4bfdf5922a797969b68d7c4b"
+content_hash = "sha256:b1be12541496a63be885c2fd6a24b46e8b0385119299dd12d0a4c09397923653"
 
 [[metadata.targets]]
-requires_python = ">=3.11,<3.14"
+requires_python = ">=3.11"
 
 [[package]]
 name = "aiodns"
@@ -303,6 +303,7 @@ version = "2.0.0"
 requires_python = ">=3.9"
 summary = "Foreign Function Interface for Python calling C code."
 groups = ["default", "dev", "docs"]
+marker = "platform_python_implementation != \"PyPy\" and sys_platform == \"linux\" or python_version < \"3.14\""
 dependencies = [
     "pycparser; implementation_name != \"PyPy\"",
 ]
@@ -1834,7 +1835,7 @@ version = "2.23"
 requires_python = ">=3.8"
 summary = "C parser in Python"
 groups = ["default", "dev", "docs"]
-marker = "implementation_name != \"PyPy\""
+marker = "platform_python_implementation != \"PyPy\" and sys_platform == \"linux\" and implementation_name != \"PyPy\" or python_version < \"3.14\" and implementation_name != \"PyPy\""
 files = [
     {file = "pycparser-2.23-py3-none-any.whl", hash = "sha256:e5c6e8d3fbad53479cab09ac03729e0a9faf2bee3db8208a550daf5af81a5934"},
     {file = "pycparser-2.23.tar.gz", hash = "sha256:78816d4f24add8f10a06d6f05b4d424ad9e96cfebf68a4ddc99c65c0720d00c2"},
