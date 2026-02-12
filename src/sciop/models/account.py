@@ -1,6 +1,6 @@
 import re
 import unicodedata
-from typing import TYPE_CHECKING, Optional, TypedDict
+from typing import TYPE_CHECKING, ClassVar, Optional, TypedDict
 
 import sqlalchemy as sqla
 from pydantic import ConfigDict, SecretStr, field_validator
@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 
 
 class AccountBase(SQLModel, FrontendMixin):
+    __name__: ClassVar[str] = "account"
+
     username: UsernameStr
 
     model_config = ConfigDict(ignored_types=(hybrid_method, hybrid_property))
