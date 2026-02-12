@@ -78,16 +78,6 @@ def upgrade() -> None:
             existing_nullable=False,
         )
 
-    with op.batch_alter_table("datasets", schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f("ix_datasets_account_id"))
-        batch_op.drop_constraint(batch_op.f("fk_datasets_account_id_accounts"), type_="foreignkey")
-        batch_op.drop_column("account_id")
-
-    with op.batch_alter_table("datasets__history", schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f("ix_datasets__history_account_id"))
-        batch_op.drop_constraint(batch_op.f("fk_datasets_account_id_accounts"), type_="foreignkey")
-        batch_op.drop_column("account_id")
-
     now = datetime.now(UTC)
     new_scopes = [
         {"scope": "edit", "created_at": now, "updated_at": now},
@@ -98,7 +88,8 @@ def upgrade() -> None:
     conn = op.get_bind()
     Scopes = sa.Table("scopes", sa.MetaData(), autoload_with=conn)
     op.bulk_insert(Scopes, new_scopes)
-    conn.execute(sa.text("""
+    conn.execute(
+        sa.text("""
             INSERT INTO item_scope_links (
                created_at, updated_at, scope_id, account_id, dataset_id
             )
@@ -111,7 +102,18 @@ def upgrade() -> None:
             FROM datasets
             JOIN scopes ON scopes.scope IN ("edit", "permissions", "delete")
             WHERE datasets.account_id IS NOT NULL
-            """))
+            """)
+    )
+
+    with op.batch_alter_table("datasets", schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f("ix_datasets_account_id"))
+        batch_op.drop_constraint(batch_op.f("fk_datasets_account_id_accounts"), type_="foreignkey")
+        batch_op.drop_column("account_id")
+
+    with op.batch_alter_table("datasets__history", schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f("ix_datasets__history_account_id"))
+        batch_op.drop_constraint(batch_op.f("fk_datasets_account_id_accounts"), type_="foreignkey")
+        batch_op.drop_column("account_id")
 
     # ### end Alembic commands ###
 
