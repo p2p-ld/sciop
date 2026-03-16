@@ -15,9 +15,12 @@ def all_optional(model: T, keep_defaults: bool = False) -> T:
     """Make all fields of a model optional"""
 
     for _field_name, field in model.__pydantic_fields__.items():
-        if not keep_defaults or field.default is PydanticUndefined:
+        if not keep_defaults or (
+            field.default is PydanticUndefined and field.default_factory is PydanticUndefined
+        ):
             field.annotation = Optional[field.annotation]
-            field.default = None
+            if field.default_factory is PydanticUndefined:
+                field.default = None
 
     if model.__pydantic_complete__:
         model.model_rebuild(force=True)
