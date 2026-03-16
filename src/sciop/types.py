@@ -231,6 +231,24 @@ class InputType(StrEnum):
     none = "none"
 
 
+class FilterType(StrEnum):
+    """How a given model field should be filtered"""
+
+    checkboxes = "checkboxes"
+    """select one of a discrete list of options"""
+    range = "range"
+    """numerical min/max range"""
+
+
+class StringDisplayType(StrEnum):
+    """How a string should be displayed"""
+
+    default = "default"
+    """Unchanged!"""
+    size = "size"
+    """As a file size"""
+
+
 ARK_PATTERN = r"^\S*ark:\S+"
 """
 Entirely incomplete pattern just to recognize ark vs not ark

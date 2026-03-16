@@ -24,6 +24,8 @@ from sciop.models import (
 from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixins import (
     EditableMixin,
+    FilterableCol,
+    FilterMixin,
     FrontendMixin,
     ModerableMixin,
     SearchableMixin,
@@ -34,7 +36,7 @@ from sciop.models.mixins import (
     all_optional,
 )
 from sciop.services.markdown import render_db_fields_to_html
-from sciop.types import FileName, IDField, InputType, SlugStr, UsernameStr, UTCDateTime
+from sciop.types import FileName, FilterType, IDField, InputType, SlugStr, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sqlmodel import Session
@@ -158,7 +160,9 @@ class UploadBase(ModerableMixin, FrontendMixin):
         return self.short_hash
 
 
-class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, table=True):
+class Upload(
+    UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, FilterMixin, table=True
+):
     __tablename__ = "uploads"
     __searchable__ = {
         "description": 2.0,
@@ -184,6 +188,13 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
             title="made",
         ),
     )
+    __filterable__: ClassVar[tuple[FilterableCol, ...]] = (
+        FilterableCol(name="seeders", filter_type=FilterType.range),
+        FilterableCol(
+            name="threat", filter_type=FilterType.checkboxes, join="dataset", model=Dataset
+        ),
+    )
+
     created_at: Optional[UTCDateTime] = Field(default_factory=lambda: datetime.now(UTC), index=True)
     upload_id: IDField = Field(default=None, primary_key=True)
     dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id", index=True)

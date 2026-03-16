@@ -26,7 +26,11 @@ async def uploads(request: Request, search: SearchQuery):
 @uploads_router.get("/search")
 @jinja.hx("partials/uploads.html")
 async def uploads_search(
-    search: SearchQuery, session: SessionDep, current_account: CurrentAccount, response: Response
+    search: SearchQuery,
+    filter: Upload.filter_query_model(),
+    session: SessionDep,
+    current_account: CurrentAccount,
+    response: Response,
 ) -> SearchPage[UploadRead]:
     if not search.query or len(search.query) < 3:
         stmt = (
@@ -43,6 +47,7 @@ async def uploads_search(
         )
 
     stmt = search.apply_sort(stmt, model=Upload)
+    stmt = filter.apply_filter(stmt)
     if search.should_redirect():
         response.headers["HX-Replace-Url"] = f"{search.to_query_str()}"
     else:

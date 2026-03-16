@@ -40,7 +40,7 @@ class SortMixin(SQLModel):
     TODO: Consider merging `models.api.SearchParams.apply_sort` here?
     """
 
-    __sortable__: tuple[SortableCol] = tuple()
+    __sortable__: tuple[SortableCol, ...] = tuple()
 
     @classmethod
     def get_sortable_cols(cls, review: bool = False) -> list[SortableCol]:

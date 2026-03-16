@@ -1,6 +1,7 @@
 from sciop.models.mixins.decorator import all_optional, exclude_fields
 from sciop.models.mixins.edit import EditableMixin
 from sciop.models.mixins.enum import EnumTableMixin
+from sciop.models.mixins.filter import FilterableCol, FilterMixin
 from sciop.models.mixins.frontend import FrontendMixin
 from sciop.models.mixins.list import ListlikeMixin
 from sciop.models.mixins.moderation import ModerableMixin
@@ -13,6 +14,8 @@ from sciop.types import SortableStrEnum
 __all__ = [
     "EditableMixin",
     "EnumTableMixin",
+    "FilterableCol",
+    "FilterMixin",
     "FrontendMixin",
     "ListlikeMixin",
     "ModerableMixin",
