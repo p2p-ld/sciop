@@ -8,6 +8,7 @@ from sciop import models
 from sciop.api.deps import SessionDep
 from sciop.frontend.templates import templates
 from sciop.models import TargetType
+from sciop.models.mixins import FilterMixin
 
 partials_router = APIRouter(prefix="/partials")
 
@@ -62,4 +63,24 @@ async def report_modal(request: Request, target_type: TargetType, target: str):
         "partials/report-modal.html",
         {"target_type": target_type, "target": target},
         headers={"HX-Retarget": "#report-modal-container"},
+    )
+
+
+@partials_router.get("/filter", response_class=HTMLResponse)
+async def filter_box(
+    request: Request, model: str, search_url: str, target_id: str, session: SessionDep
+):
+    try:
+        model_cls: FilterMixin = getattr(models, model)
+    except AttributeError:
+        raise HTTPException(404, f"Model {model} not found") from None
+
+    return templates.TemplateResponse(
+        request,
+        "partials/filter.html",
+        {
+            "filter": model_cls.filter_template_model(
+                session, search_url=search_url, target_id=target_id
+            )
+        },
     )

@@ -16,6 +16,7 @@ from starlette.datastructures import QueryParams
 
 from sciop.helpers.type import unwrap
 from sciop.models.base import SQLModel
+from sciop.models.mixins.filter import FilterQueryModel
 from sciop.types import SortableStrEnum
 
 T = TypeVar("T", bound=BaseModel)
@@ -82,7 +83,7 @@ SortStrType = Annotated[
 
 
 class SearchParams(Params):
-    """Model for query parameters in a searchable"""
+    """Model for query parameters in a searchable/filterable item"""
 
     # model_config = ConfigDict(extra="allow")
 
@@ -122,13 +123,17 @@ class SearchParams(Params):
         """
         return [v for v in value if v and not isinstance(v, RemoveSort)]
 
-    def should_redirect(self) -> bool:
+    def should_redirect(self, filter: FilterQueryModel | None = None) -> bool:
         """Whether we have query parameters that should be included in HX-Replace-Url"""
         params = self.model_dump(exclude_none=True, exclude_defaults=True, exclude={"size"})
+        if filter is not None:
+            params |= filter.model_dump(exclude_none=True, exclude_defaults=True)
         return any([bool(v) for v in params.values()])
 
-    def to_query_str(self) -> str:
+    def to_query_str(self, filter: FilterQueryModel | None = None) -> str:
         value = self.model_dump(exclude_none=True, exclude_unset=True, exclude_defaults=True)
+        if filter is not None:
+            value |= filter.model_dump(exclude_none=True, exclude_unset=True, exclude_defaults=True)
         if "sort" in value and value["sort"]:
             value["sort"] = ",".join([v for v in value["sort"] if not v.startswith("*")])
         parts = ["=".join([quote_plus(k), quote_plus(str(v))]) for k, v in value.items() if v]
@@ -146,6 +151,14 @@ class SearchParams(Params):
         if params.get("query") == "":
             del params["query"]
         return cls(**params)
+
+    def apply(
+        self, stmt: Select, model: type[SQLModel], filter: FilterQueryModel | None = None
+    ) -> Select:
+        if filter is not None:
+            stmt = filter.apply_filter(stmt)
+        stmt = self.apply_sort(stmt, model)
+        return stmt
 
     def apply_sort(self, stmt: Select, model: type[SQLModel]) -> Select:
         if not self.sort:

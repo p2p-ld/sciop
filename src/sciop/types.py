@@ -234,6 +234,7 @@ class InputType(StrEnum):
 class FilterType(StrEnum):
     """How a given model field should be filtered"""
 
+    tokens = "tokens"
     checkboxes = "checkboxes"
     """select one of a discrete list of options"""
     range = "range"

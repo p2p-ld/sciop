@@ -36,7 +36,16 @@ from sciop.models.mixins import (
     all_optional,
 )
 from sciop.services.markdown import render_db_fields_to_html
-from sciop.types import FileName, FilterType, IDField, InputType, SlugStr, UsernameStr, UTCDateTime
+from sciop.types import (
+    FileName,
+    FilterType,
+    IDField,
+    InputType,
+    SlugStr,
+    StringDisplayType,
+    UsernameStr,
+    UTCDateTime,
+)
 
 if TYPE_CHECKING:
     from sqlmodel import Session
@@ -190,6 +199,19 @@ class Upload(
     )
     __filterable__: ClassVar[tuple[FilterableCol, ...]] = (
         FilterableCol(name="seeders", filter_type=FilterType.range),
+        FilterableCol(
+            name="upload_size",
+            col_name="size",
+            filter_type=FilterType.range,
+            string_display=StringDisplayType.size,
+        ),
+        FilterableCol(
+            name="tags",
+            model=Dataset,
+            join="dataset",
+            collection_key="tag",
+            filter_type=FilterType.tokens,
+        ),
         FilterableCol(
             name="threat", filter_type=FilterType.checkboxes, join="dataset", model=Dataset
         ),

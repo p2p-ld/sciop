@@ -1,17 +1,18 @@
 import re
 from datetime import datetime
 from logging import Logger
-from typing import Annotated, ClassVar, Literal
+from typing import Annotated, Any, ClassVar, Literal
 from urllib.parse import parse_qsl, urlparse
 
 from fastapi import Depends, Query
 from pydantic import BaseModel, create_model
-from sqlalchemy import Select, func
+from sqlalchemy import Select, func, sql
 from sqlalchemy.orm.attributes import QueryableAttribute
 from sqlmodel import Field, Session, SQLModel, select
 from starlette.datastructures import QueryParams
 from starlette.requests import Request
 
+from sciop.helpers.dehumanize import parse_size
 from sciop.logging import init_logger
 from sciop.types import FilterType, StringDisplayType
 
@@ -29,28 +30,51 @@ class FilterableCol(SQLModel):
     """
 
     name: str
+    title: str | None = None
+    description: str | None = None
     filter_type: FilterType
+    col_name: str | None = None
+    """Column/field name, if name needs to be different for api/ui reasons"""
     join: SQLModel | str | None = None
+    collection_key: str | None = None
+    """
+    When selecting across a relationship, use this key to select in the related table -
+    e.g. for Dataset.tags, `name` would be "tags" and `collection_key` would be "tag" 
+    """
     model: type[SQLModel] | None = None
     string_display: StringDisplayType = StringDisplayType.default
 
 
-class _RangeTemplateModel(BaseModel):
+class _TemplateModel(BaseModel):
+    name: str
+    title: str | None = None
+    description: str | None = None
+
+
+class _RangeTemplateModel(_TemplateModel):
     filter_type: Literal[FilterType.range]
     name: str
     minimum: int | datetime
     maximum: int | datetime
 
 
-class _CheckboxTemplateModel(BaseModel):
+class _CheckboxTemplateModel(_TemplateModel):
     filter_type: Literal[FilterType.checkboxes]
-    items: list[str]
+    value: list[str]
+
+
+class _TokensTemplateModel(_TemplateModel):
+    filter_type: Literal[FilterType.tokens]
+    autocomplete: str
+    value: list[str] | None = None
 
 
 class FilterTemplateModel(BaseModel):
     """Precooked parameters to pass to the filter partial template"""
 
-    items: dict[str, _RangeTemplateModel | _CheckboxTemplateModel]
+    search_url: str
+    target_id: str
+    items: dict[str, _RangeTemplateModel | _CheckboxTemplateModel | _TokensTemplateModel]
 
 
 class FilterQueryModel(BaseModel):
@@ -71,30 +95,64 @@ class FilterQueryModel(BaseModel):
 
             col = self.cols__.get(field_name)
             if col.join:
-                statement = statement.join(col.join)
+                join_by = getattr(self.cls__, col.join) if isinstance(col.join, str) else col.join
+                statement = statement.join(join_by)
             model = self.cls__ if col.model is None else col.model
-            sql_col = getattr(model, field_name)
+            sql_col = (
+                getattr(model, field_name) if col.col_name is None else getattr(model, col.col_name)
+            )
 
             filter_type = field.json_schema_extra.get("filter_type", "default")
             if filter_type == FilterType.range:
-                statement = self._apply_range(statement, sql_col, value, logger)
-            else:
-                logger.warning("Unkonwn filter type: %s", filter_type)
+                statement = self._apply_range(statement, sql_col, value, col, logger)
+            elif filter_type == FilterType.tokens:
+                statement = self._apply_tokens(statement, sql_col, value, col, logger)
         return statement
 
     def _apply_range(
-        self, statement: Select, field: QueryableAttribute, value: str, logger: Logger
+        self,
+        statement: Select,
+        field: QueryableAttribute,
+        value: str,
+        col: FilterableCol,
+        logger: Logger,
     ) -> Select:
         match = _RANGE_PATTERN.match(value)
         if not match:
             logger.warning("No regex match for range filter for field %s: %s", field, value)
             return statement
 
-        if (range_min := match.groupdict().get("min")) is not None:
-            statement = statement.where(field >= int(range_min))
-        if (range_max := match.groupdict().get("max")) is not None:
-            statement = statement.where(field <= int(range_max))
+        if range_min := match.groupdict().get("min"):
+            if col.string_display == StringDisplayType.size:
+                try:
+                    range_min = parse_size(range_min)
+                except (ValueError, KeyError):
+                    logger.warning("Could not parse size: %s", range_min)
+            statement = statement.where(field >= float(range_min))
+        if range_max := match.groupdict().get("max"):
+            if col.string_display == StringDisplayType.size:
+                try:
+                    range_max = parse_size(range_max)
+                except (ValueError, KeyError):
+                    logger.warning("Could not parse size: %s", range_max)
+            statement = statement.where(field <= float(range_max))
 
+        return statement
+
+    def _apply_tokens(
+        self,
+        statement: Select,
+        field: QueryableAttribute,
+        value: str,
+        col: FilterableCol,
+        logger: Logger,
+    ) -> Select:
+        items = [i.strip() for i in value.split(",")]
+        collection_key = col.collection_key or col.name
+        statement = statement.where(
+            sql.or_(*[field.any(**{collection_key: item}) for item in items])
+        )
+        # breakpoint()
         return statement
 
 
@@ -164,18 +222,28 @@ class FilterMixin(SQLModel):
         ]
 
     @classmethod
-    def filter_template_model(cls, session: Session) -> FilterTemplateModel:
+    def filter_template_model(cls, session: Session, **kwargs: Any) -> FilterTemplateModel:
         items = {}
         for item in cls.__filterable__:
             if item.filter_type == FilterType.range:
                 items[item.name] = cls._range_template_model(item, session)
-        return FilterTemplateModel(items=items)
+            elif item.filter_type == FilterType.tokens:
+                items[item.name] = cls._tokens_template_model(item)
+        return FilterTemplateModel(items=items, **kwargs)
 
     @classmethod
     def _range_template_model(cls, item: FilterableCol, session: Session) -> _RangeTemplateModel:
         model = cls if item.model is None else item.model
-        field = getattr(model, item.name)
+        field = (
+            getattr(model, item.name) if item.col_name is None else getattr(model, item.col_name)
+        )
         min_max = session.exec(select(func.min(field), func.max(field))).first()
         return _RangeTemplateModel(
-            name=item.name, minimum=min_max[0], maximum=min_max[1], filter_type=FilterType.range
+            minimum=min_max[0],
+            maximum=min_max[1],
+            **item.model_dump(),
         )
+
+    @classmethod
+    def _tokens_template_model(cls, item: FilterableCol) -> _TokensTemplateModel:
+        return _TokensTemplateModel(autocomplete=item.name, **item.model_dump())

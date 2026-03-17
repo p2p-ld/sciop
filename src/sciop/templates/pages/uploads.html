@@ -1,3 +1,4 @@
+{% from 'macros/filter.html' import filter_container %}
 {% extends "layouts/default.html" %}
 {% block head %}
 {% with title = "Uploads" %}
@@ -22,7 +23,7 @@
            hx-swap="innerHTML"
     >
   </div>
-
+  {{ filter_container("Upload", search_url="/uploads/search", target_id="uploads-table") }}
   <div
     id="uploads-table"
     aria-live="polite"

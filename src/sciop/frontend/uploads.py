@@ -46,10 +46,9 @@ async def uploads_search(
             .where(Upload.visible_to(current_account) == True)
         )
 
-    stmt = search.apply_sort(stmt, model=Upload)
-    stmt = filter.apply_filter(stmt)
-    if search.should_redirect():
-        response.headers["HX-Replace-Url"] = f"{search.to_query_str()}"
+    stmt = search.apply(stmt, model=Upload, filter=filter)
+    if search.should_redirect(filter):
+        response.headers["HX-Replace-Url"] = f"{search.to_query_str(filter)}"
     else:
         response.headers["HX-Replace-Url"] = "/uploads/"
 

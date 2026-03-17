@@ -1,0 +1,95 @@
+{% macro filter_container(model, search_url, target_id) %}
+<details class="filter-container">
+  <summary hx-get="/partials/filter/?model={{ model }}&search_url={{ search_url }}&target_id={{ target_id }}"
+           hx-trigger="click once"
+           hx-target="#filter-panel">
+    Filter
+  </summary>
+  <div class="filter-panel" id="filter-panel"></div>
+</details>
+{% endmacro %}
+
+{% macro filter_box(filter) %}
+{% for key, item in filter.items.items() %}
+<div class="filter-item-container">
+<div class="filter-key">{{ key }}</div>
+{% if item.filter_type == types.FilterType.range %}
+{{ filter_range(item, filter.search_url, filter.target_id) }}
+{% elif item.filter_type == types.FilterType.tokens %}
+{{ filter_tokens(item, filter.search_url, filter.target_id) }}
+{% endif %}
+</div>
+{% endfor %}
+{% endmacro %}
+
+{% macro filter_range(item, search_url, target_id) %}
+<div class="filter-range"
+     data-min="{{item.min}}"
+     data-max="{{item.max}}">
+  <input class="filter-range-min"
+         hx-get="{{search_url}}/?{{item.name}}=[{{item.min}},{{item.max}}]"
+         hx-target="#{{target_id}}"
+         hx-trigger="reloadSearch"
+         placeholder="min"
+         _="on change(target)
+             set (the closest .filter-range)[@data-min] to target.value then
+             set max to (the closest .filter-range)[@data-max] then
+             set newget to `{{search_url}}/?{{item.name}}=[${target.value},${max}]`
+             set @hx-get to newget then
+             set (the next <input/>)[@hx-get] to newget then
+             call htmx.process(me) then
+             trigger reloadSearch
+          ">
+  <input class="filter-range-max"
+         hx-get="{{search_url}}/?{{item.name}}=[{{item.min}},{{item.max}}]"
+         hx-target="#{{target_id}}"
+         hx-trigger="reloadSearch"
+         placeholder="max"
+         _="on change(target)
+             set (the closest .filter-range)[@data-max] to target.value then
+             set min to (the closest .filter-range)[@data-min] then
+             set newget to `{{search_url}}/?{{item.name}}=[${min},${target.value}]`
+             set @hx-get to newget then
+             set (the previous <input/>)[@hx-get] to newget then
+             call htmx.process(me) then
+             trigger reloadSearch"
+  />
+</div>
+{% endmacro %}
+
+{% macro filter_tokens(item, search_url, target_id) %}
+<div class="filter-tokens"
+   hx-trigger="reloadSearch"
+   hx-target="#{{target_id}}"
+>
+<div class="tokens-container" id="{{ item.name }}-tokens"
+    hx-get="{{search_url}}/?{{item.name}}={{ item.value }}"
+    _="on mutation
+        get .token in me then
+        set tokens to its innerHTML as an Array then
+        set (the closest .filter-tokens)[@hx-get] to `{{search_url}}/?{{item.name}}=${tokens.join(',')}`
+        call htmx.process(the closest .filter-tokens) then
+        trigger reloadSearch
+      "
+>
+    {% if item.value %}
+    {% for tag in item.value %}
+    {{ token_button(tag) }}
+    {% endfor %}
+    {% endif %}
+</div>
+<input
+    class="form-input form-tokens"
+    id="{{ item.name }}"
+    name="{{ item.name  }}"
+    list="{{ item.name  }}-autocomplete"
+    hx-get="/autocomplete/{{ item.name  }}"
+    hx-target="#{{ item.name }}-autocomplete"
+    hx-trigger="input changed delay:250ms"
+    hx-params="*"
+    data-tokens-container="#{{ item.name }}-tokens"
+    placeholder="type then press enter"
+>
+<datalist id="{{ item.name  }}-autocomplete"></datalist>
+</div>
+{% endmacro %}

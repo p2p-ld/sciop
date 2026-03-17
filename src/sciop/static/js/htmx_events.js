@@ -61,11 +61,7 @@ htmx.on("htmx:beforeOnLoad", (evt) => {
   }
 })
 
-// Close buttons on error modals
-// Distinct from other modals, because closing deletes the internal error element
-// rather than making the container invisible,
-// as one would do for a modal that would be expected to reappear
-htmx.on("htmx:afterSwap", (evt) => {
+function show_modal(evt){
   let modal = evt.detail.target.querySelector(".modal");
   let landmarks = document.querySelectorAll("header, main, footer");
   let buttons = [...evt.detail.target.querySelectorAll(".close-button")];
@@ -98,6 +94,14 @@ htmx.on("htmx:afterSwap", (evt) => {
     modal.removeAttribute("hidden")
     modal.focus();
   }
+}
+
+// Close buttons on error modals
+// Distinct from other modals, because closing deletes the internal error element
+// rather than making the container invisible,
+// as one would do for a modal that would be expected to reappear
+htmx.on("htmx:afterSwap", (evt) => {
+  show_modal(evt);
 })
 
 // Token input field
@@ -146,12 +150,15 @@ function addToken(e){
   e.target.focus();
 }
 
-function init_token_input(){
-  let token_inputs = document.querySelectorAll(".form-tokens");
+function init_token_input(target = undefined){
+  if (target === undefined){
+    target = document;
+  }
+  let token_inputs = target.querySelectorAll(".form-tokens");
   token_inputs.forEach((e) => {
     e.addEventListener("keyup", addToken)
   })
-  let token_button_containers = document.querySelectorAll(".token-button-container");
+  let token_button_containers = target.querySelectorAll(".token-button-container");
   token_button_containers.forEach((button_container) => {
     let button = button_container.querySelector('.token-delete-button');
     button.addEventListener("mouseup", (evt) => {
@@ -171,7 +178,8 @@ function init_upload_progress(target) {
   });
 }
 htmx.on("htmx:afterSettle", (evt) => {
-  init_upload_progress(evt.target)
+  init_token_input(evt.detail.target);
+  init_upload_progress(evt.target);
 })
 
 function init_index_cancel_button(){
