@@ -33,11 +33,14 @@ from sciop.models.mixins import (
     TableReadMixin,
     all_optional,
 )
+from sciop.models.urls import UploadURLLink
 from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import FileName, IDField, InputType, SlugStr, UsernameStr, UTCDateTime
 
 if TYPE_CHECKING:
     from sqlmodel import Session
+
+    from sciop.models import URL
 
 
 class UploadBase(ModerableMixin, FrontendMixin):
@@ -196,6 +199,7 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
     torrent: Optional["TorrentFile"] = Relationship(
         back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
     )
+    urls: list["URL"] = Relationship(back_populates="uploads", link_model=UploadURLLink)
 
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
     reports: list["Report"] = Relationship(back_populates="target_upload")

@@ -28,6 +28,7 @@ from sciop.models.mixins import (
     exclude_fields,
 )
 from sciop.models.tag import DatasetTagLink
+from sciop.models.urls import DatasetURLLink
 from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import (
     AccessType,
@@ -49,7 +50,7 @@ from sciop.types import (
 if TYPE_CHECKING:
     from sqlmodel import Session
 
-    from sciop.models import AuditLog, DatasetClaim, Report, Tag, Upload, UploadRead
+    from sciop.models import URL, AuditLog, DatasetClaim, Report, Tag, Upload, UploadRead
 
 PREFIX_PATTERN = re.compile(r"\w{6}-[A-Z]{3}_\S+")
 
@@ -242,7 +243,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
     uploads: list["Upload"] = Relationship(back_populates="dataset")
     external_sources: list["ExternalSource"] = Relationship(back_populates="dataset")
     external_identifiers: list["ExternalIdentifier"] = Relationship(back_populates="dataset")
-    urls: list["DatasetURL"] = Relationship(back_populates="dataset")
+    urls: list["URL"] = Relationship(back_populates="datasets", link_model=DatasetURLLink)
     tags: list["Tag"] = Relationship(
         back_populates="datasets",
         sa_relationship_kwargs={"lazy": "selectin"},
@@ -263,7 +264,7 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
         if "tags" in updated:
             updated["tags"] = crud.get_tags(session=session, tags=updated["tags"])
         if "urls" in updated:
-            updated["urls"] = DatasetURL.get_items(self.urls, updated["urls"])
+            updated["urls"] = crud.get_urls(session=session, urls=updated["urls"])
         if "external_identifiers" in updated:
             updated["external_identifiers"] = ExternalIdentifier.get_items(
                 self.external_identifiers, updated["external_identifiers"]
@@ -430,23 +431,12 @@ class DatasetRead(DatasetBase, TableReadMixin):
         return [tag.tag for tag in val]
 
     @field_validator("urls", mode="before")
-    def collapse_urls(cls, val: list["DatasetURL"]) -> list[str]:
+    def collapse_urls(cls, val: list["URL"]) -> list[str]:
         return [url.url for url in val]
 
     @field_validator("tags", mode="after")
     def sort_list(cls, val: list[Any]) -> list[Any]:
         return sorted(val)
-
-
-class DatasetURL(EditableMixin, ListlikeMixin, table=True):
-    __tablename__ = "dataset_urls"
-    __value_column_name__ = "url"
-
-    dataset_url_id: IDField = Field(default=None, primary_key=True)
-    dataset_id: Optional[int] = Field(default=None, foreign_key="datasets.dataset_id", index=True)
-    dataset: Optional[Dataset] = Relationship(back_populates="urls")
-
-    url: MaxLenURL
 
 
 class ExternalSourceBase(SQLModel):

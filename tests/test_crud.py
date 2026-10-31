@@ -4,7 +4,7 @@ import pytest
 from sqlmodel import select
 
 from sciop import crud
-from sciop.models import DatasetClaim, DatasetCreate, Tag, TorrentFileCreate, Tracker
+from sciop.models import URL, DatasetClaim, DatasetCreate, Tag, TorrentFileCreate, Tracker
 from sciop.testing.fabricators import default_dataset, default_torrentfile
 
 
@@ -48,6 +48,38 @@ def test_create_dataset_tags(session):
 
     assert len([tag for tag in dataset_a.tags if tag.tag == "a-new-one"]) == 1
     assert len([tag for tag in dataset_b.tags if tag.tag == "another-new-one"]) == 1
+
+
+def test_urls_shared(session, dataset, upload):
+    """
+    Datasets and uploads with the same url share a single url row
+    """
+    url = "https://example.com/shared"
+
+    ds_a = dataset(slug="dataset-a", urls=[url, "https://example.com/a"])
+    ds_b = dataset(slug="dataset-b", urls=[url])
+    ul = upload(dataset_=ds_a, urls=[url])
+
+    shared = session.exec(select(URL).where(URL.url == url)).one()
+    assert {ds.slug for ds in shared.datasets} == {ds_a.slug, ds_b.slug}
+    assert shared.uploads == [ul]
+    assert [url.url for url in ds_a.urls] == [url, "https://example.com/a"]
+
+
+def test_get_urls_order_and_duplicates(session):
+    """
+    get_urls keeps the given order and drops duplicates, reusing existing urls
+    """
+    existing = URL(url="https://example.com/existing")
+    session.add(existing)
+    session.commit()
+
+    urls = crud.get_urls(
+        session=session,
+        urls=["https://example.com/new", "https://example.com/existing", "https://example.com/new"],
+    )
+    assert [url.url for url in urls] == ["https://example.com/new", "https://example.com/existing"]
+    assert urls[1] is existing
 
 
 def test_create_torrent_with_trackers(session, infohashes, uploader):

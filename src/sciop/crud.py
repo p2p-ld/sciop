@@ -13,7 +13,6 @@ from sciop.models import (
     DatasetPart,
     DatasetPartCreate,
     DatasetPath,
-    DatasetURL,
     ExternalIdentifier,
     FileInTorrent,
     Report,
@@ -28,6 +27,7 @@ from sciop.models import (
     TrackerCreate,
     Upload,
     UploadCreate,
+    URL,
     Webseed,
     WebseedCreate,
     WebseedStatus,
@@ -68,7 +68,7 @@ def create_dataset(
     **kwargs: Any,
 ) -> Dataset:
     is_approved = current_account is not None and current_account.has_scope("submit")
-    urls = [DatasetURL(url=url) for url in dataset_create.urls]
+    urls = get_urls(session=session, urls=dataset_create.urls)
     external_identifiers = [
         ExternalIdentifier(type=e.type, identifier=e.identifier)
         for e in dataset_create.external_identifiers
@@ -508,6 +508,16 @@ def get_tags(*, session: Session, tags: list[str], commit: bool = False) -> list
 
     all_tags = [*existing_tags, *new_tags]
     return all_tags
+
+
+def get_urls(*, session: Session, urls: list[str]) -> list[URL]:
+    """
+    Given a list of urls as strings,
+    get any existing urls and create non-existing ones, returning all in the given order.
+    """
+    urls = list(dict.fromkeys(urls))
+    existing = {u.url: u for u in session.exec(select(URL).where(URL.url.in_(urls))).all()}
+    return [existing.get(url, URL(url=url)) for url in urls]
 
 
 def get_latest_site_stats(*, session: Session) -> SiteStats:
