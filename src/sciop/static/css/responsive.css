@@ -5,14 +5,6 @@
  */
 
 @media only screen and (max-width: 768px) {
-  nav.navbar .cta-wrapper {
-		width: 100%;
-
-		& > *:first-child {
-			margin-left: auto;
-		}
-  }
-
 	.site-index .center-column {
 		blockquote {
 			margin: 1em 1em;
@@ -202,6 +194,54 @@
 			img {
 				height: 1em;
 			}
+		}
+
+		.nav-toggle {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			/* subtract the border so it's the same height as the login button */
+			padding: calc(0.25em - 1px) 0.5em;
+			box-shadow: none;
+
+			svg {
+				width: 1.2em;
+				height: 1.2em;
+			}
+		}
+
+		&:has(#nav-menu:popover-open) .nav-toggle {
+			background-color: var(--color-primary);
+			color: var(--color-primary-contrast);
+		}
+
+		.nav-menu {
+			display: none;
+		}
+
+		.cta-wrapper > .request-button {
+			display: none;
+		}
+
+		.nav-menu .request-button {
+			display: block;
+		}
+
+		.nav-menu:popover-open {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+			gap: 0.75em;
+			position: fixed;
+			inset: 3em 0 auto 0;
+			margin: 0;
+			width: 100%;
+			box-sizing: border-box;
+			padding: 1em;
+			background-color: var(--color-background);
+			color: var(--color-text);
+			border: none;
+			border-bottom: 1px solid var(--color-primary);
 		}
 	}
 }
