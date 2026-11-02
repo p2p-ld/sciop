@@ -49,6 +49,24 @@ def test_upload(
     assert created["account"] == uploader.username
 
 
+def test_upload_urls(upload, client, admin_auth_header):
+    """Uploads can be created, edited, and read with urls"""
+    ul = upload(urls="https://example.com/a\nhttps://example.com/b")
+
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}")
+    assert res.status_code == 200
+    assert res.json()["urls"] == ["https://example.com/a", "https://example.com/b"]
+
+    new_urls = ["https://example.com/b", "https://example.com/c"]
+    res = client.patch(
+        get_config().api_prefix + f"/uploads/{ul.infohash}",
+        json={"urls": new_urls},
+        headers=admin_auth_header,
+    )
+    assert res.status_code == 200
+    assert res.json()["urls"] == new_urls
+
+
 @pytest.mark.parametrize("part_slugs", (["part-1"], ["part-2", "part-3"]))
 def test_upload_dataset_parts(
     dataset: C[..., Dataset],

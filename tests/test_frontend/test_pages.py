@@ -2,7 +2,7 @@ import pytest
 from bs4 import BeautifulSoup as bs
 from starlette.testclient import TestClient
 
-LOGGED_OUT_PAGES = ("/", "/datasets/", "/feeds", "/uploads/", "/login")
+LOGGED_OUT_PAGES = ("/", "/datasets/", "/feeds", "/uploads/", "/urls/", "/login")
 LOGGED_IN_PAGES = ("/self/",)
 REVIEW_PAGES = ("/self/review",)
 ADMIN_PAGES = ("/self/admin", "/self/log")

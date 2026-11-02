@@ -8,6 +8,7 @@ TEST_PAGES = (
     "/datasets",
     "/datasets/default",
     "/uploads/defaultt",
+    "/urls",
     "/login",
     "/self",
     "/self/review",
