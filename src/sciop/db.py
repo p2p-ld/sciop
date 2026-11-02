@@ -245,6 +245,11 @@ def create_seed_data(n: int = 100) -> None:
                 "title": "the uploads in here have webseeds",
                 "is_approved": True,
             },
+            {
+                "slug": "many-files",
+                "title": "the upload in here has many files and urls",
+                "is_approved": True,
+            },
         ]
         uls = [
             {"name": "abcdefgh", "dataset": "approved", "is_approved": True},
@@ -271,6 +276,13 @@ def create_seed_data(n: int = 100) -> None:
                         "https://other.example.com/parent/data",
                     ]
                 },
+            },
+            {
+                "name": "manyfiles",
+                "dataset": "many-files",
+                "is_approved": True,
+                "n_files": 1000,
+                "urls": random_site_pages(fake=fake, n=1000),
             },
         ]
 

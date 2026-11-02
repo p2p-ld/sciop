@@ -335,6 +335,7 @@ def random_upload(
     torrent_kwargs: dict | None = None,
     torrentfile_kwargs: dict | None = None,
     urls: list[str] | None = None,
+    n_files: int = 1,
 ) -> "Upload":
     if not fake:
         fake = Faker()
@@ -346,16 +347,27 @@ def random_upload(
     tmp_parent = Path("__tmp__")
     tmp_parent.mkdir(exist_ok=True)
     torrent_file = name + str(fake.file_name(extension="bin"))
-    with open(tmp_parent / torrent_file, "wb") as tfile:
-        hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
-        hash_data = hash_data.encode("utf-8")
-        tfile.write(hash_data)
+    if n_files == 1:
+        path_root = tmp_parent
+        paths = [torrent_file]
+    else:
+        path_root = tmp_parent / Path(torrent_file).stem
+        path_root.mkdir(exist_ok=True)
+        paths = [f"{i}.bin" for i in range(n_files)]
 
-    file_size = (tmp_parent / torrent_file).stat().st_size
+    for path in paths:
+        with open(path_root / path, "wb") as tfile:
+            hash_data = "".join([random.choice(string.ascii_letters) for _ in range(1024)])
+            hash_data = hash_data.encode("utf-8")
+            tfile.write(hash_data)
+
+    files = [
+        FileInTorrentCreate(path=path, size=(path_root / path).stat().st_size) for path in paths
+    ]
 
     torrent = TorrentCreate(
-        paths=[torrent_file],
-        path_root=tmp_parent,
+        paths=paths,
+        path_root=path_root,
         trackers=["udp://opentracker.io:6969/announce"],
         comment="My comment",
         piece_length=16384,
@@ -372,7 +384,7 @@ def random_upload(
         total_size=16384 * 4,
         piece_size=16384,
         torrent_size=64,
-        files=[FileInTorrentCreate(path=torrent_file, size=file_size)],
+        files=files,
         announce_urls=["udp://opentracker.io:6969/announce"],
         **torrentfile_kwargs,
     )
