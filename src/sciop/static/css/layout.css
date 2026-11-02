@@ -352,44 +352,53 @@ table {
   }
 }
 
-.files-container {
-  .file-table,
+/* Scroll the wrapper rather than the table:
+   a table with display: block shrinks to its content */
+.scroll-table {
+  overflow-y: auto;
+  max-height: 50vh;
+
+  table {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    width: 100%;
+  }
+
+  /* .table-head is a grid elsewhere, for the list-style headers */
   .table-head {
+    display: table-row;
     font-size: 0.9em;
   }
 
-  .file-table {
-    font-family: var(--font-mono);
-    width: 100%;
-    max-width: 100%;
-    overflow-y: scroll;
-    max-height: 50vh;
-    display: block;
+  th {
+    position: sticky;
+    top: 0;
+    vertical-align: bottom;
+    box-shadow: 0px 5px 7px var(--color-background);
 
-    thead tr {
-      display: table-row;
-    }
-
-    th {
-      position: sticky;
-      top: 0;
-      vertical-align: bottom;
-      box-shadow: 0px 5px 7px var(--color-background);
-
-      .table-link {
-        width: 100%;
-      }
-    }
-
-    .file-path {
-      overflow-wrap: anywhere;
-      word-break: break-word;
+    .table-link {
       width: 100%;
     }
-    .file-size {
-      text-align: right;
-      white-space: nowrap;
-    }
+  }
+}
+
+.file-table {
+  .file-path {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    width: 100%;
+  }
+  .file-size {
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+.url-table {
+  .url {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    width: 100%;
   }
 }
 .tokens-container {

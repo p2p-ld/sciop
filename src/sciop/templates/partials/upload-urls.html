@@ -1,0 +1,41 @@
+{% from "macros/pagination.html" import page_header %}
+{% if items %}
+{% set upload = request.state.upload %}
+{% if page == 1 %}
+<div id="urls-sacrificial-swap-{{ upload.infohash }}" class="scroll-table">
+<table id="url-table-{{ upload.infohash }}" class="url-table">
+  <thead>
+  {{ page_header(
+      request,
+      id=upload.infohash + "-urls-sort",
+      columns=models.URL.get_sortable_cols(False),
+      swap_target="#urls-sacrificial-swap-" + upload.infohash,
+      header_style="table")
+  }}
+  </thead>
+  <tbody id="url-table-body-{{ upload.infohash }}" class="">
+{% endif %}
+{% for item in items %}
+  <tr>
+    <td class="url"><a href="{{ item.url }}">{{ item.url }}</a></td>
+  </tr>
+  {% if (loop.length > 250 and loop.revindex == 250) %}
+  <tr class="scroll-trigger-early"
+      hx-trigger="intersect once"
+      hx-target="#url-scroll-trigger-page-{{ page }}"
+      hx-get="{{ request.url.include_query_params(page = page + 1) }}"
+      hx-swap="outerHTML"
+  ></tr>
+  {% endif %}
+{% endfor %}
+  <tr id="url-scroll-trigger-page-{{ page }}" class="scroll-trigger"
+  hx-trigger="intersect once"
+  hx-get="{{ request.url.include_query_params(page = page + 1) }}"
+  hx-swap="outerHTML"
+  ></tr>
+{% if page == 1 %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endif %}
