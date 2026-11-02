@@ -202,7 +202,7 @@ def create_seed_data(n: int = 100) -> None:
     from sciop import crud
     from sciop.logging import init_logger
     from sciop.models import Dataset
-    from sciop.testing.fabricators import Fabricator
+    from sciop.testing.fabricators import Fabricator, random_site_pages
 
     fake = Faker()
     maker = get_maker()
@@ -303,12 +303,15 @@ def create_seed_data(n: int = 100) -> None:
         # generate a bunch of approved datasets to test pagination
         for _ in trange(n):
             dataset = fab.random_dataset(fake=fake, account=accounts["rando"], commit=False)
+            # uploads are snapshots of overlapping subsets of the same site
+            pages = random_site_pages(fake=fake)
             dataset.uploads = [
                 fab.random_upload(
                     name=fake.word(),
                     account=accounts["uploader"],
                     dataset=dataset,
                     commit=False,
+                    urls=sorted(random.sample(pages, random.randint(3, 50))),
                 )
                 for _ in range(random.randint(1, 3))
             ]

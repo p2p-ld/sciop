@@ -334,6 +334,7 @@ def random_upload(
     commit: bool = True,
     torrent_kwargs: dict | None = None,
     torrentfile_kwargs: dict | None = None,
+    urls: list[str] | None = None,
 ) -> "Upload":
     if not fake:
         fake = Faker()
@@ -390,6 +391,7 @@ def random_upload(
         method="I downloaded it",
         description="Its all here bub",
         infohash=created_torrent.infohash,
+        urls=urls or [],
     )
 
     created_upload = crud.create_upload(
@@ -407,6 +409,21 @@ def random_upload(
         session.commit()
         session.refresh(created_upload)
     return created_upload
+
+
+def random_site_pages(fake: Faker | None = None, n: int = 100) -> list[str]:
+    """Page urls underneath a single domain, like the pages of one website"""
+    if not fake:
+        fake = Faker()
+
+    domain = fake.domain_name()
+    sections = [fake.word() for _ in range(random.randint(2, 6))]
+    pages = set()
+    while len(pages) < n:
+        subsections = [fake.word() for _ in range(random.randint(0, 2))]
+        path = "/".join([random.choice(sections), *subsections, fake.slug()])
+        pages.add(f"https://{domain}/{path}")
+    return sorted(pages)
 
 
 def random_dataset(
