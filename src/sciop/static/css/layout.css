@@ -192,6 +192,28 @@ table {
   margin-bottom: 1em;
 }
 
+.url-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  margin-bottom: 1em;
+
+  .url-heading {
+    font-family: var(--font-mono);
+    font-size: 1em;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .collapsible-table {
+    margin-bottom: 0;
+  }
+
+  .collapsible-table:not(:has(> .collapsible)) {
+    display: none;
+  }
+}
+
 .table-head,
 .collapsible-summary
 {

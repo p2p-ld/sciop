@@ -116,6 +116,7 @@ def create_tables(
     models.Dataset.register_events()
     models.Account.register_events()
     models.Upload.register_events()
+    models.URL.register_events()
 
     SQLModel.metadata.create_all(engine, checkfirst=check_existing)
     if check_migrations and get_config().env != "test":

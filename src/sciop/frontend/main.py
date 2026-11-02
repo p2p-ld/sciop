@@ -14,6 +14,7 @@ from sciop.frontend.self import self_router
 from sciop.frontend.tags import tags_router
 from sciop.frontend.test import test_router
 from sciop.frontend.uploads import uploads_router
+from sciop.frontend.urls import urls_router
 
 frontend_router = APIRouter(dependencies=[Depends(add_htmx_response_trigger)], tags=["frontend"])
 frontend_router.include_router(index_router)
@@ -29,6 +30,7 @@ frontend_router.include_router(reports_router)
 frontend_router.include_router(self_router)
 frontend_router.include_router(tags_router)
 frontend_router.include_router(uploads_router)
+frontend_router.include_router(urls_router)
 
 if get_config().env != "prod":
     frontend_router.include_router(test_router)

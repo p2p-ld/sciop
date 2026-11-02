@@ -21,7 +21,7 @@ from sciop.models import (
     TorrentFileRead,
     TorrentTrackerLink,
 )
-from sciop.models.dataset import UploadDatasetPartLink
+from sciop.models.dataset import UploadDatasetPartLink, _split_lines
 from sciop.models.mixins import (
     EditableMixin,
     FrontendMixin,
@@ -35,7 +35,15 @@ from sciop.models.mixins import (
 )
 from sciop.models.urls import UploadURLLink
 from sciop.services.markdown import render_db_fields_to_html
-from sciop.types import FileName, IDField, InputType, SlugStr, UsernameStr, UTCDateTime
+from sciop.types import (
+    FileName,
+    IDField,
+    InputType,
+    MaxLenURL,
+    SlugStr,
+    UsernameStr,
+    UTCDateTime,
+)
 
 if TYPE_CHECKING:
     from sqlmodel import Session
@@ -311,6 +319,8 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
             self.torrent = crud.get_torrent_from_infohash(session=session, infohash=infohash)
         if "file_name" in updated:
             self.torrent.file_name = updated.pop("file_name")
+        if "urls" in updated:
+            updated["urls"] = crud.get_urls(session=session, urls=updated["urls"])
         if "part_slugs" in updated:
             part_slugs = updated.pop("part_slugs")
             existing = {p.part_slug: p for p in self.dataset_parts}
@@ -386,6 +396,7 @@ class UploadRead(UploadBase, TableReadMixin):
     dataset: Optional[SlugStr] = None
     dataset_parts: Optional[list[SlugStr]] = None
     torrent: Optional["TorrentFileRead"] = None
+    urls: list[str] = Field(default_factory=list)
     seeders: Optional[int] = None
     leechers: Optional[int] = None
 
@@ -417,6 +428,10 @@ class UploadRead(UploadBase, TableReadMixin):
             value = value.username
         return value
 
+    @field_validator("urls", mode="before")
+    def collapse_urls(cls, val: list["URL"]) -> list[str]:
+        return [url.url for url in val]
+
     @property
     def magnet_link(self) -> str:
         return self.torrent.magnet_link
@@ -447,6 +462,15 @@ class UploadCreate(UploadBase):
         description="Parts of a dataset that this upload corresponds to",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
     )
+    urls: list[MaxLenURL] = Field(
+        default_factory=list,
+        title="URL(s)",
+        description="""
+        URL(s) that the data in this upload was retrieved from. One URL per line.
+        """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+        max_length=512,
+    )
 
     @classmethod
     def from_upload(cls, upload: Upload) -> Self:
@@ -456,8 +480,13 @@ class UploadCreate(UploadBase):
                 "infohash": upload.infohash,
                 "part_slugs": [p.part_slug for p in upload.dataset_parts],
                 "file_name": upload.file_name,
+                "urls": [url.url for url in upload.urls],
             },
         )
+
+    @field_validator("urls", mode="before")
+    def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
+        return _split_lines(value)
 
 
 @all_optional

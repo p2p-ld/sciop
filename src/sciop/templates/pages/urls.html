@@ -1,0 +1,35 @@
+{% extends "layouts/default.html" %}
+{% block head %}
+{% with title = "URLs" %}
+    {% include "includes/head.html" %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>URLs</h1>
+  <span class="htmx-indicator loading-indicator" id="urls-loading-indicator">
+      <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+  </span>
+</div>
+<div class="container flex-container column">
+  <div class="row search-container" >
+    <input class="form-control search-input enter-trigger" type="search"
+           name="query" placeholder="Begin Typing To Search..."
+           hx-get="/urls/search"
+           hx-trigger="input changed delay:250ms, enterKeyUp"
+           hx-target="#urls-table"
+           hx-indicator="#urls-loading-indicator"
+           hx-swap="innerHTML"
+    >
+  </div>
+
+  <div
+    id="urls-table"
+    aria-live="polite"
+    hx-get="/urls/search{{ query_str }}"
+    hx-trigger="load"
+    hx-swap="innerHTML">
+  </div>
+</div>
+
+{% endblock %}

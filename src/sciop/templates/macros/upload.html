@@ -37,6 +37,16 @@
             <h{{ header_start + 1}} class="method">Method</h{{ header_start + 1}}>
             <p>{{ upload.method_html | safe }}</p>
 
+            {% if upload.urls | length > 0 %}
+            <h{{ header_start + 1}} class="urls">URLs</h{{ header_start + 1}}>
+            <ul class="url-list">
+                {% for url in upload.urls %}
+                <li>
+                    <a href="{{ url.url }}">{{ url.url }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
         </div>
         <div class="upload-infobox infobox">
             <div class="infobox-header download-container">
