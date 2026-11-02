@@ -4,6 +4,7 @@ from sqlmodel import Session, insert, select
 
 from sciop.api.auth import get_password_hash, verify_password
 from sciop.models import (
+    URL,
     Account,
     AccountCreate,
     AuditLog,
@@ -27,7 +28,6 @@ from sciop.models import (
     TrackerCreate,
     Upload,
     UploadCreate,
-    URL,
     Webseed,
     WebseedCreate,
     WebseedStatus,
