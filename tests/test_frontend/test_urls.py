@@ -41,8 +41,8 @@ def test_url_search_order(dataset, client):
         "https://example.com/a/very/long/path/that/would/rank/lower",
         "https://example.com/m",
     ]
-    loose = "https://other.com/berger-com"
-    dataset(slug="berger", urls=[*exact, loose])
+    loose = "https://other.com/example-com"
+    dataset(slug="example", urls=[*exact, loose])
 
     res = client.get("/urls/search?query=example.com")
     assert res.status_code == 200
