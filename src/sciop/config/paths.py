@@ -20,6 +20,7 @@ class PathConfig(BaseModel):
     Prefer putting paths here rather than in the models where the paths are used,
     but do describe any relation between paths and other config values.
     """
+
     model_config = ConfigDict(validate_default=True)
 
     db: Path | Literal["memory"] = DEFAULT_DB_PATHS["dev"]
