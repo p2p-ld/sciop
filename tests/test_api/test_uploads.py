@@ -51,21 +51,75 @@ def test_upload(
 
 
 def test_upload_urls(upload, client, admin_auth_header):
-    """Uploads can be created, edited, and read with urls"""
-    ul = upload(urls="https://example.com/a\nhttps://example.com/b")
+    """
+    Uploads can be created and edited with urls and the HTTP status they returned,
+    as structured data or as lines with the url and status separated by whitespace,
+    and the urls are read from their own paginated endpoint rather than with the upload
+    """
+    ul = upload(urls="https://example.com/a 200\nhttps://example.com/b")
+    api = get_config().api_prefix + f"/uploads/{ul.infohash}"
 
-    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}")
+    def urls() -> list[dict]:
+        res = client.get(api + "/urls")
+        assert res.status_code == 200
+        return res.json()["items"]
+
+    res = client.get(api)
     assert res.status_code == 200
-    assert res.json()["urls"] == ["https://example.com/a", "https://example.com/b"]
+    assert "urls" not in res.json()
+    assert urls() == [
+        {"url": "https://example.com/a", "status": 200},
+        {"url": "https://example.com/b", "status": None},
+    ]
 
-    new_urls = ["https://example.com/b", "https://example.com/c"]
     res = client.patch(
-        get_config().api_prefix + f"/uploads/{ul.infohash}",
-        json={"urls": new_urls},
+        api,
+        json={"urls": [{"url": "https://example.com/b", "status": 301}, "https://example.com/c"]},
         headers=admin_auth_header,
     )
     assert res.status_code == 200
-    assert res.json()["urls"] == new_urls
+    assert "urls" not in res.json()
+    assert urls() == [
+        {"url": "https://example.com/b", "status": 301},
+        {"url": "https://example.com/c", "status": None},
+    ]
+
+    # the edit form sends one string, and the last of a repeated url wins
+    res = client.patch(
+        api,
+        json={"urls": "https://example.com/c 404\n  https://example.com/c\t503  "},
+        headers=admin_auth_header,
+    )
+    assert res.status_code == 200
+    assert urls() == [{"url": "https://example.com/c", "status": 503}]
+
+    # null is the same as not passing urls, so they're left as they are
+    res = client.patch(api, json={"urls": None}, headers=admin_auth_header)
+    assert res.status_code == 200
+    assert urls() == [{"url": "https://example.com/c", "status": 503}]
+
+    # and getting an upload and patching it back doesn't change its urls
+    upload_json = client.get(api).json()
+    res = client.patch(api, json=upload_json, headers=admin_auth_header)
+    assert res.status_code == 200
+    assert urls() == [{"url": "https://example.com/c", "status": 503}]
+
+    res = client.patch(api, json={"urls": []}, headers=admin_auth_header)
+    assert res.status_code == 200
+    assert urls() == []
+
+
+@pytest.mark.parametrize("status", ["99", "600", "ok", "200 301"])
+def test_upload_url_invalid_status(status, upload, client, admin_auth_header):
+    """Statuses must be numbers from 100 to 599"""
+    ul = upload()
+    res = client.patch(
+        get_config().api_prefix + f"/uploads/{ul.infohash}",
+        json={"urls": f"https://example.com/a {status}"},
+        headers=admin_auth_header,
+    )
+    assert res.status_code == 422
+    assert res.json()["detail"][0]["loc"][:2] == ["body", "urls"]
 
 
 def test_upload_urls_paginated(upload, client):
@@ -90,6 +144,38 @@ def test_upload_urls_paginated(upload, client):
     assert res.status_code == 200
     assert f'id="url-table-{ul.infohash}"' in res.text
     assert urls[0] in res.text
+
+
+def test_upload_urls_status(upload, client):
+    """Paginated upload urls include their statuses, which are sortable and shown as tags"""
+    ul = upload(
+        urls=[
+            {"url": "https://example.com/a", "status": 404},
+            {"url": "https://example.com/b"},
+            {"url": "https://example.com/c", "status": 200},
+            {"url": "https://example.com/d", "status": 301},
+        ]
+    )
+
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/urls?sort=status")
+    assert res.status_code == 200
+    assert res.json()["items"] == [
+        {"url": "https://example.com/b", "status": None},
+        {"url": "https://example.com/c", "status": 200},
+        {"url": "https://example.com/d", "status": 301},
+        {"url": "https://example.com/a", "status": 404},
+    ]
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/urls?sort=-status")
+    assert [item["status"] for item in res.json()["items"]] == [404, 301, 200, None]
+
+    res = client.get(
+        get_config().api_prefix + f"/uploads/{ul.infohash}/urls", headers={"HX-Request": "true"}
+    )
+    for status in (200, 301, 404):
+        assert (
+            f'class="status-tag status-{status // 100}xx" title="HTTP status {status}"' in res.text
+        )
+    assert res.text.count("status-tag") == 3
 
 
 @pytest.mark.parametrize(

@@ -71,7 +71,7 @@ def test_urls_shared(session, dataset, upload):
     shared = session.exec(select(URL).where(URL.url == url)).one()
     assert {ds.slug for ds in shared.datasets} == {ds_a.slug, ds_b.slug}
     assert shared.uploads == [ul]
-    assert [url.url for url in ds_a.urls] == [url, "https://example.com/a"]
+    assert [url.url for url in ds_a.urls] == ["https://example.com/a", url]
 
 
 def test_assign_urls(session, dataset):
@@ -138,6 +138,21 @@ def test_reassign_urls_keeps_existing_links(session, dataset):
     session.commit()
     assert sorted(links()) == [b, c]
     assert links()[b].created_at == created_b
+
+
+def test_reassign_url_statuses(session, upload):
+    """
+    Reassigning an upload's urls updates the statuses of links that are kept,
+    including clearing them when a url is given without one
+    """
+    a, b = "https://example.com/a", "https://example.com/b"
+    ul = upload(urls=[{"url": a, "status": 200}, {"url": b, "status": 404}])
+    assert {link.url.url: link.status for link in ul.urls} == {a: 200, b: 404}
+
+    ul.urls = [{"url": a, "status": 301}, b]
+    session.add(ul)
+    session.commit()
+    assert {link.url.url: link.status for link in ul.urls} == {a: 301, b: None}
 
 
 def test_urls_partial_changes_raise(session, dataset):

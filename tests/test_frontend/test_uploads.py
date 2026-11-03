@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from playwright.async_api import Page, expect
 
@@ -11,6 +13,18 @@ def test_uploads_urls(use_hash, client, upload):
     hash = getattr(ul.torrent, use_hash)
     res = client.get(f"/uploads/{hash}")
     assert res.status_code == 200
+
+
+def test_edit_form_url_statuses(upload, client, admin_auth_header):
+    """The edit form lists urls one per line, with their status after a space"""
+    ul = upload(urls=[{"url": "https://example.com/a", "status": 200}, "https://example.com/b"])
+    res = client.get(f"/uploads/{ul.infohash}/edit", headers=admin_auth_header)
+    assert res.status_code == 200
+    text = re.search(r'<textarea[^>]*name="urls"[^>]*>(.*?)</textarea>', res.text, re.DOTALL).group(
+        1
+    )
+    lines = text.strip().splitlines()
+    assert lines == ["https://example.com/a 200", "https://example.com/b"]
 
 
 def test_no_show_unapproved(account, upload, client):
