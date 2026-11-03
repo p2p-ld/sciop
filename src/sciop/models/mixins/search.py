@@ -1,6 +1,17 @@
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from sqlalchemy import Column, Connection, MetaData, Select, Table, TextClause, event, select, text
+from sqlalchemy import (
+    Column,
+    Connection,
+    MetaData,
+    Select,
+    Table,
+    TextClause,
+    event,
+    false,
+    select,
+    text,
+)
 from sqlalchemy.exc import OperationalError
 from sqlmodel import literal_column
 from sqlmodel.main import FieldInfo
@@ -12,6 +23,28 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.base import Engine
 
 FTS_SUBTABLES = ("config", "data", "docsize", "idx")
+
+
+def fts_query(query: str) -> str | None:
+    """
+    Turn a search as typed into a full text query that matches rows
+    containing every whitespace-separated term in it.
+
+    Each term is quoted (doubling any quotes inside it), so it is matched as plain text
+    rather than read as query syntax: e.g. the ``:`` in ``https://`` would otherwise
+    mean a column name, and ``OR`` or ``-`` would be operators.
+    With the trigram tokenizer, a quoted term matches anywhere inside a value,
+    and terms shorter than 3 characters are ignored.
+
+    Returns ``None`` if the query is empty.
+    """
+    terms = query.split()
+    if not terms:
+        return None
+    match = " ".join('"' + term.replace('"', '""') + '"' for term in terms)
+    if len(query) < 3:
+        match += "*"
+    return match
 
 
 class SearchableMixin(SQLModel):
@@ -122,17 +155,11 @@ class SearchableMixin(SQLModel):
 
         """
         table = cls.fts_table()
-        if len(query) < 3:
-            query = query + "*"
-
-        # '-'s specifically break the full text query since they are logical NOT
-        # we should be able to use a "phrase query" here by double quoting them,
-        # but can't figure out how to do that safely with bound params instead of
-        # literal string interpolation
-        query = query.replace("-", "*")
-        query = query.replace(".", "*")
-
-        where_clause = text(f"{cls.fts_table_name()} = :query").bindparams(query=query)
+        match = fts_query(query)
+        if match is None:
+            where_clause = false()
+        else:
+            where_clause = text(f"{cls.fts_table_name()} = :query").bindparams(query=match)
         return select(
             table.c.rowid,
             literal_column(cls.fts_rank()).label("rank"),
@@ -143,7 +170,7 @@ class SearchableMixin(SQLModel):
         """Select statement to count number of search results"""
         return text(
             f"SELECT count(*) FROM {cls.fts_table_name()} WHERE {cls.fts_table_name()} MATCH :q;"  # noqa: S608 - confirmed no sqli
-        ).bindparams(q=query)
+        ).bindparams(q=fts_query(query) or '""')
 
     @classmethod
     def register_events(cls) -> None:
