@@ -2,7 +2,7 @@
 {% if items %}
 {% set upload = request.state.upload %}
 {% if page == 1 %}
-<div id="files-sacrificial-swap-{{ upload.infohash }}">
+<div id="files-sacrificial-swap-{{ upload.infohash }}" class="scroll-table">
 <table id="file-table-{{ upload.infohash }}" class="file-table">
   <thead>
   {{ page_header(

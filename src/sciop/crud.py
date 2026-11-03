@@ -13,7 +13,6 @@ from sciop.models import (
     DatasetPart,
     DatasetPartCreate,
     DatasetPath,
-    DatasetURL,
     ExternalIdentifier,
     FileInTorrent,
     Report,
@@ -68,7 +67,6 @@ def create_dataset(
     **kwargs: Any,
 ) -> Dataset:
     is_approved = current_account is not None and current_account.has_scope("submit")
-    urls = [DatasetURL(url=url) for url in dataset_create.urls]
     external_identifiers = [
         ExternalIdentifier(type=e.type, identifier=e.identifier)
         for e in dataset_create.external_identifiers
@@ -85,7 +83,7 @@ def create_dataset(
     params = {
         "is_approved": is_approved,
         "account": current_account,
-        "urls": urls,
+        "urls": dataset_create.urls,
         "tags": tags,
         "external_identifiers": external_identifiers,
         "parts": parts,
@@ -333,6 +331,7 @@ def create_upload(
         "dataset": dataset,
         "infohash": created_upload.infohash,
         "is_approved": account.has_scope("upload"),
+        "urls": created_upload.urls,
     }
     if created_upload.part_slugs:
         update["dataset_parts"] = get_dataset_parts(

@@ -16,11 +16,13 @@ from sciop.api.deps import (
     RequireUpload,
     RequireVisibleUpload,
     SessionDep,
+    check_scoped_limits,
 )
 from sciop.config import get_config
 from sciop.frontend.templates import jinja
 from sciop.logging import init_logger
 from sciop.models import (
+    URL,
     FileInTorrent,
     FileInTorrentRead,
     RaggedSearchPage,
@@ -30,6 +32,7 @@ from sciop.models import (
     UploadCreate,
     UploadRead,
     UploadUpdate,
+    UploadURLLink,
     Webseed,
     WebseedCreate,
     WebseedRead,
@@ -58,6 +61,7 @@ async def create_upload(
     Create an upload from an already-uploaded torrent's infohash, and
     a dataset (and optionally dataset part(s)) to attach it to.
     """
+    check_scoped_limits(upload, current_account)
     torrent = crud.get_torrent_from_infohash(session=session, infohash=upload.infohash)
     if not torrent:
         raise HTTPException(
@@ -94,6 +98,7 @@ async def upload_edit(
     response: Response,
 ) -> UploadRead:
     """Edit an upload!"""
+    check_scoped_limits(upload_patch, current_account)
     updated_upload = upload.update(session, new=upload_patch, commit=True)
     if "HX-Request" in request.headers:
         response.headers["HX-Redirect"] = f"/uploads/{upload.infohash}"
@@ -149,6 +154,32 @@ async def upload_files(
         raise HTTPException(400, "Search query not supported for torrent files")
     request.state.upload = upload
     stmt = search.apply_sort(stmt, FileInTorrent)
+    return paginate(conn=session, query=stmt)
+
+
+@uploads_router.get("/{infohash}/urls")
+@jinja.hx("partials/upload-urls.html")
+async def upload_urls(
+    infohash: str,
+    upload: RequireVisibleUpload,
+    session: SessionDep,
+    request: Request,
+    response: Response,
+    search: RaggedQueryNoCurrentUrl,
+) -> RaggedSearchPage[URL]:
+    """
+    URLs that the data in an upload was retrieved from.
+    """
+    stmt = (
+        select(URL)
+        .join(UploadURLLink, UploadURLLink.url_id == URL.url_id)
+        .where(UploadURLLink.upload_id == upload.upload_id)
+        .order_by(URL.url)
+    )
+    if search.query:
+        raise HTTPException(400, "Search query not supported for upload urls")
+    request.state.upload = upload
+    stmt = search.apply_sort(stmt, URL)
     return paginate(conn=session, query=stmt)
 
 

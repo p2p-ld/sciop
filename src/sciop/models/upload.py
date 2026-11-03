@@ -1,9 +1,10 @@
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, ClassVar, Optional, Self, cast
+from typing import TYPE_CHECKING, Annotated, ClassVar, Optional, Self, cast
 from urllib.parse import urljoin
 
 import sqlalchemy as sqla
+from annotated_types import MaxLen
 from pydantic import field_validator
 from sqlalchemy import ColumnElement, SQLColumnExpression, event
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -21,7 +22,7 @@ from sciop.models import (
     TorrentFileRead,
     TorrentTrackerLink,
 )
-from sciop.models.dataset import UploadDatasetPartLink
+from sciop.models.dataset import UploadDatasetPartLink, _split_lines
 from sciop.models.mixins import (
     EditableMixin,
     FrontendMixin,
@@ -33,11 +34,24 @@ from sciop.models.mixins import (
     TableReadMixin,
     all_optional,
 )
+from sciop.models.urls import BulkURLsMixin, UploadURLLink
 from sciop.services.markdown import render_db_fields_to_html
-from sciop.types import FileName, IDField, InputType, SlugStr, UsernameStr, UTCDateTime
+from sciop.types import (
+    FileName,
+    IDField,
+    InputType,
+    MaxLenURL,
+    Scoped,
+    Scopes,
+    SlugStr,
+    UsernameStr,
+    UTCDateTime,
+)
 
 if TYPE_CHECKING:
     from sqlmodel import Session
+
+    from sciop.models import URL
 
 
 class UploadBase(ModerableMixin, FrontendMixin):
@@ -158,7 +172,9 @@ class UploadBase(ModerableMixin, FrontendMixin):
         return self.short_hash
 
 
-class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, table=True):
+class Upload(
+    UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, BulkURLsMixin, table=True
+):
     __tablename__ = "uploads"
     __searchable__ = {
         "description": 2.0,
@@ -195,6 +211,11 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
     account: Account = Relationship(back_populates="submissions")
     torrent: Optional["TorrentFile"] = Relationship(
         back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    urls: list["URL"] = Relationship(
+        back_populates="uploads",
+        link_model=UploadURLLink,
+        sa_relationship_kwargs={"viewonly": True},
     )
 
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
@@ -382,6 +403,7 @@ class UploadRead(UploadBase, TableReadMixin):
     dataset: Optional[SlugStr] = None
     dataset_parts: Optional[list[SlugStr]] = None
     torrent: Optional["TorrentFileRead"] = None
+    urls: list[str] = Field(default_factory=list)
     seeders: Optional[int] = None
     leechers: Optional[int] = None
 
@@ -413,6 +435,10 @@ class UploadRead(UploadBase, TableReadMixin):
             value = value.username
         return value
 
+    @field_validator("urls", mode="before")
+    def collapse_urls(cls, val: list["URL"]) -> list[str]:
+        return [url.url for url in val]
+
     @property
     def magnet_link(self) -> str:
         return self.torrent.magnet_link
@@ -443,6 +469,16 @@ class UploadCreate(UploadBase):
         description="Parts of a dataset that this upload corresponds to",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
     )
+    urls: Annotated[list[MaxLenURL], Scoped({Scopes.upload: (), None: (MaxLen(512),)})] = Field(
+        default_factory=list,
+        title="URL(s)",
+        description="""
+        URL(s) that the data in this upload was retrieved from. One URL per line.
+        Accounts without upload permissions can add up to 512 URLs.
+        """,
+        schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
+        max_length=512_000,
+    )
 
     @classmethod
     def from_upload(cls, upload: Upload) -> Self:
@@ -452,8 +488,13 @@ class UploadCreate(UploadBase):
                 "infohash": upload.infohash,
                 "part_slugs": [p.part_slug for p in upload.dataset_parts],
                 "file_name": upload.file_name,
+                "urls": [url.url for url in upload.urls],
             },
         )
+
+    @field_validator("urls", mode="before")
+    def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
+        return _split_lines(value)
 
 
 @all_optional

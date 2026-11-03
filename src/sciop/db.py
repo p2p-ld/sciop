@@ -116,6 +116,7 @@ def create_tables(
     models.Dataset.register_events()
     models.Account.register_events()
     models.Upload.register_events()
+    models.URL.register_events()
 
     SQLModel.metadata.create_all(engine, checkfirst=check_existing)
     if check_migrations and get_config().env != "test":
@@ -201,7 +202,7 @@ def create_seed_data(n: int = 100) -> None:
     from sciop import crud
     from sciop.logging import init_logger
     from sciop.models import Dataset
-    from sciop.testing.fabricators import Fabricator
+    from sciop.testing.fabricators import Fabricator, random_site_pages
 
     fake = Faker()
     maker = get_maker()
@@ -244,6 +245,11 @@ def create_seed_data(n: int = 100) -> None:
                 "title": "the uploads in here have webseeds",
                 "is_approved": True,
             },
+            {
+                "slug": "many-files",
+                "title": "the upload in here has many files and urls",
+                "is_approved": True,
+            },
         ]
         uls = [
             {"name": "abcdefgh", "dataset": "approved", "is_approved": True},
@@ -270,6 +276,13 @@ def create_seed_data(n: int = 100) -> None:
                         "https://other.example.com/parent/data",
                     ]
                 },
+            },
+            {
+                "name": "manyfiles",
+                "dataset": "many-files",
+                "is_approved": True,
+                "n_files": 1000,
+                "urls": random_site_pages(fake=fake, n=1000),
             },
         ]
 
@@ -302,12 +315,15 @@ def create_seed_data(n: int = 100) -> None:
         # generate a bunch of approved datasets to test pagination
         for _ in trange(n):
             dataset = fab.random_dataset(fake=fake, account=accounts["rando"], commit=False)
+            # uploads are snapshots of overlapping subsets of the same site
+            pages = random_site_pages(fake=fake)
             dataset.uploads = [
                 fab.random_upload(
                     name=fake.word(),
                     account=accounts["uploader"],
                     dataset=dataset,
                     commit=False,
+                    urls=sorted(random.sample(pages, random.randint(3, 50))),
                 )
                 for _ in range(random.randint(1, 3))
             ]

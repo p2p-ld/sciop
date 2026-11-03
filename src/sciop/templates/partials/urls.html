@@ -1,0 +1,29 @@
+{% from 'macros/dataset.html' import dataset_collapsible %}
+{% from 'macros/upload.html' import upload_collapsible %}
+<div id="url-page" class="url-page">
+  {% if items | length == 0 %}
+  <p class="none-found">No URLs found :)</p>
+  {% else %}
+  {% with swap_target="#url-page" %}
+    {% include 'includes/pagination-buttons.html' %}
+  {% endwith %}
+  {% for url in items %}
+  <div class="url-group">
+    <h2 class="url-heading"><a href="{{ url.url }}">{{ url.url }}</a></h2>
+    <div class="collapsible-table datasets-table">
+      {% for dataset in url.datasets if dataset.visible_to(current_account) %}
+      {{ dataset_collapsible(dataset) }}
+      {% endfor %}
+    </div>
+    <div class="collapsible-table uploads-table">
+      {% for upload in url.uploads if upload.visible_to(current_account) %}
+      {{ upload_collapsible(upload, config=config) }}
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+  {% with swap_target="#url-page" %}
+    {% include 'includes/pagination-buttons.html' %}
+  {% endwith %}
+  {% endif %}
+</div>

@@ -43,7 +43,6 @@ from sciop.models.dataset import (
     DatasetPath,
     DatasetRead,
     DatasetUpdate,
-    DatasetURL,
     ExternalIdentifier,
     ExternalIdentifierCreate,
     ExternalSource,
@@ -73,6 +72,7 @@ from sciop.models.torrent import (
 )
 from sciop.models.tracker import TorrentTrackerLink, Tracker, TrackerCreate
 from sciop.models.upload import Upload, UploadCreate, UploadRead, UploadUpdate
+from sciop.models.urls import URL, DatasetURLLink, UploadURLLink
 from sciop.models.webseed import Webseed, WebseedCreate, WebseedRead, WebseedStatus
 
 Account.model_rebuild()
@@ -108,7 +108,7 @@ __all__ = [
     "DatasetPath",
     "DatasetRead",
     "DatasetUpdate",
-    "DatasetURL",
+    "DatasetURLLink",
     "DatasetTagLink",
     "ExternalIdentifier",
     "ExternalIdentifierCreate",
@@ -148,6 +148,8 @@ __all__ = [
     "UploadCreate",
     "UploadRead",
     "UploadUpdate",
+    "UploadURLLink",
+    "URL",
     "Webseed",
     "WebseedCreate",
     "WebseedRead",

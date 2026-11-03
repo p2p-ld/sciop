@@ -90,6 +90,29 @@ async def test_scroll_files(torrentfile, upload, page: Page, run_server: Uvicorn
 
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.playwright
+async def test_scroll_urls(upload, page: Page, run_server: UvicornTestServer):
+    """
+    Scrolling the url list loads more urls.
+
+    Correctness of url list is tested in test_api/test_uploads,
+    this just tests the interactive loading behavior.
+    """
+    urls = [f"https://example.com/{i:03d}" for i in range(150)]
+    ul = upload(urls=urls)
+
+    await page.goto(f"http://127.0.0.1:8080/uploads/{ul.infohash}")
+    await expect(page.locator(".url-table tbody")).to_be_visible()
+    # 102: the header row, 100 urls, and the hidden trigger element
+    await expect(page.locator(".url-table tr")).to_have_count(102)
+    await page.get_by_text(urls[99]).scroll_into_view_if_needed()
+    await page.get_by_text(urls[100]).scroll_into_view_if_needed()
+    await expect(page.get_by_text(urls[100])).to_be_visible()
+    # the trigger element is replaced by 50 urls and a new trigger element
+    await expect(page.locator(".url-table tr")).to_have_count(152)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.playwright
 async def test_upload_edit_replace_torrent(
     page_as_admin: Page, torrent_pair, account, dataset, torrentfile, upload, tmp_path
 ):

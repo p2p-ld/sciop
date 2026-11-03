@@ -57,6 +57,19 @@ nav.navbar {
     flex-grow: 2;
   }
 
+  .nav-toggle {
+    display: none;
+  }
+
+  /* on wide screens the menu's links sit directly in the navbar */
+  .nav-menu, .nav-menu:popover-open {
+    display: contents;
+  }
+
+  .nav-menu .request-button {
+    display: none;
+  }
+
   .site-title {
     margin: 0em 1em;
     font-size: 1.5em;

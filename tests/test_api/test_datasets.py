@@ -1,11 +1,10 @@
 import json
-from collections import defaultdict
 
 from sqlmodel import Session, select
 from starlette.testclient import TestClient
 
 from sciop.config import get_config
-from sciop.models import DatasetRead, DatasetTagLink, DatasetURL, ExternalIdentifier
+from sciop.models import URL, DatasetRead, DatasetTagLink, ExternalIdentifier
 from sciop.services.markdown import render_markdown
 
 
@@ -82,8 +81,7 @@ def test_edit_relations(client, dataset, admin_auth_header, session: Session):
         assert all([orig == new for orig, new in zip(res_json[key], patched[key])])
 
     # we did not create new items for the ones that already exist
-    urls = session.exec(select(DatasetURL)).all()
-    url_history = session.exec(select(DatasetURL.history_cls())).all()
+    urls = session.exec(select(URL)).all()
     eids = session.exec(select(ExternalIdentifier)).all()
     eid_history = session.exec(select(ExternalIdentifier.history_cls())).all()
     tag_history = session.exec(select(DatasetTagLink.history_cls())).all()
@@ -91,22 +89,10 @@ def test_edit_relations(client, dataset, admin_auth_header, session: Session):
     # we keep the deleted ones just dissociate them from the parent
     assert len(urls) == 3
     assert len([url for url in urls if url.url == "https://example.com/1"]) == 1
-    assert [url for url in urls if url.url == "https://example.com/2"][0].dataset_id is None
-    # 2 creations + 1 unchanged + 1 creation + 1 dissociation
-    assert len(url_history) == 5
-    history_map = defaultdict(list)
-    for url in url_history:
-        history_map[url.version_created_at].append(url)
-    assert len(history_map) == 2
-    latest = history_map[max(history_map.keys())]
-    assert len(latest) == 3
-    for url in latest:
-        if url.url == "https://example.com/2":
-            assert url.dataset_id is None
-        else:
-            assert url.dataset_id == 1
+    assert [url for url in urls if url.url == "https://example.com/2"][0].datasets == []
+    # url links are written with bulk statements, which don't record edit history
 
-    # external ids - these are the same kind of model as urls, so we just check number
+    # external ids - we just check number
     assert len(eids) == 3
     assert len(eid_history) == 5
 

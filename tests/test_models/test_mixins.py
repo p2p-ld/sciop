@@ -5,7 +5,7 @@ from typing import Optional
 import pytest
 from sqlmodel import Field, Session, select
 
-from sciop.models import Dataset, DatasetPart, DatasetTagLink, DatasetURL, Tag
+from sciop.models import Dataset, DatasetPart, DatasetTagLink, ExternalIdentifier, Tag
 from sciop.models.mixins import SearchableMixin
 from sciop.models.mixins.enum import EnumTableMixin
 
@@ -374,29 +374,33 @@ def test_editable_one_to_many(dataset, session):
 
 def test_editable_one_to_many_deletion(dataset, session):
     """Record deletions in one to many as versions that have their fk to the parent nulled out"""
-    ds: Dataset = dataset()
+    ds: Dataset = dataset(
+        external_identifiers=[
+            {"type": "doi", "identifier": "10.1000/1"},
+            {"type": "doi", "identifier": "10.1000/2"},
+        ]
+    )
 
-    url1 = DatasetURL.get_item("https://example.com/1", session=session)
-    url2 = DatasetURL.get_item("https://example.com/2", session=session)
-    url3 = DatasetURL.get_item("https://example.com/3", session=session)
-    ds.urls = [url1, url2, url3]
+    eid1, eid2 = ds.external_identifiers
+    eid3 = ExternalIdentifier(type="doi", identifier="10.1000/3")
+    ds.external_identifiers = [eid1, eid2, eid3]
     session.add(ds)
     session.commit()
 
-    ds.urls = [url1, url3]
+    ds.external_identifiers = [eid1, eid3]
     session.add(ds)
     session.commit()
 
-    urls = session.exec(select(DatasetURL)).all()
+    eids = session.exec(select(ExternalIdentifier)).all()
     ds_history = session.exec(select(Dataset.history_cls())).all()
-    url_history = session.exec(select(DatasetURL.history_cls())).all()
+    eid_history = session.exec(select(ExternalIdentifier.history_cls())).all()
     assert len(ds_history) == 3
     history_groups = defaultdict(list)
-    for item in url_history:
+    for item in eid_history:
         history_groups[item.version_created_at].append(item)
 
-    # didn't make new urls each time
-    assert len(urls) == 3
+    # didn't make new identifiers each time
+    assert len(eids) == 3
 
     assert len(history_groups) == 3
     timestamps = list(history_groups.keys())
@@ -407,8 +411,8 @@ def test_editable_one_to_many_deletion(dataset, session):
     # two assigned and one removed
     assert len(history_groups[timestamps[2]]) == 3
 
-    # unassigned url2 in the last step
-    assert [item for item in history_groups[timestamps[2]] if item.url == url2.url][
+    # unassigned eid2 in the last step
+    assert [item for item in history_groups[timestamps[2]] if item.identifier == eid2.identifier][
         0
     ].dataset_id is None
 

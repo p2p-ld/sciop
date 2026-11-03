@@ -36,7 +36,6 @@
             <p>{{ upload.description_html | safe }}</p>
             <h{{ header_start + 1}} class="method">Method</h{{ header_start + 1}}>
             <p>{{ upload.method_html | safe }}</p>
-
         </div>
         <div class="upload-infobox infobox">
             <div class="infobox-header download-container">
@@ -166,6 +165,22 @@
         >
             <span class="htmx-indicator search-indicator" id="files-indicator">
                 <span>Loading files...</span>
+                <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
+            </span>
+        </div>
+    </div>
+
+    <h{{ header_start + 1}} class="urls">
+        URLs
+    </h{{ header_start + 1}}>
+    <div id="urls-container-{{ upload.infohash }}" class="urls-container container bordered">
+        <div
+            hx-get="{{ config.api_prefix }}/uploads/{{ upload.infohash }}/urls"
+            hx-trigger="load"
+            hx-swap="outerHTML"
+        >
+            <span class="htmx-indicator search-indicator" id="urls-indicator">
+                <span>Loading URLs...</span>
                 <img src="/static/img/rings.svg" alt="Loading indicator, a spinning ring"/>
             </span>
         </div>
