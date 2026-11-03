@@ -19,6 +19,7 @@ def test_start_with_config(tmp_path, monkeypatch):
     config_path = tmp_path / "sciop-test-fakename.yaml"
     footer = "this text should be in the footer!"
     test_config = {
+        "env": "test",
         "server": {"port": 8965},
         "instance": {"footer": footer},
         "services": {"docs": {"enabled": False}},
