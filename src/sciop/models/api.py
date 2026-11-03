@@ -1,7 +1,7 @@
 import re
 from collections.abc import Sequence
 from math import ceil
-from typing import Annotated, Any, ClassVar, Generic, Optional, Self, TypeVar
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Generic, Optional, Self, TypeVar
 from typing import Literal as L
 from urllib.parse import quote_plus
 
@@ -16,9 +16,8 @@ from pydantic_core import CoreSchema, core_schema
 from sqlalchemy import Select
 from starlette.datastructures import QueryParams
 
-from sciop.helpers.type import unwrap
-from sciop.models.base import SQLModel
-from sciop.types import SortableStrEnum
+if TYPE_CHECKING:
+    from sciop.models.mixins.sort import SortMixin
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -149,7 +148,11 @@ class SearchParams(Params):
             del params["query"]
         return cls(**params)
 
-    def apply_sort(self, stmt: Select, model: type[SQLModel]) -> Select:
+    def apply_sort(self, stmt: Select, model: type["SortMixin"]) -> Select:
+        """
+        Sort a statement by the columns in the sort params,
+        as resolved by :meth:`.SortMixin.sort_column` on the model being sorted
+        """
         if not self.sort:
             return stmt
 
@@ -162,20 +165,9 @@ class SearchParams(Params):
                 desc = True
                 sort = sort.field
 
-            # get item if we have it
-            col = getattr(model, sort, None)
+            col = model.sort_column(sort)
             if col is None:
                 continue
-
-            try:
-                # try to get special types, but don't panic if we can't.
-                # that just means it's not a special type we know about!
-                annotation = unwrap(model.model_fields[sort].annotation)
-
-                if issubclass(annotation, SortableStrEnum):
-                    col = annotation.case_statement(col)
-            except (TypeError, KeyError):
-                pass
 
             # sort text case-insensitively, including expressions with an unknown type.
             # Other types don't support collations.
