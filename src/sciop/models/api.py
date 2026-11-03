@@ -175,7 +175,15 @@ class SearchParams(Params):
             except (TypeError, KeyError):
                 pass
 
-            col = sqla.desc(col.collate("NOCASE")) if desc else sqla.asc(col.collate("NOCASE"))
+            # sort text case-insensitively, including expressions with an unknown type.
+            # Other types don't support collations.
+            col_type = getattr(col, "type", None)
+            if isinstance(col_type, sqla.types.TypeDecorator):
+                col_type = col_type.impl_instance
+            if isinstance(col_type, (sqla.String, sqla.types.NullType)):
+                col = col.collate("NOCASE")
+
+            col = sqla.desc(col) if desc else sqla.asc(col)
             sort_items.append(col)
 
         # clear prior sort and add new one
