@@ -1,4 +1,5 @@
 {% from "macros/actions.html" import delete_button, edit_button, unapprove_button, approve_button, report_button %}
+{% from "macros/url.html" import status_tag %}
 {% macro upload_row(upload, current_account, config, header_start=1) %}
 <div class="upload" id="upload-{{ upload.infohash }}">
     <div class="upload-topmatter topmatter">
@@ -232,9 +233,9 @@
 </div>
 {% endmacro %}
 
-{% macro upload_collapsible(upload, review=False, config = None) %}
+{% macro upload_collapsible(upload, review=False, config = None, url_link = None) %}
 <details id="upload-collapsible-{{ upload.infohash }}"
-         class="collapsible upload-collapsible{% if not upload.is_approved %} unapproved{% endif %}{% if review %} review{% endif %}">
+         class="collapsible upload-collapsible{% if not upload.is_approved %} unapproved{% endif %}{% if review %} review{% endif %}{% if url_link is not none %} with-url-status{% endif %}">
     <summary class="collapsible-summary"
              hx-get="/uploads/{{ upload.infohash }}/partial"
              hx-trigger="click once"
@@ -246,6 +247,9 @@
                 {{ upload.short_hash }}
             </a>
         </span>
+        {% if url_link is not none %}
+        <span class="url-status">{{ status_tag(url_link.status) }}</span>
+        {% endif %}
         <span class="upload-title title" title="{{ upload.file_name }}">{{ upload.file_name }}</span>
         <span class="upload-size size">{{ upload.human_size }}</span>
         {{ torrent_stats(upload) }}
