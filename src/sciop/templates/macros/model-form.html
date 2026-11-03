@@ -97,9 +97,7 @@
     >
     {% if value and element=="textarea" %}
       {% if value is is_list %}
-{% for item in value %}
-{{ item.values() | reject("none") | join(" ") if item is mapping else item }}{% if not loop.last %}{{ "\n" }}{% endif %}
-{% endfor %}
+{{ value | join("\n") }}
       {%- else %}
 {{ value }}
       {%- endif %}

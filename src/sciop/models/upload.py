@@ -1,6 +1,6 @@
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, NotRequired, Optional, Self, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Optional, Self, cast
 from urllib.parse import urljoin
 
 import sqlalchemy as sqla
@@ -10,7 +10,6 @@ from sqlalchemy import ColumnElement, SQLColumnExpression, event
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
 from sqlmodel import Field, Relationship, func, select
-from typing_extensions import TypedDict
 
 from sciop.config import get_config
 from sciop.models import (
@@ -23,6 +22,7 @@ from sciop.models import (
     TorrentFileRead,
     TorrentTrackerLink,
 )
+from sciop.models.base import SQLModel
 from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixins import (
     EditableMixin,
@@ -447,11 +447,15 @@ class UploadRead(UploadBase, TableReadMixin):
         return self.torrent.total_size
 
 
-class UploadURL(TypedDict):
+class UploadURL(SQLModel):
     """A url that an upload's data was retrieved from, and the HTTP status code it returned"""
 
     url: MaxLenURL
-    status: NotRequired[Optional[HTTPStatusCode]]
+    status: Optional[HTTPStatusCode] = None
+
+    def __str__(self) -> str:
+        """As a line of the form input: ``url status``, or just the url without a status"""
+        return self.url if self.status is None else f"{self.url} {self.status}"
 
 
 class UploadCreate(UploadBase):

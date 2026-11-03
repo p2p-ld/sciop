@@ -182,11 +182,7 @@ async def upload_urls(
         raise HTTPException(400, "Search query not supported for upload urls")
     request.state.upload = upload
     stmt = search.apply_sort(stmt, UploadURLLink)
-    return paginate(
-        conn=session,
-        query=stmt,
-        transformer=lambda rows: [dict(row._mapping) for row in rows],
-    )
+    return paginate(conn=session, query=stmt)
 
 
 @uploads_router.get("/{infohash}/webseeds")
