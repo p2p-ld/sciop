@@ -105,7 +105,7 @@ async def file_server(tmp_data_path: Path, rand_dir: Path) -> FastAPI:
 
 @pytest.fixture(scope="function", autouse=True)
 def clear_request_hoarder(file_server):
-    hoarder: RequestHoarderMiddleware = file_server.config.app.middleware_stack.app
+    hoarder = RequestHoarderMiddleware.find(file_server.config.app)
     hoarder.clear()
 
 
@@ -172,7 +172,7 @@ async def test_webseed_validation(
     assert res.valid, res.message
 
     # check that we actually requested all the urls we were supposed to.
-    hoarder: RequestHoarderMiddleware = file_server.config.app.middleware_stack.app
+    hoarder = RequestHoarderMiddleware.find(file_server.config.app)
     if torrent_version == "v1":
         expected_urls = []
         res.ranges = cast(list[V1PieceRange], res.ranges)
@@ -207,7 +207,7 @@ async def test_reject_invalid_data(
     torrent, tf = data_torrent
     webseed_url = "http://127.0.0.1:9998/random/"
 
-    hoarder: RequestHoarderMiddleware = file_server.config.app.middleware_stack.app
+    hoarder = RequestHoarderMiddleware.find(file_server.config.app)
     assert set(str(r.url) for r in hoarder.requests) == set()
     res = await validate_webseed(tf.infohash, webseed_url)
     assert not res.valid

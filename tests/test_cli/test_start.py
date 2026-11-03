@@ -2,8 +2,8 @@ import shutil
 import subprocess
 from time import sleep
 
+import httpx
 import pytest
-import requests
 import yaml
 from bs4 import BeautifulSoup
 
@@ -44,7 +44,7 @@ def test_start_with_config(tmp_path, monkeypatch):
         sleep(0.25)
 
         # this tests if the pre-launch configuration stuff works
-        res = requests.get("http://localhost:8965/")
+        res = httpx.get("http://localhost:8965/")
         assert res.status_code == 200
 
         # and this tests if our config has been persisted through

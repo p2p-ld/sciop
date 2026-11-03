@@ -69,11 +69,7 @@ class RequestHoarderMiddleware(BaseHTTPMiddleware):
     """
     Just keep holding on to the requests what could go wrong
 
-    Look i don't know of any better way to access the attrs than this
-    ```
-    uvicorn_server.config.app.middleware_stack.app
-    ```
-    if you have no other middleware.
+    Get the instance from an app with :meth:`.find`
     """
 
     def __init__(self, app: Starlette):
@@ -90,3 +86,14 @@ class RequestHoarderMiddleware(BaseHTTPMiddleware):
     def clear(self) -> None:
         self.requests = []
         self.responses = []
+
+    @classmethod
+    def find(cls, app: Starlette) -> "RequestHoarderMiddleware":
+        """
+        Find the hoarder in an app's middleware stack,
+        past any middleware that starlette or fastapi add around it
+        """
+        layer = app.middleware_stack
+        while not isinstance(layer, cls):
+            layer = layer.app
+        return layer
