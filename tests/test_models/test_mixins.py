@@ -190,6 +190,42 @@ def test_search_spicy_characters(session):
     assert len(results) == 2
 
 
+@pytest.mark.parametrize(
+    "query,n_results",
+    [
+        ("https://example.com:8080/match", 1),
+        ("https://example.com/match", 0),
+        ("example.com:8080", 1),
+        ("match example.com", 1),
+        ("://", 1),
+        ('"match" OR nothing', 0),
+        ('8080/match"', 0),
+        ("NOT match", 0),
+        ("match*", 0),
+        ("(match)", 0),
+        ("", 0),
+    ],
+)
+def test_search_query_syntax(session, query: str, n_results: int):
+    """
+    Each term in a query is searched for as plain text,
+    including punctuation and words that are full text query syntax
+    """
+    ds = Dataset(
+        title="Has a url",
+        description="Retrieved from https://example.com:8080/match",
+        slug="has-url",
+        publisher="Agency",
+    )
+    session.add(ds)
+    session.commit()
+
+    results = session.execute(Dataset.search(query)).fetchall()
+    assert len(results) == n_results
+    count = session.execute(Dataset.count_statement(query)).scalar_one()
+    assert count == n_results
+
+
 def test_ensure_enum(recreate_models):
     """
     ensure_enum creates all values from an enum
