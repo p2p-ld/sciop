@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Optional, TypeAlias, Union, get_args
 
 import sqlalchemy as sqla
-from annotated_types import DocInfo, Gt, MaxLen, MinLen, doc
+from annotated_types import DocInfo, Ge, Gt, Le, MaxLen, MinLen, doc
 from pydantic import (
     AfterValidator,
     AnyUrl,
@@ -63,6 +63,8 @@ MaxLenURL = Annotated[
     str, MaxLen(2048), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
 ]
 """URL that is at most 2048 characters long"""
+HTTPStatusCode = Annotated[int, Ge(100), Le(599)]
+"""An HTTP response status code"""
 PathLike = Annotated[PathLike_[str], AfterValidator(lambda x: Path(x).as_posix())]
 """Path-like string, as a POSIX path"""
 FileName = Annotated[str, AfterValidator(_validate_no_traversal)]

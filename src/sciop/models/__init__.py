@@ -71,7 +71,7 @@ from sciop.models.torrent import (
     TorrentFileRead,
 )
 from sciop.models.tracker import TorrentTrackerLink, Tracker, TrackerCreate
-from sciop.models.upload import Upload, UploadCreate, UploadRead, UploadUpdate
+from sciop.models.upload import Upload, UploadCreate, UploadRead, UploadUpdate, UploadURL
 from sciop.models.urls import URL, DatasetURLLink, UploadURLLink
 from sciop.models.webseed import Webseed, WebseedCreate, WebseedRead, WebseedStatus
 
@@ -148,6 +148,7 @@ __all__ = [
     "UploadCreate",
     "UploadRead",
     "UploadUpdate",
+    "UploadURL",
     "UploadURLLink",
     "URL",
     "Webseed",
