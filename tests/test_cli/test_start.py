@@ -29,19 +29,20 @@ def test_start_with_config(tmp_path, monkeypatch):
     sciop_path = shutil.which("sciop")
 
     proc = subprocess.Popen(
-        " ".join([sciop_path, "start", "-c", str(config_path)]),
+        [sciop_path, "start", "-c", str(config_path)],
         text=True,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=True,
+        stderr=subprocess.STDOUT,
     )
+    output = []
     try:
         # wait until the server is started
-        while True:
-            stderr = proc.stderr.readline()
-            if "startup complete" in stderr:
+        for line in proc.stdout:
+            output.append(line)
+            if "startup complete" in line:
                 break
-            sleep(0.1)
+        else:
+            pytest.fail("sciop exited before starting")
         sleep(0.25)
 
         # this tests if the pre-launch configuration stuff works
@@ -54,4 +55,7 @@ def test_start_with_config(tmp_path, monkeypatch):
         assert footer_text[0].text == footer
 
     finally:
+        # pytest shows this if the test fails, including from pytest-timeout
+        print("".join(output))
         proc.terminate()
+        proc.wait(timeout=10)
