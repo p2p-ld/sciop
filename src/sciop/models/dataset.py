@@ -28,7 +28,7 @@ from sciop.models.mixins import (
     exclude_fields,
 )
 from sciop.models.tag import DatasetTagLink
-from sciop.models.urls import DatasetURLLink
+from sciop.models.urls import BulkURLsMixin, DatasetURLLink
 from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import (
     AccessType,
@@ -208,7 +208,9 @@ class DatasetBase(ModerableMixin, FrontendMixin):
         return self.slug
 
 
-class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, table=True):
+class Dataset(
+    DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, BulkURLsMixin, table=True
+):
     __tablename__ = "datasets"
     __searchable__ = {
         "title": 5.0,
@@ -243,7 +245,11 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
     uploads: list["Upload"] = Relationship(back_populates="dataset")
     external_sources: list["ExternalSource"] = Relationship(back_populates="dataset")
     external_identifiers: list["ExternalIdentifier"] = Relationship(back_populates="dataset")
-    urls: list["URL"] = Relationship(back_populates="datasets", link_model=DatasetURLLink)
+    urls: list["URL"] = Relationship(
+        back_populates="datasets",
+        link_model=DatasetURLLink,
+        sa_relationship_kwargs={"viewonly": True},
+    )
     tags: list["Tag"] = Relationship(
         back_populates="datasets",
         sa_relationship_kwargs={"lazy": "selectin"},
@@ -263,8 +269,6 @@ class Dataset(DatasetBase, TableMixin, SearchableMixin, EditableMixin, SortMixin
         updated = new.model_dump(exclude_unset=True)
         if "tags" in updated:
             updated["tags"] = crud.get_tags(session=session, tags=updated["tags"])
-        if "urls" in updated:
-            updated["urls"] = crud.get_urls(session=session, urls=updated["urls"])
         if "external_identifiers" in updated:
             updated["external_identifiers"] = ExternalIdentifier.get_items(
                 self.external_identifiers, updated["external_identifiers"]
@@ -446,7 +450,7 @@ class ExternalSourceBase(SQLModel):
         description="The name of the group or person who provides the dataset",
         max_length=256,
     )
-    url: MaxLenURL = Field(description="Link to the external source", max_length=512)
+    url: MaxLenURL = Field(description="Link to the external source", max_length=2048)
     description: str = Field(
         description="Additional information about the completeness, accuracy, etc. "
         "of the external source",

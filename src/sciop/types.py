@@ -1,14 +1,23 @@
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
+from functools import lru_cache
 from html import escape
 from os import PathLike as PathLike_
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Literal, Optional, TypeAlias, Union, get_args
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Optional, TypeAlias, Union, get_args
 
 import sqlalchemy as sqla
 from annotated_types import DocInfo, Gt, MaxLen, MinLen, doc
-from pydantic import AfterValidator, AnyUrl, BeforeValidator, PlainSerializer, TypeAdapter
+from pydantic import (
+    AfterValidator,
+    AnyUrl,
+    BeforeValidator,
+    PlainSerializer,
+    TypeAdapter,
+    ValidationError,
+)
 from slugify import slugify
 from sqlalchemy import Case, ColumnElement, case
 from sqlmodel import Field
@@ -51,9 +60,9 @@ SlugStr: TypeAlias = Annotated[str, AfterValidator(slugify)]
 """A slufified string, with only lowercase letters and hyphens"""
 AnyUrlTypeAdapter = TypeAdapter(AnyUrl)
 MaxLenURL = Annotated[
-    str, MaxLen(512), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
+    str, MaxLen(2048), AfterValidator(lambda url: str(AnyUrlTypeAdapter.validate_python(url)))
 ]
-"""URL that is at most 512 characters long"""
+"""URL that is at most 2048 characters long"""
 PathLike = Annotated[PathLike_[str], AfterValidator(lambda x: Path(x).as_posix())]
 """Path-like string, as a POSIX path"""
 FileName = Annotated[str, AfterValidator(_validate_no_traversal)]
@@ -330,11 +339,73 @@ class Scopes(StrEnum):
             There should be a very small number of `root` accounts,
             and their primary role is to create and demote other `admin` accounts.
             Roots have all other scopes, and have the additionally able to
-           
+
                 - Create new `admin` accounts
                 - Suspend `admin` accounts
             """),
     ] = "root"
+
+
+@dataclass(frozen=True)
+class Scoped:
+    """
+    Extra constraints on a field that depend on the scopes of the account making a request.
+
+    ``limits`` maps a scope to the ``annotated_types`` constraints (like ``MaxLen``)
+    for accounts with that scope. Scopes are checked in order and the first one
+    the account has is used. ``None`` is for accounts with none of them.
+
+    The field's own constraints still apply to everyone and are checked first,
+    so keep them as the ceiling.
+
+    Validation alone doesn't know which account is making the request,
+    so routes enforce these with :func:`sciop.api.deps.check_scoped_limits`.
+
+    Examples:
+        At most 512 items, unless the account has the upload scope::
+
+            Scoped({Scopes.upload: (), None: (MaxLen(512),)})
+    """
+
+    limits: dict[Optional[Scopes], tuple[Any, ...]]
+
+    def for_account(self, account: "Account") -> tuple[Optional[Scopes], tuple[Any, ...]]:
+        """The scope that applies to an account, and its constraints"""
+        for scope, constraints in self.limits.items():
+            if scope is not None and account.has_scope(scope):
+                return scope, constraints
+        return None, self.limits.get(None, ())
+
+    def errors(self, value: Any, account: "Account") -> list[dict]:
+        """
+        Pydantic-style errors for a value under the constraints that apply to an account,
+        or an empty list if the value is valid.
+        """
+        scope, constraints = self.for_account(account)
+        if not constraints:
+            return []
+        try:
+            self._adapter(type(value), constraints).validate_python(value)
+        except ValidationError as e:
+            other_scopes = [s for s in self.limits if s is not None]
+            if scope is not None:
+                who = f", for accounts with {scope} permissions"
+            elif other_scopes:
+                who = f", for accounts without {' or '.join(other_scopes)} permissions"
+            else:
+                who = ""
+            return [
+                {"type": err["type"], "loc": list(err["loc"]), "msg": err["msg"] + who}
+                for err in e.errors(include_url=False)
+            ]
+        return []
+
+    @staticmethod
+    @lru_cache
+    def _adapter(type_: type, constraints: tuple[Any, ...]) -> TypeAdapter:
+        # validate against the plain type, so only the scoped constraints are checked,
+        # and not e.g. every item in a list again
+        return TypeAdapter(Annotated[type_, *constraints])
 
 
 class ReportType(StrEnum):

@@ -25,7 +25,7 @@ from sciop.models import (
     TokenPayload,
     Upload,
 )
-from sciop.types import Scopes
+from sciop.types import Scoped, Scopes
 
 _TModel = TypeVar("_TModel", bound=BaseModel)
 
@@ -503,3 +503,23 @@ def require_report(
 
 
 RequireReport = Annotated[Report, Depends(require_report)]
+
+
+def check_scoped_limits(model: BaseModel, account: Account) -> None:
+    """
+    Enforce the :class:`.Scoped` constraints declared on a model's fields
+    for the account making the request.
+    """
+    errors = []
+    for name, field in type(model).model_fields.items():
+        value = getattr(model, name)
+        if value is None:
+            continue
+        for scoped in field.metadata:
+            if isinstance(scoped, Scoped):
+                errors.extend(
+                    {**err, "loc": ["body", name, *err["loc"]]}
+                    for err in scoped.errors(value, account)
+                )
+    if errors:
+        raise HTTPException(status_code=422, detail=errors)

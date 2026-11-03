@@ -4,7 +4,6 @@ from sqlmodel import Session, insert, select
 
 from sciop.api.auth import get_password_hash, verify_password
 from sciop.models import (
-    URL,
     Account,
     AccountCreate,
     AuditLog,
@@ -68,7 +67,6 @@ def create_dataset(
     **kwargs: Any,
 ) -> Dataset:
     is_approved = current_account is not None and current_account.has_scope("submit")
-    urls = get_urls(session=session, urls=dataset_create.urls)
     external_identifiers = [
         ExternalIdentifier(type=e.type, identifier=e.identifier)
         for e in dataset_create.external_identifiers
@@ -85,7 +83,7 @@ def create_dataset(
     params = {
         "is_approved": is_approved,
         "account": current_account,
-        "urls": urls,
+        "urls": dataset_create.urls,
         "tags": tags,
         "external_identifiers": external_identifiers,
         "parts": parts,
@@ -333,7 +331,7 @@ def create_upload(
         "dataset": dataset,
         "infohash": created_upload.infohash,
         "is_approved": account.has_scope("upload"),
-        "urls": get_urls(session=session, urls=created_upload.urls),
+        "urls": created_upload.urls,
     }
     if created_upload.part_slugs:
         update["dataset_parts"] = get_dataset_parts(
@@ -509,16 +507,6 @@ def get_tags(*, session: Session, tags: list[str], commit: bool = False) -> list
 
     all_tags = [*existing_tags, *new_tags]
     return all_tags
-
-
-def get_urls(*, session: Session, urls: list[str]) -> list[URL]:
-    """
-    Given a list of urls as strings,
-    get any existing urls and create non-existing ones, returning all in the given order.
-    """
-    urls = list(dict.fromkeys(urls))
-    existing = {u.url: u for u in session.exec(select(URL).where(URL.url.in_(urls))).all()}
-    return [existing.get(url, URL(url=url)) for url in urls]
 
 
 def get_latest_site_stats(*, session: Session) -> SiteStats:

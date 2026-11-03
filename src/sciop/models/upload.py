@@ -1,9 +1,10 @@
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, ClassVar, Optional, Self, cast
+from typing import TYPE_CHECKING, Annotated, ClassVar, Optional, Self, cast
 from urllib.parse import urljoin
 
 import sqlalchemy as sqla
+from annotated_types import MaxLen
 from pydantic import field_validator
 from sqlalchemy import ColumnElement, SQLColumnExpression, event
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -33,13 +34,15 @@ from sciop.models.mixins import (
     TableReadMixin,
     all_optional,
 )
-from sciop.models.urls import UploadURLLink
+from sciop.models.urls import BulkURLsMixin, UploadURLLink
 from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import (
     FileName,
     IDField,
     InputType,
     MaxLenURL,
+    Scoped,
+    Scopes,
     SlugStr,
     UsernameStr,
     UTCDateTime,
@@ -169,7 +172,9 @@ class UploadBase(ModerableMixin, FrontendMixin):
         return self.short_hash
 
 
-class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, table=True):
+class Upload(
+    UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, BulkURLsMixin, table=True
+):
     __tablename__ = "uploads"
     __searchable__ = {
         "description": 2.0,
@@ -207,7 +212,11 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
     torrent: Optional["TorrentFile"] = Relationship(
         back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
     )
-    urls: list["URL"] = Relationship(back_populates="uploads", link_model=UploadURLLink)
+    urls: list["URL"] = Relationship(
+        back_populates="uploads",
+        link_model=UploadURLLink,
+        sa_relationship_kwargs={"viewonly": True},
+    )
 
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
     reports: list["Report"] = Relationship(back_populates="target_upload")
@@ -319,8 +328,6 @@ class Upload(UploadBase, TableMixin, SearchableMixin, EditableMixin, SortMixin, 
             self.torrent = crud.get_torrent_from_infohash(session=session, infohash=infohash)
         if "file_name" in updated:
             self.torrent.file_name = updated.pop("file_name")
-        if "urls" in updated:
-            updated["urls"] = crud.get_urls(session=session, urls=updated["urls"])
         if "part_slugs" in updated:
             part_slugs = updated.pop("part_slugs")
             existing = {p.part_slug: p for p in self.dataset_parts}
@@ -462,14 +469,15 @@ class UploadCreate(UploadBase):
         description="Parts of a dataset that this upload corresponds to",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
     )
-    urls: list[MaxLenURL] = Field(
+    urls: Annotated[list[MaxLenURL], Scoped({Scopes.upload: (), None: (MaxLen(512),)})] = Field(
         default_factory=list,
         title="URL(s)",
         description="""
         URL(s) that the data in this upload was retrieved from. One URL per line.
+        Accounts without upload permissions can add up to 512 URLs.
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
-        max_length=512,
+        max_length=512_000,
     )
 
     @classmethod

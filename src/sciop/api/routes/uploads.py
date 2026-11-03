@@ -16,6 +16,7 @@ from sciop.api.deps import (
     RequireUpload,
     RequireVisibleUpload,
     SessionDep,
+    check_scoped_limits,
 )
 from sciop.config import get_config
 from sciop.frontend.templates import jinja
@@ -60,6 +61,7 @@ async def create_upload(
     Create an upload from an already-uploaded torrent's infohash, and
     a dataset (and optionally dataset part(s)) to attach it to.
     """
+    check_scoped_limits(upload, current_account)
     torrent = crud.get_torrent_from_infohash(session=session, infohash=upload.infohash)
     if not torrent:
         raise HTTPException(
@@ -96,6 +98,7 @@ async def upload_edit(
     response: Response,
 ) -> UploadRead:
     """Edit an upload!"""
+    check_scoped_limits(upload_patch, current_account)
     updated_upload = upload.update(session, new=upload_patch, commit=True)
     if "HX-Request" in request.headers:
         response.headers["HX-Redirect"] = f"/uploads/{upload.infohash}"
