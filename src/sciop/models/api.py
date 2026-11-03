@@ -1,12 +1,14 @@
 import re
-from typing import Annotated, Any, ClassVar, Optional, Self, TypeVar
+from collections.abc import Sequence
+from math import ceil
+from typing import Annotated, Any, ClassVar, Generic, Optional, Self, TypeVar
 from typing import Literal as L
 from urllib.parse import quote_plus
 
 import sqlalchemy as sqla
 from fastapi import Query
 from fastapi_pagination import Page
-from fastapi_pagination.bases import RawParams
+from fastapi_pagination.bases import AbstractParams, RawParams
 from fastapi_pagination.customization import CustomizedPage, UseParams
 from fastapi_pagination.default import Params
 from pydantic import BaseModel, Field, GetCoreSchemaHandler, field_validator
@@ -237,5 +239,33 @@ class RaggedSearchParams(RaggedPageParams, SearchParams):
     size: int | None = Query(None, ge=1, le=5000)
 
 
+class RaggedPage(Page[T], Generic[T]):
+    """
+    Page for :class:`.RaggedPageParams`, whose size depends on the page number
+    when ``size`` isn't given.
+    """
+
+    @classmethod
+    def create(
+        cls,
+        items: Sequence[T],
+        params: AbstractParams,
+        *,
+        total: int | None = None,
+        **kwargs: Any,
+    ) -> Self:
+        if not isinstance(params, RaggedPageParams) or params.size is not None:
+            return super().create(items, params, total=total, **kwargs)
+
+        size = params.first_size if params.page == 1 else params.other_size
+        pages = None
+        if total is not None:
+            if total <= params.first_size:
+                pages = 1 if total else 0
+            else:
+                pages = 1 + ceil((total - params.first_size) / params.other_size)
+        return cls(total=total, items=items, page=params.page, size=size, pages=pages, **kwargs)
+
+
 SearchPage = CustomizedPage[Page[T], UseParams(SearchParams)]
-RaggedSearchPage = CustomizedPage[Page[T], UseParams(RaggedSearchParams)]
+RaggedSearchPage = CustomizedPage[RaggedPage[T], UseParams(RaggedSearchParams)]

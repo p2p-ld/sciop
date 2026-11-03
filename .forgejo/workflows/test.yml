@@ -61,10 +61,7 @@ jobs:
           python -m pip install pdm
           pdm install --with test
       - name: Install firefox
-#        run: playwright install firefox
-        run: |
-          pdm run playwright install-deps
-          pdm run playwright install firefox
+        run: pdm run playwright install --with-deps firefox
       - name: Run tests
         run: |
           mkdir $HOME/tmp
