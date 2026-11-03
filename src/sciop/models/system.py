@@ -76,8 +76,7 @@ class NginxConfig(TemplateModel):
         return value
 
     @field_validator("ratelimit_delay", mode="after")
-    @classmethod
-    def delay_0_is_nodelay(cls, val: int) -> int | str:
+    def delay_0_is_nodelay(self, val: int) -> int | str:
         if val == 0:
             return "nodelay"
         return val
