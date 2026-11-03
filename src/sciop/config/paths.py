@@ -61,13 +61,15 @@ class PathConfig(BaseModel):
             return f"sqlite:///{str(self.db.resolve())}"
 
     @field_validator("torrents", "logs", "docs", mode="after")
-    def create_dir(self, value: Path) -> Path:
+    @classmethod
+    def create_dir(cls, value: Path) -> Path:
         """Ensure directories exist"""
         value.mkdir(parents=True, exist_ok=True)
         return value
 
     @field_validator("db", mode="after")
-    def create_parent_dir(self, value: Path) -> Path:
+    @classmethod
+    def create_parent_dir(cls, value: Path) -> Path:
         """Ensure parent directory exists"""
         if value is not None and value != "memory":
             value.parent.mkdir(exist_ok=True, parents=True)

@@ -65,7 +65,7 @@ class NginxConfig(TemplateModel):
     )
 
     @model_validator(mode="after")
-    def ensure_ratelimits_set(cls, value: Self) -> Self:
+    def ensure_ratelimits_set(self, value: Self) -> Self:
         if value.ratelimit_enable:
             for field in value.__class__.model_fields:
                 if not field.startswith("ratelimit"):
@@ -76,7 +76,8 @@ class NginxConfig(TemplateModel):
         return value
 
     @field_validator("ratelimit_delay", mode="after")
-    def delay_0_is_nodelay(self, val: int) -> int | str:
+    @classmethod
+    def delay_0_is_nodelay(cls, val: int) -> int | str:
         if val == 0:
             return "nodelay"
         return val
