@@ -7,9 +7,9 @@ from sqlmodel.main import FieldInfo
 
 from sciop import models
 
-TABLE_MODELS = (
+TABLE_MODELS = [
     getattr(models, m) for m in models.__all__ if hasattr(getattr(models, m), "__table__")
-)
+]
 
 
 @pytest.mark.parametrize("model", TABLE_MODELS)

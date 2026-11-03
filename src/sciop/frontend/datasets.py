@@ -200,6 +200,7 @@ async def dataset_upload_torrent(
         request=request,
         response=response,
         __hx_request=None,
+        __hx_response=response,
     )
     parts = _parts_from_query(query=request.query_params, dataset=dataset, session=session)
 

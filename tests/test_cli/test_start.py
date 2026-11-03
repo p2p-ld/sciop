@@ -2,8 +2,8 @@ import shutil
 import subprocess
 from time import sleep
 
+import httpx
 import pytest
-import requests
 import yaml
 from bs4 import BeautifulSoup
 
@@ -19,6 +19,7 @@ def test_start_with_config(tmp_path, monkeypatch):
     config_path = tmp_path / "sciop-test-fakename.yaml"
     footer = "this text should be in the footer!"
     test_config = {
+        "env": "test",
         "server": {"port": 8965},
         "instance": {"footer": footer},
         "services": {"docs": {"enabled": False}},
@@ -28,23 +29,24 @@ def test_start_with_config(tmp_path, monkeypatch):
     sciop_path = shutil.which("sciop")
 
     proc = subprocess.Popen(
-        " ".join([sciop_path, "start", "-c", str(config_path)]),
+        [sciop_path, "start", "-c", str(config_path)],
         text=True,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=True,
+        stderr=subprocess.STDOUT,
     )
+    output = []
     try:
         # wait until the server is started
-        while True:
-            stderr = proc.stderr.readline()
-            if "startup complete" in stderr:
+        for line in proc.stdout:
+            output.append(line)
+            if "startup complete" in line:
                 break
-            sleep(0.1)
+        else:
+            pytest.fail("sciop exited before starting")
         sleep(0.25)
 
         # this tests if the pre-launch configuration stuff works
-        res = requests.get("http://localhost:8965/")
+        res = httpx.get("http://localhost:8965/")
         assert res.status_code == 200
 
         # and this tests if our config has been persisted through
@@ -53,4 +55,7 @@ def test_start_with_config(tmp_path, monkeypatch):
         assert footer_text[0].text == footer
 
     finally:
+        # pytest shows this if the test fails, including from pytest-timeout
+        print("".join(output))
         proc.terminate()
+        proc.wait(timeout=10)

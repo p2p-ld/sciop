@@ -130,6 +130,26 @@ def test_upload_url_limits(
             assert res.json()["detail"][0]["loc"] == ["body", "urls"]
 
 
+def test_upload_urls_ragged_page_metadata(upload, dataset, client):
+    """
+    Ragged pages report the size of the page they're on,
+    including when there are no items
+    """
+    ds = dataset()
+    empty = upload(dataset_=ds)
+    res = client.get(get_config().api_prefix + f"/uploads/{empty.infohash}/urls")
+    assert res.status_code == 200
+    assert res.json()["items"] == []
+    assert res.json()["size"] == 100
+    assert res.json()["pages"] == 0
+
+    ul = upload(dataset_=ds, urls=[f"https://example.com/{i}" for i in range(150)])
+    page_1 = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/urls").json()
+    assert (page_1["size"], page_1["pages"], len(page_1["items"])) == (100, 2, 100)
+    page_2 = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/urls?page=2").json()
+    assert (page_2["size"], page_2["pages"], len(page_2["items"])) == (1000, 2, 50)
+
+
 def test_upload_urls_not_visible(upload, client):
     """Urls of uploads that the viewer can't see aren't listed"""
     ul = upload(urls=["https://example.com/a"], is_approved=False)

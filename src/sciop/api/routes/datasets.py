@@ -250,6 +250,7 @@ async def _part_create_bulk(
     dataset: RequireDataset,
     session: SessionDep,
     request: Request,
+    response: Response,
 ) -> list[DatasetPartRead]:
     """
     Special method for creating bulk parts from form input,
@@ -267,6 +268,7 @@ async def _part_create_bulk(
         session=session,
         request=request,
         __hx_request=request,
+        __hx_response=response,
     )
 
 

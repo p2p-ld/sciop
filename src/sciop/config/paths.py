@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Literal
 
 from platformdirs import PlatformDirs
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 _default_userdir = Path().home() / ".config" / "mio"
 _dirs = PlatformDirs("sciop", "sciop")
@@ -20,6 +20,8 @@ class PathConfig(BaseModel):
     Prefer putting paths here rather than in the models where the paths are used,
     but do describe any relation between paths and other config values.
     """
+
+    model_config = ConfigDict(validate_default=True)
 
     db: Path | Literal["memory"] = DEFAULT_DB_PATHS["dev"]
     """
@@ -60,12 +62,14 @@ class PathConfig(BaseModel):
             return f"sqlite:///{str(self.db.resolve())}"
 
     @field_validator("torrents", "logs", "docs", mode="after")
+    @classmethod
     def create_dir(cls, value: Path) -> Path:
         """Ensure directories exist"""
         value.mkdir(parents=True, exist_ok=True)
         return value
 
     @field_validator("db", mode="after")
+    @classmethod
     def create_parent_dir(cls, value: Path) -> Path:
         """Ensure parent directory exists"""
         if value is not None and value != "memory":

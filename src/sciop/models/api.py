@@ -1,12 +1,14 @@
 import re
-from typing import Annotated, Any, ClassVar, Optional, Self, TypeVar
+from collections.abc import Sequence
+from math import ceil
+from typing import Annotated, Any, ClassVar, Generic, Optional, Self, TypeVar
 from typing import Literal as L
 from urllib.parse import quote_plus
 
 import sqlalchemy as sqla
 from fastapi import Query
 from fastapi_pagination import Page
-from fastapi_pagination.bases import RawParams
+from fastapi_pagination.bases import AbstractParams, RawParams
 from fastapi_pagination.customization import CustomizedPage, UseParams
 from fastapi_pagination.default import Params
 from pydantic import BaseModel, Field, GetCoreSchemaHandler, field_validator
@@ -175,7 +177,15 @@ class SearchParams(Params):
             except (TypeError, KeyError):
                 pass
 
-            col = sqla.desc(col.collate("NOCASE")) if desc else sqla.asc(col.collate("NOCASE"))
+            # sort text case-insensitively, including expressions with an unknown type.
+            # Other types don't support collations.
+            col_type = getattr(col, "type", None)
+            if isinstance(col_type, sqla.types.TypeDecorator):
+                col_type = col_type.impl_instance
+            if isinstance(col_type, (sqla.String, sqla.types.NullType)):
+                col = col.collate("NOCASE")
+
+            col = sqla.desc(col) if desc else sqla.asc(col)
             sort_items.append(col)
 
         # clear prior sort and add new one
@@ -229,5 +239,33 @@ class RaggedSearchParams(RaggedPageParams, SearchParams):
     size: int | None = Query(None, ge=1, le=5000)
 
 
+class RaggedPage(Page[T], Generic[T]):
+    """
+    Page for :class:`.RaggedPageParams`, whose size depends on the page number
+    when ``size`` isn't given.
+    """
+
+    @classmethod
+    def create(
+        cls,
+        items: Sequence[T],
+        params: AbstractParams,
+        *,
+        total: int | None = None,
+        **kwargs: Any,
+    ) -> Self:
+        if not isinstance(params, RaggedPageParams) or params.size is not None:
+            return super().create(items, params, total=total, **kwargs)
+
+        size = params.first_size if params.page == 1 else params.other_size
+        pages = None
+        if total is not None:
+            if total <= params.first_size:
+                pages = 1 if total else 0
+            else:
+                pages = 1 + ceil((total - params.first_size) / params.other_size)
+        return cls(total=total, items=items, page=params.page, size=size, pages=pages, **kwargs)
+
+
 SearchPage = CustomizedPage[Page[T], UseParams(SearchParams)]
-RaggedSearchPage = CustomizedPage[Page[T], UseParams(RaggedSearchParams)]
+RaggedSearchPage = CustomizedPage[RaggedPage[T], UseParams(RaggedSearchParams)]
