@@ -1,4 +1,5 @@
 from typing import Callable, Generator
+from uuid import uuid4
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
@@ -7,7 +8,6 @@ from sqlalchemy import Connection, Engine, Transaction, create_engine
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session, SQLModel
-from sqlmodel.pool import StaticPool
 
 
 def _engine(request: pytest.FixtureRequest) -> Engine:
@@ -148,16 +148,20 @@ def _session_end(
 
 
 def _in_memory_engine(request: pytest.FixtureRequest) -> Engine:
+    from sciop.config import get_config
     from sciop.db import create_tables
 
+    # vfs allows an in-memory db to have multiple connections with normal locking
+    path = f"file:/sciop-test-{uuid4().hex}?vfs=memdb"
     engine_kwargs = {
-        "connect_args": {"check_same_thread": False},
-        "poolclass": StaticPool,
+        "connect_args": {"check_same_thread": False, "timeout": get_config().db.busy_timeout},
+        "pool_size": get_config().db.pool_size,
+        "max_overflow": get_config().db.overflow_size,
     }
     if request.config.getoption("--echo-queries"):
         engine_kwargs["echo"] = True
 
-    engine = create_engine("sqlite://", **engine_kwargs)
+    engine = create_engine(f"sqlite:///{path}&uri=true", **engine_kwargs)
     create_tables(engine, check_migrations=False, check_existing=False)
 
     return engine
