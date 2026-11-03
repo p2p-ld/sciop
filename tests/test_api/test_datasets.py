@@ -1,11 +1,10 @@
 import json
-from collections import defaultdict
 
 from sqlmodel import Session, select
 from starlette.testclient import TestClient
 
 from sciop.config import get_config
-from sciop.models import URL, DatasetRead, DatasetTagLink, DatasetURLLink, ExternalIdentifier
+from sciop.models import URL, DatasetRead, DatasetTagLink, ExternalIdentifier
 from sciop.services.markdown import render_markdown
 
 
@@ -83,7 +82,6 @@ def test_edit_relations(client, dataset, admin_auth_header, session: Session):
 
     # we did not create new items for the ones that already exist
     urls = session.exec(select(URL)).all()
-    url_history = session.exec(select(DatasetURLLink.history_cls())).all()
     eids = session.exec(select(ExternalIdentifier)).all()
     eid_history = session.exec(select(ExternalIdentifier.history_cls())).all()
     tag_history = session.exec(select(DatasetTagLink.history_cls())).all()
@@ -92,18 +90,7 @@ def test_edit_relations(client, dataset, admin_auth_header, session: Session):
     assert len(urls) == 3
     assert len([url for url in urls if url.url == "https://example.com/1"]) == 1
     assert [url for url in urls if url.url == "https://example.com/2"][0].datasets == []
-    # 2 creations + 1 unchanged + 1 creation + 1 deletion
-    assert len(url_history) == 5
-    history_map = defaultdict(list)
-    for link in url_history:
-        history_map[link.version_created_at].append(link)
-    assert len(history_map) == 2
-    latest = history_map[max(history_map.keys())]
-    assert len(latest) == 3
-    urls_by_id = {url.url_id: url.url for url in urls}
-    for link in latest:
-        assert link.dataset_id == 1
-        assert link.version_is_deletion == (urls_by_id[link.url_id] == "https://example.com/2")
+    # url links are written with bulk statements, which don't record edit history
 
     # external ids - we just check number
     assert len(eids) == 3

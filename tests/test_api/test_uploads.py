@@ -7,6 +7,7 @@ from torrent_models import Torrent
 
 from sciop.config import get_config
 from sciop.models import Account, Dataset, DatasetPart
+from sciop.types import Scopes
 
 
 @pytest.mark.parametrize("infohash_type", ["v1_infohash", "v2_infohash"])
@@ -65,6 +66,75 @@ def test_upload_urls(upload, client, admin_auth_header):
     )
     assert res.status_code == 200
     assert res.json()["urls"] == new_urls
+
+
+def test_upload_urls_paginated(upload, client):
+    """Upload urls are listed in their own paginated, sortable endpoint"""
+    urls = [f"https://example.com/{i:03d}" for i in range(150)]
+    ul = upload(urls=urls)
+
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/urls")
+    assert res.status_code == 200
+    page_1 = res.json()
+    assert [item["url"] for item in page_1["items"]] == urls[:100]
+
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/urls?page=2")
+    assert [item["url"] for item in res.json()["items"]] == urls[100:]
+
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/urls?sort=-url&size=5")
+    assert [item["url"] for item in res.json()["items"]] == urls[::-1][:5]
+
+    res = client.get(
+        get_config().api_prefix + f"/uploads/{ul.infohash}/urls", headers={"HX-Request": "true"}
+    )
+    assert res.status_code == 200
+    assert f'id="url-table-{ul.infohash}"' in res.text
+    assert urls[0] in res.text
+
+
+@pytest.mark.parametrize(
+    "scopes,n_urls,status",
+    [([], 512, 200), ([], 513, 422), ([Scopes.upload], 513, 200)],
+)
+def test_upload_url_limits(
+    scopes, n_urls, status, account, torrentfile, upload, dataset, client, get_auth_header
+):
+    """
+    Accounts without upload permissions can add at most 512 urls,
+    when creating or editing an upload
+    """
+    acct = account(scopes=scopes, username="limited")
+    header = get_auth_header(acct.username)
+    ds = dataset(slug="url-limits", is_approved=True)
+    urls = [f"https://example.com/{i}" for i in range(n_urls)]
+
+    created = client.post(
+        get_config().api_prefix + "/uploads",
+        headers=header,
+        json={
+            "infohash": torrentfile(account_=acct).infohash,
+            "dataset_slug": ds.slug,
+            "method": "By downloading it",
+            "description": "It is an upload",
+            "urls": urls,
+        },
+    )
+    ul = upload(account_=acct, dataset_=ds)
+    edited = client.patch(
+        get_config().api_prefix + f"/uploads/{ul.infohash}", headers=header, json={"urls": urls}
+    )
+
+    for res in (created, edited):
+        assert res.status_code == status
+        if status == 422:
+            assert res.json()["detail"][0]["loc"] == ["body", "urls"]
+
+
+def test_upload_urls_not_visible(upload, client):
+    """Urls of uploads that the viewer can't see aren't listed"""
+    ul = upload(urls=["https://example.com/a"], is_approved=False)
+    res = client.get(get_config().api_prefix + f"/uploads/{ul.infohash}/urls")
+    assert res.status_code == 404
 
 
 @pytest.mark.parametrize("part_slugs", (["part-1"], ["part-2", "part-3"]))

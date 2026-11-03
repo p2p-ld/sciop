@@ -1,9 +1,15 @@
 from datetime import UTC, datetime
+from typing import Annotated, Optional
 
 import pytest
+from annotated_types import Le, MaxLen
+from fastapi import HTTPException
+from pydantic import BaseModel
 from sqlmodel import select
 
+from sciop.api.deps import check_scoped_limits
 from sciop.models import Dataset, ExternalIdentifierCreate
+from sciop.types import Scoped, Scopes
 
 
 @pytest.mark.parametrize(
@@ -40,3 +46,39 @@ def test_utc_datetime(dataset, session):
     ds_loaded = Dataset.model_validate(ds_loaded.model_dump())
     assert ds_loaded.last_seen_at.tzinfo is UTC
     assert ds_loaded.last_seen_at == now_naive.replace(tzinfo=UTC)
+
+
+class _ScopedModel(BaseModel):
+    items: Annotated[
+        list[int],
+        Scoped({Scopes.review: (), Scopes.upload: (MaxLen(3),), None: (MaxLen(1),)}),
+    ] = []
+    count: Annotated[Optional[int], Scoped({None: (Le(10),)})] = None
+
+
+@pytest.mark.parametrize(
+    "scopes,items,count,error_locs",
+    [
+        ([], [1], 10, []),
+        ([], [1, 2], 11, [["body", "items"], ["body", "count"]]),
+        ([Scopes.upload], [1, 2, 3], None, []),
+        ([Scopes.upload], [1, 2, 3, 4], None, [["body", "items"]]),
+        # the first scope the account has is used, so review lifts the upload limit
+        ([Scopes.upload, Scopes.review], [1, 2, 3, 4], None, []),
+        # fields without a scope that the account has fall back to the None limits
+        ([Scopes.review], [1, 2, 3, 4], 11, [["body", "count"]]),
+    ],
+)
+def test_scoped_limits(account, scopes, items, count, error_locs):
+    """Scoped constraints are chosen by the account's scopes and collected per field"""
+    model = _ScopedModel(items=items, count=count)
+    acct = account(scopes=scopes, username="scoped")
+
+    if not error_locs:
+        check_scoped_limits(model, acct)
+        return
+
+    with pytest.raises(HTTPException) as e:
+        check_scoped_limits(model, acct)
+    assert e.value.status_code == 422
+    assert [err["loc"] for err in e.value.detail] == error_locs

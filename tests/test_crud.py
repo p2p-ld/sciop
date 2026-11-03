@@ -4,7 +4,15 @@ import pytest
 from sqlmodel import select
 
 from sciop import crud
-from sciop.models import URL, DatasetClaim, DatasetCreate, Tag, TorrentFileCreate, Tracker
+from sciop.models import (
+    URL,
+    DatasetClaim,
+    DatasetCreate,
+    DatasetURLLink,
+    Tag,
+    TorrentFileCreate,
+    Tracker,
+)
 from sciop.testing.fabricators import default_dataset, default_torrentfile
 
 
@@ -66,20 +74,97 @@ def test_urls_shared(session, dataset, upload):
     assert [url.url for url in ds_a.urls] == [url, "https://example.com/a"]
 
 
-def test_get_urls_order_and_duplicates(session):
+def test_assign_urls(session, dataset):
     """
-    get_urls keeps the given order and drops duplicates, reusing existing urls
+    Assigning urls replaces an item's urls, dropping duplicates and reusing existing url rows,
+    without touching other items' links
     """
     existing = URL(url="https://example.com/existing")
     session.add(existing)
     session.commit()
+    other = dataset(slug="other", urls=["https://example.com/existing"])
+    ds = dataset(slug="target", urls=["https://example.com/old"])
 
-    urls = crud.get_urls(
-        session=session,
-        urls=["https://example.com/new", "https://example.com/existing", "https://example.com/new"],
-    )
-    assert [url.url for url in urls] == ["https://example.com/new", "https://example.com/existing"]
-    assert urls[1] is existing
+    ds.urls = ["https://example.com/new", existing, "https://example.com/new"]
+    session.add(ds)
+    session.flush()
+    # urls are readable after a flush, before the commit
+    assert {url.url for url in ds.urls} == {
+        "https://example.com/new",
+        "https://example.com/existing",
+    }
+    session.commit()
+
+    assert existing in ds.urls
+    assert [url.url for url in other.urls] == ["https://example.com/existing"]
+    assert len(session.exec(select(URL).where(URL.url == "https://example.com/new")).all()) == 1
+
+    ds.urls = []
+    session.add(ds)
+    session.commit()
+    assert ds.urls == []
+    assert [url.url for url in other.urls] == ["https://example.com/existing"]
+
+
+def test_reassign_urls_keeps_existing_links(session, dataset):
+    """
+    Reassigning urls keeps the links that are still in the list,
+    removes the ones that aren't, and adds new ones
+    """
+    a, b, c = "https://example.com/a", "https://example.com/b", "https://example.com/c"
+    ds = dataset(urls=[a, b])
+
+    def links() -> dict[str, DatasetURLLink]:
+        rows = session.exec(
+            select(DatasetURLLink, URL)
+            .join(URL, URL.url_id == DatasetURLLink.url_id)
+            .where(DatasetURLLink.dataset_id == ds.dataset_id)
+        ).all()
+        return {url.url: link for link, url in rows}
+
+    created_b = links()[b].created_at
+
+    ds.urls = [b, c]
+    session.add(ds)
+    session.commit()
+    after = links()
+    assert sorted(after) == [b, c]
+    assert after[b].created_at == created_b
+    assert after[b].updated_at > created_b
+
+    # saving the same list again keeps every link
+    ds.urls = [b, c]
+    session.add(ds)
+    session.commit()
+    assert sorted(links()) == [b, c]
+    assert links()[b].created_at == created_b
+
+
+def test_urls_partial_changes_raise(session, dataset):
+    """
+    urls can only be assigned as a whole list,
+    since appending to or removing from the collection would silently not be saved
+    """
+    ds = dataset(urls=["https://example.com/a", "https://example.com/b"])
+    first = ds.urls[0]
+
+    changes = [
+        lambda: ds.urls.append(URL(url="https://example.com/c")),
+        lambda: ds.urls.extend([URL(url="https://example.com/c")]),
+        lambda: ds.urls.remove(first),
+        lambda: ds.urls.__delitem__(0),
+        lambda: ds.urls.__iadd__([URL(url="https://example.com/c")]),
+    ]
+    for change in changes:
+        with pytest.raises(TypeError, match="assigned as a whole list"):
+            change()
+    assert [url.url for url in ds.urls] == ["https://example.com/a", "https://example.com/b"]
+
+    # replacing a loaded collection removes its old items without raising
+    ds.urls = ["https://example.com/c"]
+    session.add(ds)
+    session.commit()
+    assert [url.url for url in ds.urls] == ["https://example.com/c"]
 
 
 def test_create_torrent_with_trackers(session, infohashes, uploader):
