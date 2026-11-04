@@ -248,7 +248,7 @@ class Dataset(
     urls: list["URL"] = Relationship(
         back_populates="datasets",
         link_model=DatasetURLLink,
-        sa_relationship_kwargs={"viewonly": True},
+        sa_relationship_kwargs={"viewonly": True, "order_by": "URL.url"},
     )
     tags: list["Tag"] = Relationship(
         back_populates="datasets",

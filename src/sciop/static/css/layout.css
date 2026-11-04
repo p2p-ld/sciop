@@ -158,6 +158,14 @@ table {
     --item-cols: 1em 5em 7fr 5em 3em 3em 4em 5em 4em;
   }
 
+  /* the status of the url an upload is listed under, on the urls page */
+  &.with-url-status {
+    --item-cols: 1em 5em 3em 7fr 5em 3em 3em 4em 1em 1em;
+  }
+  .url-status {
+    text-align: center;
+  }
+
   #uploads-table-head {
     .seeders-icon, .downloaders-icon {
       text-align: center;
@@ -399,6 +407,9 @@ table {
     overflow-wrap: anywhere;
     word-break: break-word;
     width: 100%;
+  }
+  .status {
+    text-align: center;
   }
 }
 .tokens-container {

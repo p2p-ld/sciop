@@ -192,6 +192,11 @@ def alembic_version(engine: Engine) -> Optional[str]:
             raise e
 
 
+def _with_random_statuses(urls: list[str]) -> list[dict]:
+    """Give seed urls a mix of HTTP statuses, including none"""
+    return [{"url": url, "status": random.choice([None, 200, 200, 301, 404, 503])} for url in urls]
+
+
 def create_seed_data(n: int = 100) -> None:
     if get_config().env != "dev":
         return
@@ -282,7 +287,7 @@ def create_seed_data(n: int = 100) -> None:
                 "dataset": "many-files",
                 "is_approved": True,
                 "n_files": 1000,
-                "urls": random_site_pages(fake=fake, n=1000),
+                "urls": _with_random_statuses(random_site_pages(fake=fake, n=1000)),
             },
         ]
 
@@ -323,7 +328,7 @@ def create_seed_data(n: int = 100) -> None:
                     account=accounts["uploader"],
                     dataset=dataset,
                     commit=False,
-                    urls=sorted(random.sample(pages, random.randint(3, 50))),
+                    urls=_with_random_statuses(sorted(random.sample(pages, random.randint(3, 50)))),
                 )
                 for _ in range(random.randint(1, 3))
             ]

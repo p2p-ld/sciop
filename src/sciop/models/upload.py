@@ -1,11 +1,11 @@
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Annotated, ClassVar, Optional, Self, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Optional, Self, cast
 from urllib.parse import urljoin
 
 import sqlalchemy as sqla
 from annotated_types import MaxLen
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from sqlalchemy import ColumnElement, SQLColumnExpression, event
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.attributes import AttributeEventToken
@@ -22,7 +22,8 @@ from sciop.models import (
     TorrentFileRead,
     TorrentTrackerLink,
 )
-from sciop.models.dataset import UploadDatasetPartLink, _split_lines
+from sciop.models.base import SQLModel
+from sciop.models.dataset import UploadDatasetPartLink
 from sciop.models.mixins import (
     EditableMixin,
     FrontendMixin,
@@ -38,6 +39,7 @@ from sciop.models.urls import BulkURLsMixin, UploadURLLink
 from sciop.services.markdown import render_db_fields_to_html
 from sciop.types import (
     FileName,
+    HTTPStatusCode,
     IDField,
     InputType,
     MaxLenURL,
@@ -50,8 +52,6 @@ from sciop.types import (
 
 if TYPE_CHECKING:
     from sqlmodel import Session
-
-    from sciop.models import URL
 
 
 class UploadBase(ModerableMixin, FrontendMixin):
@@ -212,10 +212,9 @@ class Upload(
     torrent: Optional["TorrentFile"] = Relationship(
         back_populates="upload", sa_relationship_kwargs={"lazy": "selectin"}
     )
-    urls: list["URL"] = Relationship(
-        back_populates="uploads",
-        link_model=UploadURLLink,
-        sa_relationship_kwargs={"viewonly": True},
+    # links to the urls rather than the urls themselves, so they include their statuses
+    urls: list[UploadURLLink] = Relationship(
+        back_populates="upload", sa_relationship_kwargs={"viewonly": True}
     )
 
     audit_log_target: list["AuditLog"] = Relationship(back_populates="target_upload")
@@ -397,13 +396,17 @@ event.listen(Upload, "before_insert", render_db_fields_to_html("description", "m
 
 
 class UploadRead(UploadBase, TableReadMixin):
-    """Version of dataset upload returned when reading"""
+    """
+    Version of dataset upload returned when reading.
+
+    Doesn't include the upload's urls, since there can be hundreds of thousands of them:
+    they are paginated separately, at ``/uploads/{infohash}/urls``.
+    """
 
     account: Optional[UsernameStr] = None
     dataset: Optional[SlugStr] = None
     dataset_parts: Optional[list[SlugStr]] = None
     torrent: Optional["TorrentFileRead"] = None
-    urls: list[str] = Field(default_factory=list)
     seeders: Optional[int] = None
     leechers: Optional[int] = None
 
@@ -435,10 +438,6 @@ class UploadRead(UploadBase, TableReadMixin):
             value = value.username
         return value
 
-    @field_validator("urls", mode="before")
-    def collapse_urls(cls, val: list["URL"]) -> list[str]:
-        return [url.url for url in val]
-
     @property
     def magnet_link(self) -> str:
         return self.torrent.magnet_link
@@ -446,6 +445,17 @@ class UploadRead(UploadBase, TableReadMixin):
     @property
     def size(self) -> int:
         return self.torrent.total_size
+
+
+class UploadURL(SQLModel):
+    """A url that an upload's data was retrieved from, and the HTTP status code it returned"""
+
+    url: MaxLenURL
+    status: Optional[HTTPStatusCode] = None
+
+    def __str__(self) -> str:
+        """As a line of the form input: ``url status``, or just the url without a status"""
+        return self.url if self.status is None else f"{self.url} {self.status}"
 
 
 class UploadCreate(UploadBase):
@@ -469,11 +479,13 @@ class UploadCreate(UploadBase):
         description="Parts of a dataset that this upload corresponds to",
         schema_extra={"json_schema_extra": {"input_type": InputType.none}},
     )
-    urls: Annotated[list[MaxLenURL], Scoped({Scopes.upload: (), None: (MaxLen(512),)})] = Field(
+    urls: Annotated[list[UploadURL], Scoped({Scopes.upload: (), None: (MaxLen(512),)})] = Field(
         default_factory=list,
         title="URL(s)",
         description="""
-        URL(s) that the data in this upload was retrieved from. One URL per line.
+        URL(s) that the data in this upload was retrieved from. One URL per line,
+        optionally followed by a space and the HTTP status code the URL returned,
+        e.g. "https://example.com/data 200".
         Accounts without upload permissions can add up to 512 URLs.
         """,
         schema_extra={"json_schema_extra": {"input_type": InputType.textarea}},
@@ -488,13 +500,32 @@ class UploadCreate(UploadBase):
                 "infohash": upload.infohash,
                 "part_slugs": [p.part_slug for p in upload.dataset_parts],
                 "file_name": upload.file_name,
-                "urls": [url.url for url in upload.urls],
+                "urls": [{"url": link.url.url, "status": link.status} for link in upload.urls],
             },
         )
 
     @field_validator("urls", mode="before")
-    def split_lines(cls, value: str | list[str]) -> Optional[list[str]]:
-        return _split_lines(value)
+    def split_lines(cls, value: str | list[str | UploadURL] | None) -> list[str | UploadURL]:
+        """
+        Split lines of ``url status`` (where the status is optional) into dicts.
+
+        The url and status can be separated by any whitespace,
+        since urls can't contain whitespace.
+        ``None`` is the same as no urls.
+        """
+        if value is None:
+            return []
+        if isinstance(value, str):
+            value = value.splitlines()
+        urls = []
+        for item in value:
+            if isinstance(item, str):
+                parts = item.split(maxsplit=1)
+                if not parts:
+                    continue
+                item = {"url": parts[0], "status": parts[1].strip() if len(parts) > 1 else None}
+            urls.append(item)
+        return urls
 
 
 @all_optional
@@ -512,3 +543,14 @@ class UploadUpdate(UploadCreate):
         description="Torrent filename (must end in .torrent)",
         schema_extra={"json_schema_extra": {"input_type": InputType.input}},
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def null_urls_unset(cls, data: Any) -> Any:
+        """
+        ``"urls": null`` leaves the urls as they are, the same as not passing them,
+        since urls aren't included when reading an upload
+        """
+        if isinstance(data, dict) and "urls" in data and data["urls"] is None:
+            del data["urls"]
+        return data

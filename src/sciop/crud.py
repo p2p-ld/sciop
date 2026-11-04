@@ -331,7 +331,7 @@ def create_upload(
         "dataset": dataset,
         "infohash": created_upload.infohash,
         "is_approved": account.has_scope("upload"),
-        "urls": created_upload.urls,
+        "urls": [url.model_dump() for url in created_upload.urls],
     }
     if created_upload.part_slugs:
         update["dataset_parts"] = get_dataset_parts(

@@ -32,6 +32,7 @@ from sciop.models import (
     UploadCreate,
     UploadRead,
     UploadUpdate,
+    UploadURL,
     UploadURLLink,
     Webseed,
     WebseedCreate,
@@ -166,12 +167,13 @@ async def upload_urls(
     request: Request,
     response: Response,
     search: RaggedQueryNoCurrentUrl,
-) -> RaggedSearchPage[URL]:
+) -> RaggedSearchPage[UploadURL]:
     """
-    URLs that the data in an upload was retrieved from.
+    URLs that the data in an upload was retrieved from,
+    and the HTTP status code they returned, if known.
     """
     stmt = (
-        select(URL)
+        select(URL.url, UploadURLLink.status)
         .join(UploadURLLink, UploadURLLink.url_id == URL.url_id)
         .where(UploadURLLink.upload_id == upload.upload_id)
         .order_by(URL.url)
@@ -179,7 +181,7 @@ async def upload_urls(
     if search.query:
         raise HTTPException(400, "Search query not supported for upload urls")
     request.state.upload = upload
-    stmt = search.apply_sort(stmt, URL)
+    stmt = search.apply_sort(stmt, UploadURLLink)
     return paginate(conn=session, query=stmt)
 
 

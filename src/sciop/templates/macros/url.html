@@ -1,0 +1,5 @@
+{% macro status_tag(status) %}
+{% if status %}
+<span class="status-tag status-{{ status // 100 }}xx" title="HTTP status {{ status }}">{{ status }}</span>
+{% endif %}
+{% endmacro %}

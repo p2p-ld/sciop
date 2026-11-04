@@ -28,6 +28,7 @@ from sciop.models import (
     TorrentFileCreate,
     Upload,
     UploadCreate,
+    UploadURL,
 )
 from sciop.types import Scopes
 
@@ -334,7 +335,7 @@ def random_upload(
     commit: bool = True,
     torrent_kwargs: dict | None = None,
     torrentfile_kwargs: dict | None = None,
-    urls: list[str] | None = None,
+    urls: list[str | UploadURL] | None = None,
     n_files: int = 1,
 ) -> "Upload":
     if not fake:

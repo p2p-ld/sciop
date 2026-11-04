@@ -647,3 +647,26 @@ progress::-moz-progress-bar {
   }
 }
 
+.status-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 85%;
+  line-height: 1.2;
+  padding: 0.05em 0.35em;
+  border-radius: 3px;
+  background-color: var(--color-background-shade);
+  color: var(--color-text);
+
+  &.status-2xx {
+    background-color: var(--color-neutral);
+    color: var(--color-light-background);
+  }
+  &.status-3xx {
+    background-color: var(--color-alert);
+    color: var(--color-dark-background);
+  }
+  &.status-4xx, &.status-5xx {
+    background-color: var(--color-evil);
+    color: var(--color-light-background);
+  }
+}
