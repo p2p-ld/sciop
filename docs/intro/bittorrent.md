@@ -407,6 +407,8 @@ or specific accounts are given upload permissions to bypass review if we know th
 We do not claim that our moderation is 100% airtight, 
 so you should practice basic precautions with any data you download.
 
+If you identify a problematic upload, please [report it](../using/moderation.md#reports).
+
 Since much of the content of sciop is a secondary scrape of some primary source,
 it is very difficult to establish authenticity or accuracy.
 It is possible to [cryptographically sign torrents](https://www.bittorrent.org/beps/bep_0035.html),
@@ -414,12 +416,6 @@ but unless that signature is from the original source of the file,
 there is always some gap in provenance from the source to the torrent.
 The only mechanism we have (and the only mechanism that really exists anywhere)
 is *social proof* - if something is fake or incomplete, say so!
-
-!!! warning "Reporting Tooling is Incomplete"
-
-    Sciop is still in beta, and at the time of writing, the reporting and commenting tooling is incomplete.
-    Please be extra careful while this is still the case.
-    Use [the forum](https://forum.safeguar.de/) to report problematic torrents.
 
 Most files you download aren't directly executed:
 videos, pictures, PDFs, etc. are all *read by other programs,* 
