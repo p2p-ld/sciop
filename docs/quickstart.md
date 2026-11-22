@@ -62,7 +62,7 @@ Datasets and dataset parts can be created without already having the upload in h
 - [Create a container dataset](./using/browsing.md) that describes what a dataset is and why it is threatened
 - Optionally, create [dataset parts](./using/browsing.md#dataset-parts) to subdivide the data into
   smaller chunks so that people can share the work of scraping.
-- Make a thread on the [forum](https://forum.safeguar.de) to let people know that help is needed
+- If you are in the Zulip chat server (which will be made public soon), create a thread in the appropriate "Rescue" channel.
   (soon sciop will be able to do this as well)
 
 ## Write Some Code
