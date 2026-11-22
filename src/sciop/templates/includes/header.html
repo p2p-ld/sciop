@@ -23,6 +23,7 @@
 			<a class="nav-button outline request-button" href="/request">Add Dataset</a>
 			<a href="/self/" class="nav-button account-button">{{ current_account.username }}</a>
 			{% else %}
+			<button class="nav-button outline" title="Login to create a dataset" disabled>Add Dataset</button>
 			<a href="/login" class="nav-button login-button">Login</a>
 			{% endif %}
 			{% include "includes/menu-button.html" %}

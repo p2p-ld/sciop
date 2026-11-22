@@ -139,6 +139,7 @@ button,
     box-shadow: unset;
     border-color: var(--color-border-deemphasized);
     color: var(--color-deemphasized);
+    cursor: unset;
   }
 
   &.table-link {
